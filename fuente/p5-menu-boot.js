@@ -1,0 +1,81 @@
+/* ================= MENÚ PÚBLICO (el real del cliente, dentro de un marco aislado) =================
+   El menú que ve el público es el mismo archivo que ya está publicado en GitHub (diseño, carrito, buscador, lightbox, mapa, reseñas,
+   redes, club). Acá se le conecta el catálogo del inventario, el alta al Club, la tarjeta de fidelización, los cupones y los textos
+   legales. El menú sólo recibe datos públicos: nunca costos, stock exacto, proveedores ni clientes de terceros. */
+const mCfg=()=>S.menu.published||S.menu;
+function pubCatalog(){const secs=S.rubros.filter(r=>r.kind==='rubro'&&r.layout&&r.menuOn!==false).map(r=>({cat:r.id,nom:r.mNom||r.name,titulo:r.mTitle||r.name,hint:r.mHint||'',layout:r.layout,alc:!!r.alcohol,menu:true}));
+ const ids=new Set(secs.map(s=>s.cat));
+ const productos=S.products.filter(p=>p.menu&&p.active&&ids.has(p.rubro)).map(p=>({id:p.id,cat:p.rubro,grupo:p.grupo||'',nom:p.name,sub:p.sub||'',precio:p.price/100,img:IMGS[p.id]||p.img||'',destacado:!!p.featured,desc:p.desc||'',unidad:p.unit!=='u'?p.unit:'',agotado:p.stock<=0}));
+ return{secciones:secs,productos};}
+function pubSite(){const c=mCfg();
+ return{title:c.title||'RAVE DIGITAL',sub:c.sub,pitch:c.pitch,promo:c.promo,address:S.tenant.address,mapQuery:c.mapQuery,mapUrl:c.mapUrl,reviewUrl:c.reviewUrl,wifi:c.wifi,social:(c.social||[]).filter(x=>x.on!==false&&x.url&&safeUrl(x.url)).map(x=>({k:x.k,label:x.label,handle:x.handle,url:x.url})),icons:Object.assign({},EXTRA_ICONS,SOCIAL_ICONS),footer:c.footer,wa:S.tenant.wa,alcFrom:c.alcFrom,alcTo:c.alcTo,hideTeamBtn:!!c.hideTeamBtn,clubOn:c.clubOn!==false};}
+const LOCAL_API={
+ site:pubSite,catalog:pubCatalog,clubJoin:f=>clubJoin(f),
+ card:id=>pubCard(id),cardCode:id=>pubCardCode(id),cardLogin:(w,b)=>pubCardLogin(w,b),
+ coupons:id=>pubCoupons(id),couponInfo:(c,t)=>pubCouponInfo(c,t),plans:()=>pubPlans(),
+ orderRequest:o=>{S.orderReqs.push({id:uid(),ts:now(),total:Math.round((+o.total||0)*100),n:(o.items||[]).length,coupon:String(o.coupon||'').slice(0,24)});if(S.orderReqs.length>300)S.orderReqs.shift();emit('order.request',{n:(o.items||[]).length});save();},
+ legal:()=>legalPublic(),logArrep:()=>{S.arrep.push({id:uid(),ts:now(),status:'abierto por WhatsApp'});audit('ARREPENTIMIENTO','solicitud iniciada desde el menú público');save();},
+ openPanel:()=>{location.hash='#acceso';}};
+window.RAVE_API=cloudApiWrap(LOCAL_API);
+function buildPubDoc(){const m=/[?&]lang=(es|en)/.exec(location.search+location.hash);const qs=m?('?lang='+m[1]):'';
+ const base=/^https?:/.test(location.protocol)?location.href.split('#')[0]:PUBLIC_URL();
+ const hideCard=(CLOUD.on&&!cl.ready)?'<style>#loyalty-block{display:none!important}</style>':'';
+ const inj=`<script>window.__QS=${JSON.stringify(qs)};<\/script><link rel="canonical" href="${esc(base)}">${hideCard}`;
+ return PUB_DOC.replace('<body>','<body>'+inj);}
+function showMenu(){const el=$('#pub');el.hidden=false;
+ if(!el.querySelector('iframe')){el.innerHTML=`<iframe id="pubframe" title="Menú público de ${esc(S.tenant.name)}" style="border:0;width:100%;height:100%;display:block;background:#242220"></iframe>`;$('#pubframe').srcdoc=buildPubDoc();}
+ else pubRefresh();}
+
+/* ================= ADMINISTRACIÓN DEL MENÚ ================= */
+const NETS=[['instagram','Instagram','instagram.com'],['facebook','Facebook','facebook.com,fb.com,fb.me'],['tiktok','TikTok','tiktok.com'],['x','X','x.com,twitter.com'],['youtube','YouTube','youtube.com,youtu.be'],['whatsapp','WhatsApp','wa.me,whatsapp.com'],['linkedin','LinkedIn','linkedin.com'],['telegram','Telegram','t.me,telegram.me'],['threads','Threads','threads.net,threads.com'],['spotify','Spotify','open.spotify.com,spotify.com'],['web','Sitio web',''],['otro','Otra red','']];
+const EXTRA_ICONS=(()=>{const t=(bg,tx)=>`<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="${bg}"/><text x="12" y="16" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="Arial,sans-serif">${tx}</text></svg>`;return{whatsapp:t('#25D366','wa'),linkedin:t('#0A66C2','in'),telegram:t('#229ED9','tg'),threads:t('#111','@'),spotify:t('#1DB954','sp'),web:t('#555','www'),otro:t('#555','+')};})();
+function soRow(s){const k=NETS.some(n=>n[0]===s.k)?s.k:'otro';return `<div class="so-row card" style="margin:.4rem 0;padding:.6rem"><div class="row"><label class="chk" style="margin:0"><input type="checkbox" class="so-on" ${s.on!==false?'checked':''}> Mostrar</label>${s.example?'<span class="tag sim">ejemplo</span>':''}<span class="sp"></span><button type="button" class="btn sm red" data-act="soDel" aria-label="Quitar esta red">✕</button></div><div class="grid g2"><div><label>Red</label><select class="so-k">${NETS.map(n=>`<option value="${n[0]}" ${n[0]===k?'selected':''}>${n[1]}</option>`).join('')}</select></div><div><label>Nombre a mostrar</label><input class="so-l" maxlength="30" value="${esc(s.label||'')}"></div><div><label>Usuario (@…)</label><input class="so-h" maxlength="40" value="${esc(s.handle||'')}"></div><div><label>Enlace (https)</label><input class="so-u" maxlength="200" value="${esc(s.url||'')}" placeholder="https://"></div></div></div>`;}
+function hostOk(k,u){const n=NETS.find(x=>x[0]===k);if(!n||!n[2])return true;try{const h=new URL(u).hostname.toLowerCase();return n[2].split(',').some(d=>h===d||h.endsWith('.'+d));}catch(e){return false;}}
+function soRead(){const out=[];let err='';$$('#so-rows .so-row').forEach(r=>{if(err)return;const on=r.querySelector('.so-on').checked,k=r.querySelector('.so-k').value,label=r.querySelector('.so-l').value.trim(),handle=r.querySelector('.so-h').value.trim(),url=r.querySelector('.so-u').value.trim();
+ if(!label&&!url&&!handle)return;if(!label){err='Red social sin nombre.';return;}
+ if(url&&!safeUrl(url)){err='El enlace de '+label+' debe empezar con https:// (sin espacios).';return;}
+ if(url&&!hostOk(k,url)){err='El enlace de '+label+' no parece ser de esa red ('+k+').';return;}
+ if(on&&!url){err='Para mostrar '+label+' falta el enlace.';return;}
+ const prev=(S.menu.social||[]).find(x=>x.k===k&&x.label===label);out.push({k,label:label.slice(0,30),handle:handle.slice(0,40),url,on,example:!!(prev&&prev.example&&url===prev.url)});});
+ return err?{err}:{out};}
+A.soAdd=()=>{const box=$('#so-rows');if(!box)return;const d=document.createElement('div');d.innerHTML=soRow({k:'otro',label:'',handle:'',url:'',on:true});box.appendChild(d.firstElementChild);};
+A.soDel=el=>{const r=el.closest('.so-row');if(r)r.remove();};
+function safeUrl(u){u=String(u||'').trim();return /^https:\/\/[^\s"'<>]+$/i.test(u)?u:'';}
+function menuSnapshot(){const c=JSON.parse(JSON.stringify(S.menu));delete c.published;delete c.history;delete c.pubHash;delete c.version;return c;}
+reg('menuadmin','Menú público','globe','menu_admin',()=>{const c=S.menu;const dirty=!c.published||sha256(JSON.stringify(menuSnapshot()))!==c.pubHash;const url=/^https?:/.test(location.protocol)?location.href.split('#')[0]:PUBLIC_URL();
+ const reqs=S.orderReqs.filter(o=>now()-o.ts<7*86400000);
+ return `<div class="row"><h1 class="sp">Menú público</h1><span class="tag ${dirty?'warn':'ok'}">${dirty?'Borrador sin publicar':'Publicado v'+c.version}</span><a class="btn" href="#menu" target="_blank">Ver menú</a><button class="btn gold" data-act="mpPublish">Publicar</button></div>
+ <p class="sm mut">El catálogo (productos, precios, fotos, sin stock) sale <b>en vivo del Inventario</b>: tildá "Publicar en menú digital" en cada producto. Acá se editan los textos, redes, mapa, Wi-Fi y accesos. Pedidos recibidos por WhatsApp desde el menú (últimos 7 días): <b>${reqs.length}</b> — son solicitudes, no ventas.</p>
+ <div class="grid g2"><div class="card"><h3>Identidad y textos</h3><label for="mp-ti">Título</label><input id="mp-ti" maxlength="40" value="${esc(c.title)}"><div class="grid g2"><div><label for="mp-s1">Subtítulo (ES)</label><input id="mp-s1" maxlength="80" value="${esc(c.sub.es)}"></div><div><label for="mp-s2">Subtitle (EN)</label><input id="mp-s2" maxlength="80" value="${esc(c.sub.en)}"></div></div>
+  <label for="mp-p1">Presentación (ES) — **negrita**</label><textarea id="mp-p1" rows="3" maxlength="400">${esc(c.pitch.es)}</textarea><label for="mp-p2">Presentation (EN)</label><textarea id="mp-p2" rows="3" maxlength="400">${esc(c.pitch.en)}</textarea>
+  <label class="chk"><input type="checkbox" id="mp-pro" ${c.promo.on?'checked':''}> Mostrar banner de promoción</label><label for="mp-r1">Texto del banner (ES)</label><input id="mp-r1" maxlength="200" value="${esc(c.promo.es)}"><label for="mp-r2">Banner (EN)</label><input id="mp-r2" maxlength="200" value="${esc(c.promo.en)}">
+  <label for="mp-f1">Pie (ES)</label><input id="mp-f1" maxlength="120" value="${esc(c.footer.es)}"><label for="mp-f2">Footer (EN)</label><input id="mp-f2" maxlength="120" value="${esc(c.footer.en)}"></div>
+ <div class="card"><h3>Contacto, mapa y reseñas</h3><label for="mp-wa">WhatsApp del comercio (549 + 10 dígitos)</label><input id="mp-wa" inputmode="numeric" value="${esc(S.tenant.wa)}"><label for="mp-ad">Dirección</label><input id="mp-ad" maxlength="120" value="${esc(S.tenant.address)}">
+  <label for="mp-mq">Búsqueda del mapa (nombre + dirección)</label><input id="mp-mq" maxlength="140" value="${esc(c.mapQuery)}"><label for="mp-mu">Enlace "Cómo llegar" (https)</label><input id="mp-mu" value="${esc(c.mapUrl)}"><label for="mp-ru">Enlace para dejar reseña en Google (https)</label><input id="mp-ru" value="${esc(c.reviewUrl)}">
+  <p class="hint">Mostrar reseñas dentro del menú exige la API de Google (cuenta, clave en servidor, atribución) [VERIFICAR]. Por ahora: botones para dejar y ver reseñas, sin reseñas inventadas.</p>
+  <div class="grid g2"><div><label for="mp-af">Alcohol desde (hora)</label><input id="mp-af" inputmode="numeric" value="${c.alcFrom}"></div><div><label for="mp-at">hasta (24 = medianoche)</label><input id="mp-at" inputmode="numeric" value="${c.alcTo}"></div></div><p class="hint">Horario legal de venta de alcohol en Salta: [VERIFICAR] con la normativa vigente. Ejemplo cargado: 07:00 a 00:00.</p></div></div>
+ <div class="grid g2" style="margin-top:1rem"><div class="card"><h3>Wi-Fi de clientes</h3><label class="chk"><input type="checkbox" id="mp-wion" ${c.wifi.on?'checked':''}> Mostrar bloque Wi-Fi</label><label for="mp-ws">Red (SSID)</label><input id="mp-ws" maxlength="40" value="${esc(c.wifi.ssid)}"><label for="mp-wp">Clave vigente</label><input id="mp-wp" maxlength="40" value="${esc(c.wifi.pass)}"><label class="chk"><input type="checkbox" id="mp-wex" ${c.wifi.example?'checked':''}> Marcar como "ejemplo"</label><p class="hint">Los datos cargados son de ejemplo. Red de invitados aislada de la red del POS. La rotación automática depende del router [VERIFICAR]; cada cambio de clave queda en auditoría.</p></div>
+ <div class="card"><h3>Redes sociales</h3><p class="sm mut">Tildá las que se muestran en el menú. X y YouTube vienen de <b>ejemplo</b> (apagadas): completá el enlace real y activalas. Sólo enlaces https del dominio de cada red.</p><div id="so-rows">${(c.social||[]).map(soRow).join('')}</div><div class="row" style="margin-top:.6rem"><button type="button" class="btn sm" data-act="soAdd">+ Agregar red social</button></div></div></div>
+ <div class="card" style="margin-top:1rem"><h3>Accesos</h3><label class="chk"><input type="checkbox" id="mp-acc" ${c.hideTeamBtn?'checked':''}> Ocultar el botón "Acceso del equipo" (queda: doble clic en el título, 5 toques al logo en 3 s, o la ruta <code>#acceso</code>)</label><p class="hint">Ocultar el botón es sólo comodidad visual: la seguridad real es el ingreso con usuario y PIN y los permisos por rol.</p>
+  <div class="row"><button class="btn" data-act="mpQr">QR del menú para imprimir</button><span class="sm mut">Dirección del menú: ${esc(url)}</span></div></div>
+ <div class="card" style="margin-top:1rem"><div class="row"><button class="btn gold" data-act="mpSave">Guardar borrador</button><button class="btn" data-act="mpRevert" ${c.history&&c.history.length?'':'disabled'}>Volver a la versión anterior</button></div><p class="sm mut">Publicaciones: ${(c.history||[]).map(h=>'v'+h.version+' ('+h.hash.slice(0,8)+')').join(', ')||'ninguna'}</p></div>`;},null,'Menú y web');
+function mpRead(){const af=parseNum(val('mp-af')),at=parseNum(val('mp-at'));if(!(af>=0&&af<=24&&at>=0&&at<=24))return 'Horario de alcohol inválido (0 a 24)';
+ if(val('mp-mu').trim()&&!safeUrl(val('mp-mu')))return 'El enlace de mapa debe ser https';if(val('mp-ru').trim()&&!safeUrl(val('mp-ru')))return 'El enlace de reseñas debe ser https';
+ const wa=val('mp-wa').replace(/\D/g,'');if(wa&&!/^549\d{10}$/.test(wa))return 'WhatsApp: formato 549 + 10 dígitos';if($('#mp-wion').checked&&(!val('mp-ws').trim()||!val('mp-wp').trim()))return 'Wi-Fi activo: falta red o clave';
+ const so=soRead();if(so.err)return so.err;if(val('mp-ti').trim().length<2)return 'Falta el título';return{af,at,wa,so:so.out};}
+A.mpSave=()=>{const r=mpRead();if(typeof r==='string')return toast(r,1);const c=S.menu;
+ c.title=val('mp-ti').trim();c.sub={es:val('mp-s1').trim(),en:val('mp-s2').trim()};c.pitch={es:val('mp-p1').trim(),en:val('mp-p2').trim()};c.promo={on:$('#mp-pro').checked,es:val('mp-r1').trim(),en:val('mp-r2').trim()};c.footer={es:val('mp-f1').trim(),en:val('mp-f2').trim()};
+ if(r.wa)S.tenant.wa=r.wa;S.tenant.address=val('mp-ad').trim();c.mapQuery=val('mp-mq').trim();c.mapUrl=val('mp-mu').trim();c.reviewUrl=val('mp-ru').trim();c.alcFrom=r.af;c.alcTo=r.at;c.hideTeamBtn=$('#mp-acc').checked;
+ const was=c.wifi.pass;c.wifi={on:$('#mp-wion').checked,ssid:val('mp-ws').trim(),pass:val('mp-wp').trim(),example:$('#mp-wex').checked};if(was!==c.wifi.pass)audit('MENU_WIFI_CLAVE','cambio de clave');c.social=r.so;
+ audit('MENU_BORRADOR','guardado');save();toast('Borrador guardado');rerender();};
+A.mpPublish=()=>{const c=S.menu;const snap=menuSnapshot();const h=sha256(JSON.stringify(snap));if(c.published&&h===c.pubHash)return toast('No hay cambios para publicar');
+ c.history=c.history||[];if(c.published)c.history.push({version:c.version,hash:c.pubHash,cfg:c.published});if(c.history.length>10)c.history.shift();c.version++;c.published=snap;c.pubHash=h;audit('MENU_PUBLICADO','v'+c.version+' '+h.slice(0,12));save();pubReload();if(CLOUD.on&&cl.ready)cloudPublishMenu(true).then(()=>toast('Publicado también en la nube')).catch(e=>toast('Nube: '+errTxt(e),1));toast('Menú publicado v'+c.version);rerender();};
+A.mpRevert=()=>{const c=S.menu;if(!c.history||!c.history.length)return;const prev=c.history.pop();const keep=c.history;Object.assign(c,JSON.parse(JSON.stringify(prev.cfg)));c.history=keep;c.published=prev.cfg;c.pubHash=prev.hash;c.version=prev.version;audit('MENU_REVERTIDO','a v'+prev.version);save();pubReload();toast('Vuelto a v'+prev.version);rerender();};
+A.mpQr=()=>{const url=/^https?:/.test(location.protocol)?location.href.split('#')[0]:PUBLIC_URL();
+ modal('QR del menú',`<div style="text-align:center"><div style="width:260px;margin:0 auto">${QR.svg(url,6,2)}</div><p class="sm mut">${esc(url)}</p></div>`,{okText:'Descargar',cancelText:'Cerrar',onOk:()=>{download('qr-menu-rave.svg',QR.svg(url,10,4),'image/svg+xml');return false;}});};
+function pubReload(){const f=document.getElementById('pubframe');if(f)f.srcdoc=buildPubDoc();}
+
+/* ================= ARRANQUE ================= */
+window.RAVE={get S(){return S;},set S(v){S=v;},sha256,arqueoCalc,buildReport,reportText,loadExample,parseNum,cents,money,parseCSV,sugPrice,punch,clubJoin,parseBirth,safeUrl,verifyAudit,verifyClosure,webhook,commitSale,addMov,validRubro,get user(){return user;},set user(v){user=v;},showMenu,route,A,pos,
+ applyBenefit,allocDisc,verifyStampCode,commitStamp,stampsOf,debtOf,fiadoPay,custById,cardCode,redeemReward,memberActive,pubCatalog,pubCoupons,pubCouponInfo,parseScale,escposTicket,ticketText,printSale,demoExtras,legalDocs,addByCode,posBen,pubCard,pubCardCode,pubCardLogin};
+(async()=>{if(CLOUD.on||(window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente')){S=DEF();S.users=[];if(CLOUD.on){await cloudBoot();}else{route();}return;}const st=await loadState();if(st&&st.v===3){S=mergeDefaults(st);}else{S=DEF();demoExtras();}route();try{devBoot();}catch(e){console.warn('devBoot',e);}})();

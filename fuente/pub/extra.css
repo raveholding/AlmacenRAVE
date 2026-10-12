@@ -1,0 +1,36 @@
+/* ===== Bloques agregados por Sistema RAVE (fidelización, cupones, legal) ===== */
+.cp-coupon{margin:10px 0 2px;padding:10px 12px;border:1px dashed var(--gold);border-radius:12px}
+.cp-coupon label{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
+.cp-coupon-row{display:flex;gap:8px}
+.cp-coupon-row input{flex:1;min-width:0;padding:10px 12px;border-radius:8px;border:1px solid var(--line);font:600 15px Poppins,sans-serif;text-transform:uppercase;background:var(--cream);color:var(--ink)}
+.cp-coupon-row button{min-height:44px;padding:0 14px;border:0;border-radius:8px;background:var(--gold);color:var(--charcoal);font:700 13px Poppins,sans-serif;cursor:pointer}
+#cp-coupon-msg{font-size:12px;margin-top:6px;min-height:1em}
+#cp-coupon-msg.ok{color:#1e7a46}#cp-coupon-msg.bad{color:#a33}
+.cp-total-row.disc{color:#1e7a46;padding-top:2px}
+.cp-cards{display:grid;gap:10px}
+.cp-card{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-left:5px solid var(--gold);border-radius:12px;padding:12px;background:var(--cream)}
+.cp-card .cc-txt{flex:1;min-width:0}
+.cp-card b.cc-code{display:inline-block;font:700 15px/1 'Poppins',monospace;letter-spacing:1.2px;background:var(--charcoal-2);color:#f3dca3;padding:6px 9px;border-radius:8px}
+.cp-card .cc-d{font-size:13px;font-weight:600;margin-top:6px}.cp-card .cc-s{font-size:11.5px;color:#6f6a5c;margin-top:2px}
+.cp-card button{min-height:44px;min-width:44px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);font:600 12px Poppins,sans-serif;padding:0 12px;cursor:pointer}
+.loy-card{background:linear-gradient(160deg,#242220,#3a3733);color:#f3eee4;border-radius:16px;padding:18px;border:1px solid #5a4a28}
+.loy-card h3{font-family:'Playfair Display',serif;margin:0;font-size:18px;color:#f3dca3}
+.loy-card .loy-sub{font-size:12px;color:#c9c2b3;margin:2px 0 12px}
+.loy-stamps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0}
+.loy-stamps i{aspect-ratio:1;border-radius:50%;border:2px dashed #7a6a42;display:grid;place-items:center;font-style:normal;font-size:18px;color:#7a6a42}
+.loy-stamps i.on{background:var(--gold);border:2px solid var(--gold);color:#241a05}
+.loy-meta{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#c9c2b3;flex-wrap:wrap}
+.loy-reward{margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(201,150,62,.18);font-size:13px;font-weight:600;color:#f3dca3}
+.loy-code{margin-top:12px;background:#fff;color:#242220;border-radius:12px;padding:12px;text-align:center}
+.loy-code svg{width:170px;height:170px;max-width:100%}
+.loy-code .lc-n{font:700 26px/1.1 'Poppins',monospace;letter-spacing:3px;margin-top:4px}
+.loy-code .lc-s{font-size:12px;color:#6f6a5c}
+.loy-btn{min-height:48px;width:100%;border:0;border-radius:12px;background:var(--gold);color:#241a05;font:700 14px Poppins,sans-serif;cursor:pointer;margin-top:12px}
+.loy-link{background:none;border:0;color:inherit;text-decoration:underline;font:12px Poppins,sans-serif;margin-top:10px;cursor:pointer;min-height:44px}
+.loy-rec .club-field{margin-bottom:10px}
+.loy-member{margin-top:10px;font-size:12.5px;padding:8px 10px;border-radius:10px;border:1px solid #7a6a42}
+.plan-list{display:grid;gap:8px;margin-top:10px}
+.plan-list .pl{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--cream);font-size:13px}
+.club-consent2{margin-top:0}
+.legal-body h4{margin:12px 0 4px}
+.arrep-btn{display:block;width:100%;min-height:48px;margin-top:10px;border:1px solid var(--gold);background:transparent;color:inherit;border-radius:10px;font:600 13px Poppins,sans-serif;cursor:pointer}

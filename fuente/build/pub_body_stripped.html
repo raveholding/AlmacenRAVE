@@ -1,0 +1,1460 @@
+<body>
+<noscript><style>#age-gate{display:none!important}</style><p style="margin:0;padding:.6rem;text-align:center;background:#3a2b12;color:#f3dca3;font:600 .8rem sans-serif">Sitio para mayores de 18 años. Prohibida su venta a menores de 18 años. Beber con moderación.</p></noscript>
+<div id="age-gate" role="dialog" aria-modal="true" aria-labelledby="ag-title" aria-describedby="ag-desc">
+  <div class="ag-box">
+    <div class="ag-ic" aria-hidden="true">🔞</div>
+    <h2 id="ag-title">Verificación de edad</h2>
+    <p id="ag-desc">Este menú incluye bebidas alcohólicas y tabaco. ¿Sos mayor de 18 años?</p>
+    <div class="ag-btns">
+      <button type="button" id="ag-yes">Soy mayor de 18</button>
+      <button type="button" id="ag-no">Soy menor de 18</button>
+    </div>
+    <p class="ag-deny" id="ag-deny" role="alert">Lo sentimos: no podés acceder a este contenido. Prohibida su venta a menores de 18 años.</p>
+    <p class="ag-legal">Prohibida su venta a menores de 18 años. Beber con moderación.</p>
+  </div>
+</div>
+<div class="sheet">
+
+  <header>
+    <div class="top-tools">
+      <div class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" id="lang-es" data-lang="es" aria-pressed="true" lang="es" title="Español">ES</button>
+        <button type="button" id="lang-en" data-lang="en" aria-pressed="false" lang="en" title="English">EN</button>
+      </div>
+      <button type="button" class="share-top" id="share-menu" aria-label="Compartir el menú"><span aria-hidden="true">📤</span><span class="st-txt">Compartir</span></button>
+    </div>
+    <img class="logo" src="DATA" alt="RAVE">
+    <h1 class="brand-title" id="brand-title" title="Doble clic para acceso del equipo">RAVE DIGITAL</h1>
+    <div class="brand-sub">Almacén y Licorería · Salta</div>
+  </header>
+
+  <p class="pitch">Comprá tus bebidas —y mucho más— <strong>sin bajarte del auto</strong>. Escaneá este QR y armá tu pedido: <strong>te confirmamos el stock por WhatsApp</strong>, coordinás el pago y te lo alcanzamos en el transcurso de la tarde.</p>
+
+  <div class="promo-banner">
+    <span class="pi">🚚</span>
+    <span class="pt">Comprando <strong>2 combos</strong> o <strong>3 vinos</strong>, el envío es <strong>gratis</strong> dentro del macrocentro y alrededores.</span>
+  </div>
+
+  <div class="price-note">🧾 Todos los precios publicados incluyen impuestos.</div>
+  <div class="alc-legend" id="alc-legend" role="note"><span>🔞 Prohibida su venta a menores de 18 años.</span><span>🥂 Beber con moderación.</span></div>
+  <div class="alc-notice" id="alc-notice" role="status">Venta de bebidas alcohólicas habilitada de 07:00 a 00:00 (Salta). Volvé en ese horario.</div>
+
+  <!-- ===== FILTROS Y BUSCADOR ===== -->
+  <div id="toolbar">
+    <div id="search-wrap">
+      <input id="search-input" type="search" inputmode="search" placeholder="Buscar producto..." aria-label="Buscar producto">
+    </div>
+    <div id="cat-filter">
+      <button class="cat-chip active" type="button" data-cat="all">Todos <span class="chip-count" id="count-all"></span></button>
+      <button class="cat-chip" type="button" data-cat="promo">Promos <span class="chip-count" id="count-promo"></span></button>
+      <button class="cat-chip" type="button" data-cat="vino">Vinos <span class="chip-count" id="count-vino"></span></button>
+      <button class="cat-chip" type="button" data-cat="tabaco">Tabaco <span class="chip-count" id="count-tabaco"></span></button>
+    </div>
+  </div>
+  <div id="search-empty">No encontramos productos con ese nombre.</div>
+
+  <!-- ===== CATÁLOGO (se arma solo con los datos de más abajo) ===== -->
+  <div id="catalogo-menu"></div>
+  <script>
+/* ==========================================================================
+   CATÁLOGO DEL MENÚ PÚBLICO
+   --------------------------------------------------------------------------
+   Antes las fichas de producto estaban escritas a mano en el HTML. Ahora salen
+   de estos datos, que son los que edita el panel desde Inventario.
+
+   De dónde sale el catálogo que ve el cliente:
+     1. Si en ESTE dispositivo hay un catálogo del panel (rave.menu.local),
+        se usa ese: así el mostrador ve sus cambios al instante.
+     2. Si no, se usa MENU_PUBLICADO, que es lo que está publicado para todos.
+
+   Para que un cambio lo vean los clientes hay que volver a publicar el
+   archivo: el panel lo genera con el botón "Publicar menú".
+   ========================================================================== */
+/*__CATALOGO_INICIO__*/
+var MENU_PUBLICADO = {"secciones":[],"productos":[]};
+/*__CATALOGO_FIN__*/
+
+(function(){
+  'use strict';
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+      return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c];
+    });
+  }
+  function precio(n){ return '$ ' + (Number(n) || 0).toLocaleString('es-AR'); }
+
+  /* Menú en la nube: lo publica el panel solo, cada vez que cambia el catálogo.
+     ?m=otro-comercio en la dirección muestra el menú de otro comercio. */
+  var NUBE = { url:'__sin-nube-en-la-demo__', key:'', slug:'rave' };
+  var hayNube = NUBE.url.indexOf('__') !== 0 && !!window.fetch;
+  var pedido = '';
+  try{ pedido = (new URLSearchParams(window.__QS || '').get('m') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40); }catch(e){}
+  var SLUG = pedido || (hayNube ? NUBE.slug : '');
+
+  function valido(d){ return d && d.secciones && d.secciones.length && d.productos; }
+  function catalogo(){
+    try{ var pa = window.parent && window.parent.RAVE_API; if(pa){ var cc = pa.catalog(); if(valido(cc)) return cc; } }catch(e){}
+    try{
+      /* 1. el catálogo del panel de ESTE dispositivo (si es del mismo comercio) */
+      var raw = localStorage.getItem('rave.menu.local');
+      if(raw){
+        var d = JSON.parse(raw);
+        if(valido(d) && (!pedido || d.slug === pedido)) return d;
+      }
+      /* 2. lo último que se bajó de la nube */
+      var nb = localStorage.getItem('rave.menu.nube');
+      if(nb){
+        var n = JSON.parse(nb);
+        if(n && n.slug === SLUG && valido(n.d)) return n.d;
+      }
+    }catch(e){ /* almacenamiento bloqueado: se usa lo publicado */ }
+    /* 3. el que viene dentro del archivo */
+    return MENU_PUBLICADO;
+  }
+  function traerDeLaNube(){
+    if(!hayNube || !SLUG) return;
+    fetch(NUBE.url + '/rest/v1/menus?select=datos&slug=eq.' + encodeURIComponent(SLUG),
+          { headers:{ apikey:NUBE.key }, cache:'no-store' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(rows){
+        var d = rows && rows[0] && rows[0].datos;
+        if(!valido(d)) return;
+        var antes = null;
+        try{ antes = localStorage.getItem('rave.menu.nube'); }catch(e){}
+        var nuevo = JSON.stringify({ slug:SLUG, d:d });
+        if(antes === nuevo) return;
+        try{ localStorage.setItem('rave.menu.nube', nuevo); }catch(e){}
+        if(window.RAVE_MENU_RENDER) window.RAVE_MENU_RENDER();
+      })
+      .catch(function(){ /* sin conexión: queda el último que había */ });
+  }
+
+  var secs = [], prods = [];
+  function leer(){
+    var C = catalogo();
+    secs = (C.secciones || []).filter(function(s){ return s.menu !== false; });
+    prods = C.productos || [];
+    /* los scripts del carrito y del horario de alcohol leen estas listas */
+    window.RAVE_CATS = secs.map(function(s){ return s.cat; });
+    window.RAVE_CATS_ALC = secs.filter(function(s){ return s.alc; }).map(function(s){ return s.cat; });
+  }
+  leer();
+
+  function porUnidad(p){ return p.unidad && p.unidad !== 'u' ? ' <small>/ ' + esc(p.unidad) + '</small>' : ''; }
+  function agotado(p){ return p.agotado ? '<span class="c-agot">Sin stock</span>' : ''; }
+  function nombreCompleto(p){ return p.nom + (p.sub ? ' (' + p.sub + ')' : ''); }
+
+  function card(p){
+    return '<div class="card" data-id="' + esc(p.id) + '" data-name="' + esc(nombreCompleto(p)) +
+      '" data-price="' + (Number(p.precio) || 0) + '">' +
+      (p.img ? '<img loading="lazy" decoding="async" src="' + esc(p.img) + '" alt="' + esc(p.nom) + '">'
+             : '<div class="c-noimg" aria-hidden="true"></div>') +
+      '<div class="c-name">' + esc(p.nom) + '</div>' +
+      (p.sub ? '<div class="c-sub">' + esc(p.sub) + '</div>' : '') +
+      '<div class="c-price">' + precio(p.precio) + porUnidad(p) + '</div>' + agotado(p) +
+      '<div class="qty-row">' +
+        '<button class="qty-btn minus" type="button">−</button>' +
+        '<span class="qty-val">0</span>' +
+        '<button class="qty-btn plus" type="button">+</button>' +
+      '</div></div>';
+  }
+
+  function fila(p){
+    return '<div class="row" data-id="' + esc(p.id) + '" data-name="' + esc(p.nom) +
+      '" data-price="' + (Number(p.precio) || 0) + '">' +
+      '<div class="row-thumb">' +
+        (p.img ? '<img loading="lazy" decoding="async" src="' + esc(p.img) + '" alt="' + esc(p.nom) + '">'
+               : '<div class="row-noimg"></div>') +
+      '</div>' +
+      '<div class="row-name">' + esc(p.nom) + '</div>' +
+      '<div class="row-price">' + precio(p.precio) + porUnidad(p) + agotado(p) + '</div>' +
+      '<div class="qty-row small">' +
+        '<button class="qty-btn minus" type="button">−</button>' +
+        '<span class="qty-val">0</span>' +
+        '<button class="qty-btn plus" type="button">+</button>' +
+      '</div></div>';
+  }
+
+  function destacado(p, cat){
+    return '<div class="featured" data-cat="' + esc(cat) + '" data-id="' + esc(p.id) +
+      '" data-name="' + esc(p.nom) + '" data-price="' + (Number(p.precio) || 0) + '">' +
+      (p.img ? '<img loading="lazy" decoding="async" class="feat-img" src="' + esc(p.img) + '" alt="' + esc(p.nom) + '">' : '') +
+      '<div class="info">' +
+        '<div class="name">' + esc(p.nom) + '</div>' +
+        '<div class="desc">' + esc(p.desc || p.sub || '') + '</div>' +
+        '<span class="price">' + precio(p.precio) + porUnidad(p) + '</span>' + agotado(p) +
+      '</div>' +
+      '<div class="qty-row">' +
+        '<button class="qty-btn minus" type="button">−</button>' +
+        '<span class="qty-val">0</span>' +
+        '<button class="qty-btn plus" type="button">+</button>' +
+      '</div></div>';
+  }
+
+  function seccion(s){
+    var mios = prods.filter(function(p){ return p.cat === s.cat && !p.destacado; });
+    var dest = prods.filter(function(p){ return p.cat === s.cat && p.destacado; });
+    if(!mios.length && !dest.length) return '';
+
+    var h = '<div class="section" data-cat="' + esc(s.cat) + '">' +
+      '<div class="section-bar ' + esc(s.cat) + '"></div>' +
+      '<div class="section-head"><h2>' + esc(s.titulo || s.nom) + '</h2>' +
+      (s.hint ? '<div class="hint">' + esc(s.hint) + '</div>' : '') +
+      '<hr></div>';
+
+    if(s.layout === 'bodegas'){
+      var grupos = [];
+      mios.forEach(function(p){
+        var g = p.grupo || '';
+        if(grupos.indexOf(g) === -1) grupos.push(g);
+      });
+      grupos.forEach(function(g){
+        h += '<div class="bodega-block">' +
+             (g ? '<div class="bodega-name">' + esc(g) + '</div>' : '') +
+             '<div class="grid">' +
+             mios.filter(function(p){ return (p.grupo || '') === g; }).map(card).join('') +
+             '</div></div>';
+      });
+    } else if(s.layout === 'rows'){
+      h += '<div class="rows">' + mios.map(fila).join('') + '</div>';
+    } else {
+      h += '<div class="grid">' + mios.map(card).join('') + '</div>';
+    }
+
+    h += dest.map(function(p){ return destacado(p, s.cat); }).join('');
+    return h + '</div>';
+  }
+
+  function dibujar(){
+  /* --- chips de categoría (la barra de filtros) --- */
+  var filtro = document.getElementById('cat-filter');
+  if(filtro){
+    filtro.innerHTML =
+      '<button class="cat-chip active" type="button" data-cat="all">Todos <span class="chip-count" id="count-all"></span></button>' +
+      secs.filter(function(s){
+        return prods.some(function(p){ return p.cat === s.cat; });
+      }).map(function(s){
+        return '<button class="cat-chip" type="button" data-cat="' + esc(s.cat) + '">' +
+               esc(s.nom || s.titulo) + ' <span class="chip-count" id="count-' + esc(s.cat) + '"></span></button>';
+      }).join('');
+  }
+
+  /* --- secciones de producto --- */
+  var cont = document.getElementById('catalogo-menu');
+  if(cont) cont.innerHTML = secs.map(seccion).join('');
+  }
+
+  dibujar();
+
+  /* El panel llama a esto cuando cambia el catálogo, para que el menú de este
+     dispositivo se actualice sin tener que recargar la página. */
+  window.RAVE_MENU_RENDER = function(){
+    leer();
+    dibujar();
+    if(window.RAVE_MENU_REFRESH) window.RAVE_MENU_REFRESH();
+    if(window.RAVE_applyHours) window.RAVE_applyHours();
+  };
+
+  /* =====================================================================
+     Producto compartible + vista ampliada de la foto (lightbox)
+     ---------------------------------------------------------------------
+     · Cada producto tiene su enlace: …/m/{comercio}/p/{producto}/ (página con
+       vista previa para WhatsApp y redes, que abre el menú en ese producto).
+     · Compartir usa el menú nativo del celular; si no existe, copia el enlace.
+     · La foto se amplía con pellizco, doble toque, arrastre; se desliza entre
+       productos y se cierra deslizando hacia abajo o con Esc.
+     ===================================================================== */
+  var BASE_PUBLICA = (function(){
+    var c = document.querySelector('link[rel="canonical"]');
+    var u = c ? c.getAttribute('href') : 'https://raveholding.github.io/menu-rave/';
+    return u.replace(/[?#].*$/, '').replace(/index\.html$/, '');
+  })();
+  function urlProducto(id){
+    return BASE_PUBLICA + 'm/' + encodeURIComponent(SLUG || NUBE.slug || 'rave') + '/p/' + encodeURIComponent(id) + '/';
+  }
+  function prodPorId(id){ for(var i=0;i<prods.length;i++) if(prods[i].id === id) return prods[i]; return null; }
+  var actual = null;
+  document.addEventListener('click', function(e){
+    var el = e.target.closest ? e.target.closest('#catalogo-menu .card, #catalogo-menu .row, #catalogo-menu .featured') : null;
+    if(el && !e.target.closest('.qty-btn')) actual = el.getAttribute('data-id');
+  }, true);
+
+  function avisito(t){
+    var a = document.getElementById('rv-aviso');
+    if(!a){ a = document.createElement('div'); a.id = 'rv-aviso'; a.setAttribute('role', 'status'); document.body.appendChild(a); }
+    a.textContent = t; a.className = 'on';
+    clearTimeout(a._t); a._t = setTimeout(function(){ a.className = ''; }, 2600);
+  }
+  function copiar(txt){
+    if(navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(txt);
+    var ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    ta.remove();
+    return Promise.resolve();
+  }
+  function compartir(id){
+    var p = prodPorId(id);
+    if(!p) return;
+    var url = urlProducto(id);
+    var nombreLocal = (document.querySelector('meta[property="og:site_name"]') || {}).content || document.title.split('·')[0];
+    var datos = { title:p.nom, text:p.nom + ' · ' + precio(p.precio) + ' en ' + String(nombreLocal).trim(), url:url };
+    if(navigator.share){
+      navigator.share(datos).catch(function(err){ if(err && err.name !== 'AbortError') copiar(url).then(function(){ avisito('Enlace copiado'); }); });
+    } else {
+      copiar(url).then(function(){ avisito('Enlace copiado: pegalo en WhatsApp o donde quieras'); });
+    }
+  }
+
+  /* --- lightbox --- */
+  var LB = null, lbLista = [], lbI = 0, z = { s:1, x:0, y:0 }, punteros = {}, gesto = null, ultimoToque = 0, focoAntes = null;
+  var sinMovimiento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function armarLB(){
+    LB = document.createElement('div');
+    LB.id = 'rv-lb';
+    LB.setAttribute('role', 'dialog'); LB.setAttribute('aria-modal', 'true'); LB.setAttribute('aria-label', 'Foto ampliada');
+    LB.innerHTML =
+      '<div class="lb-top"><span class="lb-n" id="lb-n"></span>' +
+        '<button type="button" class="lb-b" id="lb-share" aria-label="Compartir producto">Compartir</button>' +
+        '<button type="button" class="lb-b" id="lb-x" aria-label="Cerrar">✕</button></div>' +
+      '<div class="lb-stage" id="lb-stage"><img id="lb-img" alt="" draggable="false"></div>' +
+      '<div class="lb-bot"><button type="button" class="lb-b" id="lb-prev" aria-label="Producto anterior">‹</button>' +
+        '<div class="lb-cap"><b id="lb-t"></b><span id="lb-p"></span></div>' +
+        '<button type="button" class="lb-b" id="lb-next" aria-label="Producto siguiente">›</button></div>' +
+      '<div class="lb-hint">Pellizcá o tocá dos veces para acercar · deslizá para cambiar · hacia abajo para cerrar</div>';
+    document.body.appendChild(LB);
+    document.getElementById('lb-x').addEventListener('click', cerrarLB);
+    document.getElementById('lb-prev').addEventListener('click', function(){ irLB(-1); });
+    document.getElementById('lb-next').addEventListener('click', function(){ irLB(1); });
+    document.getElementById('lb-share').addEventListener('click', function(){ compartir(lbLista[lbI].id); });
+    var st = document.getElementById('lb-stage');
+    st.addEventListener('pointerdown', abajo);
+    st.addEventListener('pointermove', mueve);
+    st.addEventListener('pointerup', arriba);
+    st.addEventListener('pointercancel', arriba);
+    st.addEventListener('wheel', function(e){ e.preventDefault(); zoomEn(z.s * (e.deltaY < 0 ? 1.15 : 0.87), e.clientX, e.clientY); }, { passive:false });
+    document.addEventListener('keydown', function(e){
+      if(!LB.classList.contains('open')) return;
+      if(e.key === 'Escape'){ e.preventDefault(); cerrarLB(); }
+      else if(e.key === 'ArrowLeft') irLB(-1);
+      else if(e.key === 'ArrowRight') irLB(1);
+      else if(e.key === '+' || e.key === '=') zoomEn(z.s * 1.4);
+      else if(e.key === '-') zoomEn(z.s / 1.4);
+      else if(e.key === 'Tab'){                       /* foco atrapado dentro del lightbox */
+        var fs = Array.prototype.slice.call(LB.querySelectorAll('button')).filter(function(b){ return b.offsetParent !== null; });
+        var i = fs.indexOf(document.activeElement);
+        e.preventDefault();
+        fs[(i + (e.shiftKey ? -1 : 1) + fs.length) % fs.length].focus();
+      }
+    });
+  }
+  function aplicarZ(anim){
+    var im = document.getElementById('lb-img');
+    im.style.transition = anim && !sinMovimiento ? 'transform .22s ease' : 'none';
+    im.style.transform = 'translate(' + z.x + 'px,' + z.y + 'px) scale(' + z.s + ')';
+  }
+  function zoomEn(s, cx, cy){
+    s = Math.max(1, Math.min(5, s));
+    var st = document.getElementById('lb-stage').getBoundingClientRect();
+    if(cx == null){ cx = st.left + st.width / 2; cy = st.top + st.height / 2; }
+    var ox = cx - (st.left + st.width / 2), oy = cy - (st.top + st.height / 2);
+    z.x = ox - (ox - z.x) * (s / z.s); z.y = oy - (oy - z.y) * (s / z.s); z.s = s;
+    if(s === 1){ z.x = 0; z.y = 0; }
+    aplicarZ(true);
+  }
+  function dist(){ var p = Object.keys(punteros).map(function(k){ return punteros[k]; }); return Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y); }
+  function centro(){ var p = Object.keys(punteros).map(function(k){ return punteros[k]; }); return { x:(p[0].x + p[1].x) / 2, y:(p[0].y + p[1].y) / 2 }; }
+  function abajo(e){
+    e.currentTarget.setPointerCapture(e.pointerId);
+    punteros[e.pointerId] = { x:e.clientX, y:e.clientY };
+    var n = Object.keys(punteros).length;
+    if(n === 2) gesto = { tipo:'pinch', d0:dist(), s0:z.s };
+    else if(n === 1) gesto = { tipo:z.s > 1 ? 'pan' : 'swipe', x0:e.clientX, y0:e.clientY, zx:z.x, zy:z.y, t0:Date.now() };
+  }
+  function mueve(e){
+    if(!punteros[e.pointerId] || !gesto) return;
+    punteros[e.pointerId] = { x:e.clientX, y:e.clientY };
+    var im = document.getElementById('lb-img');
+    if(gesto.tipo === 'pinch' && Object.keys(punteros).length === 2){
+      var c = centro(); zoomEn(gesto.s0 * dist() / gesto.d0, c.x, c.y);
+      im.style.transition = 'none';
+    } else if(gesto.tipo === 'pan'){
+      z.x = gesto.zx + (e.clientX - gesto.x0); z.y = gesto.zy + (e.clientY - gesto.y0); aplicarZ(false);
+    } else if(gesto.tipo === 'swipe'){
+      var dx = e.clientX - gesto.x0, dy = e.clientY - gesto.y0;
+      im.style.transition = 'none';
+      im.style.transform = Math.abs(dy) > Math.abs(dx) && dy > 0 ? 'translateY(' + dy + 'px) scale(' + Math.max(0.7, 1 - dy / 900) + ')' : 'translateX(' + dx + 'px)';
+      LB.style.background = 'rgba(12,11,10,' + Math.max(0.35, 0.96 - Math.max(0, dy) / 500) + ')';
+    }
+  }
+  function arriba(e){
+    var g = gesto;
+    delete punteros[e.pointerId];
+    if(Object.keys(punteros).length) return;
+    gesto = null;
+    LB.style.background = '';
+    if(!g) return;
+    if(g.tipo === 'swipe'){
+      var dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+      if(dy > 110 && Math.abs(dx) < 90){ cerrarLB(); return; }
+      if(Math.abs(dx) > 70 && Math.abs(dy) < 80){ irLB(dx < 0 ? 1 : -1); return; }
+      if(Math.abs(dx) < 10 && Math.abs(dy) < 10){
+        var ahora = Date.now();
+        if(ahora - ultimoToque < 300){ zoomEn(z.s > 1 ? 1 : 2.5, e.clientX, e.clientY); ultimoToque = 0; return; }
+        ultimoToque = ahora;
+      }
+      aplicarZ(true);
+    } else if(g.tipo === 'pan' && Math.abs(e.clientX - g.x0) < 8 && Math.abs(e.clientY - g.y0) < 8){
+      var a2 = Date.now();
+      if(a2 - ultimoToque < 300){ zoomEn(1); ultimoToque = 0; } else ultimoToque = a2;
+    }
+  }
+  function pintarLB(){
+    var p = lbLista[lbI], im = document.getElementById('lb-img');
+    z = { s:1, x:0, y:0 };
+    im.src = p.img; im.alt = p.nom + (p.sub ? ' (' + p.sub + ')' : '');
+    aplicarZ(false);
+    document.getElementById('lb-t').textContent = p.nom + (p.sub ? ' · ' + p.sub : '');
+    document.getElementById('lb-p').textContent = precio(p.precio) + (p.unidad && p.unidad !== 'u' ? ' / ' + p.unidad : '');
+    document.getElementById('lb-n').textContent = (lbI + 1) + ' de ' + lbLista.length;
+    document.getElementById('lb-prev').disabled = lbI === 0;
+    document.getElementById('lb-next').disabled = lbI === lbLista.length - 1;
+  }
+  function irLB(d){
+    var n = lbI + d;
+    if(n < 0 || n >= lbLista.length){ aplicarZ(true); return; }
+    lbI = n; pintarLB();
+  }
+  function abrirLB(id, desde){
+    if(!LB) armarLB();
+    lbLista = prods.filter(function(p){ return p.img && secs.some(function(s){ return s.cat === p.cat; }); });
+    lbI = Math.max(0, lbLista.findIndex(function(p){ return p.id === id; }));
+    if(!lbLista.length) return;
+    focoAntes = document.activeElement;
+    pintarLB();
+    LB.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    /* transición suave desde la miniatura */
+    if(desde && !sinMovimiento){
+      var r = desde.getBoundingClientRect(), im = document.getElementById('lb-img'), q = im.getBoundingClientRect();
+      if(q.width && r.width){
+        im.style.transition = 'none';
+        im.style.transform = 'translate(' + (r.left + r.width / 2 - (q.left + q.width / 2)) + 'px,' + (r.top + r.height / 2 - (q.top + q.height / 2)) + 'px) scale(' + (r.width / q.width) + ')';
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){ aplicarZ(true); }); });
+      }
+    }
+    setTimeout(function(){ document.getElementById('lb-x').focus(); }, 30);
+  }
+  function cerrarLB(){
+    if(!LB) return;
+    LB.classList.remove('open');
+    document.body.style.overflow = '';
+    if(focoAntes && focoAntes.focus) try{ focoAntes.focus(); }catch(e){}
+  }
+
+  function prepararModal(){
+    var pm = document.getElementById('product-modal'), pr = document.getElementById('pm-price'), img = document.getElementById('pm-img');
+    if(!pm || !pr || document.getElementById('pm-share')) return;
+    var box = document.createElement('div');
+    box.className = 'pm-share';
+    box.innerHTML = '<button type="button" id="pm-share">Compartir</button><button type="button" id="pm-copy">Copiar enlace</button>';
+    pr.parentNode.insertBefore(box, pr.nextSibling);
+    document.getElementById('pm-share').addEventListener('click', function(){ if(actual) compartir(actual); });
+    document.getElementById('pm-copy').addEventListener('click', function(){
+      if(actual) copiar(urlProducto(actual)).then(function(){ avisito('Enlace copiado'); });
+    });
+    if(img){
+      img.style.cursor = 'zoom-in';
+      img.setAttribute('role', 'button'); img.setAttribute('tabindex', '0');
+      img.setAttribute('aria-label', 'Ver la foto ampliada');
+      img.addEventListener('click', function(){ if(actual) abrirLB(actual, img); });
+      img.addEventListener('keydown', function(e){ if((e.key === 'Enter' || e.key === ' ') && actual){ e.preventDefault(); abrirLB(actual, img); } });
+    }
+  }
+  /* abrir directo un producto: …/?p=producto (llega desde el enlace compartido) */
+  function abrirDesdeURL(){
+    var id = '';
+    try{ id = new URLSearchParams(window.__QS || '').get('p') || ''; }catch(e){}
+    if(!id) return;
+    var el = document.querySelector('#catalogo-menu [data-id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+    if(!el) return;
+    el.scrollIntoView({ block:'center', behavior:sinMovimiento ? 'auto' : 'smooth' });
+    setTimeout(function(){ el.click(); }, 450);
+  }
+  var css = document.createElement('style');
+  css.textContent =
+    '.c-agot{display:inline-block;margin-top:4px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#a33a3a}' +
+    '.pm-share{display:flex;gap:8px;margin:-6px 0 14px}.pm-share button{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line,#e2dccd);' +
+      'background:transparent;color:inherit;font:600 12.5px Poppins,sans-serif;cursor:pointer}' +
+    '#rv-aviso{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);opacity:0;z-index:12000;background:#242220;color:#fff;' +
+      'padding:10px 16px;border-radius:12px;font:500 13px Poppins,sans-serif;transition:all .2s;pointer-events:none}#rv-aviso.on{opacity:1;transform:translateX(-50%)}' +
+    '#rv-lb{position:fixed;inset:0;z-index:11000;background:rgba(12,11,10,.96);display:none;flex-direction:column;color:#f3eee4;' +
+      'font-family:Poppins,sans-serif;touch-action:none}#rv-lb.open{display:flex}' +
+    '#rv-lb .lb-top,#rv-lb .lb-bot{display:flex;align-items:center;gap:10px;padding:12px 14px}' +
+    '#rv-lb .lb-n{margin-right:auto;font-size:12px;color:#b9b2a5}' +
+    '#rv-lb .lb-b{min-width:48px;min-height:48px;border-radius:14px;border:1px solid #3a352e;background:rgba(255,255,255,.06);color:#f3eee4;font:600 14px Poppins,sans-serif;padding:0 14px;cursor:pointer}' +
+    '#rv-lb .lb-b:disabled{opacity:.3}#rv-lb .lb-b:focus-visible{outline:2px solid #e8c97a;outline-offset:2px}' +
+    '#rv-lb .lb-stage{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:grab}' +
+    '#rv-lb .lb-stage img{max-width:92vw;max-height:70vh;object-fit:contain;user-select:none;-webkit-user-drag:none;transform-origin:center center;will-change:transform}' +
+    '#rv-lb .lb-cap{flex:1;text-align:center;display:flex;flex-direction:column}#rv-lb .lb-cap b{font-size:15px}#rv-lb .lb-cap span{color:#e8c97a;font-weight:600}' +
+    '#rv-lb .lb-hint{text-align:center;font-size:11px;color:#8d867a;padding:0 14px 14px}' +
+    '@media (prefers-reduced-motion: reduce){#rv-aviso{transition:none}}';
+  document.head.appendChild(css);
+  /* app instalable (Android, iPhone, PC) y uso sin conexión: sólo en el sitio publicado */
+  function instalable(){
+    if(location.protocol !== 'https:') return;
+    if(!document.querySelector('link[rel="manifest"]')){
+      var l = document.createElement('link'); l.rel = 'manifest'; l.href = 'manifest.webmanifest'; document.head.appendChild(l);
+    }
+    if(!document.querySelector('meta[name="apple-mobile-web-app-capable"]')){
+      [['apple-mobile-web-app-capable','yes'],['apple-mobile-web-app-title','RAVE'],['mobile-web-app-capable','yes']].forEach(function(m){
+        var x = document.createElement('meta'); x.name = m[0]; x.content = m[1]; document.head.appendChild(x);
+      });
+    }
+    if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+  }
+  function alListo(){ prepararModal(); abrirDesdeURL(); instalable(); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', alListo); else setTimeout(alListo, 0);
+  traerDeLaNube();
+})();
+
+  </script>
+
+  <!-- ===== CLUB RAVE ===== -->
+  <div class="club-block">
+    <h2>Sumate al Club RAVE</h2>
+    <p class="club-sub">Enterate primero de nuestras promos, sumate a sorteos exclusivos para socios y llevate una sorpresa el día de tu cumpleaños.</p>
+    <form id="club-form" novalidate autocomplete="off">
+      <div class="club-field" id="field-nombre">
+        <label for="club-nombre">Nombre y apellido</label>
+        <input id="club-nombre" type="text" required minlength="3" maxlength="80"
+               pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(\s+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)+"
+               autocomplete="off" placeholder="Ej: Juan Pérez">
+        <div class="club-err">Ingresá tu nombre y apellido.</div>
+      </div>
+      <div class="club-field" id="field-whatsapp">
+        <label for="club-whatsapp">WhatsApp</label>
+        <input id="club-whatsapp" type="tel" inputmode="tel" required minlength="8" maxlength="20"
+               pattern="[0-9\s\-\+]{8,20}" autocomplete="off" placeholder="Ej: 387 4567890">
+        <div class="club-err">Ingresá un WhatsApp válido (al menos 8 números).</div>
+      </div>
+      <div class="club-field" id="field-cumple">
+        <label for="club-cumple">Fecha de cumpleaños</label>
+        <input id="club-cumple" type="date" required autocomplete="off">
+        <div class="club-err">Elegí una fecha válida.</div>
+      </div>
+      <label class="club-consent">
+        <input type="checkbox" id="club-consent" required>
+        <span>Acepto que RAVE guarde estos datos, únicamente con el fin de contactarme por sorteos, ofertas y saludos de cumpleaños, conforme a la Ley 25.326 de Protección de Datos Personales. Mis datos no se comparten con terceros ni se usan para otro fin. Ver <a href="#legal-rave" style="color:#8a6d1f;">Términos y Política de Privacidad</a>.</span>
+      </label>
+      <label class="club-consent club-consent2"><input type="checkbox" id="club-comm"><span id="club-comm-txt">Acepto recibir promociones y cupones por WhatsApp (opcional, podés darte de baja cuando quieras).</span></label>
+      <button type="button" id="arco-btn" class="arco-link">¿Querés acceder, corregir o eliminar tus datos? Ejercé tus derechos ARCO</button>
+      <button class="club-btn" type="submit">Sumarme al Club RAVE</button>
+      <div class="club-ok" id="club-ok">¡Listo! Ya sos parte del Club RAVE.</div>
+      <div class="club-error" id="club-error2" role="alert"></div>
+      <div class="club-error" id="club-error">No pudimos guardar tus datos en este dispositivo. Probá de nuevo en un momento.</div>
+    </form>
+
+    <details class="legal-details" id="legal-rave">
+      <summary>Términos y Política de Privacidad</summary>
+      <div class="legal-body">
+        <p class="legal-lang-note">The text below is the legally binding Spanish version.</p>
+        <h4>¿Quién trata tus datos?</h4>
+        <p>Almacén y Licorería RAVE, Urquiza 1052, Salta, Argentina. Contacto: WhatsApp 387 4574892.</p>
+
+        <h4>¿Para qué usamos tus datos?</h4>
+        <p>Nombre, WhatsApp y fecha de cumpleaños se usan exclusivamente para avisarte de sorteos, promociones exclusivas para socios y saludarte el día de tu cumpleaños. Nunca se venden ni comparten con terceros.</p>
+
+        <h4>Base legal y minimización</h4>
+        <p>Tratamos tus datos porque diste tu consentimiento expreso al tildar la casilla de arriba (Ley 25.326). Solo pedimos el mínimo necesario para este fin: no se solicitan datos adicionales como DNI, dirección o email.</p>
+
+        <h4>¿Cómo se guardan?</h4>
+        <p>Se guardan únicamente en este dispositivo (no en un servidor de RAVE), en un formato ofuscado, y como respaldo se envía un mensaje al WhatsApp del negocio en cada alta. Al ser un catálogo estático sin servidor propio, esto es una ofuscación razonable — no un cifrado de nivel bancario.</p>
+
+        <h4>Tus derechos ARCO</h4>
+        <ul>
+          <li><b>Acceso:</b> pedir qué datos tuyos tenemos guardados.</li>
+          <li><b>Rectificación:</b> corregir un dato mal cargado.</li>
+          <li><b>Cancelación:</b> pedir que borremos tus datos.</li>
+          <li><b>Oposición:</b> pedir que dejemos de contactarte.</li>
+        </ul>
+        <p>Se ejercen en cualquier momento con el botón "Ejercé tus derechos ARCO" de arriba, o escribiendo directamente al WhatsApp del local.</p>
+
+        <h4>Precios y pedidos (Ley 24.240 de Defensa del Consumidor)</h4>
+        <p>Todos los precios publicados en este menú incluyen impuestos y están sujetos a modificación sin previo aviso; el precio final de tu pedido se confirma por WhatsApp antes de coordinar el pago y la entrega. Este catálogo no cobra online ni toma señas de reserva: el pago se coordina directamente con el local.</p>
+
+        <p style="margin-top:10px;color:#948d7c;">Última actualización: septiembre de 2026.</p>
+      </div>
+    </details>
+  </div>
+
+
+  <!-- El panel de administrador viejo fue reemplazado por el Sistema RAVE
+       completo, que está más abajo en este mismo archivo. -->
+
+  <!-- ===== UBICACIÓN + RESEÑAS + REDES (todo junto) ===== -->
+  <div class="info-block">
+    <div class="info-panel map-panel">
+      <div class="map-embed">
+        <iframe
+          src="https://www.google.com/maps?q=Licoreria+RAVE,+Urquiza+1052,+Salta,+Argentina&output=embed"
+          width="100%" height="190" style="border:0; display:block;" loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+      </div>
+      <div class="info-panel-body">
+        <h2>¿Dónde estamos?</h2>
+        <p class="info-sub">Urquiza 1052, Salta, Argentina</p>
+        <a href="https://www.google.com/maps/search/?api=1&query=Licoreria+RAVE+Urquiza+1052+Salta+Argentina"
+           target="_blank" rel="noopener" class="info-btn">📍 Cómo llegar</a>
+      </div>
+    </div>
+
+    <div class="info-panel review-panel">
+      <div class="review-stars" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="var(--gold)" d="M12 2.5l2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.7z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="var(--gold)" d="M12 2.5l2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.7z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="var(--gold)" d="M12 2.5l2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.7z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="var(--gold)" d="M12 2.5l2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.7z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="var(--gold)" d="M12 2.5l2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.7z"/></svg>
+      </div>
+      <h2>¿Cómo fue tu compra?</h2>
+      <p class="info-sub">Tu reseña en Google nos ayuda a que más gente nos encuentre. Te lleva un minuto.</p>
+      <a href="https://www.google.com/maps/search/?api=1&query=Licoreria+RAVE+Urquiza+1052+Salta+Argentina"
+         target="_blank" rel="noopener" class="info-btn gold">⭐ Dejar mi reseña en Google</a>
+    </div>
+
+    <!-- ===== WI-FI PARA CLIENTES (EJEMPLO) =====
+         Los datos de red y clave de abajo son de EJEMPLO para mostrar cómo funciona el botón de compartir.
+         En la versión con servidor (backend), la clave se genera temporal por sesión y rota sola;
+         no se publica una clave fija en el HTML. -->
+    <div class="info-panel wifi-panel">
+      <h2>📶 Wi-Fi para clientes <span class="wifi-tag">ejemplo</span></h2>
+      <p class="info-sub">Conectate mientras esperás tu pedido y compartí la red con quien te acompaña.</p>
+      <div class="wifi-card">
+        <div>Red: <b id="wifi-ssid">RAVE-Clientes</b></div>
+        <div>Clave: <b id="wifi-pass">rave-demo-2026</b></div>
+      </div>
+      <button type="button" class="info-btn gold" id="wifi-share">📤 Compartir Wi-Fi</button>
+      <button type="button" class="info-btn" id="wifi-copy">📋 Copiar clave</button>
+      <p class="wifi-legal">Uso sujeto a los términos del local. RAVE no se responsabiliza por el uso que terceros hagan de la red.</p>
+    </div>
+
+    <div class="info-panel social-panel">
+      <h2>Seguinos</h2>
+      <p class="info-sub">Promos, novedades y sorteos.</p>
+      <ul class="social-grid" id="social-list"></ul>
+      <button type="button" class="info-btn gold" id="share-menu-2" style="margin-top:14px;">📤 Compartir el menú con tus contactos</button>
+    </div>
+  </div>
+
+  <footer>
+    <div class="foot-brand">RAVE</div>
+    Almacén y Licorería · Urquiza 1052 · Salta, Argentina
+    <div class="foot-legal" style="margin-top:.4rem;font-weight:600">Prohibida su venta a menores de 18 años. Beber con moderación.</div>
+    <button type="button" id="team-access-btn" class="team-link">🔒 Acceso del equipo</button>
+  </footer>
+
+  <!-- ===== CRÉDITOS / CONTACTO DEL DESARROLLADOR (Rave Holding) =====
+       "Rave Holding" es la empresa desarrolladora; la web (XXX.com) de acá
+       abajo son EJEMPLOS inventados, solo para mostrar cómo queda armada
+       esta sección de venta. Antes de reusar este archivo como plantilla
+       para un cliente nuevo, reemplazar por los datos reales del estudio
+       o desarrollador que la ofrezca. -->
+  <div class="dev-credit">
+    <div class="dc-kicker">Diseño &amp; desarrollo</div>
+    <h2>Rave Holding</h2>
+    <p class="dc-tagline">¿Te gustó este sistema para tu negocio?</p>
+    <p><b>Digitalizá tus ventas, fidelizá tus clientes y controlá tu caja en tiempo real.</b> Agendá una visita con el equipo de Rave Holding llamando al +54 9 387-5143900 o escribinos por WhatsApp.</p>
+    <p>Carrito con pedidos directos por WhatsApp, club de clientes con sorteos automáticos y panel de control privado —todo en una sola página, sin comisión por venta y sin depender de apps de delivery. Lo armamos a medida para comercios, almacenes, restaurantes y bares, gimnasios, peluquerías, talleres, spas, clubes, cursos y mucho más, listo en pocos días.</p>
+    <ul>
+      <li>🛒 Carrito y pedidos por WhatsApp</li>
+      <li>🎉 Club de clientes, sorteos y cumpleaños</li>
+      <li>💰 Sin comisión por venta, a diferencia de las apps de delivery</li>
+      <li>🔒 Formularios seguros, conforme a la Ley 25.326</li>
+    </ul>
+    <div class="dc-actions">
+      <a class="dc-btn wa" href="https://wa.me/5493875143900?text=Hola%20Rave%20Holding!%20Vi%20el%20men%C3%BA%20digital%20de%20RAVE%20y%20quiero%20uno%20para%20mi%20negocio."
+         target="_blank" rel="noopener">💬 Quiero este sistema en mi local 🚀</a>
+      <a class="dc-btn mail" href="mailto:raveholding@gmail.com">✉️ raveholding@gmail.com</a>
+    </div>
+    <div class="dc-fine">Potenciado y Desarrollado por Rave Holding | Soluciones de Digitalización Comercial<br>Tel./WhatsApp: +54 9 387-5143900 · Salta, Argentina · www.raveholding.com.ar</div>
+  </div>
+
+</div>
+
+<!-- ===== Floating cart bar ===== -->
+<!-- ===== Modal de detalle de producto ===== -->
+<div id="product-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pm-name">
+  <div id="product-modal">
+    <button id="pm-close-x" type="button" aria-label="Cerrar">✕</button>
+    <img id="pm-img" src="" alt="">
+    <h3 id="pm-name"></h3>
+    <div id="pm-sub"></div>
+    <span id="pm-price"></span>
+    <div id="pm-qty">
+      <button class="qty-btn minus" type="button" id="pm-minus" aria-label="Restar">−</button>
+      <span class="qty-val" id="pm-qtyval">0</span>
+      <button class="qty-btn plus" type="button" id="pm-plus" aria-label="Sumar">+</button>
+    </div>
+    <button id="pm-add" type="button">Agregar al pedido</button>
+    <button id="pm-close" type="button">Seguir viendo</button>
+  </div>
+</div>
+
+<button class="to-top" id="to-top" type="button" aria-label="Volver al inicio">↑</button>
+
+<a class="sale-fab" id="sale-fab" target="_blank" rel="noopener"
+   href="https://wa.me/5493875143900?text=Hola%20Rave%20Holding!%20Vi%20el%20men%C3%BA%20digital%20de%20RAVE%20y%20quiero%20uno%20para%20mi%20negocio."
+   aria-label="¿Tenés un negocio? Pedí este sistema para tu local">
+  <span class="sf-ic">🚀</span><span class="sf-txt">¿Tu negocio?</span>
+</a>
+
+<div id="rv-toast" role="status" aria-live="polite"></div>
+
+<div id="cart-bar">
+  <div class="cb-left"><b id="cb-count">0</b> productos</div>
+  <div class="cb-right" id="cb-total">$ 0</div>
+</div>
+
+<!-- ===== Cart panel ===== -->
+<div id="cart-overlay">
+  <div id="cart-panel">
+    <h3>Tu pedido</h3>
+    <div id="cart-items"></div>
+    <div id="cart-empty" style="display:none;">Todavía no agregaste nada. Tocá "+" en lo que quieras pedir.</div>
+    <div class="cp-coupon"><label for="cp-coupon-in" id="cp-coupon-lbl">¿Tenés un cupón?</label><div class="cp-coupon-row"><input id="cp-coupon-in" maxlength="24" autocomplete="off" placeholder="CÓDIGO"><button type="button" id="cp-coupon-ok">Aplicar</button></div><div id="cp-coupon-msg" role="status"></div></div>
+    <div class="cp-total-row">
+      <span>Total estimado</span>
+      <span id="cp-total-val">$ 0</span>
+    </div>
+    <div class="cp-note">Los ítems marcados "a coordinar" se confirman por WhatsApp.</div>
+    <div class="cp-buttons">
+      <button class="cp-btn clear" id="btn-clear" type="button">Vaciar</button>
+      <button class="cp-btn send" id="btn-send" type="button">Enviar por WhatsApp</button>
+    </div>
+    <button class="cp-close" id="btn-close" type="button">Seguir viendo el menú</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var cart = {}; // id -> {name, price(number|null), qty}
+
+  var cartBar = document.getElementById('cart-bar');
+  var cbCount = document.getElementById('cb-count');
+  var cbTotal = document.getElementById('cb-total');
+  var overlay = document.getElementById('cart-overlay');
+  var itemsEl = document.getElementById('cart-items');
+  var emptyEl = document.getElementById('cart-empty');
+  var totalValEl = document.getElementById('cp-total-val');
+  var toTopBtn = document.getElementById('to-top');
+  var saleFab = document.getElementById('sale-fab');
+
+  function fmt(n){
+    return '$ ' + n.toLocaleString('es-AR');
+  }
+
+  function updateElementUI(el, qty){
+    var qv = el.querySelector('.qty-val');
+    if(qv) qv.textContent = qty;
+    if(qty > 0){ el.classList.add('in-cart'); } else { el.classList.remove('in-cart'); }
+  }
+
+  function refreshBar(){
+    var count = 0, total = 0, hasUnpriced = false;
+    Object.keys(cart).forEach(function(id){
+      var it = cart[id];
+      count += it.qty;
+      if(it.price !== null){ total += it.price * it.qty; } else { hasUnpriced = true; }
+    });
+    if(count > 0){
+      cartBar.style.display = 'flex';
+    } else {
+      cartBar.style.display = 'none';
+    }
+    cbCount.textContent = count;
+    cbTotal.textContent = fmt(total) + (hasUnpriced ? ' +' : '');
+    toTopBtn.classList.toggle('lift', count > 0);
+    saleFab.classList.toggle('lift', count > 0);
+  }
+
+  // ---- Botón flotante "volver arriba" ----
+  window.addEventListener('scroll', function(){
+    toTopBtn.classList.toggle('show', window.scrollY > 480);
+  });
+  toTopBtn.addEventListener('click', function(){
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  function renderPanel(){
+    var ids = Object.keys(cart);
+    itemsEl.innerHTML = '';
+    if(ids.length === 0){
+      emptyEl.style.display = 'block';
+    } else {
+      emptyEl.style.display = 'none';
+      var total = 0;
+      ids.forEach(function(id){
+        var it = cart[id];
+        var lineTxt;
+        if(it.price !== null){
+          var line = it.price * it.qty;
+          total += line;
+          lineTxt = fmt(line);
+        } else {
+          lineTxt = (window.rvT ? rvT('A coordinar') : 'A coordinar');
+        }
+        var row = document.createElement('div');
+        row.className = 'cp-item';
+        row.innerHTML = '<div class="cp-name">' + String(it.name == null ? '' : it.name).replace(/[&<>"']/g, function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch]; }) + '</div>' +
+                         '<div class="cp-qty">x' + it.qty + '</div>' +
+                         '<div class="cp-line">' + lineTxt + '</div>';
+        itemsEl.appendChild(row);
+      });
+      totalValEl.textContent = fmt(total);
+    }
+    window.RAVE_CART_TOTAL = total; if(window.RAVE_COUPON_RENDER) window.RAVE_COUPON_RENDER(total);
+  }
+
+  function changeQty(el, delta){
+    var id = el.dataset.id;
+    var name = el.dataset.name;
+    var priceAttr = el.dataset.price;
+    var price = (priceAttr === '' || priceAttr === undefined) ? null : parseInt(priceAttr, 10);
+
+    if(!cart[id]) cart[id] = { name: name, price: price, qty: 0 };
+    cart[id].qty += delta;
+    if(cart[id].qty <= 0){ delete cart[id]; updateElementUI(el, 0); }
+    else { updateElementUI(el, cart[id].qty); }
+
+    refreshBar();
+  }
+
+  /* Los botones + y - no se enganchan uno por uno: el catalogo ahora se arma
+     con datos y se puede volver a dibujar (cuando el panel cambia un precio o
+     agrega un producto), asi que se escucha por delegacion. */
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest ? e.target.closest('.sheet .qty-btn') : null;
+    if(!btn) return;
+    var el = btn.closest('[data-id]');
+    if(!el) return;
+    e.stopPropagation();
+    changeQty(el, btn.classList.contains('plus') ? 1 : -1);
+  });
+
+  /* ===== Filtro por categorías + buscador + modal de detalle ===== */
+  var catChips = document.querySelectorAll('.cat-chip');
+  var searchInput = document.getElementById('search-input');
+  var searchEmpty = document.getElementById('search-empty');
+  var activeCat = 'all';
+
+  // ---- Contador de productos por categoría (chips "Promos 19", etc.) ----
+  function countItemsFor(cat){
+    var vistos = [];
+    document.querySelectorAll('[data-cat="' + cat + '"]').forEach(function(el){
+      var items = el.hasAttribute('data-id') ? [el] : el.querySelectorAll('[data-id]');
+      Array.prototype.forEach.call(items, function(it){
+        var id = it.getAttribute('data-id');
+        if(vistos.indexOf(id) === -1) vistos.push(id);
+      });
+    });
+    return vistos.length;
+  }
+  function initCounts(){
+    var cats = window.RAVE_CATS || ['promo', 'vino', 'tabaco'];
+    var total = 0;
+    cats.forEach(function(cat){
+      var n = countItemsFor(cat);
+      total += n;
+      var el = document.getElementById('count-' + cat);
+      if(el) el.textContent = n;
+    });
+    var totalEl = document.getElementById('count-all');
+    if(totalEl) totalEl.textContent = total;
+  }
+  initCounts();
+
+  function applyFilters(){
+    var term = (searchInput.value || '').trim().toLowerCase();
+    var anyVisible = false;
+
+    document.querySelectorAll('.section[data-cat], .featured[data-cat]').forEach(function(container){
+      var cat = container.getAttribute('data-cat');
+      var catMatch = (activeCat === 'all' || activeCat === cat);
+
+      if(container.classList.contains('featured')){
+        var name = (container.dataset.name || '').toLowerCase();
+        var visible = catMatch && (term === '' || name.indexOf(term) !== -1);
+        container.style.display = visible ? '' : 'none';
+        if(visible) anyVisible = true;
+        return;
+      }
+
+      // .section: filtrar tarjetas/filas internas por nombre, y ocultar la
+      // seccion entera si no queda ninguna visible.
+      var items = container.querySelectorAll('[data-id]');
+      var sectionHasVisible = false;
+      items.forEach(function(item){
+        var iname = (item.dataset.name || '').toLowerCase();
+        var match = term === '' || iname.indexOf(term) !== -1;
+        item.style.display = match ? '' : 'none';
+        if(match) sectionHasVisible = true;
+      });
+      var showSection = catMatch && sectionHasVisible;
+      container.style.display = showSection ? '' : 'none';
+      if(showSection) anyVisible = true;
+    });
+
+    searchEmpty.style.display = (!anyVisible && term !== '') ? 'block' : 'none';
+  }
+
+  document.addEventListener('click', function(e){
+    var chip = e.target.closest ? e.target.closest('.cat-chip') : null;
+    if(!chip) return;
+    document.querySelectorAll('.cat-chip').forEach(function(c){ c.classList.remove('active'); });
+    chip.classList.add('active');
+    activeCat = chip.getAttribute('data-cat');
+    applyFilters();
+  });
+  searchInput.addEventListener('input', applyFilters);
+
+  /* el render del catalogo llama a esto despues de redibujar */
+  window.RAVE_MENU_REFRESH = function(){ initCounts(); applyFilters(); };
+
+  // ---- Modal de detalle de producto ----
+  var pmOverlay = document.getElementById('product-modal-overlay');
+  var pmImg = document.getElementById('pm-img');
+  var pmName = document.getElementById('pm-name');
+  var pmSub = document.getElementById('pm-sub');
+  var pmPrice = document.getElementById('pm-price');
+  var pmQtyVal = document.getElementById('pm-qtyval');
+  var pmPlus = document.getElementById('pm-plus');
+  var pmMinus = document.getElementById('pm-minus');
+  var currentModalEl = null;
+
+  function fmtMaybe(priceAttr){
+    if(priceAttr === '' || priceAttr === undefined) return (window.rvT ? rvT('A coordinar por WhatsApp') : 'A coordinar por WhatsApp');
+    return fmt(parseInt(priceAttr, 10));
+  }
+
+  function syncModalQty(){
+    if(!currentModalEl) return;
+    var qv = currentModalEl.querySelector('.qty-val');
+    pmQtyVal.textContent = qv ? qv.textContent : '0';
+  }
+
+  function openModal(el){
+    currentModalEl = el;
+    var img = el.querySelector('img');
+    var subEl = el.querySelector('.c-sub, .desc, .row-name');
+    pmImg.style.display = img ? '' : 'none';
+    if(img) pmImg.src = img.src;
+    pmName.textContent = el.dataset.name || '';
+    pmSub.textContent = (subEl && subEl !== el.querySelector('.row-name')) ? subEl.textContent : '';
+    pmPrice.textContent = fmtMaybe(el.dataset.price);
+    syncModalQty();
+    pmOverlay.style.display = 'flex';
+  }
+  function closeModal(){
+    pmOverlay.style.display = 'none';
+    currentModalEl = null;
+  }
+
+  document.addEventListener('click', function(e){
+    if(!e.target.closest) return;
+    if(e.target.closest('.qty-btn')) return;
+    var el = e.target.closest('.sheet .card, .sheet .row, .sheet .featured');
+    if(el) openModal(el);
+  });
+  pmPlus.addEventListener('click', function(){
+    if(!currentModalEl) return;
+    var realPlus = currentModalEl.querySelector('.qty-btn.plus');
+    if(realPlus) realPlus.click();
+    syncModalQty();
+  });
+  pmMinus.addEventListener('click', function(){
+    if(!currentModalEl) return;
+    var realMinus = currentModalEl.querySelector('.qty-btn.minus');
+    if(realMinus) realMinus.click();
+    syncModalQty();
+  });
+  document.getElementById('pm-add').addEventListener('click', function(){
+    if(!currentModalEl) return;
+    var realPlus = currentModalEl.querySelector('.qty-btn.plus');
+    if(realPlus) realPlus.click();
+    syncModalQty();
+  });
+  document.getElementById('pm-close').addEventListener('click', closeModal);
+  document.getElementById('pm-close-x').addEventListener('click', closeModal);
+  pmOverlay.addEventListener('click', function(e){ if(e.target === pmOverlay) closeModal(); });
+
+  cartBar.addEventListener('click', function(){
+    renderPanel();
+    overlay.style.display = 'flex';
+  });
+  document.getElementById('btn-close').addEventListener('click', function(){
+    overlay.style.display = 'none';
+  });
+  overlay.addEventListener('click', function(e){
+    if(e.target === overlay) overlay.style.display = 'none';
+  });
+
+  document.getElementById('btn-clear').addEventListener('click', function(){
+    Object.keys(cart).forEach(function(id){
+      var el = document.querySelector('[data-id="' + id + '"]');
+      if(el) updateElementUI(el, 0);
+    });
+    cart = {};
+    refreshBar();
+    renderPanel();
+  });
+
+  document.getElementById('btn-send').addEventListener('click', function(){
+    var ids = Object.keys(cart);
+    if(ids.length === 0) return;
+    var lines = ['Hola RAVE! Quiero hacer este pedido:'];
+    var total = 0;
+    ids.forEach(function(id){
+      var it = cart[id];
+      if(it.price !== null){
+        var line = it.price * it.qty;
+        total += line;
+        lines.push('- ' + it.qty + 'x ' + it.name + ' — ' + fmt(line));
+      } else {
+        lines.push('- ' + it.qty + 'x ' + it.name + ' — a coordinar');
+      }
+    });
+    lines.push('');
+    lines.push('Subtotal estimado: ' + fmt(total));
+    if(window.RAVE_COUPON_LINES) window.RAVE_COUPON_LINES(lines, total);
+    lines.push('');
+    lines.push('Espero su confirmación, gracias!');
+    var msg = lines.join('\n');
+    try{ if(window.RAVE_ORDER_LOG) window.RAVE_ORDER_LOG(ids.map(function(i){ return { id:i, name:cart[i].name, price:cart[i].price, qty:cart[i].qty }; }), total); }catch(e){}
+    var url = 'https://wa.me/' + (window.RAVE_WA || '5493874574892') + '?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank');
+  });
+})();
+
+/* ===== Club RAVE: alta de clientes + panel de administrador =====
+   NOTA PARA REUTILIZAR ESTE ARCHIVO COMO PLANTILLA CON OTRO NEGOCIO:
+   cambiar ADMIN_PASSWORD y WA_NUMBER más abajo, y el texto de la cláusula
+   legal si el negocio no es RAVE.
+
+   Seguridad y cumplimiento (Ley 25.326 de Protección de Datos Personales):
+   - Minimización de datos: el formulario solo pide nombre, WhatsApp y
+     cumpleaños — lo mínimo necesario para sorteos/ofertas/saludos.
+   - Sanitización centralizada: toda entrada del cliente pasa por
+     sanitizeInput() antes de guardarse o mostrarse, para evitar
+     inyección de HTML/script (XSS).
+   - Ofuscación de almacenamiento: los datos en localStorage NO se
+     guardan como texto plano, se pasan por obfuscate()/deobfuscate().
+     Esto es una ofuscación razonable, NO un cifrado real: en un archivo
+     estático sin servidor no hay forma de esconder una clave secreta
+     verdadera, así que alguien que revise el código fuente podría
+     revertirla. Para cifrado real y control de acceso genuino, el
+     paso siguiente (cuando este servicio se venda formalmente) es un
+     backend propio con login y token de autorización, como el panel
+     completo de Cannabismática.
+   - El acceso al panel de administrador es un freno liviano (doble
+     clic + contraseña en este mismo archivo), no autenticación real.
+   - Los datos se guardan únicamente en este dispositivo. Por eso además
+     se manda un respaldo por WhatsApp al número del negocio en cada alta.
+   - Derechos ARCO: el botón "Ejercé tus derechos ARCO" del formulario
+     le permite a cualquier persona pedir acceso, corrección o borrado
+     de sus propios datos, enviando el pedido directo al WhatsApp del
+     negocio.
+   - Los errores nunca se muestran técnicos al usuario final: si algo
+     falla (por ejemplo, el navegador bloquea localStorage), se ve un
+     mensaje genérico, nunca el detalle interno.
+*/
+(function(){
+  var STORAGE_KEY = 'rave_club_clientes';
+  var WA_NUMBER = window.RAVE_WA || '5493874574892';
+
+  // ==== Cartera de clientes centralizada (Google Sheet) ====
+  // Completar estos dos valores cuando esté publicado el Web App de Apps Script
+  // (ver instrucciones aparte). Mientras SHEET_WEBHOOK_URL esté vacío, el alta
+  // sigue funcionando igual que antes (guardado local + WhatsApp de respaldo),
+  // simplemente no manda nada a la planilla todavía.
+  var SHEET_WEBHOOK_URL = '';
+  var SHEET_TOKEN = '';
+
+  // ---- Sanitización centralizada (XSS) ----
+  function sanitizeInput(str){
+    return String(str == null ? '' : str)
+      .replace(/[\r\n\t]/g, ' ')
+      .trim()
+      .replace(/[&<>'"]/g, function(tag){
+        return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[tag] || tag;
+      });
+  }
+  var escapeHTML = sanitizeInput; // alias: mismo uso, nombre historico
+
+  // ---- Ofuscación de lo que se guarda en localStorage (ver nota arriba) ----
+  function b64EncodeUnicode(str){
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(_, hex){
+      return String.fromCharCode(parseInt(hex, 16));
+    }));
+  }
+  function b64DecodeUnicode(str){
+    return decodeURIComponent(Array.prototype.map.call(atob(str), function(c){
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+  }
+  function obfuscate(str){
+    var shifted = str.split('').map(function(ch){ return String.fromCharCode(ch.charCodeAt(0) + 7); }).join('');
+    return b64EncodeUnicode(shifted);
+  }
+  function deobfuscate(str){
+    try{
+      var shifted = b64DecodeUnicode(str);
+      return shifted.split('').map(function(ch){ return String.fromCharCode(ch.charCodeAt(0) - 7); }).join('');
+    }catch(e){ return null; }
+  }
+
+  function getClientes(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return [];
+      var json = deobfuscate(raw);
+      return json ? (JSON.parse(json) || []) : [];
+    }catch(e){ return []; }
+  }
+  function saveClientes(list){
+    try{
+      localStorage.setItem(STORAGE_KEY, obfuscate(JSON.stringify(list)));
+      return true;
+    }catch(e){ return false; } // localStorage bloqueado/lleno: fallamos en silencio, sin exponer detalle técnico
+  }
+
+  // ---- Formulario de alta ----
+  var form = document.getElementById('club-form');
+  var fNombre = document.getElementById('club-nombre');
+  var fWhats = document.getElementById('club-whatsapp');
+  var fCumple = document.getElementById('club-cumple');
+  var fConsent = document.getElementById('club-consent');
+  var okMsg = document.getElementById('club-ok');
+  var errMsg = document.getElementById('club-error');
+
+  function setInvalid(fieldId, invalid){
+    var el = document.getElementById(fieldId);
+    if(el) el.classList.toggle('invalid', invalid);
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    errMsg.style.display = 'none';
+    var nombre = sanitizeInput(fNombre.value);
+    var whats = sanitizeInput(fWhats.value);
+    var cumple = fCumple.value;
+
+    var nombreOk = nombre.length >= 3 && /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+\s+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(nombre);
+    var whatsDigits = whats.replace(/\D/g, '');
+    var whatsOk = whatsDigits.length >= 8;
+    var cumpleOk = !!cumple;
+
+    setInvalid('field-nombre', !nombreOk);
+    setInvalid('field-whatsapp', !whatsOk);
+    setInvalid('field-cumple', !cumpleOk);
+
+    if(!nombreOk || !whatsOk || !cumpleOk || !fConsent.checked) return;
+
+    var API = null; try{ API = window.parent.RAVE_API; }catch(e){}
+    var comm = !!(document.getElementById('club-comm') && document.getElementById('club-comm').checked);
+    var r = API ? API.clubJoin({ nombre:nombre, whatsapp:whatsDigits, cumple:cumple, comm:comm }) : { ok:false };
+    var e2 = document.getElementById('club-error2');
+    if(!r || !r.ok){
+      if(e2){ e2.textContent = (r && r.msg) || ''; e2.style.display = (r && r.msg) ? 'block' : 'none'; }
+      if(!(r && r.msg)) errMsg.style.display = 'block';
+      return;
+    }
+    if(e2) e2.style.display = 'none';
+    try{ if(r.cardId) localStorage.setItem('rave.card', r.cardId); }catch(e){}
+    if(window.RAVE_CARD_REFRESH) window.RAVE_CARD_REFRESH();
+    okMsg.style.display = 'block';
+    form.reset();
+    setInvalid('field-nombre', false);
+    setInvalid('field-whatsapp', false);
+    setInvalid('field-cumple', false);
+    setTimeout(function(){ okMsg.style.display = 'none'; }, 5000);
+  });
+
+  // ---- Derechos ARCO (acceso, rectificación, cancelación, oposición) ----
+  document.getElementById('arco-btn').addEventListener('click', function(){
+    var msg = 'Quiero ejercer mis derechos ARCO (acceso, rectificacion, cancelacion u oposicion) sobre los datos que dejé en el Club RAVE.';
+    window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg), '_blank');
+  });
+
+
+  // El panel privado ahora lo maneja el Sistema RAVE (ver más abajo):
+  // el boton "Acceso del equipo" y el doble clic en el titulo llaman a
+  // window.RAVE_PANEL.abrir().
+})();
+</script>
+
+<script>
+/* ===== Idioma (ES/EN) + Compartir (Web Share API) + Wi-Fi ===== */
+(function(){
+  var lang = 'es';
+  window.RAVE_LANG = function(){ return lang; };
+  try { var sv = localStorage.getItem('rave_lang'); if(sv === 'en' || sv === 'es') lang = sv; } catch(e){}
+
+  // [selector, texto en inglés, modo]  modo: (vacío)=innerHTML | 'text'=primer nodo de texto | 'ph'=placeholder | 'aria'=aria-label
+  var T = [
+    ['.brand-sub','Grocery &amp; Liquor Store · Salta'],
+    ['.pitch','Buy your drinks —and much more— <strong>without leaving your car</strong>. Scan this QR and build your order: <strong>we confirm stock by WhatsApp</strong>, arrange payment and bring it to you during the afternoon.'],
+    ['.promo-banner .pt','Buy <strong>2 combos</strong> or <strong>3 wines</strong> and delivery is <strong>free</strong> within the downtown area and surroundings.'],
+    ['.price-note','🧾 All listed prices include taxes.'],
+    ['#search-input','Search product...','ph'],
+    ['#search-input','Search product','aria'],
+    ['#search-empty','No products found with that name.'],
+    ['.cat-chip[data-cat="all"]','All','text'],
+    ['.cat-chip[data-cat="promo"]','Deals','text'],
+    ['.cat-chip[data-cat="vino"]','Wines','text'],
+    ['.cat-chip[data-cat="tabaco"]','Tobacco','text'],
+    ['.section[data-cat="promo"] h2','Drink Deals Menu'],
+    ['.section[data-cat="vino"] h2','Wines'],
+    ['.section[data-cat="vino"] .hint','By winery and variety'],
+    ['.section[data-cat="tabaco"] h2','Cigarettes &amp; Tobacco'],
+    ['.club-block h2','Join Club RAVE'],
+    ['.club-sub','Be the first to hear about our deals, join members-only giveaways and get a surprise on your birthday.'],
+    ['label[for="club-nombre"]','Full name'],
+    ['#club-nombre','e.g. John Smith','ph'],
+    ['#field-nombre .club-err','Enter your first and last name.'],
+    ['label[for="club-whatsapp"]','WhatsApp'],
+    ['#club-whatsapp','e.g. 387 4567890','ph'],
+    ['#field-whatsapp .club-err','Enter a valid WhatsApp number (at least 8 digits).'],
+    ['label[for="club-cumple"]','Birthday'],
+    ['#field-cumple .club-err','Pick a valid date.'],
+    ['.club-consent span','I agree that RAVE stores this data solely to contact me about giveaways, offers and birthday greetings, in accordance with Argentine Law 25.326 on Personal Data Protection. My data is not shared with third parties.'],
+    ['#arco-btn','Want to access, correct or delete your data? Exercise your ARCO rights'],
+    ['.club-btn','Join Club RAVE'],
+    ['#club-ok','Done! You are now part of Club RAVE.'],
+    ['#club-error','We could not save your data on this device. Please try again in a moment.'],
+    ['.legal-details summary','Terms &amp; Privacy Policy'],
+    ['.map-panel h2','Where to find us'],
+    ['.map-panel .info-btn','📍 Get directions'],
+    ['.review-panel h2','How was your purchase?'],
+    ['.review-panel .info-sub','Your Google review helps more people find us. It takes one minute.'],
+    ['.review-panel .info-btn','⭐ Leave my Google review'],
+    ['.wifi-panel h2','📶 Wi-Fi for customers <span class="wifi-tag">example</span>'],
+    ['.wifi-panel .info-sub','Connect while you wait for your order and share the network with whoever is with you.'],
+    ['.wifi-card div:nth-child(1)','Network: <b id="wifi-ssid">RAVE-Clientes</b>'],
+    ['.wifi-card div:nth-child(2)','Password: <b id="wifi-pass">rave-demo-2026</b>'],
+    ['#wifi-share','📤 Share Wi-Fi'],
+    ['#wifi-copy','📋 Copy password'],
+    ['.wifi-legal','Use subject to the store\'s terms. RAVE is not responsible for how third parties use the network.'],
+    ['.social-panel h2','Follow us'],
+    ['.social-panel .info-sub','Deals, news and giveaways.'],
+    ['#share-menu-2','📤 Share the menu with your contacts'],
+    ['#share-menu .st-txt','Share'],
+    ['#share-menu','Share the menu','aria'],
+    ['footer','Grocery &amp; Liquor Store · Urquiza 1052 · Salta, Argentina','text'],
+    ['#team-access-btn','🔒 Team access'],
+    ['.dc-kicker','Design &amp; development'],
+    ['.dev-credit .dc-tagline','Did you like this system for your business?'],
+    ['.dev-credit p:nth-of-type(2)','<b>Digitalize your sales, build customer loyalty and control your cash in real time.</b> Book a visit with the Rave Holding team by calling +54 9 387-5143900 or message us on WhatsApp.'],
+    ['.dev-credit p:nth-of-type(3)','Cart with direct WhatsApp orders, customer club with automatic giveaways and a private control panel —all in one page, no commission per sale and no dependence on delivery apps. Custom-built for stores, grocery shops, restaurants and bars, gyms, hair salons, workshops, spas, clubs, courses and more, ready in a few days.'],
+    ['.dev-credit li:nth-child(1)','🛒 Cart and WhatsApp orders'],
+    ['.dev-credit li:nth-child(2)','🎉 Customer club, giveaways and birthdays'],
+    ['.dev-credit li:nth-child(3)','💰 No commission per sale, unlike delivery apps'],
+    ['.dev-credit li:nth-child(4)','🔒 Secure forms, compliant with Law 25.326'],
+    ['.dc-btn.wa','💬 I want this system in my store 🚀'],
+    ['.dc-fine','Powered and Developed by Rave Holding | Commercial Digitalization Solutions<br>Phone/WhatsApp: +54 9 387-5143900 · Salta, Argentina · www.raveholding.com.ar'],
+    ['#age-gate #ag-title','Age verification'],
+    ['#age-gate #ag-desc','This menu includes alcoholic beverages and tobacco. Are you over 18?'],
+    ['#ag-yes','I am over 18'],
+    ['#ag-no','I am under 18'],
+    ['#ag-deny','Sorry: you cannot access this content. Sale prohibited to persons under 18.'],
+    ['#age-gate .ag-legal','Sale prohibited to persons under 18. Drink responsibly.'],
+    ['#alc-legend','<span>🔞 Sale prohibited to persons under 18.</span><span>🥂 Drink responsibly.</span>'],
+    ['#alc-notice','Alcohol sales are allowed from 07:00 to 00:00 (Salta). Please come back during those hours.'],
+    ['.foot-legal','Sale prohibited to persons under 18. Drink responsibly.'],
+    ['#sale-fab .sf-txt','Your business?'],
+    ['#sale-fab','Have a business? Get this system for your store','aria'],
+    ['#cart-bar .cb-left',' item(s)','text2'],
+    ['#cart-panel h3','Your order'],
+    ['#cart-empty','You haven\'t added anything yet. Tap "+" on what you want to order.'],
+    ['.cp-total-row span:first-child','Estimated total'],
+    ['.cp-note','Items marked "to be arranged" are confirmed via WhatsApp.'],
+    ['#btn-clear','Clear'],
+    ['#btn-send','Send via WhatsApp'],
+    ['#btn-close','Keep browsing the menu'],
+    ['#pm-add','Add to order'],
+    ['#pm-close','Keep browsing']
+  ].concat(window.RAVE_T_EXTRA || []);
+  var EXTRA = {
+    'A coordinar':'To be arranged',
+    'A coordinar por WhatsApp':'To be arranged via WhatsApp',
+    '¡Listo! Ya sos parte del Club RAVE.':'Done! You are now part of Club RAVE.'
+  };
+  var MSG = {
+    es:{ copied:'Clave copiada ✅', linkCopied:'Link copiado ✅', fail:'No se pudo compartir. Probá de nuevo.',
+         shareTitle:'Almacén y Licorería RAVE',
+         shareText:'Mirá el menú de Almacén y Licorería RAVE (Urquiza 1052, Salta): vinos, bebidas, cigarrillos y combos. Pedí por WhatsApp 👇',
+         wifiText:function(n,p){ return '📶 Wi-Fi de Almacén y Licorería RAVE\nRed: '+n+'\nClave: '+p; } },
+    en:{ copied:'Password copied ✅', linkCopied:'Link copied ✅', fail:'Could not share. Please try again.',
+         shareTitle:'Almacén y Licorería RAVE',
+         shareText:'Check out the menu of Almacén y Licorería RAVE (Urquiza 1052, Salta): wines, drinks, cigarettes and combos. Order via WhatsApp 👇',
+         wifiText:function(n,p){ return '📶 Wi-Fi at Almacén y Licorería RAVE\nNetwork: '+n+'\nPassword: '+p; } }
+  };
+
+  window.rvT = function(es){ return (lang === 'en' && EXTRA[es]) ? EXTRA[es] : es; };
+
+  function firstText(el){
+    for(var i=0;i<el.childNodes.length;i++){ var n=el.childNodes[i]; if(n.nodeType===3 && n.nodeValue.trim()) return n; }
+    return null;
+  }
+  function lastText(el){
+    for(var i=el.childNodes.length-1;i>=0;i--){ var n=el.childNodes[i]; if(n.nodeType===3 && n.nodeValue.trim()) return n; }
+    return null;
+  }
+  var captured = false;
+  function capture(){
+    if(captured) return; captured = true;
+    T.forEach(function(row){
+      var mode = row[2] || '';
+      document.querySelectorAll(row[0]).forEach(function(el){
+        var key = '__es_' + (mode || 'html');
+        if(el[key] !== undefined) return;
+        if(mode === 'ph') el[key] = el.getAttribute('placeholder');
+        else if(mode === 'aria') el[key] = el.getAttribute('aria-label');
+        else if(mode === 'text'){ var n=firstText(el); el[key] = n ? n.nodeValue : null; }
+        else if(mode === 'text2'){ var n2=lastText(el); el[key] = n2 ? n2.nodeValue : null; }
+        else el[key] = el.innerHTML;
+      });
+    });
+  }
+  function apply(){
+    capture();
+    var en = (lang === 'en');
+    T.forEach(function(row){
+      var mode = row[2] || '', key = '__es_' + (mode || 'html');
+      document.querySelectorAll(row[0]).forEach(function(el){
+        var val = en ? row[1] : el[key];
+        if(val === undefined || val === null) return;
+        if(mode === 'ph') el.setAttribute('placeholder', val);
+        else if(mode === 'aria') el.setAttribute('aria-label', val);
+        else if(mode === 'text'){ var n=firstText(el); if(n) n.nodeValue = en ? ' ' + row[1].replace(/&amp;/g,'&') + ' ' : val; }
+        else if(mode === 'text2'){ var n2=lastText(el); if(n2) n2.nodeValue = val; }
+        else el.innerHTML = val;
+      });
+    });
+    document.documentElement.lang = lang;
+    ['es','en'].forEach(function(l){
+      var b = document.getElementById('lang-' + l);
+      if(b) b.setAttribute('aria-pressed', l === lang ? 'true' : 'false');
+    });
+  }
+  function setLang(l){
+    lang = l; window.RAVE_LANGV = l;
+    try { localStorage.setItem('rave_lang', l); } catch(e){}
+    apply();
+  }
+
+  var toastEl = document.getElementById('rv-toast'), toastT;
+  function toast(t){
+    if(!toastEl) return;
+    toastEl.textContent = t; toastEl.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(function(){ toastEl.classList.remove('show'); }, 2400);
+  }
+  function copyText(txt){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(txt);
+    }
+    return new Promise(function(res, rej){
+      try{
+        var ta = document.createElement('textarea'); ta.value = txt; ta.setAttribute('readonly','');
+        ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+        var ok = document.execCommand('copy'); document.body.removeChild(ta); ok ? res() : rej();
+      }catch(e){ rej(e); }
+    });
+  }
+  function shareUrl(){
+    var c = document.querySelector('link[rel="canonical"]');
+    return c ? c.href : (location.origin + location.pathname);
+  }
+  // Compartir nativo; si el navegador no lo soporta, abre WhatsApp con el texto y el link
+  function doShare(title, text, url){
+    var data = { title: title, text: text };
+    if(url) data.url = url;
+    if(navigator.share){
+      return navigator.share(data).catch(function(e){ if(e && e.name === 'AbortError') return; fallback(); });
+    }
+    fallback();
+    function fallback(){
+      var msg = text + (url ? ' ' + url : '');
+      var w = window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+      if(!w){ copyText(msg).then(function(){ toast(MSG[lang].linkCopied); }, function(){ toast(MSG[lang].fail); }); }
+    }
+  }
+  function shareMenu(){ var m = MSG[lang]; doShare(m.shareTitle, m.shareText, shareUrl()); }
+  function wifiData(){
+    return { n: document.getElementById('wifi-ssid').textContent.trim(), p: document.getElementById('wifi-pass').textContent.trim() };
+  }
+
+  document.getElementById('lang-es').addEventListener('click', function(){ setLang('es'); });
+  document.getElementById('lang-en').addEventListener('click', function(){ setLang('en'); });
+  document.getElementById('share-menu').addEventListener('click', shareMenu);
+  document.getElementById('share-menu-2').addEventListener('click', shareMenu);
+  document.getElementById('wifi-share').addEventListener('click', function(){
+    var w = wifiData(); doShare(MSG[lang].shareTitle + ' · Wi-Fi', MSG[lang].wifiText(w.n, w.p), '');
+  });
+  document.getElementById('wifi-copy').addEventListener('click', function(){
+    copyText(wifiData().p).then(function(){ toast(MSG[lang].copied); }, function(){ toast(MSG[lang].fail); });
+  });
+
+  if(lang === 'en') apply();
+})();
+</script>
+<script>
+/* ===== Age Gate (Ley 24.788) + restricción horaria opcional de alcohol ===== */
+(function(){
+  // Configurable: poner enabled:true para ocultar bebidas alcohólicas fuera del horario de venta (hora de Salta, 0-23).
+  // Salta: venta de alcohol permitida de 07:00 a 00:00 -> from:7, to:24. ACTIVADO. (decimal: 23.5 = 23:30)
+  var ALCOHOL_RESTRICTION = { enabled:true, from:7, to:24, tz:'America/Argentina/Salta',
+                              cats: window.RAVE_CATS_ALC || ['promo','vino'] };
+  var gate = document.getElementById('age-gate'), yes = document.getElementById('ag-yes'), no = document.getElementById('ag-no');
+  var sheet = document.querySelector('.sheet');
+  function ok(){ try{ return sessionStorage.getItem('rave_age18') === '1'; }catch(e){ return false; } }
+  function lock(on){
+    document.body.classList.toggle('age-locked', on);
+    if(sheet){ if(on) sheet.setAttribute('inert',''); else sheet.removeAttribute('inert'); sheet.setAttribute('aria-hidden', on?'true':'false'); }
+  }
+  function open(){ gate.classList.add('open'); lock(true); setTimeout(function(){ try{ yes.focus(); }catch(e){} }, 30); }
+  function close(){ gate.classList.remove('open'); lock(false); }
+  if(!ok()) open();
+  yes.addEventListener('click', function(){ try{ sessionStorage.setItem('rave_age18','1'); }catch(e){} close(); });
+  no.addEventListener('click', function(){ gate.classList.add('denied'); var d=document.getElementById('ag-deny'); if(d){ d.setAttribute('tabindex','-1'); d.focus(); } });
+  gate.addEventListener('keydown', function(e){ // focus trap
+    if(e.key !== 'Tab') return;
+    var f = [yes, no].filter(function(b){ return b.offsetParent !== null; });
+    if(!f.length){ e.preventDefault(); return; }
+    var i = f.indexOf(document.activeElement);
+    if(e.shiftKey && i <= 0){ e.preventDefault(); f[f.length-1].focus(); }
+    else if(!e.shiftKey && i === f.length-1){ e.preventDefault(); f[0].focus(); }
+  });
+
+  function nowDecimal(){
+    try{
+      var parts = new Intl.DateTimeFormat('en-GB',{timeZone:ALCOHOL_RESTRICTION.tz,hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+      var h=0,m=0; parts.forEach(function(x){ if(x.type==='hour') h=+x.value%24; if(x.type==='minute') m=+x.value; });
+      return h + m/60;
+    }catch(e){ var d=new Date(); return d.getHours()+d.getMinutes()/60; }
+  }
+  function applyHours(){
+    var R = ALCOHOL_RESTRICTION, closed = false;
+    if(R.enabled){ var n = nowDecimal(); closed = (R.from <= R.to) ? !(n >= R.from && n < R.to) : !(n >= R.from || n < R.to); }
+    document.body.classList.toggle('alc-closed', closed);
+    R.cats.forEach(function(c){
+      document.querySelectorAll('.section[data-cat="'+c+'"], .cat-chip[data-cat="'+c+'"]').forEach(function(el){ el.classList.toggle('alc-off', closed); });
+    });
+    if(closed){ var all=document.querySelector('.cat-chip[data-cat="all"]'); var act=document.querySelector('.cat-chip.active'); if(act && act.classList.contains('alc-off') && all) all.click(); }
+  }
+  applyHours(); setInterval(applyHours, 60000);
+  window.RAVE_applyHours = applyHours; window.RAVE_ALC = ALCOHOL_RESTRICTION;
+})();
+</script>

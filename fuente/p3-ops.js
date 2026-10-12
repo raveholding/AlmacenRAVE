@@ -1,0 +1,229 @@
+/* ===== Cálculos: arqueo, reparto, reporte ===== */
+function hoursOn(empId,day){const ps=S.punches.filter(p=>p.empId===empId&&dkey(p.ts)===day).sort((a,b)=>a.ts-b.ts);let ms=0,open=null,flag=false;
+ for(const p of ps){if(p.kind==='in'){if(open!==null)flag=true;open=p.ts;}else{if(open!==null){ms+=p.ts-open;open=null;}else flag=true;}}
+ if(open!==null){if(day===dkey(now())&&now()-open<16*3600e3)ms+=now()-open;else flag=true;}
+ return{h:ms/3600e3,flag};}
+function allocFees(s){const fee=s.fee||0;const tots=s.items.map(lineTotal);const T=tots.reduce((a,b)=>a+b,0);if(!fee||!T)return s.items.map(()=>0);let acc=0;return tots.map((t,i)=>{if(i===tots.length-1)return fee-acc;const f=Math.round(fee*t/T);acc+=f;return f;});}
+const repartRubros=()=>S.rubros.filter(r=>r.kind==='rubro'&&r.reparte);
+function arqInputs(sess){const d=S.arqDraft[sess.id]||{};const emp=S.employees.find(e=>e.id===d.empId)||null;
+ const hrs=parseNum(d.hours);const rt=(d.rate!==undefined&&d.rate!=='')?cents(d.rate):(emp?emp.rate:0);
+ const mer=cents(d.merienda),gas=cents(d.gastos),dec=(d.declared===undefined||d.declared==='')?NaN:cents(d.declared);
+ const taxes={};repartRubros().forEach(r=>{const t=d.taxes&&d.taxes[r.id];taxes[r.id]=(t!==undefined&&t!=='')?(cents(t)||0):(S.cfg.tax[r.id]||0);});
+ return{emp,hours:isNaN(hrs)?0:hrs,rate:isNaN(rt)?0:rt,merienda:isNaN(mer)?0:mer,gastosManual:isNaN(gas)?0:gas,declared:dec,taxes,
+  payFromCash:d.payFromCash!==undefined?!!d.payFromCash:S.cfg.payFromCash,detailAll:!!d.detailAll,mono:d.mono!==false,notes:d.notes||''};}
+function arqueoCalc(sess,inp){
+ const sales=S.sales.filter(s=>s.sessId===sess.id&&s.status==='ok');
+ const pend=S.sales.filter(s=>s.sessId===sess.id&&s.status==='pendiente');
+ const byMethod={};let total=0;
+ sales.forEach(s=>{const m=byMethod[s.method]||(byMethod[s.method]={n:0,gross:0,fee:0});m.n++;m.gross+=s.total;m.fee+=s.fee||0;total+=s.total;});
+ const R={};S.rubros.forEach(r=>R[r.id]={sold:0,profit:0,fees:0,mov:0,items:{}});
+ sales.forEach(s=>{const fees=allocFees(s);s.items.forEach((it,i)=>{const q=R[it.rubro];if(!q)return;const t=lineTotal(it);q.sold+=t;q.profit+=t-lineCost(it);q.fees+=fees[i];const e=q.items[it.name]||(q.items[it.name]={qty:0,total:0});e.qty+=it.qty;e.total+=t;});});
+ const movs=S.movs.filter(m=>m.sessId===sess.id);let ing=0,egr=0,gAuto=0;
+ movs.forEach(m=>{if(m.type==='ingreso')ing+=m.amount;else egr+=m.amount;const r=rub(m.rubro);if(!r)return;
+  if(r.kind==='shared'){if(m.type==='egreso')gAuto+=m.amount;}else if(S.cfg.movAffectProfit){R[r.id].mov+=(m.type==='ingreso'?m.amount:-m.amount);}});
+ const sueldo=Math.round(inp.hours*inp.rate),mer=inp.merienda,gastos=gAuto+inp.gastosManual;
+ const rp=repartRubros(),n=rp.length;const sS=split(sueldo,n),sM=split(mer,n),sG=split(gastos,n);
+ const reparte=rp.map((r,i)=>{const q=R[r.id];const base=q.profit-q.fees+q.mov;const pre=base-sS[i]-sM[i]-sG[i];const tax=inp.taxes[r.id]||0;
+  const cubierto=Math.max(0,Math.min(pre,tax));return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,sueldo:sS[i],merienda:sM[i],gastos:sG[i],base,pre,tax,cubierto,falta:tax-cubierto,net:pre-tax};});
+ const otros=S.rubros.filter(r=>r.kind==='rubro'&&!r.reparte).map(r=>{const q=R[r.id];return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,net:q.profit-q.fees+q.mov};});
+ const cashSales=(byMethod.efectivo||{}).gross||0;
+ const paid=inp.payFromCash?(sueldo+mer+inp.gastosManual):0;
+ const expectedCash=sess.opening+cashSales+ing-egr-paid;
+ const declared=inp.declared;const diff=isNaN(declared)?0:declared-expectedCash;
+ return{total,count:sales.length,byMethod,pend:{n:pend.length,total:pend.reduce((a,s)=>a+s.total,0)},rub:R,ing,egr,gAuto,gManual:inp.gastosManual,gastos,sueldo,merienda:mer,
+  empName:inp.emp?inp.emp.name:'',hours:inp.hours,rate:inp.rate,reparte,otros,cashSales,paid,opening:sess.opening,expectedCash,declared:isNaN(declared)?null:declared,diff,
+  movs:movs.map(m=>({ts:m.ts,type:m.type,rubro:m.rubroName||rubName(m.rubro),concept:m.concept,amount:m.amount,user:m.user}))};}
+function buildReport(a,dayKey,who,inp){
+ const L=[];const P=(t,cls)=>L.push({t,cls:cls||''});
+ P(dmy(dayKey)+' '+DIAS[dowOfKey(dayKey)]+' cerró '+who,'h');P('');
+ P('MOSTRADOR TOTAL : '+money(a.total)+' ('+a.count+' venta'+(a.count===1?'':'s')+')','h');
+ Object.keys(a.byMethod).forEach(m=>{const x=a.byMethod[m];P((MET[m]||m)+' '+money(x.gross)+(x.n>1?' ('+x.n+')':''));if(x.fee>0)P('  comisión - '+money(x.fee).replace('$ ','$ ')+' · neto '+money(x.gross-x.fee));});
+ if(a.pend.n)P('⚠ Cobros digitales pendientes de confirmar: '+a.pend.n+' · '+money(a.pend.total),'w');
+ P('');P('POR RUBRO :','h');
+ a.reparte.concat(a.otros).forEach(r=>{let t=r.name+(r.owner?' ('+r.owner+')':'')+' : vendió '+money(r.sold)+' · ganancia '+money(r.profit);if(r.mov)t+=' · mov. '+money(r.mov);P(t);});
+ if(a.sueldo||a.merienda||a.gastos){P('');P((a.empName?a.empName.toUpperCase():'EMPLEADO')+' :'+(a.hours?' '+numAR(a.hours)+' hs × '+money(a.rate):''),'h');
+  a.reparte.forEach(r=>P('SUELDO '+(r.owner||r.name)[0].toUpperCase()+' : '+money(r.sueldo)));
+  a.reparte.forEach(r=>P('MERIENDA '+(r.owner||r.name)[0].toUpperCase()+' : '+money(r.merienda)));
+  P('GASTOS : '+money(a.gastos)+(a.gAuto&&a.gManual?' (caja '+money(a.gAuto)+' + otros '+money(a.gManual)+')':'')+' · se reparte');}
+ if(a.reparte.length){P('');P('IMPUESTOS :','h');
+ a.reparte.forEach(r=>{P(r.owner.toUpperCase()+' : '+money(r.tax)+(r.falta>0?' · NO CUBIERTO, faltan '+money(r.falta):''),r.falta>0?'w':'');});
+ P('');P('GANANCIA :','h');
+ a.reparte.forEach(r=>P(r.owner.toUpperCase()+' : '+money(r.net),r.net<0?'w':''));
+ a.otros.forEach(r=>P(r.name+(r.owner?' ('+r.owner+')':'')+' : '+money(r.net),r.net<0?'w':''));}
+ if(a.declared!==null){P('');P('EFECTIVO : esperado '+money(a.expectedCash)+' · declarado '+money(a.declared)+' · '+(a.diff===0?'sin diferencia':(a.diff>0?'sobrante ':'faltante ')+money(Math.abs(a.diff))),a.diff<0?'w':'');}
+ const det=a.reparte.concat(a.otros).filter(r=>(inp.detailAll||!S.rubros.find(x=>x.id===r.id).reparte)&&r.sold>0);
+ det.forEach(r=>{P('');P(r.name+(r.owner?' ('+r.owner+')':'')+' — total vendido '+money(r.sold),'h');Object.keys(a.rub[r.id].items).forEach(k=>{const it=a.rub[r.id].items[k];P('  · '+k+' x'+numAR(it.qty,3)+' — '+money(it.total));});});
+ return L;}
+const reportText=(L,mono)=>{const t=L.map(x=>x.t).join('\n');return mono?'```\n'+t+'\n```':t;};
+const reportHTML=L=>L.map(x=>x.cls?`<span class="${x.cls}">${esc(x.t)}</span>`:esc(x.t)).join('\n');
+function waLink(text,num){return 'https://wa.me/'+(num?String(num).replace(/\D/g,''):'')+'?text='+encodeURIComponent(text);}
+function openExternal(url){window.open(url,'_blank','noopener,noreferrer');}
+async function copyText(t){try{await navigator.clipboard.writeText(t);toast('Copiado');}catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Copiado');}catch(_){toast('No se pudo copiar',1);}ta.remove();}}
+
+/* ===== Eventos asíncronos (cola) y webhooks simulados ===== */
+function emit(type,data){S.events.push({id:uid(),ts:now(),type,status:'nuevo',data:data||{}});if(S.events.length>300)S.events.splice(0,S.events.length-300);save();setTimeout(processQueue,1200);}
+function processQueue(){if(S.simOffline)return 0;let n=0;S.events.forEach(e=>{if(e.status==='nuevo'){e.status='procesado';e.processedAt=now();n++;}});if(n)save();return n;}
+function restock(s){s.items.forEach(it=>{const p=S.products.find(x=>x.id===it.pid);if(p)p.stock=Math.round((p.stock+it.qty)*1000)/1000;});}
+function webhook(saleId,evId,res){
+ if(S.seenEvents[evId]){emit('webhook.duplicado',{ev:evId});return'dup';}
+ if(S.simOffline)return'offline';
+ const s=S.sales.find(x=>x.id===saleId);S.seenEvents[evId]=1;
+ if(!s||s.status!=='pendiente')return'noop';
+ if(res==='approved'){const pct=S.cfg.fee[s.method]||0;s.fee=Math.round(s.total*pct/100);s.net=s.total-s.fee;s.status='ok';s.paidAt=now();
+  const closed=S.sessions.find(x=>x.id===s.sessId&&x.closedAt);if(closed)s.late=true;
+  audit('PAGO_CONFIRMADO',s.n+' '+MET[s.method]+' bruto '+money(s.total)+' comisión '+money(s.fee)+' neto '+money(s.net));emit('payment.approved',{sale:s.n,gross:s.total,fee:s.fee,net:s.net});}
+ else{s.status='rechazada';restock(s);audit('PAGO_RECHAZADO',s.n);emit('payment.rejected',{sale:s.n});}
+ save();return'ok';}
+
+/* ===== Movimientos de caja con rubro obligatorio (O.10) ===== */
+function validRubro(id,type){if(!id)return'Elegí un rubro: es obligatorio para todo ingreso o egreso.';const r=rub(id);if(!r)return'El rubro elegido no existe.';if(r.kind==='shared'&&type==='ingreso')return'Ese rubro sólo admite egresos.';if(r.kind==='cobr'&&type==='egreso')return'Ese rubro sólo admite ingresos.';return'';}
+function addMov(type,rubroId,concept,amount){const e=validRubro(rubroId,type);if(e)return e;if(!openSess())return'No hay caja abierta.';
+ if(!concept||concept.trim().length<3)return'Escribí el motivo o concepto (mínimo 3 letras).';if(!(amount>0))return'El importe debe ser mayor a cero.';
+ const m={id:uid(),ts:now(),sessId:openSess().id,type,rubro:rubroId,rubroName:rubName(rubroId),concept:concept.trim().slice(0,120),amount,user:user.name};S.movs.push(m);
+ audit(type==='ingreso'?'INGRESO_CAJA':'EGRESO_CAJA',rubName(rubroId)+' · '+m.concept+' · '+money(amount));emit('cash.movement',{type,rubro:rubroId,amount});save();return'';}
+function movModal(type,pref){if(!can('cash_mov'))return toast('Sin permiso',1);if(!openSess()){toast('Abrí la caja primero (Caja → Abrir caja)',1);return;}
+ const opts=S.rubros.filter(r=>type==='egreso'?r.kind!=='cobr':r.kind!=='shared');
+ const w=modal(type==='ingreso'?'Ingreso de efectivo':'Egreso de efectivo',`<label for="mv-r">Rubro (obligatorio)</label><select id="mv-r"><option value="">— Elegí un rubro —</option>${opts.map(r=>`<option value="${r.id}">${esc(r.name)}${r.owner?' ('+esc(r.owner)+')':''}</option>`).join('')}</select>
+ <label for="mv-c">Motivo / concepto</label><input id="mv-c" maxlength="120" placeholder="Ej.: pago a proveedor, reintegro, retiro" autocomplete="off" value="${esc(pref||'')}">
+ <label for="mv-a">Importe ($)</label>${numIn('mv-a',0,'0')}`,{okText:'Guardar',onOk:w=>{const e=addMov(type,val('mv-r'),val('mv-c'),cents(val('mv-a')));if(e){w._err(e);return false;}toast('Movimiento guardado');rerender();}});}
+A.mov=el=>movModal(el.dataset.type);
+
+/* ===== Inventario ===== */
+const sugPrice=(costC,type,pct)=>{if(isNaN(pct)||isNaN(costC))return NaN;if(type==='margen'){if(pct<0||pct>=100)return NaN;return Math.round(costC/(1-pct/100));}if(pct<0)return NaN;return Math.round(costC*(1+pct/100));};
+let invF={q:'',rub:'',group:true,low:false};
+const RUB_COLORS=['#c9963e','#7b2d3b','#6b6a5a','#2f6f8f','#3d7a4f','#8a6fb0','#b5543a','#2b7a78','#a0527c','#5d6d3f'];
+const safeColor=c=>/^#[0-9a-fA-F]{6}$/.test(String(c||''))?c:'#8a6fb0';
+const prodStatus=p=>p.stock<0?'neg':(p.stock===0?'zero':(p.stock<=5?'low':'ok'));
+reg('inventario','Inventario','box','edit_products',()=>{
+ const R=S.rubros.filter(r=>r.kind==='rubro');const q=invF.q.toLowerCase();
+ const base=S.products.filter(p=>(!q||p.name.toLowerCase().includes(q)||(p.sub||'').toLowerCase().includes(q)||(p.barcode||'').includes(q))&&(!invF.low||p.stock<=5));
+ const L=base.filter(p=>!invF.rub||p.rubro===invF.rub);const cv=can('view_cost');
+ const cnt=id=>base.filter(p=>p.rubro===id).length;
+ const tabs=`<div class="rtabs" role="tablist" aria-label="Rubros"><button type="button" role="tab" class="rtab ${invF.rub?'':'on'}" data-act="irub" data-id="" aria-selected="${!invF.rub}">Todos <b>${base.length}</b></button>${R.map(r=>`<button type="button" role="tab" class="rtab ${invF.rub===r.id?'on':''}" data-act="irub" data-id="${r.id}" aria-selected="${invF.rub===r.id}" style="--rc:${safeColor(r.color)}"><i class="rdot" style="background:${safeColor(r.color)}"></i>${esc(r.name)} <b>${cnt(r.id)}</b></button>`).join('')}<button type="button" class="rtab add" data-act="rubEdit" data-id="">+ Rubro</button></div>`;
+ const negN=S.products.filter(p=>p.stock<0).length;
+ const row=p=>{const r=rub(p.rubro);const col=safeColor(r&&r.color);const st=prodStatus(p);
+  return `<tr class="st-${st}" style="--rc:${col}"><td class="rb"><b>${esc(p.name)}</b>${p.sub?` <span class="mut sm">${esc(p.sub)}</span>`:''}${p.active?'':' <span class="tag bad">inactivo</span>'}${p.needStock?' <span class="tag warn" title="No se vende sin stock">exige stock</span>':''}${p.demo?' <span class="tag sim" title="Costo y stock de ejemplo">ej.</span>':''}</td><td><span class="rchip" style="--rc:${col}"><i class="rdot" style="background:${col}"></i>${esc(rubName(p.rubro))}</span></td><td class="r">${money(p.price)}${p.unit!=='u'?' <span class="mut sm">/ '+unitLbl(p.unit)+'</span>':''}</td>${cv?`<td class="r">${money(p.cost)}</td><td class="r">${p.price&&p.cost>0?numAR((p.price-p.cost)/p.price*100,1)+' %':'—'}</td>`:''}<td class="r">${st==='neg'?`<span class="tag bad" title="Se vendió sin stock">${esc(stockTxt(p))}</span>`:st==='zero'?`<span class="tag bad">0 ${esc(unitLbl(p.unit))}</span>`:st==='low'?`<span class="tag warn">${esc(stockTxt(p))}</span>`:esc(stockTxt(p))}</td><td>${p.menu?'<span class="tag ok">publicado</span>':'—'}</td><td class="r"><button class="btn sm" data-act="pedit" data-id="${p.id}">Editar</button> <button class="btn sm" data-act="padj" data-id="${p.id}">Stock</button></td></tr>`;};
+ const head=`<thead><tr><th>Producto</th><th>Rubro</th><th class="r">Precio</th>${cv?'<th class="r">Costo</th><th class="r">Margen</th>':''}<th class="r">Stock</th><th>Menú</th><th></th></tr></thead>`;
+ const colspan=cv?8:6;
+ let body='';
+ if(invF.group&&!invF.rub){R.forEach(r=>{const l=L.filter(p=>p.rubro===r.id);if(!l.length)return;const col=safeColor(r.color);
+   body+=`<tr class="rgroup" style="--rc:${col}"><td colspan="${colspan}"><i class="rdot" style="background:${col}"></i><b>${esc(r.name)}</b> <span class="mut sm">${l.length} producto${l.length===1?'':'s'}${r.menuOn===false?' · fuera del menú':''}${r.age?' · +18':''}${r.alcohol?' · alcohol':''}</span> <button class="btn sm" data-act="rubEdit" data-id="${r.id}">Editar rubro</button></td></tr>`+l.map(row).join('');});
+  const sin=L.filter(p=>!rub(p.rubro));if(sin.length)body+=`<tr class="rgroup"><td colspan="${colspan}"><b>Sin rubro</b></td></tr>`+sin.map(row).join('');}
+ else body=L.map(row).join('');
+ const cur=invF.rub?rub(invF.rub):null;
+ return `<div class="row"><h1 class="sp">Inventario</h1>${expBar('productos')}<button class="btn gold" data-act="pedit" data-id="">+ Producto</button></div>
+ ${negN?`<div class="errbox">${negN} producto${negN===1?'':'s'} con stock negativo (se vendió sin stock). Cargá la compra o ajustá el stock para regularizar.</div>`:''}
+ <div class="card">${tabs}<div class="row" style="margin-top:.7rem"><input id="iq" placeholder="Buscar por nombre, presentación o código…" value="${esc(invF.q)}" style="max-width:320px" aria-label="Buscar producto"><label class="chk" style="margin:0"><input type="checkbox" id="ig" ${invF.group?'checked':''}> Agrupar por rubro</label><label class="chk" style="margin:0"><input type="checkbox" id="il" ${invF.low?'checked':''}> Sólo stock bajo / negativo</label>${cur?`<button class="btn sm" data-act="rubEdit" data-id="${cur.id}">Editar rubro «${esc(cur.name)}»</button>`:''}</div>
+ <div class="tw"><table class="inv">${head}<tbody>${body||`<tr><td colspan="${colspan}" class="mut">No hay productos con este filtro.</td></tr>`}</tbody></table></div></div>
+ <p class="sm mut">Venta sin stock: ${negOK()?'<b>permitida</b> (queda en negativo y se marca en rojo)':'<b>bloqueada</b>'} · se cambia en Configuración o por producto ("exigir stock"). El costo y el margen sólo los ven los roles con permiso. Los productos no se borran (se desactivan) para conservar el historial.</p>`;},()=>{
+ $('#iq').addEventListener('input',e=>{invF.q=e.target.value;const p=e.target.selectionStart;rerender();const n=$('#iq');n.focus();n.setSelectionRange(p,p);});
+ $('#ig').addEventListener('change',e=>{invF.group=e.target.checked;rerender();});$('#il').addEventListener('change',e=>{invF.low=e.target.checked;rerender();});},'Operación');
+A.irub=el=>{invF.rub=el.dataset.id||'';rerender();};
+A.rubEdit=el=>{if(!can('edit_products'))return toast('Sin permiso',1);const r=el&&el.dataset.id?rub(el.dataset.id):null;if(el&&el.dataset.id&&(!r||r.kind!=='rubro'))return;
+ const col=safeColor(r?r.color:RUB_COLORS[S.rubros.filter(x=>x.kind==='rubro').length%RUB_COLORS.length]);
+ const w=modal(r?'Editar rubro':'Nuevo rubro',`<label for="rb-n">Nombre del rubro</label><input id="rb-n" maxlength="40" value="${esc(r?r.name:'')}" autocomplete="off">
+ <label>Color (para distinguirlo en inventario, Vender y reportes)</label><div class="row" id="rb-cols">${RUB_COLORS.map(c=>`<button type="button" class="swatch ${c.toLowerCase()===col.toLowerCase()?'on':''}" data-col="${c}" style="background:${c}" aria-label="Color ${c}"></button>`).join('')}</div><input type="hidden" id="rb-c" value="${col}">
+ <div class="grid g2"><div><label for="rb-o">Responsable (opcional)</label><input id="rb-o" maxlength="40" value="${esc(r?r.owner:'')}"></div><div><label for="rb-l">Diseño en el menú</label><select id="rb-l">${[['grid','Grilla (promos)'],['rows','Filas (lista)'],['bodegas','Por bodega / grupo']].map(([v,t])=>`<option value="${v}" ${(r?r.layout:'grid')===v?'selected':''}>${t}</option>`).join('')}</select></div></div>
+ <label for="rb-m">Nombre en el menú digital</label><input id="rb-m" maxlength="30" value="${esc(r?(r.mNom||r.name):'')}">
+ <label class="chk"><input type="checkbox" id="rb-sh" ${!r||r.menuOn!==false?'checked':''}> Mostrar este rubro en el menú digital</label>
+ <label class="chk"><input type="checkbox" id="rb-a" ${r&&r.alcohol?'checked':''}> Vende alcohol (se oculta fuera del horario permitido)</label>
+ <label class="chk"><input type="checkbox" id="rb-g" ${r&&r.age?'checked':''}> Sólo mayores de 18 (tabaco): sin promociones ni descuentos</label>`,
+ {okText:'Guardar rubro',onOk:w=>{const n=val('rb-n').trim();if(!n)return w._err('Falta el nombre.'),false;if(S.rubros.some(x=>norm(x.name)===norm(n)&&(!r||x.id!==r.id)))return w._err('Ya existe un rubro con ese nombre.'),false;
+  const c=safeColor(val('rb-c'));const d={name:n,owner:val('rb-o').trim(),color:c,layout:val('rb-l'),mNom:val('rb-m').trim()||n,mTitle:r&&r.mTitle?r.mTitle:n,menuOn:$('#rb-sh',w).checked,alcohol:$('#rb-a',w).checked,age:$('#rb-g',w).checked};
+  if(r){Object.assign(r,d);audit('RUBRO_EDITAR',n);}else{S.rubros.splice(S.rubros.findIndex(x=>x.kind==='shared'),0,Object.assign({id:uid(),reparte:false,kind:'rubro',mHint:''},d));audit('RUBRO_ALTA',n);}
+  save();rerender();pubRefresh();toast('Rubro guardado');}});
+ w.addEventListener('click',e=>{const b=e.target.closest('.swatch');if(!b)return;$('#rb-c',w).value=b.dataset.col;$$('.swatch',w).forEach(x=>x.classList.toggle('on',x===b));});};
+A.pedit=el=>{const p=S.products.find(x=>x.id===el.dataset.id)||null;const cv=can('view_cost');
+ const w=modal(p?'Editar producto':'Nuevo producto',`<label for="pm-n">Nombre</label><input id="pm-n" value="${esc(p?p.name:'')}" maxlength="80">
+ <div class="grid g2"><div><label for="pm-r">Rubro (a quién pertenece)</label><select id="pm-r"><option value="">— Elegí —</option>${S.rubros.filter(r=>r.kind==='rubro').map(r=>`<option value="${r.id}" ${p&&p.rubro===r.id?'selected':''}>${esc(r.name)}${r.owner?' ('+esc(r.owner)+')':''}</option>`).join('')}</select></div>
+ <div><label for="pm-u">Unidad</label><select id="pm-u">${['u','kg','l'].map(u=>`<option value="${u}" ${p&&p.unit===u?'selected':''}>${unitLbl(u)}</option>`).join('')}</select></div></div>
+ ${cv?`<div class="grid g3"><div><label for="pm-c">Costo ($)</label>${numIn('pm-c',p?p.cost:0)}</div><div><label for="pm-t">Cálculo</label><select id="pm-t"><option value="recargo">Recargo sobre costo</option><option value="margen">Margen bruto sobre precio</option></select></div><div><label for="pm-p">Porcentaje (%)</label><input id="pm-p" inputmode="decimal" placeholder="30" autocomplete="off"></div></div><p id="pm-s" class="sm mut">Ingresá costo y porcentaje para ver el precio sugerido.</p>`:''}
+ <label for="pm-f">Precio final de venta ($)</label>${numIn('pm-f',p?p.price:0)}<p id="pm-x" class="sm mut"></p>
+ <div class="grid g2"><div><label for="pm-st">Stock (<span id="pm-ul">und</span>)</label><input id="pm-st" inputmode="decimal" placeholder="0" value="${p?esc(String(p.stock).replace('.',',')):''}" autocomplete="off"></div><div><label for="pm-b">Código de barras</label><input id="pm-b" value="${esc(p?p.barcode:'')}"></div></div>
+ <div class="grid g3"><div><label for="pm-sub">Presentación (ej. 750 ml)</label><input id="pm-sub" maxlength="40" value="${esc(p&&p.sub?p.sub:'')}"></div><div><label for="pm-gr">Grupo / bodega (menú)</label><input id="pm-gr" maxlength="40" value="${esc(p&&p.grupo?p.grupo:'')}"></div><div><label for="pm-plu">PLU de balanza (si es por peso)</label><input id="pm-plu" inputmode="numeric" maxlength="5" value="${esc(p&&p.plu?p.plu:'')}"></div></div>
+ <label for="pm-d">Descripción (menú)</label><input id="pm-d" value="${esc(p?p.desc:'')}" maxlength="120"><label for="pm-e">Nombre en inglés (opcional)</label><input id="pm-e" value="${esc(p&&p.en?p.en:'')}" maxlength="80">
+ <label class="chk"><input type="checkbox" id="pm-m" ${p&&p.menu?'checked':''}> Publicar en menú digital</label><label class="chk"><input type="checkbox" id="pm-a" ${!p||p.active?'checked':''}> Activo</label><label class="chk"><input type="checkbox" id="pm-ns" ${p&&p.needStock?'checked':''}> Exigir stock (no permitir vender sin stock este producto)</label>`,
+ {okText:'Guardar',onOk:w=>{const name=val('pm-n').trim(),rubro=val('pm-r'),pr=cents(val('pm-f')),st=parseNum(val('pm-st')===''?'0':val('pm-st'));let cost=p?p.cost:0;if(cv){const c=cents(val('pm-c')===''?'0':val('pm-c'));if(isNaN(c)||c<0)return w._err('Costo inválido.'),false;cost=c;}
+  if(!name)return w._err('Falta el nombre.'),false;if(!rubro||!rub(rubro))return w._err('Elegí el rubro del producto.'),false;if(!(pr>0))return w._err('El precio de venta debe ser mayor a cero.'),false;if(isNaN(st)||(st<0&&!(p&&st===p.stock)&&!negOK()))return w._err('Stock inválido (no puede ser negativo).'),false;
+  const bc=val('pm-b').trim();if(bc&&S.products.some(x=>x.barcode===bc&&(!p||x.id!==p.id)))return w._err('Ya existe otro producto con ese código de barras.'),false;
+  const plu=val('pm-plu').trim();if(plu&&!/^\d{1,5}$/.test(plu))return w._err('El PLU son hasta 5 números.'),false;if(plu&&S.products.some(x=>x.plu&&String(+x.plu)===String(+plu)&&(!p||x.id!==p.id)))return w._err('Ese PLU ya lo usa otro producto.'),false;
+  const d={name,sub:val('pm-sub').trim(),grupo:val('pm-gr').trim(),plu,rubro,unit:val('pm-u'),price:pr,cost,stock:st,barcode:bc,desc:val('pm-d').trim(),en:val('pm-e').trim(),menu:$('#pm-m',w).checked,active:$('#pm-a',w).checked,needStock:$('#pm-ns',w).checked};
+  if(p){if(p.price!==pr||p.cost!==cost)audit('PRECIO_PRODUCTO',p.name+': precio '+money(p.price)+' → '+money(pr)+(p.cost!==cost?' · costo '+money(p.cost)+' → '+money(cost):''));Object.assign(p,d);audit('EDITAR_PRODUCTO',name);}
+  else{S.products.push(Object.assign({id:uid()},d));audit('ALTA_PRODUCTO',name+' · '+rubName(rubro));}save();rerender();toast('Producto guardado');}});
+ const upd=()=>{const ul=$('#pm-ul',w);if(ul)ul.textContent=unitLbl(val('pm-u'));if(!cv)return;const c=cents(val('pm-c')),pc=parseNum(val('pm-p')),sg=sugPrice(c,val('pm-t'),pc);const s=$('#pm-s',w);
+  if(val('pm-p')==='')s.textContent='Ingresá costo y porcentaje para ver el precio sugerido.';else if(isNaN(sg))s.textContent=val('pm-t')==='margen'?'El margen debe estar entre 0 y menos de 100 %.':'Porcentaje o costo inválido.';else s.innerHTML='Precio sugerido: <b>'+money(sg)+'</b> <button class="btn sm" type="button" id="pm-use">Usar sugerido</button>';
+  const f=cents(val('pm-f'));const x=$('#pm-x',w);if(!isNaN(f)&&!isNaN(c)&&c>0){x.textContent='Con ese precio: recargo '+numAR((f-c)/c*100,1)+' % · margen bruto '+numAR((f-c)/f*100,1)+' %';}else x.textContent='';};
+ w.addEventListener('input',upd);w.addEventListener('change',upd);w.addEventListener('click',e=>{if(e.target.id==='pm-use'){const sg=sugPrice(cents(val('pm-c')),val('pm-t'),parseNum(val('pm-p')));if(!isNaN(sg)){$('#pm-f',w).value=pesosStr(sg);upd();}}});upd();};
+A.padj=el=>{const p=prod(el.dataset.id);const w=modal('Ajustar stock · '+p.name,`<p>Stock actual: <b class="${p.stock<0?'negs':''}">${esc(stockTxt(p))}</b></p><label for="aj-d">Cantidad a sumar o restar (use - para restar)</label><input id="aj-d" inputmode="decimal" placeholder="0" autocomplete="off"><label for="aj-m">Motivo</label><input id="aj-m" maxlength="100">`,
+ {onOk:w=>{const d=parseNum(val('aj-d'));if(isNaN(d)||d===0)return w._err('Ingresá una cantidad distinta de cero.'),false;if(val('aj-m').trim().length<3)return w._err('El motivo es obligatorio.'),false;if(p.stock+d<0&&!canOver(p))return w._err('El stock no puede quedar negativo (este producto exige stock o la venta sin stock está bloqueada).'),false;
+  p.stock=Math.round((p.stock+d)*1000)/1000;audit('AJUSTE_STOCK',p.name+' '+(d>0?'+':'')+d+' · '+val('aj-m'));save();rerender();}});};
+
+/* ===== Caja ===== */
+reg('caja','Caja','cash','cash_mov',()=>{const s=openSess();
+ if(!s)return `<h1>Caja</h1><div class="card" style="max-width:480px"><p>No hay caja abierta.</p><label for="ap">Efectivo inicial (apertura) $</label>${numIn('ap',0,'0')}<button class="btn gold" style="margin-top:.8rem" data-act="openCaja">Abrir caja ${S.tenant.caja}</button></div>${S.sessions.length?'':'<p class="mut sm">Tip: en Configuración podés cargar la jornada de ejemplo del 6/10 para ver el arqueo completo.</p>'}`;
+ const inp=arqInputs(s),a=arqueoCalc(s,inp),ms=S.movs.filter(m=>m.sessId===s.id);
+ const old=dkey(s.openedAt)!==dkey(now());
+ return `<div class="row"><h1 class="sp">Caja ${S.tenant.caja}</h1>${expBar('movimientos')}<button class="btn gold" data-act="nav" data-id="arqueo">Arqueo y cierre →</button></div>
+ ${old?`<div class="errbox">Esta caja se abrió el ${dmy(dkey(s.openedAt))} y sigue abierta: hay días con ventas sin cierre.</div>`:''}
+ <div class="grid g4"><div class="card kpi"><b>${money(s.opening)}</b><span>Apertura (${esc(s.openedBy)} · ${fmtDT(s.openedAt)})</span></div><div class="card kpi"><b>${money(a.total)}</b><span>Ventas confirmadas (${a.count})</span></div><div class="card kpi"><b>${money(a.expectedCash)}</b><span>Efectivo esperado hoy</span></div>${a.pend.n?`<div class="card kpi"><b class="neg">${a.pend.n}</b><span>Cobros digitales pendientes · ${money(a.pend.total)}</span></div>`:''}</div>
+ <div class="row" style="margin:1rem 0"><button class="btn" data-act="mov" data-type="ingreso">+ Ingreso de efectivo</button><button class="btn" data-act="mov" data-type="egreso">− Egreso de efectivo</button></div>
+ <div class="card"><h3>Movimientos</h3><div class="tw"><table><thead><tr><th>Hora</th><th>Tipo</th><th>Rubro</th><th>Concepto</th><th class="r">Importe</th><th>Usuario</th></tr></thead><tbody>${ms.map(m=>`<tr><td>${hm(m.ts)}</td><td>${m.type==='ingreso'?'<span class="tag ok">Ingreso</span>':'<span class="tag bad">Egreso</span>'}</td><td>${esc(m.rubroName)}</td><td>${esc(m.concept)}</td><td class="r">${m.type==='ingreso'?'':'- '}${money(m.amount)}</td><td>${esc(m.user)}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">Sin movimientos.</td></tr>'}</tbody></table></div></div>
+ <div class="card" style="margin-top:1rem"><h3>Ventas de esta caja</h3><div class="tw"><table><thead><tr><th>Nº</th><th>Hora</th><th>Medio</th><th>Estado</th><th class="r">Total</th><th></th></tr></thead><tbody>${S.sales.filter(x=>x.sessId===s.id).slice().reverse().map(x=>`<tr><td>${esc(x.n)}</td><td>${hm(x.ts)}</td><td>${esc(MET[x.method]||x.method)}${x.channel&&x.channel!=='local'?' · '+esc(x.channel):''}</td><td><span class="tag ${x.status==='ok'?'ok':x.status==='pendiente'?'warn':'bad'}">${esc(x.status)}</span></td><td class="r">${money(x.total)}</td><td class="r">${x.status==='pendiente'?`<button class="btn sm" data-act="paysale" data-id="${x.id}">Cobro</button>`:''}${x.status==='ok'&&can('void')?`<button class="btn sm red" data-act="voidsale" data-id="${x.id}">Anular</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">Sin ventas.</td></tr>'}</tbody></table></div></div>`;},null,'Operación');
+A.openCaja=()=>{if(openSess())return;const v=cents(val('ap'));if(isNaN(v)||v<0)return toast('Ingresá el efectivo inicial (si es cero, escribí 0).',1);
+ S.sessions.push({id:uid(),caja:S.tenant.caja,openedBy:user.name,openedAt:now(),opening:v,closedAt:0});audit('APERTURA_CAJA',money(v));save();rerender();};
+function voidCore(s,reason){if(s.status==='ok'||s.status==='pendiente'){restock(s);}if(s.coupon){S.coupons.forEach(c=>{c.uses=c.uses.filter(u=>u.sale!==s.id);});}if(s.stamped&&typeof stampReverse==='function')stampReverse(s);s.status='anulada';s.voidReason=reason;audit('ANULAR_VENTA',s.n+' · '+reason);emit('sale.voided',{sale:s.n});save();rerender();}
+A.voidsale=el=>{const s=S.sales.find(x=>x.id===el.dataset.id);if(!s)return;modal('Anular venta '+s.n,`<p>Se restituye el stock y la venta deja de sumar. Queda en auditoría.</p><label for="vm">Motivo (obligatorio)</label><input id="vm" maxlength="100">`,{onOk:w=>{if(val('vm').trim().length<3)return w._err('Escribí el motivo.'),false;voidCore(s,val('vm'));}});};
+
+/* ===== Arqueo ===== */
+function arqDraft(sess){return S.arqDraft[sess.id]||(S.arqDraft[sess.id]={taxes:{}});}
+reg('arqueo','Arqueo / cierre','list','close_cash',()=>{const s=openSess();if(!s)return `<h1>Arqueo</h1><div class="card"><p>No hay caja abierta. Abrila en <a href="#panel/caja">Caja</a>.</p></div>`;
+ const d=arqDraft(s);const emps=S.employees.filter(e=>e.active);const rp=repartRubros();
+ return `<div class="row"><h1 class="sp">Arqueo y detalle de reparto</h1><span class="tag warn">Vista previa · todavía no cierra la caja</span></div>
+ <div class="grid g2" style="align-items:start"><div class="card"><h3>1 · Sueldo del empleado</h3>
+ <label for="aq-emp">Empleado</label><select id="aq-emp" data-aq="empId"><option value="">— Sin empleado —</option>${emps.map(e=>`<option value="${e.id}" ${d.empId===e.id?'selected':''}>${esc(e.name)}</option>`).join('')}</select>
+ <div class="grid g2"><div><label for="aq-h">Horas trabajadas</label><input id="aq-h" data-aq="hours" inputmode="decimal" placeholder="0" value="${esc(d.hours||'')}" autocomplete="off"><div class="sm mut" id="aq-fich"></div></div><div><label for="aq-r">Valor hora ($)</label><input id="aq-r" data-aq="rate" inputmode="decimal" placeholder="valor del empleado" value="${esc(d.rate||'')}" autocomplete="off"></div></div>
+ <div class="grid g2"><div><label for="aq-m">Merienda ($) — entra en el sueldo final</label><input id="aq-m" data-aq="merienda" inputmode="decimal" placeholder="0" value="${esc(d.merienda||'')}" autocomplete="off"></div><div><label for="aq-g">Otros gastos del día ($)</label><input id="aq-g" data-aq="gastos" inputmode="decimal" placeholder="0" value="${esc(d.gastos||'')}" autocomplete="off"></div></div>
+ <p class="sm mut">Sueldo, merienda y gastos se reparten en partes iguales entre: <b>${rp.map(r=>esc(r.owner)).join(' y ')||'(nadie: marcá rubros que reparten en Configuración)'}</b>. Los egresos de caja con rubro "Gastos generales" se suman solos a los gastos.</p>
+ <h3 style="margin-top:1rem">2 · Impuestos del día (editable)</h3><div class="grid g2">${rp.map(r=>`<div><label for="aq-t-${r.id}">${esc(r.owner)} (${esc(r.name)}) $</label><input id="aq-t-${r.id}" data-aq="tax" data-rid="${r.id}" inputmode="decimal" placeholder="${esc(pesosStr(S.cfg.tax[r.id]||0)||'0')}" value="${esc((d.taxes&&d.taxes[r.id])||'')}" autocomplete="off"></div>`).join('')}</div>
+ <p class="sm mut">Orden: primero se separa el sueldo del empleado, después el impuesto de cada uno y lo que sobra es ganancia. Si no alcanza, se marca en rojo.</p>
+ <h3 style="margin-top:1rem">3 · Efectivo</h3><label for="aq-d">Efectivo contado en caja ($)</label><input id="aq-d" data-aq="declared" inputmode="decimal" placeholder="Escribí el número" value="${esc(d.declared||'')}" autocomplete="off">
+ <label class="chk"><input type="checkbox" data-aq="payFromCash" id="aq-pc" ${(d.payFromCash!==undefined?d.payFromCash:S.cfg.payFromCash)?'checked':''}> El sueldo, la merienda y los gastos manuales se pagaron de la caja</label>
+ <label class="chk"><input type="checkbox" data-aq="detailAll" ${d.detailAll?'checked':''}> Incluir detalle de productos de todos los rubros</label>
+ <label class="chk"><input type="checkbox" data-aq="mono" ${d.mono!==false?'checked':''}> Formato monoespaciado de WhatsApp (\`\`\`)</label>
+ <label for="aq-n">Observaciones del cierre</label><input id="aq-n" data-aq="notes" maxlength="200" value="${esc(d.notes||'')}"></div>
+ <div class="card"><div class="row"><h3 class="sp">Texto para WhatsApp</h3></div><div class="rep" id="arq-prev" aria-live="polite"></div><div id="arq-warn"></div>
+ <div class="row" style="margin-top:.8rem"><button class="btn" data-act="arqCopy">Copiar</button><button class="btn" data-act="arqWa">WhatsApp</button><button class="btn" data-act="arqWeb">WhatsApp Web</button><button class="btn" data-act="arqMail">Correo</button></div>
+ <button class="btn gold" style="width:100%;margin-top:.8rem;min-height:52px" data-act="arqClose">Confirmar cierre de caja</button></div></div>`;},
+ ()=>{arqPreview();arqFich();},'Operación');
+function arqFich(){const s=openSess();if(!s)return;const d=arqDraft(s);const el=$('#aq-fich');if(!el)return;if(!d.empId){el.textContent='';return;}const h=hoursOn(d.empId,dkey(s.openedAt)===dkey(now())?dkey(now()):dkey(s.openedAt));
+ el.innerHTML=h.h>0||h.flag?`Fichaje: <b>${numAR(h.h,2)} hs</b>${h.flag?' ⚠ falta fichar entrada o salida':''} <button class="btn sm" data-act="arqUseFich">Usar</button>`:'Sin fichadas hoy.';}
+A.arqUseFich=()=>{const s=openSess();const d=arqDraft(s);const h=hoursOn(d.empId,dkey(now()));d.hours=h.h?numAR(h.h,2):'';audit('ARQUEO_HORAS_FICHAJE',empName(d.empId)+' '+d.hours+' hs');save();rerender();};
+function arqCtx(){const s=openSess();if(!s)return null;const inp=arqInputs(s);const a=arqueoCalc(s,inp);const L=buildReport(a,dkey(now()),user.name,inp);return{s,inp,a,L};}
+function arqPreview(){const c=arqCtx();if(!c)return;const p=$('#arq-prev');if(p)p.innerHTML=reportHTML(c.L);const w=$('#arq-warn');if(w){let h='';if(c.a.pend.n)h+=`<div class="warnbox">Hay ${c.a.pend.n} cobro(s) digital(es) pendiente(s) que NO están en el total.</div>`;
+ const f=c.a.reparte.filter(r=>r.falta>0);if(f.length)h+=`<div class="errbox">Impuesto no cubierto: ${f.map(r=>esc(r.owner)+' faltan '+money(r.falta)).join(' · ')}</div>`;w.innerHTML=h;}}
+document.addEventListener('input',e=>{const t=e.target;if(!t.dataset||!t.dataset.aq||curScreen!=='arqueo')return;const s=openSess();if(!s)return;const d=arqDraft(s);const k=t.dataset.aq;
+ if(k==='tax'){d.taxes[t.dataset.rid]=t.value;}else if(t.type==='checkbox'){d[k]=t.checked;}else if(k==='empId'){return;}else d[k]=t.value;save();arqPreview();});
+document.addEventListener('change',e=>{const t=e.target;if(t.id==='aq-emp'&&curScreen==='arqueo'){const s=openSess();const d=arqDraft(s);d.empId=t.value;d.rate='';const h=hoursOn(d.empId,dkey(now()));d.hours=h.h>0?numAR(h.h,2):'';save();rerender();}});
+A.arqCopy=()=>{const c=arqCtx();if(c){copyText(reportText(c.L,c.inp.mono));audit('ARQUEO_COPIAR','');}};
+A.arqWa=()=>{const c=arqCtx();if(c){audit('ARQUEO_WHATSAPP','wa.me');openExternal(waLink(reportText(c.L,c.inp.mono),S.tenant.waReport));}};
+A.arqWeb=()=>{const c=arqCtx();if(c){audit('ARQUEO_WHATSAPP_WEB','');openExternal('https://web.whatsapp.com/send?text='+encodeURIComponent(reportText(c.L,c.inp.mono)));}};
+A.arqMail=()=>{const c=arqCtx();if(c){audit('ARQUEO_CORREO','mailto');location.href='mailto:?subject='+encodeURIComponent('Cierre de caja '+dmy(dkey(now())))+'&body='+encodeURIComponent(reportText(c.L,false));}};
+A.arqClose=()=>{const c=arqCtx();if(!c)return;if(c.a.declared===null)return toast('Escribí el efectivo contado en caja antes de cerrar.',1);
+ const warn=(c.a.pend.n?`<div class="warnbox">${c.a.pend.n} cobro(s) digital(es) pendiente(s) (${money(c.a.pend.total)}) quedan fuera del cierre; si se confirman después se informan como cobro posterior.</div>`:'')+(c.a.reparte.some(r=>r.falta>0)?'<div class="errbox">Hay impuestos que no se llegan a cubrir con la ganancia del día.</div>':'');
+ modal('Cerrar caja',`${warn}<p>Esperado ${money(c.a.expectedCash)} · contado ${money(c.a.declared)} · ${c.a.diff===0?'sin diferencia':(c.a.diff>0?'sobrante ':'faltante ')+money(Math.abs(c.a.diff))}</p><p>El cierre queda <b>congelado</b> con sello SHA-256. Sólo se podrán agregar notas.</p>`,{okText:'Cerrar y sellar',onOk:()=>{
+  const day=dkey(now());const data=JSON.parse(JSON.stringify(c.a));const text=reportText(c.L,false);const ts=now();
+  const cl={id:uid(),ts,sessId:c.s.id,caja:c.s.caja,user:user.name,day,opening:c.s.opening,data,text,notes:[],obs:c.inp.notes};cl.hash=sha256(JSON.stringify({data,text,ts,user:cl.user,sess:c.s.id}));
+  S.closures.push(cl);c.s.closedAt=ts;audit('CIERRE_CAJA','caja '+c.s.caja+' · total '+money(data.total)+' · dif '+money(data.diff)+' · sello '+cl.hash.slice(0,12));emit('cash.closed',{caja:c.s.caja,total:data.total});save();toast('Caja cerrada y sellada');location.hash='#panel/cierres';}});};
+
+/* ===== Cajas cerradas ===== */
+const verifyClosure=c=>c.hash===sha256(JSON.stringify({data:c.data,text:c.text,ts:c.ts,user:c.user,sess:c.sessId}));
+reg('cierres','Cajas cerradas','lock','close_cash',()=>`<div class="row"><h1 class="sp">Cajas cerradas</h1>${expBar('cierres')}</div><div class="card"><div class="tw"><table><thead><tr><th>Fecha</th><th>Caja</th><th>Cerró</th><th class="r">Ventas</th><th class="r">Diferencia</th><th>Sello</th><th></th></tr></thead><tbody>${S.closures.slice().reverse().map(c=>`<tr><td>${fmtDT(c.ts)}</td><td>${c.caja}</td><td>${esc(c.user)}</td><td class="r">${money(c.data.total)}</td><td class="r ${c.data.diff<0?'neg':''}">${money(c.data.diff)}</td><td class="sm mut">${c.hash.slice(0,10)}…</td><td class="r"><button class="btn sm" data-act="clview" data-id="${c.id}">Ver detalle</button></td></tr>`).join('')||'<tr><td colspan="7" class="mut">Todavía no hay cierres.</td></tr>'}</tbody></table></div></div>`,null,'Operación');
+A.clview=el=>{const c=S.closures.find(x=>x.id===el.dataset.id);if(!c)return;const ok=verifyClosure(c);
+ const w=modal('Cierre de caja '+fmtDT(c.ts),`<div class="${ok?'okbox':'errbox'}">Integridad: ${ok?'verificada (el sello coincide)':'ALTERADO: el sello no coincide'} · SHA-256 ${c.hash.slice(0,16)}…</div><div class="rep">${esc(c.text)}</div>
+ <h3 style="margin-top:.8rem">Movimientos (con rubro)</h3><div class="tw"><table><tbody>${c.data.movs.map(m=>`<tr><td>${hm(m.ts)}</td><td>${esc(m.type)}</td><td>${esc(m.rubro)}</td><td>${esc(m.concept)}</td><td class="r">${money(m.amount)}</td></tr>`).join('')||'<tr><td class="mut">Sin movimientos</td></tr>'}</tbody></table></div>
+ <h3 style="margin-top:.8rem">Notas de revisión (sólo se agregan)</h3>${c.notes.map(n=>`<p class="sm">${fmtDT(n.ts)} · ${esc(n.user)}: ${esc(n.text)}</p>`).join('')||'<p class="sm mut">Sin notas.</p>'}<label for="cn">Agregar nota</label><input id="cn" maxlength="200">
+ <div class="row" style="margin-top:.6rem"><button class="btn" data-act="clcopy" data-id="${c.id}">Copiar texto</button><button class="btn" data-act="clwa" data-id="${c.id}">WhatsApp</button><button class="btn" onclick="window.print()">Imprimir</button></div>`,{okText:'Guardar nota',onOk:()=>{const t=val('cn').trim();if(t){c.notes.push({ts:now(),user:user.name,text:t});audit('NOTA_CIERRE',t);save();}}});};
+A.clcopy=el=>{const c=S.closures.find(x=>x.id===el.dataset.id);c&&copyText('```\n'+c.text+'\n```');};
+A.clwa=el=>{const c=S.closures.find(x=>x.id===el.dataset.id);c&&openExternal(waLink('```\n'+c.text+'\n```',S.tenant.waReport));};
+
+/* ===== Inicio / dashboard ===== */

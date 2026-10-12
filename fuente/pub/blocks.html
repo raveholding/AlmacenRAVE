@@ -1,0 +1,32 @@
+
+  <!-- ===== CUPONES Y BENEFICIOS (los carga el panel) ===== -->
+  <div class="club-block" id="coupons-block" hidden>
+    <h2>Cupones y beneficios</h2>
+    <p class="club-sub">Escribí el código en tu pedido (carrito) o mostralo en el mostrador. Se aplica un solo beneficio por compra.</p>
+    <div id="coupons-list" class="cp-cards"></div>
+  </div>
+
+  <!-- ===== TARJETA DE FIDELIZACIÓN + MEMBRESÍA ===== -->
+  <div class="club-block" id="loyalty-block">
+    <h2>Tu tarjeta de fidelización</h2>
+    <p class="club-sub" id="loy-sub">Sumá un sello en cada compra y canjealos por beneficios del Club RAVE.</p>
+    <div id="loy-nocard">
+      <p class="club-sub" id="loy-nocard-txt">Tu tarjeta se crea al sumarte al Club (formulario de arriba). Si ya sos socio y estás en otro dispositivo, recuperala con tu WhatsApp y tu cumpleaños.</p>
+      <div class="loy-rec">
+        <div class="club-field"><label for="loy-wa">WhatsApp</label><input id="loy-wa" type="tel" inputmode="tel" autocomplete="off" placeholder="Ej: 387 4567890"></div>
+        <div class="club-field"><label for="loy-bd">Fecha de cumpleaños</label><input id="loy-bd" type="date" autocomplete="off"></div>
+        <div class="club-error" id="loy-err" role="alert">No encontramos una tarjeta con esos datos.</div>
+        <button type="button" class="club-btn" id="loy-recover">Ver mi tarjeta</button>
+      </div>
+    </div>
+    <div id="loy-card" hidden></div>
+    <div id="plans-box" hidden><h2 style="margin-top:18px" id="plans-h">Membresías</h2><p class="club-sub" id="plans-sub">Beneficios permanentes para socios. Se activan en el mostrador.</p><div class="plan-list" id="plans-list"></div></div>
+  </div>
+
+  <!-- ===== INFORMACIÓN LEGAL ===== -->
+  <div class="club-block" id="legal-block">
+    <h2>Información legal</h2>
+    <p class="club-sub" id="legal-sub">Todo lo que tenés que saber sobre tu compra y tus datos.</p>
+    <div id="legal-list"></div>
+    <button type="button" class="arrep-btn" id="arrep-btn">↩️ Botón de arrepentimiento</button>
+  </div>
