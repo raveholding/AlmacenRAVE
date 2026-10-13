@@ -43,9 +43,9 @@ class ApiErr extends Error{constructor(m,st,body){super(m);this.status=st;this.b
 async function hreq(path,o={}){const h={apikey:CLOUD.key,'Content-Type':'application/json'};
  if(o.auth!==false){const t=await accessToken();if(!t)throw new ApiErr('Sesión vencida: volvé a ingresar',401);h.Authorization='Bearer '+t;}
  Object.assign(h,o.headers||{});let r;
- try{r=await fetch(CLOUD.url+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});}catch(e){cl.online=false;throw new NetErr();}
- cl.online=true;let j=null;const txt=await r.text();try{j=txt?JSON.parse(txt):null;}catch(e){j=txt;}
- if(r.status===502||r.status===503||r.status===504){if(r.status===502&&j&&typeof j==='object'&&j.etapa)throw new ApiErr(String(j.error||'ARCA no respondió'),502,j);cl.online=false;throw new NetErr();}
+ try{r=await fetch(CLOUD.url+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});}catch(e){if(!o.fn)cl.online=false;throw new NetErr();}
+ if(!o.fn)cl.online=true;let j=null;const txt=await r.text();try{j=txt?JSON.parse(txt):null;}catch(e){j=txt;}
+ if(r.status===502||r.status===503||r.status===504){if(r.status===502&&j&&typeof j==='object'&&j.etapa)throw new ApiErr(String(j.error||'ARCA no respondió'),502,j);if(!o.fn)cl.online=false;throw new NetErr();}
  if(!r.ok){const m=(j&&(j.message||j.msg||j.error_description||j.error))||('Error '+r.status);throw new ApiErr(typeof m==='string'?m:'Error '+r.status,r.status,j);}
  return j;}
 const rpc=(fn,args,o)=>hreq('/rest/v1/rpc/'+fn,{method:'POST',body:args||{},...(o||{})});

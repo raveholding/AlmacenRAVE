@@ -13,7 +13,7 @@ const arcaSleep=ms=>new Promise(r=>setTimeout(r,ms));
 function arcaCuitOk(s){s=String(s||'').replace(/\D/g,'');if(s.length!==11)return false;const w=[5,4,3,2,7,6,5,4,3,2];let t=0;for(let i=0;i<10;i++)t+=w[i]*(+s[i]);let d=11-(t%11);if(d===11)d=0;if(d===10)return false;return d===+s[10];}
 const arcaCuitFmt=s=>{s=String(s||'').replace(/\D/g,'');return s.length===11?s.slice(0,2)+'-'+s.slice(2,10)+'-'+s[10]:s;};
 const arcaFecha=f=>String(f||'').split('-').reverse().join('/');
-const arcaCall=(accion,extra)=>hreq('/functions/v1/arca',{method:'POST',body:Object.assign({accion,comercio:cl.comercio.id,ambiente:arcaAmb()},extra||{})});
+const arcaCall=(accion,extra)=>hreq('/functions/v1/arca',{method:'POST',fn:true,body:Object.assign({accion,comercio:cl.comercio.id,ambiente:arcaAmb()},extra||{})});
 async function arcaEstado(force){if(!arcaOn())return null;if(!force&&ARC.st&&Date.now()-ARC.stAt<60000&&ARC.st._amb===arcaAmb())return ARC.st;
  try{const r=await arcaCall('estado');r._amb=arcaAmb();ARC.st=r;ARC.stAt=Date.now();return r;}catch(e){return ARC.st&&ARC.st._amb===arcaAmb()?ARC.st:null;}}
 
@@ -94,7 +94,7 @@ async function arcaPostSale(sale,stamp){
 
 /* ---------- reintentos automáticos (se llama desde cada sincronización) ---------- */
 function arcaPendientes(){return S.sales.filter(s=>s.doc==='factura_pendiente_cae'&&s.status==='ok'&&!(s.arca&&s.arca.cae));}
-async function arcaTick(){if(!arcaOn()||ARC.tickBusy)return;const st=await arcaEstado();if(!st||!st.config||!st.config.activo)return;
+async function arcaTick(){if(!arcaOn()||ARC.tickBusy)return;if(!arcaPendientes().length)return;const st=await arcaEstado();if(!st||!st.config||!st.config.activo)return;
  ARC.tickBusy=true;
  try{
   const mine=arcaPendientes().filter(s=>s.caja===S.tenant.caja&&!ARC.blocked.has(s.id)&&!(s.arca&&s.arca.estado==='rechazado')&&!ARC.inflight.has(s.id)).slice(0,3);
