@@ -1,3 +1,5 @@
+> **Proyecto nuevo:** el proyecto Supabase anterior ya no existe. Para uno nuevo alcanza con pegar **el contenido** de `INSTALAR-TODO.sql` (= 01 a 05, sin el 00) en el SQL Editor y ejecutarlo una vez. Después: `select public.rave_invitar_comercio('correo','Almacén RAVE','CODIGO');`, desactivar «Confirm email» y desplegar la función `arca`.
+
 # Supabase · proyecto raveholding · Sistema RAVE
 
 Todo se hace con el **dueño del proyecto** (Rave Holding). Nada de esto va en el HTML.
