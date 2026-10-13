@@ -63,6 +63,7 @@ const SEED_RUBROS=[
 /* costos y stock de la demo: INVENTADOS (el cliente no los publicó). Costo ≈ 72 % del precio; se reemplazan al cargar el inventario real. */
 function seedProducts(){return SEED_PRODS.map((p,i)=>({id:p.id,name:p.nom,sub:p.sub,grupo:p.grupo,rubro:p.cat,price:p.precio*100,cost:Math.round(p.precio*72)*1,stock:(i%7===0?3:10+((i*7)%26)),unit:'u',barcode:p.bc,plu:'',menu:true,active:true,desc:p.desc||'',featured:!!p.destacado,demo:true}))
  .concat([{id:'granel-1',name:'Maní con cáscara a granel',sub:'ejemplo para probar la balanza',grupo:'',rubro:'promo',price:850000,cost:610000,stock:12.5,unit:'kg',barcode:'',plu:'12',menu:false,active:true,desc:'',demo:true}]);}
+const BUILD_VER=(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.ver)||'sin dato';
 const IS_CLIENT=!!(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente');
 const DEF=()=>{const d=DEF0();return IS_CLIENT?clientClean(d):d;};
 /* La copia del CLIENTE nace limpia: sin costos ni stock inventados, sin usuarios/PIN de prueba, sin cupones, planes, Wi-Fi ni redes "de ejemplo". */

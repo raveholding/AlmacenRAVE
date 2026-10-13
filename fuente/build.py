@@ -13,7 +13,8 @@ assert not re.search(r'service_role|sb_secret_',key),'¡Esa es una clave SECRETA
 if url: assert re.fullmatch(r'https://[A-Za-z0-9.-]+(:\d+)?',url),'URL inválida'
 slug=os.environ.get('RAVE_SLUG','almacen-rave' if V=='cliente' else '')
 pub=os.environ.get('PUBLIC_URL','https://raveholding.github.io/'+('AlmacenRAVE/' if V=='cliente' else 'raveV2/'))
-build={'variant':V,'db':'rave-almacenrave-v1' if V=='cliente' else 'rave-cliente-v3','publicUrl':pub}
+import datetime
+build={'ver':datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M')+' UTC','variant':V,'db':'rave-almacenrave-v1' if V=='cliente' else 'rave-cliente-v3','publicUrl':pub}
 cfg='<script>window.RAVE_BUILD=%s;window.RAVE_CLOUD=%s;</script>\n'%(json.dumps(build),json.dumps({'url':url,'key':key,'slug':slug}))
 head=B('p1-head.html')
 head=head.replace("connect-src 'none'","connect-src "+(url if url else "'none'"))
