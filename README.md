@@ -2,7 +2,7 @@
 
 Sistema de gestión (POS + inventario + caja + clientes + menú público) para **Almacén RAVE**.
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
-Funciona sin internet y sincroniza con la nube (Supabase, proyecto **raveholding**) cuando hay conexión.
+Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
 ## Estado de esta entrega (leer antes de usar)
 
@@ -16,8 +16,9 @@ Funciona sin internet y sincroniza con la nube (Supabase, proyecto **raveholding
 
 ## Conectar la nube (lo hace Rave Holding)
 
-1. En Supabase (proyecto *raveholding*): **Authentication → Providers → Email → desactivar «Confirm email»**.
-2. Aplicar los SQL en el *SQL Editor* siguiendo `supabase/LEEME-supabase.md` (pegar el **contenido**, no el nombre del archivo).
+0. Crear un proyecto nuevo en Supabase y anotar la *Project URL* y la clave **publicable** (`sb_publishable_…`).
+1. En ese proyecto: **Authentication → Providers → Email → desactivar «Confirm email»**.
+2. Aplicar los SQL en el *SQL Editor* siguiendo `supabase/LEEME-supabase.md`: en un proyecto nuevo se aplican `01` a `05` y **se salta el `00`** (sólo archiva un esquema viejo) (pegar el **contenido**, no el nombre del archivo).
 3. Desplegar la función `arca` y cargar su secreto (ver el mismo LEEME).
 4. Compilar con la dirección y la clave **publicable** (nunca la secreta):
 
