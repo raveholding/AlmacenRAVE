@@ -160,7 +160,7 @@ A.padj=el=>{const p=prod(el.dataset.id);const w=modal('Ajustar stock · '+p.name
 
 /* ===== Caja ===== */
 reg('caja','Caja','cash','cash_mov',()=>{const s=openSess();
- if(!s)return `<h1>Caja</h1><div class="card" style="max-width:480px"><p>No hay caja abierta.</p><label for="ap">Efectivo inicial (apertura) $</label>${numIn('ap',0,'0')}<button class="btn gold" style="margin-top:.8rem" data-act="openCaja">Abrir caja ${S.tenant.caja}</button></div>${S.sessions.length?'':'<p class="mut sm">Tip: en Configuración podés cargar la jornada de ejemplo del 6/10 para ver el arqueo completo.</p>'}`;
+ if(!s)return `<h1>Caja</h1><div class="card" style="max-width:480px"><p>No hay caja abierta.</p><label for="ap">Efectivo inicial (apertura) $</label>${numIn('ap',0,'0')}<button class="btn gold" style="margin-top:.8rem" data-act="openCaja">Abrir caja ${S.tenant.caja}</button></div>${S.sessions.length||IS_CLIENT?'':'<p class="mut sm">Tip: en Configuración podés cargar la jornada de ejemplo del 6/10 para ver el arqueo completo.</p>'}`;
  const inp=arqInputs(s),a=arqueoCalc(s,inp),ms=S.movs.filter(m=>m.sessId===s.id);
  const old=dkey(s.openedAt)!==dkey(now());
  return `<div class="row"><h1 class="sp">Caja ${S.tenant.caja}</h1>${expBar('movimientos')}<button class="btn gold" data-act="nav" data-id="arqueo">Arqueo y cierre →</button></div>
