@@ -239,8 +239,10 @@ A.cloudGo=async el=>{const mode=el.dataset.mode;lerr('');el.disabled=true;
 function askText(title,label,opts={}){return new Promise(res=>{const w=modal(title,`<label for="ask-v">${esc(label)}</label><input id="ask-v" ${opts.secret?'type="password"':''} autocomplete="off" ${opts.num?'inputmode="numeric"':''}>${opts.hint?`<p class="sm mut">${esc(opts.hint)}</p>`:''}`,
   {okText:opts.ok||'Aceptar',onOk:w2=>{const v=val('ask-v').trim();if(!v){w2._err('Completá este dato.');return false;}res(v);}});
  w.addEventListener('click',e=>{const b=e.target.closest('[data-m="x"]');if(b)res(null);});});}
-function showSecret(title,code,msg){return new Promise(res=>{modal(title,`<p>${msg}</p><p style="font:700 1.4rem/1.3 monospace;letter-spacing:.08em;text-align:center;background:#f4efe6;color:#242220;padding:.8rem;border-radius:10px;user-select:all">${esc(code)}</p><label class="chk"><input type="checkbox" id="sec-ok"> Ya lo guardé en un lugar seguro</label>`,
+function showSecret(title,code,msg,share){return new Promise(res=>{modal(title,`<p>${msg}</p><p style="font:700 1.4rem/1.3 monospace;letter-spacing:.08em;text-align:center;background:#f4efe6;color:#242220;padding:.8rem;border-radius:10px;user-select:all">${esc(code)}</p>${share?`<div class="row" style="flex-wrap:wrap"><button class="btn sm" data-act="secCopy" data-t="${esc(share)}">Copiar mensaje de invitación</button><button class="btn sm" data-act="secWa" data-t="${esc(share)}">Enviar por WhatsApp</button></div>`:''}<label class="chk"><input type="checkbox" id="sec-ok"> Ya lo guardé en un lugar seguro</label>`,
   {noCancel:true,okText:'Listo',onOk:w=>{if(!$('#sec-ok',w).checked){w._err('Marcá que lo guardaste.');return false;}res(true);}});});}
+A.secCopy=el=>{try{navigator.clipboard.writeText(el.dataset.t);toast('Mensaje copiado');}catch(e){toast('No se pudo copiar',1);}};
+A.secWa=el=>{window.open('https://wa.me/?text='+encodeURIComponent(el.dataset.t),'_blank','noopener,noreferrer');};
 async function cloudFetchMember(email){
  const mem=await sel('miembros?select=rol,nombre,comercio_id,comercios(id,nombre,slug)&usuario_id=eq.'+cl.uid);
  if(!Array.isArray(mem)||!mem.length)return null;
@@ -398,6 +400,19 @@ function cloudApiWrap(local){if(!CLOUD.on)return local;
   legal:pick(local.legal,()=>{const c=snapC();return(c&&c.legal)||[];}),
   logArrep:pick(local.logArrep,()=>{rpc('menu_evento',{p_slug:CLOUD.slug,p_tipo:'arrepentimiento'},{auth:false}).catch(()=>{});}),
   openPanel:local.openPanel};}
+/* ---- Equipo: invitar, roles y quitar (se usa en Nube y en Usuarios y permisos) ---- */
+function teamCardHtml(){return `<div class="card" id="team-card" style="margin-top:1rem"><h3>Equipo (personas con acceso)</h3><div id="nb-team" class="sm mut">Cargando…</div>
+ <h4>Invitar a una persona</h4><div class="grid g2"><div><label for="nb-em">Correo</label><input id="nb-em" type="email"></div><div><label for="nb-nm">Nombre</label><input id="nb-nm" maxlength="60"></div><div><label for="nb-rl">Rol</label><select id="nb-rl"><option value="mostrador">Mostrador</option><option value="supervisor">Supervisor</option><option value="operador">Operador</option><option value="admin">Administrador</option></select></div></div>
+ <div class="row" style="margin-top:.5rem"><button class="btn gold" data-act="nbInvite">Generar código de acceso</button></div>
+ <p class="sm mut">La persona entra a "Tengo una invitación", escribe ese correo, elige su contraseña y pega el código. Si olvida su contraseña: "Olvidé mi contraseña" y luego quitala y volvé a invitarla.</p>
+ <h4>Código de recuperación</h4><p class="sm">Permite volver a abrir los datos si el administrador pierde su contraseña. Si lo perdiste, generá uno nuevo (el anterior deja de servir).</p><button class="btn" data-act="nbRecov">Generar código nuevo</button></div>`;}
+async function teamInit(){if(!CLOUD.on||cl.rol!=='admin')return;const box=document.getElementById('nb-team');if(!box)return;
+  try{const [m,inv]=await Promise.all([sel(`miembros?select=usuario_id,rol,nombre,email&comercio_id=eq.${cl.comercio.id}&order=creado`),rpc('invitaciones_de',{p_comercio:cl.comercio.id})]);
+   box.innerHTML=`<div class="tw"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th></th></tr></thead><tbody>${m.map(x=>`<tr><td>${esc(x.nombre||'')}</td><td>${esc(x.email||'')}</td><td>${x.usuario_id===cl.uid?esc(ROLES_LBL[x.rol]):`<select data-act-change="nbRole" class="nb-role" data-u="${esc(x.usuario_id)}">${Object.keys(ROLES_LBL).map(r=>`<option value="${r}" ${r===x.rol?'selected':''}>${ROLES_LBL[r]}</option>`).join('')}</select>`}</td><td>${x.usuario_id===cl.uid?'(vos)':`<button class="btn sm red" data-act="nbDel" data-u="${esc(x.usuario_id)}" data-n="${esc(x.nombre||x.email||'')}">Quitar</button>`}</td></tr>`).join('')}</tbody></table></div>
+   ${inv.length?`<p class="sm"><b>Invitaciones pendientes:</b> ${inv.map(i=>esc(i.email)+' ('+esc(ROLES_LBL[i.rol]||i.rol)+')').join(', ')}</p>`:''}`;
+   box.querySelectorAll('.nb-role').forEach(s=>s.addEventListener('change',async()=>{try{await rpc('cambiar_rol',{p_comercio:cl.comercio.id,p_usuario:s.dataset.u,p_rol:s.value});audit('EQUIPO_ROL',s.value);toast('Rol cambiado');}catch(e){toast(errTxt(e),1);rerender();}}));
+  }catch(e){box.textContent='No se pudo cargar el equipo: '+errTxt(e);}}
+if(CLOUD.on){UI_HOOK.usersCard=()=>cl.rol==='admin'?teamCardHtml():'<div class="card" style="margin-top:1rem"><h3>Equipo</h3><p class="sm mut">Sólo el administrador puede invitar o quitar personas.</p></div>';UI_HOOK.usersAfter=teamInit;}
 /* ---------- pantalla "Nube" ---------- */
 const ROLES_LBL={admin:'Administrador',supervisor:'Supervisor',mostrador:'Mostrador',operador:'Operador'};
 reg('nube','Nube','globe','config',()=>{
@@ -421,17 +436,8 @@ reg('nube','Nube','globe','config',()=>{
  ${adm?'<div class="row"><button class="btn" data-act="nbPublish">Publicar ahora</button></div>':'<p class="sm mut">Sólo el administrador publica el menú.</p>'}
  <div class="row" style="margin-top:.4rem"><button class="btn" data-act="nbAltas">Traer altas del Club</button></div>
  <p class="sm mut">Las altas del Club llegan cifradas: sólo este comercio las puede abrir.</p></div></div>
- ${adm?`<div class="card" style="margin-top:1rem"><h3>Equipo</h3><div id="nb-team" class="sm mut">Cargando…</div>
- <h4>Invitar a una persona</h4><div class="grid g2"><div><label for="nb-em">Correo</label><input id="nb-em" type="email"></div><div><label for="nb-nm">Nombre</label><input id="nb-nm" maxlength="60"></div><div><label for="nb-rl">Rol</label><select id="nb-rl"><option value="mostrador">Mostrador</option><option value="supervisor">Supervisor</option><option value="operador">Operador</option><option value="admin">Administrador</option></select></div></div>
- <div class="row" style="margin-top:.5rem"><button class="btn gold" data-act="nbInvite">Generar código de acceso</button></div>
- <p class="sm mut">La persona entra a "Tengo una invitación", escribe ese correo, elige su contraseña y pega el código. Si olvida su contraseña: "Olvidé mi contraseña" y luego quitala y volvé a invitarla.</p>
- <h4>Código de recuperación</h4><p class="sm">Permite volver a abrir los datos si el administrador pierde su contraseña. Si lo perdiste, generá uno nuevo (el anterior deja de servir).</p><button class="btn" data-act="nbRecov">Generar código nuevo</button></div>`:''}`;},
- async()=>{if(!CLOUD.on||cl.rol!=='admin')return;const box=document.getElementById('nb-team');if(!box)return;
-  try{const [m,inv]=await Promise.all([sel(`miembros?select=usuario_id,rol,nombre,email&comercio_id=eq.${cl.comercio.id}&order=creado`),rpc('invitaciones_de',{p_comercio:cl.comercio.id})]);
-   box.innerHTML=`<div class="tw"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th></th></tr></thead><tbody>${m.map(x=>`<tr><td>${esc(x.nombre||'')}</td><td>${esc(x.email||'')}</td><td>${x.usuario_id===cl.uid?esc(ROLES_LBL[x.rol]):`<select data-act-change="nbRole" class="nb-role" data-u="${esc(x.usuario_id)}">${Object.keys(ROLES_LBL).map(r=>`<option value="${r}" ${r===x.rol?'selected':''}>${ROLES_LBL[r]}</option>`).join('')}</select>`}</td><td>${x.usuario_id===cl.uid?'(vos)':`<button class="btn sm red" data-act="nbDel" data-u="${esc(x.usuario_id)}" data-n="${esc(x.nombre||x.email||'')}">Quitar</button>`}</td></tr>`).join('')}</tbody></table></div>
-   ${inv.length?`<p class="sm"><b>Invitaciones pendientes:</b> ${inv.map(i=>esc(i.email)+' ('+esc(ROLES_LBL[i.rol]||i.rol)+')').join(', ')}</p>`:''}`;
-   box.querySelectorAll('.nb-role').forEach(s=>s.addEventListener('change',async()=>{try{await rpc('cambiar_rol',{p_comercio:cl.comercio.id,p_usuario:s.dataset.u,p_rol:s.value});audit('EQUIPO_ROL',s.value);toast('Rol cambiado');}catch(e){toast(errTxt(e),1);rerender();}}));
-  }catch(e){box.textContent='No se pudo cargar el equipo: '+errTxt(e);}},'Sistema');
+ ${adm?teamCardHtml():''}`;},
+ teamInit,'Sistema');
 A.nbSync=async()=>{await cloudSync(true);await importAltas().catch(()=>{});toast(cl.lastErr?cl.lastErr:'Sincronizado',!!cl.lastErr);rerender();};
 A.nbPublish=async()=>{try{const r=await cloudPublishMenu(true);audit('MENU_NUBE','publicado v'+(r.version||'?'));toast('Menú publicado v'+r.version);rerender();}catch(e){toast(errTxt(e),1);}};
 A.nbAltas=async()=>{try{const n=await importAltas();toast(n?n+' altas nuevas del Club':'No hay altas nuevas');rerender();}catch(e){toast(errTxt(e),1);}};
@@ -443,7 +449,7 @@ A.nbPass=async()=>{const p=await askText('Cambiar contraseña','Contraseña nuev
 A.nbInvite=async()=>{const email=val('nb-em').trim().toLowerCase(),nm=val('nb-nm').trim(),rol=val('nb-rl');if(!mailOk(email))return toast('Correo inválido',1);
  const code=genCode(12,4);try{const w=await wrapDek(cl.dekRaw,normCode(code));
   await rpc('invitar_miembro',{p_comercio:cl.comercio.id,p_email:email,p_rol:rol,p_nombre:nm,p_huella:sha256(normCode(code)),p_llave:{kdf:w.kdf,wrap:w.wrap}});
-  audit('EQUIPO_INVITAR',email+' · '+rol);await showSecret('Código de acceso para '+(nm||email),code,'Pasáselo a la persona por un canal seguro (en persona o WhatsApp). Vale 14 días y se usa una sola vez. Se muestra <b>una sola vez</b>.');rerender();}
+  audit('EQUIPO_INVITAR',email+' · '+rol);await showSecret('Código de acceso para '+(nm||email),code,'Pasáselo a la persona por un canal seguro (en persona o WhatsApp). Vale 14 días y se usa una sola vez. Se muestra <b>una sola vez</b>.','Hola'+(nm?' '+nm:'')+'! Te invité al sistema de '+cl.comercio.nombre+'. Entrá a '+location.href.split('#')[0]+' → "Acceso del equipo" → "Tengo una invitación". Tu correo: '+email+' · Código de acceso: '+code+' (vale 14 días, se usa una sola vez). Elegí una contraseña de 10 caracteres o más.');rerender();}
  catch(e){toast(errTxt(e),1);}};
 A.nbDel=el=>confirmBox('Quitar del equipo','¿Quitar a '+esc(el.dataset.n)+'? Pierde el acceso en todos los equipos.',async()=>{try{await rpc('quitar_miembro',{p_comercio:cl.comercio.id,p_usuario:el.dataset.u});audit('EQUIPO_QUITAR',el.dataset.n);toast('Quitado');rerender();}catch(e){toast(errTxt(e),1);}},'Quitar');
 A.nbRecov=()=>confirmBox('Código de recuperación','Se genera uno nuevo y el anterior deja de servir. ¿Seguimos?',async()=>{try{const code=genCode(20,5);const w=await wrapDek(cl.dekRaw,normCode(code));
