@@ -1,0 +1,51 @@
+from cl_lib import *
+res=[]
+def chk(c,m):res.append(ok(c,m))
+def login(pg,em,pw):
+    pg.wait_for_selector('#login [data-mode]');pg.fill('#cl-em',em);pg.fill('#cl-pw',pw);pg.click('#cl-go')
+with sync_playwright() as p:
+    b=launch(p)
+    ctx,A=newpage(b,'A')
+    rec=create_commerce(A)
+    EM='dueno@almacen.test'
+    A.evaluate("hreq('/auth/v1/user',{method:'PUT',body:{password:'Otra-Clave-123456'}})");A.wait_for_timeout(500)
+    A.evaluate("A.logout()");A.wait_for_timeout(1500)
+    A.goto(BASE+'/cliente.html#acceso');login(A,EM,'Clave-Muy-Segura-1');A.wait_for_timeout(1500)
+    chk('incorrectos' in A.inner_text('#lerr'),'contraseña vieja: "correo o contraseña incorrectos"')
+    login(A,EM,'Otra-Clave-123456');A.wait_for_selector('#ask-v',timeout=10000)
+    chk('restablecida' in A.inner_text('#modal-root'),'clave restablecida: pide el código de recuperación')
+    A.fill('#ask-v','AAAAA-BBBBB-CCCCC-DDDDD');A.click('#modal-root [data-m=ok]');A.wait_for_timeout(1500)
+    chk('no es correcto' in A.inner_text('#lerr'),'código de recuperación equivocado: rechazado')
+    login(A,EM,'Otra-Clave-123456');A.wait_for_selector('#ask-v',timeout=10000);A.fill('#ask-v',rec);A.click('#modal-root [data-m=ok]');A.wait_for_selector('#panel:not([hidden])',timeout=20000)
+    chk(A.evaluate("S.products.length")>50,'con el código correcto vuelve a abrir los datos (catálogo cargado)')
+    # misma clave ahora funciona sin pedir código
+    A.evaluate("A.logout()");A.wait_for_timeout(1000);A.goto(BASE+'/cliente.html#acceso');login(A,EM,'Otra-Clave-123456');A.wait_for_selector('#panel:not([hidden])',timeout=20000)
+    chk(True,'siguiente ingreso con la clave nueva: directo')
+    # cambiar contraseña desde Nube
+    A.evaluate("location.hash='#panel/nube'");A.wait_for_selector('[data-act=nbPass]');A.click('[data-act=nbPass]');A.fill('#ask-v','Tercera-Clave-9876543');A.click('#modal-root [data-m=ok]');A.wait_for_timeout(2000)
+    A.evaluate("A.logout()");A.wait_for_timeout(1000);A.goto(BASE+'/cliente.html#acceso');login(A,EM,'Tercera-Clave-9876543');A.wait_for_selector('#panel:not([hidden])',timeout=20000)
+    chk(True,'cambio de contraseña desde Nube: ingresa con la nueva')
+    # regenerar código: el viejo deja de servir
+    A.evaluate("location.hash='#panel/nube'");A.wait_for_selector('[data-act=nbRecov]');A.click('[data-act=nbRecov]');A.click('#modal-root [data-m=ok]');A.wait_for_selector('#sec-ok')
+    nuevo=A.inner_text('#modal-root p[style*=monospace]');A.check('#sec-ok');A.click('#modal-root [data-m=ok]')
+    chk(nuevo!=rec,'código de recuperación nuevo: '+nuevo)
+    A.evaluate("hreq('/auth/v1/user',{method:'PUT',body:{password:'Cuarta-Clave-5555555'}})");A.wait_for_timeout(500)
+    A.evaluate("A.logout()");A.wait_for_timeout(1000);A.goto(BASE+'/cliente.html#acceso');login(A,EM,'Cuarta-Clave-5555555');A.wait_for_selector('#ask-v',timeout=10000)
+    A.fill('#ask-v',rec);A.click('#modal-root [data-m=ok]');A.wait_for_timeout(1500)
+    chk('no es correcto' in A.inner_text('#lerr'),'el código viejo ya no sirve')
+    login(A,EM,'Cuarta-Clave-5555555');A.wait_for_selector('#ask-v',timeout=10000);A.fill('#ask-v',nuevo);A.click('#modal-root [data-m=ok]');A.wait_for_selector('#panel:not([hidden])',timeout=20000)
+    chk(True,'el código nuevo abre los datos')
+    # aislamiento: otro comercio no ve nada
+    ctx2,B=newpage(b,'B')
+    sql("select public.rave_invitar_comercio('otro@b.test','Comercio B','INVITA-B-2026')")
+    B.goto(BASE+'/cliente.html#acceso');B.wait_for_selector('#login [data-mode]');B.click('[data-mode="crear"]');B.fill('#cl-nm','Comercio B');B.fill('#cl-em','otro@b.test');B.fill('#cl-pw','Clave-Comercio-B-1');B.fill('#cl-co','INVITA-B-2026');B.click('#cl-go')
+    B.wait_for_selector('#sec-ok',timeout=15000);B.check('#sec-ok');B.click('#modal-root [data-m=ok]');B.wait_for_selector('#panel:not([hidden])',timeout=20000);B.wait_for_timeout(2500)
+    nb=B.evaluate("(async()=>{const r=await sel('registros?select=comercio_id');return new Set(r.map(x=>x.comercio_id)).size})()")
+    chk(nb==1,'comercio B sólo ve registros de su comercio (%s)'%nb)
+    other=B.evaluate("(async()=>{const r=await sel('registros?select=id&comercio_id=neq.'+cl.comercio.id);return r.length})()")
+    chk(other==0,'comercio B no puede leer los registros de A')
+    w=B.evaluate("(async()=>{try{await rpc('sincronizar',{p_comercio:'%s',p_dispositivo:'x',p_cambios:[]});return 'permitido'}catch(e){return 'rechazado '+e.status}})()"%A.evaluate("cl.comercio.id"))
+    chk('rechazado' in w,'comercio B no puede escribir en A: '+w)
+    print('ERRORES JS:',[e for e in errs if 'status of' not in e and 'ERR_TUNNEL' not in e][:10])
+    print('RESUMEN',sum(res),'/',len(res))
+    b.close()

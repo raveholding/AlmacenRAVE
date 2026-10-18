@@ -1,4 +1,4 @@
-> **Proyecto nuevo:** el proyecto Supabase anterior ya no existe. Para uno nuevo alcanza con pegar **el contenido** de `INSTALAR-TODO.sql` (= 01 a 05, sin el 00) en el SQL Editor y ejecutarlo una vez. Después: `select public.rave_invitar_comercio('correo','Almacén RAVE','CODIGO');`, desactivar «Confirm email» y desplegar la función `arca`.
+> **Proyecto nuevo:** el proyecto Supabase anterior ya no existe. Para uno nuevo alcanza con pegar **el contenido** de `INSTALAR-TODO.sql` (= 01 a 06, sin el 00) en el SQL Editor y ejecutarlo una vez. Después: `select public.rave_invitar_comercio('correo','Almacén RAVE','CODIGO');`, desactivar «Confirm email» y desplegar la función `arca`.
 
 # Supabase · proyecto raveholding · Sistema RAVE
 
@@ -17,6 +17,7 @@ Todo se hace con el **dueño del proyecto** (Rave Holding). Nada de esto va en e
 | `03-recuperacion-soporte.sql` | Recuperación de clave y pedidos de ayuda. |
 | `04-menu-publico.sql` | Menú público en la nube y alta al Club. |
 | `05-arca.sql` | Facturación electrónica (tablas y funciones del CAE). |
+| `06-v26.sql` | V26: borrado protegido y archivo de artículos (sólo administrador), cajas/sucursales/traspasos (colecciones `sucs`, `cajas`, `ctransf`). Aditivo e idempotente: si ya tenías 01 a 05, pegá sólo este. |
 | `90-reiniciar-pruebas.sql` | **SÓLO PRUEBAS. Borra lo subido por todos los comercios.** No correr con el sistema en uso real. |
 
 Todos (menos 90) se pueden repetir sin romper nada.
@@ -47,4 +48,4 @@ supabase functions deploy arca --no-verify-jwt   # la propia función valida al 
 - Si alguna clave del proyecto anterior (`menu-rave`) estuvo escrita en un HTML o repositorio público, **rotarla** en Supabase (Settings → API Keys).
 
 ## 6 · Pruebas incluidas (`tests/`)
-`tests/run.sh` corre 116 comprobaciones SQL (aislamiento entre comercios, roles, stock, cierres, ARCA), `20-concurrency.sh` prueba dos cajas vendiendo a la vez y `functions/arca/arca_test.ts` (Deno) prueba la función contra un ARCA **falso**. Necesitan un Postgres/PostgREST local (`tests/mk-e2e-db.sh`). **No sustituyen la prueba en homologación con ARCA real.**
+`tests/run.sh` corre 152 comprobaciones SQL (aislamiento entre comercios, roles, stock, cierres, ARCA), `20-concurrency.sh` prueba dos cajas vendiendo a la vez y `functions/arca/arca_test.ts` (Deno) prueba la función contra un ARCA **falso**. Necesitan un Postgres/PostgREST local (`tests/mk-e2e-db.sh`). **No sustituyen la prueba en homologación con ARCA real.**

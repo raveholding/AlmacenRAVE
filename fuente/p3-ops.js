@@ -26,12 +26,12 @@ function arqueoCalc(sess,inp){
  const reparte=rp.map((r,i)=>{const q=R[r.id];const base=q.profit-q.fees+q.mov;const pre=base-sS[i]-sM[i]-sG[i];const tax=inp.taxes[r.id]||0;
   const cubierto=Math.max(0,Math.min(pre,tax));return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,sueldo:sS[i],merienda:sM[i],gastos:sG[i],base,pre,tax,cubierto,falta:tax-cubierto,net:pre-tax};});
  const otros=S.rubros.filter(r=>r.kind==='rubro'&&!r.reparte).map(r=>{const q=R[r.id];return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,net:q.profit-q.fees+q.mov};});
- const cashSales=(byMethod.efectivo||{}).gross||0;
+ const cashSales=(byMethod.efectivo||{}).gross||0;const tr=(typeof transfersFor==='function')?transfersFor(sess):{tin:0,tout:0,list:[]};
  const paid=inp.payFromCash?(sueldo+mer+inp.gastosManual):0;
- const expectedCash=sess.opening+cashSales+ing-egr-paid;
+ const expectedCash=sess.opening+cashSales+ing-egr-paid+tr.tin-tr.tout;
  const declared=inp.declared;const diff=isNaN(declared)?0:declared-expectedCash;
  return{total,count:sales.length,byMethod,pend:{n:pend.length,total:pend.reduce((a,s)=>a+s.total,0)},rub:R,ing,egr,gAuto,gManual:inp.gastosManual,gastos,sueldo,merienda:mer,
-  empName:inp.emp?inp.emp.name:'',hours:inp.hours,rate:inp.rate,reparte,otros,cashSales,paid,opening:sess.opening,expectedCash,declared:isNaN(declared)?null:declared,diff,
+  empName:inp.emp?inp.emp.name:'',hours:inp.hours,rate:inp.rate,reparte,otros,cashSales,paid,opening:sess.opening,tin:tr.tin,tout:tr.tout,transfers:tr.list,expectedCash,declared:isNaN(declared)?null:declared,diff,
   movs:movs.map(m=>({ts:m.ts,type:m.type,rubro:m.rubroName||rubName(m.rubro),concept:m.concept,amount:m.amount,user:m.user}))};}
 function buildReport(a,dayKey,who,inp){
  const L=[];const P=(t,cls)=>L.push({t,cls:cls||''});
@@ -90,21 +90,24 @@ A.mov=el=>movModal(el.dataset.type);
 
 /* ===== Inventario ===== */
 const sugPrice=(costC,type,pct)=>{if(isNaN(pct)||isNaN(costC))return NaN;if(type==='margen'){if(pct<0||pct>=100)return NaN;return Math.round(costC/(1-pct/100));}if(pct<0)return NaN;return Math.round(costC*(1+pct/100));};
-let invF={q:'',rub:'',group:true,low:false};
+let invF={q:'',rub:'',group:true,low:false,arch:false};
+let invSel=new Set();
+const canDelItems=()=>!!user&&user.role==='admin'; /* V26 4.16: sólo el rol Administrador; no es un permiso delegable */
 const RUB_COLORS=['#c9963e','#7b2d3b','#6b6a5a','#2f6f8f','#3d7a4f','#8a6fb0','#b5543a','#2b7a78','#a0527c','#5d6d3f'];
 const safeColor=c=>/^#[0-9a-fA-F]{6}$/.test(String(c||''))?c:'#8a6fb0';
 const prodStatus=p=>p.stock<0?'neg':(p.stock===0?'zero':(p.stock<=5?'low':'ok'));
 reg('inventario','Inventario','box','edit_products',()=>{
  const R=S.rubros.filter(r=>r.kind==='rubro');const q=invF.q.toLowerCase();
- const base=S.products.filter(p=>(!q||p.name.toLowerCase().includes(q)||(p.sub||'').toLowerCase().includes(q)||(p.barcode||'').includes(q))&&(!invF.low||p.stock<=5));
+ const base=S.products.filter(p=>(invF.arch?!!p.archived:!p.archived)&&(!q||p.name.toLowerCase().includes(q)||(p.sub||'').toLowerCase().includes(q)||(p.barcode||'').includes(q))&&(!invF.low||p.stock<=5));
  const L=base.filter(p=>!invF.rub||p.rubro===invF.rub);const cv=can('view_cost');
  const cnt=id=>base.filter(p=>p.rubro===id).length;
  const tabs=`<div class="rtabs" role="tablist" aria-label="Rubros"><button type="button" role="tab" class="rtab ${invF.rub?'':'on'}" data-act="irub" data-id="" aria-selected="${!invF.rub}">Todos <b>${base.length}</b></button>${R.map(r=>`<button type="button" role="tab" class="rtab ${invF.rub===r.id?'on':''}" data-act="irub" data-id="${r.id}" aria-selected="${invF.rub===r.id}" style="--rc:${safeColor(r.color)}"><i class="rdot" style="background:${safeColor(r.color)}"></i>${esc(r.name)} <b>${cnt(r.id)}</b></button>`).join('')}<button type="button" class="rtab add" data-act="rubEdit" data-id="">+ Rubro</button></div>`;
- const negN=S.products.filter(p=>p.stock<0).length;
+ const negN=S.products.filter(p=>p.stock<0&&!p.archived).length;const cd=canDelItems();const nArch=S.products.filter(p=>p.archived).length;
+ const vis=new Set(L.map(p=>p.id));[...invSel].forEach(id=>{if(!vis.has(id))invSel.delete(id);});
  const row=p=>{const r=rub(p.rubro);const col=safeColor(r&&r.color);const st=prodStatus(p);
-  return `<tr class="st-${st}" style="--rc:${col}"><td class="rb"><b>${esc(p.name)}</b>${p.sub?` <span class="mut sm">${esc(p.sub)}</span>`:''}${p.active?'':' <span class="tag bad">inactivo</span>'}${p.needStock?' <span class="tag warn" title="No se vende sin stock">exige stock</span>':''}${p.demo?' <span class="tag sim" title="Costo y stock de ejemplo">ej.</span>':''}</td><td><span class="rchip" style="--rc:${col}"><i class="rdot" style="background:${col}"></i>${esc(rubName(p.rubro))}</span></td><td class="r">${money(p.price)}${p.unit!=='u'?' <span class="mut sm">/ '+unitLbl(p.unit)+'</span>':''}</td>${cv?`<td class="r">${money(p.cost)}</td><td class="r">${p.price&&p.cost>0?numAR((p.price-p.cost)/p.price*100,1)+' %':'—'}</td>`:''}<td class="r">${st==='neg'?`<span class="tag bad" title="Se vendió sin stock">${esc(stockTxt(p))}</span>`:st==='zero'?`<span class="tag bad">0 ${esc(unitLbl(p.unit))}</span>`:st==='low'?`<span class="tag warn">${esc(stockTxt(p))}</span>`:esc(stockTxt(p))}</td><td>${p.menu?'<span class="tag ok">publicado</span>':'—'}</td><td class="r"><button class="btn sm" data-act="pedit" data-id="${p.id}">Editar</button> <button class="btn sm" data-act="padj" data-id="${p.id}">Stock</button></td></tr>`;};
- const head=`<thead><tr><th>Producto</th><th>Rubro</th><th class="r">Precio</th>${cv?'<th class="r">Costo</th><th class="r">Margen</th>':''}<th class="r">Stock</th><th>Menú</th><th></th></tr></thead>`;
- const colspan=cv?8:6;
+  return `<tr class="st-${st}" style="--rc:${col}">${cd?`<td class="ck"><input type="checkbox" class="isel" data-id="${p.id}" ${invSel.has(p.id)?'checked':''} aria-label="Seleccionar ${esc(p.name)}"></td>`:''}<td class="rb" data-sv="${esc(p.name)}"><b>${esc(p.name)}</b>${p.sub?` <span class="mut sm">${esc(p.sub)}</span>`:''}${p.archived?' <span class="tag bad">archivado</span>':(p.active?'':' <span class="tag bad">inactivo</span>')}${p.needStock?' <span class="tag warn" title="No se vende sin stock">exige stock</span>':''}${p.demo?' <span class="tag sim" title="Costo y stock de ejemplo">ej.</span>':''}</td><td><span class="rchip" style="--rc:${col}"><i class="rdot" style="background:${col}"></i>${esc(rubName(p.rubro))}</span></td><td class="r">${money(p.price)}${p.unit!=='u'?' <span class="mut sm">/ '+unitLbl(p.unit)+'</span>':''}</td>${cv?`<td class="r">${money(p.cost)}</td><td class="r">${p.price&&p.cost>0?numAR((p.price-p.cost)/p.price*100,1)+' %':'—'}</td>`:''}<td class="r">${st==='neg'?`<span class="tag bad" title="Se vendió sin stock">${esc(stockTxt(p))}</span>`:st==='zero'?`<span class="tag bad">0 ${esc(unitLbl(p.unit))}</span>`:st==='low'?`<span class="tag warn">${esc(stockTxt(p))}</span>`:esc(stockTxt(p))}</td><td>${p.menu?'<span class="tag ok">publicado</span>':'—'}</td><td class="r">${p.archived?(cd?`<button class="btn sm" data-act="prest" data-id="${p.id}">Restaurar</button>`:''):`<button class="btn sm" data-act="pedit" data-id="${p.id}">Editar</button> <button class="btn sm" data-act="padj" data-id="${p.id}">Stock</button>${cd?` <button class="btn sm danger" data-act="pdel" data-id="${p.id}" aria-label="Eliminar ${esc(p.name)}">Eliminar</button>`:''}`}</td></tr>`;};
+ const head=`<thead><tr>${cd?'<th class="ck" data-nosort><input type="checkbox" id="isel-all" aria-label="Seleccionar todos los artículos visibles"></th>':''}<th>Producto</th><th>Rubro</th><th class="r">Precio</th>${cv?'<th class="r">Costo</th><th class="r">Margen</th>':''}<th class="r">Stock</th><th>Menú</th><th></th></tr></thead>`;
+ const colspan=(cv?8:6)+(cd?1:0);
  let body='';
  if(invF.group&&!invF.rub){R.forEach(r=>{const l=L.filter(p=>p.rubro===r.id);if(!l.length)return;const col=safeColor(r.color);
    body+=`<tr class="rgroup" style="--rc:${col}"><td colspan="${colspan}"><i class="rdot" style="background:${col}"></i><b>${esc(r.name)}</b> <span class="mut sm">${l.length} producto${l.length===1?'':'s'}${r.menuOn===false?' · fuera del menú':''}${r.age?' · +18':''}${r.alcohol?' · alcohol':''}</span> <button class="btn sm" data-act="rubEdit" data-id="${r.id}">Editar rubro</button></td></tr>`+l.map(row).join('');});
@@ -113,11 +116,13 @@ reg('inventario','Inventario','box','edit_products',()=>{
  const cur=invF.rub?rub(invF.rub):null;
  return `<div class="row"><h1 class="sp">Inventario</h1>${expBar('productos')}<button class="btn gold" data-act="pedit" data-id="">+ Producto</button></div>
  ${negN?`<div class="errbox">${negN} producto${negN===1?'':'s'} con stock negativo (se vendió sin stock). Cargá la compra o ajustá el stock para regularizar.</div>`:''}
- <div class="card">${tabs}<div class="row" style="margin-top:.7rem"><input id="iq" placeholder="Buscar por nombre, presentación o código…" value="${esc(invF.q)}" style="max-width:320px" aria-label="Buscar producto"><label class="chk" style="margin:0"><input type="checkbox" id="ig" ${invF.group?'checked':''}> Agrupar por rubro</label><label class="chk" style="margin:0"><input type="checkbox" id="il" ${invF.low?'checked':''}> Sólo stock bajo / negativo</label>${cur?`<button class="btn sm" data-act="rubEdit" data-id="${cur.id}">Editar rubro «${esc(cur.name)}»</button>`:''}</div>
+ <div class="card">${tabs}<div class="row" style="margin-top:.7rem"><input id="iq" placeholder="Buscar por nombre, presentación o código…" value="${esc(invF.q)}" style="max-width:320px" aria-label="Buscar producto"><label class="chk" style="margin:0"><input type="checkbox" id="ig" ${invF.group?'checked':''}> Agrupar por rubro</label><label class="chk" style="margin:0"><input type="checkbox" id="il" ${invF.low?'checked':''}> Sólo stock bajo / negativo</label>${cd||nArch?`<label class="chk" style="margin:0"><input type="checkbox" id="ia" ${invF.arch?'checked':''}> Ver archivados (${nArch})</label>`:''}${cur?`<button class="btn sm" data-act="rubEdit" data-id="${cur.id}">Editar rubro «${esc(cur.name)}»</button>`:''}</div>
+ ${cd&&invSel.size?`<div class="selbar" role="region" aria-label="Acciones sobre la selección"><b>${invSel.size}</b> seleccionado${invSel.size===1?'':'s'} <button class="btn sm danger" data-act="pdelSel">Eliminar…</button> <button class="btn sm" data-act="parchSel">Archivar…</button> <button class="btn sm ghost" data-act="pselClr">Quitar selección</button></div>`:(cd&&!invF.arch?'<p class="sm mut" style="margin:.4rem 0 0">Administrador: tildá artículos para eliminarlos o archivarlos. Los que tienen historial no se borran: se archivan.</p>':'')}
  <div class="tw"><table class="inv">${head}<tbody>${body||`<tr><td colspan="${colspan}" class="mut">No hay productos con este filtro.</td></tr>`}</tbody></table></div></div>
- <p class="sm mut">Venta sin stock: ${negOK()?'<b>permitida</b> (queda en negativo y se marca en rojo)':'<b>bloqueada</b>'} · se cambia en Configuración o por producto ("exigir stock"). El costo y el margen sólo los ven los roles con permiso. Los productos no se borran (se desactivan) para conservar el historial.</p>`;},()=>{
+ <p class="sm mut">Venta sin stock: ${negOK()?'<b>permitida</b> (queda en negativo y se marca en rojo)':'<b>bloqueada</b>'} · se cambia en Configuración o por producto ("exigir stock"). El costo y el margen sólo los ven los roles con permiso. Eliminar y archivar es sólo del Administrador; un artículo con ventas o movimientos no se borra: se archiva y el historial queda intacto.</p>`;},()=>{
  $('#iq').addEventListener('input',e=>{invF.q=e.target.value;const p=e.target.selectionStart;rerender();const n=$('#iq');n.focus();n.setSelectionRange(p,p);});
- $('#ig').addEventListener('change',e=>{invF.group=e.target.checked;rerender();});$('#il').addEventListener('change',e=>{invF.low=e.target.checked;rerender();});},'Operación');
+ $('#ig').addEventListener('change',e=>{invF.group=e.target.checked;rerender();});const ia=$('#ia');if(ia)ia.addEventListener('change',e=>{invF.arch=e.target.checked;invSel.clear();rerender();});
+ const sa=$('#isel-all');if(sa){const vis=$$('#view .isel');sa.checked=vis.length>0&&vis.every(x=>x.checked);sa.addEventListener('change',e=>{vis.forEach(x=>{if(e.target.checked)invSel.add(x.dataset.id);else invSel.delete(x.dataset.id);});rerender();});$$('#view .isel').forEach(x=>x.addEventListener('change',e=>{if(e.target.checked)invSel.add(x.dataset.id);else invSel.delete(x.dataset.id);rerender();}));}$('#il').addEventListener('change',e=>{invF.low=e.target.checked;rerender();});},'Operación');
 A.irub=el=>{invF.rub=el.dataset.id||'';rerender();};
 A.rubEdit=el=>{if(!can('edit_products'))return toast('Sin permiso',1);const r=el&&el.dataset.id?rub(el.dataset.id):null;if(el&&el.dataset.id&&(!r||r.kind!=='rubro'))return;
  const col=safeColor(r?r.color:RUB_COLORS[S.rubros.filter(x=>x.kind==='rubro').length%RUB_COLORS.length]);
@@ -148,29 +153,86 @@ A.pedit=el=>{const p=S.products.find(x=>x.id===el.dataset.id)||null;const cv=can
   const bc=val('pm-b').trim();if(bc&&S.products.some(x=>x.barcode===bc&&(!p||x.id!==p.id)))return w._err('Ya existe otro producto con ese código de barras.'),false;
   const plu=val('pm-plu').trim();if(plu&&!/^\d{1,5}$/.test(plu))return w._err('El PLU son hasta 5 números.'),false;if(plu&&S.products.some(x=>x.plu&&String(+x.plu)===String(+plu)&&(!p||x.id!==p.id)))return w._err('Ese PLU ya lo usa otro producto.'),false;
   const d={name,sub:val('pm-sub').trim(),grupo:val('pm-gr').trim(),plu,rubro,unit:val('pm-u'),price:pr,cost,stock:st,barcode:bc,desc:val('pm-d').trim(),en:val('pm-e').trim(),menu:$('#pm-m',w).checked,active:$('#pm-a',w).checked,needStock:$('#pm-ns',w).checked};
+  if(p&&p.stock!==st)d.hist=true;
   if(p){if(p.price!==pr||p.cost!==cost)audit('PRECIO_PRODUCTO',p.name+': precio '+money(p.price)+' → '+money(pr)+(p.cost!==cost?' · costo '+money(p.cost)+' → '+money(cost):''));Object.assign(p,d);audit('EDITAR_PRODUCTO',name);}
   else{S.products.push(Object.assign({id:uid()},d));audit('ALTA_PRODUCTO',name+' · '+rubName(rubro));}save();rerender();toast('Producto guardado');}});
  const upd=()=>{const ul=$('#pm-ul',w);if(ul)ul.textContent=unitLbl(val('pm-u'));if(!cv)return;const c=cents(val('pm-c')),pc=parseNum(val('pm-p')),sg=sugPrice(c,val('pm-t'),pc);const s=$('#pm-s',w);
   if(val('pm-p')==='')s.textContent='Ingresá costo y porcentaje para ver el precio sugerido.';else if(isNaN(sg))s.textContent=val('pm-t')==='margen'?'El margen debe estar entre 0 y menos de 100 %.':'Porcentaje o costo inválido.';else s.innerHTML='Precio sugerido: <b>'+money(sg)+'</b> <button class="btn sm" type="button" id="pm-use">Usar sugerido</button>';
   const f=cents(val('pm-f'));const x=$('#pm-x',w);if(!isNaN(f)&&!isNaN(c)&&c>0){x.textContent='Con ese precio: recargo '+numAR((f-c)/c*100,1)+' % · margen bruto '+numAR((f-c)/f*100,1)+' %';}else x.textContent='';};
  w.addEventListener('input',upd);w.addEventListener('change',upd);w.addEventListener('click',e=>{if(e.target.id==='pm-use'){const sg=sugPrice(cents(val('pm-c')),val('pm-t'),parseNum(val('pm-p')));if(!isNaN(sg)){$('#pm-f',w).value=pesosStr(sg);upd();}}});upd();};
+/* ===== V26 · 4.16 Eliminación protegida de artículos (sólo Administrador) =====
+   · Borrado físico SOLO si no hay ventas, movimientos ni otras referencias; con historial se ARCHIVA (borrado lógico).
+   · El servidor vuelve a validar todo (06-v26.sql): ocultar el botón no es seguridad.
+   · Vista previa obligatoria antes de cualquier eliminación o archivado masivo; resultado por artículo; selección vacía no hace nada. */
+const INV_HOOK={online:null,preview:null};
+function prodRefsLocal(p){const r=[];const n=S.sales.reduce((a,s)=>a+((s.items||[]).some(i=>i.pid===p.id)?1:0),0);if(n)r.push(n+' venta'+(n===1?'':'s'));
+ const has=(a)=>{try{return JSON.stringify(a||[]).includes('"'+p.id+'"');}catch(e){return false;}};
+ if(has(S.orderReqs))r.push('pedidos del menú');if(has(S.pya))r.push('pedidos PedidosYa');if(has(S.coupons)||has(S.plans))r.push('cupones o planes');
+ if(p.hist)r.push('ajustes o movimientos de stock');return r;}
+async function delPreview(ids){
+ const items=ids.map(id=>{const p=prod(id);if(!p)return{id,name:'(no existe)',estado:'bloqueado',motivo:'ya no existe'};const refs=prodRefsLocal(p);
+  return{id,name:p.name,estado:refs.length?'archivable':'eliminable',motivo:refs.length?'Tiene '+refs.join(', ')+': se archiva, no se borra.':'Sin historial: se puede eliminar.',stock:p.stock};});
+ if(typeof CLOUD_HOOK!=='undefined'&&CLOUD_HOOK&&INV_HOOK.online){
+  if(!INV_HOOK.online()){items.forEach(it=>{if(it.estado==='eliminable'){it.estado='bloqueado';it.motivo='Sin conexión: la eliminación física se valida en el servidor. Podés archivarlo.';it.soloArchivar=true;}});}
+  else if(INV_HOOK.preview){try{const sv=await INV_HOOK.preview(ids);const m=new Map(sv.map(x=>[x.id,x]));
+    items.forEach(it=>{const x=m.get(it.id);if(!x)return;if(x.estado==='archivable'&&it.estado==='eliminable'){it.estado='archivable';it.motivo='El servidor encontró historial: '+x.motivo+' Se archiva.';}
+     if(x.estado==='inexistente'&&it.estado!=='bloqueado'){it.estado='eliminable';}});}
+   catch(e){items.forEach(it=>{if(it.estado==='eliminable'){it.estado='bloqueado';it.motivo='No se pudo validar con el servidor. Podés archivarlo.';it.soloArchivar=true;}});}}}
+ return items;}
+function archiveItem(p,motivo,lote){p.archived=true;p.active=false;p.menu=false;p.archivedAt=now();audit('INV_ARCHIVAR','['+lote+'] '+p.name+' · '+motivo);}
+async function delFlow(ids,mode){
+ if(!canDelItems())return toast('Sólo el Administrador puede eliminar o archivar artículos',1);
+ ids=[...new Set(ids)].filter(Boolean);if(!ids.length)return toast('No hay artículos seleccionados: no se hace nada.',1);
+ const vis=new Set($$('#view .isel').map(x=>x.dataset.id).concat(ids.length===1?ids:[]));
+ if(ids.length>1&&ids.some(id=>!vis.has(id)))return toast('La selección incluye artículos que no están a la vista. Volvé a elegirlos.',1);
+ const items=await delPreview(ids);const el=items.filter(x=>x.estado==='eliminable'),ar=items.filter(x=>x.estado==='archivable'||x.soloArchivar),bl=items.filter(x=>x.estado==='bloqueado'&&!x.soloArchivar);
+ const doDel=mode==='del'&&el.length>0;
+ const list=items.slice(0,60).map(x=>`<tr><td>${esc(x.name)}</td><td><span class="tag ${x.estado==='eliminable'?'warn':(x.estado==='bloqueado'&&!x.soloArchivar?'bad':'')}">${x.estado==='eliminable'?(mode==='del'?'se elimina':'sin historial'):(x.estado==='archivable'?'se archiva':(x.soloArchivar?'sólo archivar':'bloqueado'))}</span></td><td class="sm">${esc(x.motivo)}${x.stock?` · stock ${esc(String(x.stock))}`:''}</td></tr>`).join('');
+ const w=modal(mode==='del'?'Eliminar artículos':'Archivar artículos',`<p><b>${items.length}</b> seleccionado${items.length===1?'':'s'}: <b>${el.length}</b> sin historial${mode==='del'?' (se eliminan)':''} · <b>${ar.length}</b> con historial o sin validación (se archivan) · <b>${bl.length}</b> bloqueado${bl.length===1?'':'s'}.</p>
+ <div class="tw" style="max-height:34vh"><table data-nosort><thead><tr><th>Artículo</th><th>Qué pasa</th><th>Motivo</th></tr></thead><tbody>${list}</tbody></table></div>${items.length>60?`<p class="sm mut">…y ${items.length-60} más.</p>`:''}
+ <label for="dl-m">Motivo (obligatorio)</label><input id="dl-m" maxlength="120" autocomplete="off" placeholder="Ej.: artículo discontinuado / carga duplicada">
+ ${mode==='del'&&ar.length?`<label class="chk"><input type="checkbox" id="dl-a" checked> Archivar también los ${ar.length} que tienen historial (no se borran)</label>`:''}
+ ${doDel?`<label for="dl-t">Para eliminar definitivamente escribí <b>ELIMINAR</b></label><input id="dl-t" autocomplete="off" placeholder="ELIMINAR">`:''}
+ ${items.length>200?'<p class="errtxt">Son más de 200 artículos: revisá bien antes de confirmar.</p>':''}
+ <p class="sm mut">Las ventas, cierres y comprobantes anteriores no se tocan. Todo queda en la auditoría.</p>`,
+ {wide:true,okText:mode==='del'?'Confirmar':'Archivar',onOk:async w=>{const motivo=val('dl-m').trim();if(motivo.length<3)return w._err('El motivo es obligatorio (mínimo 3 letras).'),false;
+  if(doDel&&val('dl-t').trim()!=='ELIMINAR')return w._err('Escribí ELIMINAR para confirmar el borrado definitivo.'),false;
+  const doArch=mode==='arch'||($('#dl-a',w)&&$('#dl-a',w).checked);const lote='L'+uid().slice(0,6);const res=[];
+  for(const it of items){const p=prod(it.id);if(!p){res.push([it.name,'no existe']);continue;}
+   if(it.estado==='eliminable'&&mode==='del'){const i=S.products.indexOf(p);S.products.splice(i,1);invSel.delete(it.id);audit('INV_ELIMINAR','['+lote+'] '+it.name+' · '+motivo);res.push([it.name,'eliminado']);}
+   else if(it.estado==='bloqueado'&&!it.soloArchivar){res.push([it.name,'bloqueado: '+it.motivo]);}
+   else if(doArch&&(it.estado==='archivable'||it.estado==='eliminable'||it.soloArchivar)){archiveItem(p,motivo,lote);invSel.delete(it.id);res.push([it.name,'archivado']);}
+   else res.push([it.name,'sin cambios']);}
+  save();pubRefresh&&pubRefresh();rerender();
+  setTimeout(()=>modal('Resultado',`<p>Lote <b>${lote}</b></p><div class="tw" style="max-height:40vh"><table data-nosort><thead><tr><th>Artículo</th><th>Resultado</th></tr></thead><tbody>${res.slice(0,100).map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('')}</tbody></table></div>`,{noCancel:true,okText:'Cerrar'}),50);}});
+ return w;}
+A.pdel=el=>delFlow([el.dataset.id],'del');
+A.pdelSel=()=>delFlow([...invSel],'del');
+A.parchSel=()=>delFlow([...invSel],'arch');
+A.pselClr=()=>{invSel.clear();rerender();};
+A.prest=el=>{if(!canDelItems())return toast('Sólo el Administrador',1);const p=prod(el.dataset.id);if(!p)return;
+ const dup=p.barcode&&S.products.some(x=>x!==p&&!x.archived&&x.barcode===p.barcode);if(dup)return toast('No se puede restaurar: otro artículo usa el mismo código de barras.',1);
+ const dp=p.plu&&S.products.some(x=>x!==p&&!x.archived&&x.plu&&String(+x.plu)===String(+p.plu));if(dp)return toast('No se puede restaurar: otro artículo usa el mismo PLU.',1);
+ p.archived=false;p.active=true;delete p.archivedAt;audit('INV_RESTAURAR',p.name);save();rerender();toast('Artículo restaurado');};
 A.padj=el=>{const p=prod(el.dataset.id);const w=modal('Ajustar stock · '+p.name,`<p>Stock actual: <b class="${p.stock<0?'negs':''}">${esc(stockTxt(p))}</b></p><label for="aj-d">Cantidad a sumar o restar (use - para restar)</label><input id="aj-d" inputmode="decimal" placeholder="0" autocomplete="off"><label for="aj-m">Motivo</label><input id="aj-m" maxlength="100">`,
  {onOk:w=>{const d=parseNum(val('aj-d'));if(isNaN(d)||d===0)return w._err('Ingresá una cantidad distinta de cero.'),false;if(val('aj-m').trim().length<3)return w._err('El motivo es obligatorio.'),false;if(p.stock+d<0&&!canOver(p))return w._err('El stock no puede quedar negativo (este producto exige stock o la venta sin stock está bloqueada).'),false;
-  p.stock=Math.round((p.stock+d)*1000)/1000;audit('AJUSTE_STOCK',p.name+' '+(d>0?'+':'')+d+' · '+val('aj-m'));save();rerender();}});};
+  stockAdjust(p,d,val('aj-m'));rerender();}});};
+/* núcleo único del ajuste de stock (lo usan la pantalla y el asistente) */
+function stockAdjust(p,d,motivo,origen){p.stock=Math.round((p.stock+d)*1000)/1000;p.hist=true;audit('AJUSTE_STOCK',p.name+' '+(d>0?'+':'')+d+' · '+motivo+(origen?' ['+origen+']':''));save();}
 
 /* ===== Caja ===== */
 reg('caja','Caja','cash','cash_mov',()=>{const s=openSess();
- if(!s)return `<h1>Caja</h1><div class="card" style="max-width:480px"><p>No hay caja abierta.</p><label for="ap">Efectivo inicial (apertura) $</label>${numIn('ap',0,'0')}<button class="btn gold" style="margin-top:.8rem" data-act="openCaja">Abrir caja ${S.tenant.caja}</button></div>${S.sessions.length||IS_CLIENT?'':'<p class="mut sm">Tip: en Configuración podés cargar la jornada de ejemplo del 6/10 para ver el arqueo completo.</p>'}`;
+ if(!s)return `<h1>Caja</h1><div class="card" style="max-width:480px"><p>No hay caja abierta.</p>${cashOpenPick()}<label for="ap">Efectivo inicial (apertura) $</label>${numIn('ap',0,'0')}<button class="btn gold" style="margin-top:.8rem" data-act="openCaja">Abrir caja ${S.tenant.caja}</button></div>${S.sessions.length||IS_CLIENT?'':'<p class="mut sm">Tip: en Configuración podés cargar la jornada de ejemplo del 6/10 para ver el arqueo completo.</p>'}`;
  const inp=arqInputs(s),a=arqueoCalc(s,inp),ms=S.movs.filter(m=>m.sessId===s.id);
  const old=dkey(s.openedAt)!==dkey(now());
- return `<div class="row"><h1 class="sp">Caja ${S.tenant.caja}</h1>${expBar('movimientos')}<button class="btn gold" data-act="nav" data-id="arqueo">Arqueo y cierre →</button></div>
+ return `<div class="row"><h1 class="sp">Caja ${S.tenant.caja}${cashHdr(s)}</h1>${expBar('movimientos')}<button class="btn gold" data-act="nav" data-id="arqueo">Arqueo y cierre →</button></div>
  ${old?`<div class="errbox">Esta caja se abrió el ${dmy(dkey(s.openedAt))} y sigue abierta: hay días con ventas sin cierre.</div>`:''}
  <div class="grid g4"><div class="card kpi"><b>${money(s.opening)}</b><span>Apertura (${esc(s.openedBy)} · ${fmtDT(s.openedAt)})</span></div><div class="card kpi"><b>${money(a.total)}</b><span>Ventas confirmadas (${a.count})</span></div><div class="card kpi"><b>${money(a.expectedCash)}</b><span>Efectivo esperado hoy</span></div>${a.pend.n?`<div class="card kpi"><b class="neg">${a.pend.n}</b><span>Cobros digitales pendientes · ${money(a.pend.total)}</span></div>`:''}</div>
  <div class="row" style="margin:1rem 0"><button class="btn" data-act="mov" data-type="ingreso">+ Ingreso de efectivo</button><button class="btn" data-act="mov" data-type="egreso">− Egreso de efectivo</button></div>
  <div class="card"><h3>Movimientos</h3><div class="tw"><table><thead><tr><th>Hora</th><th>Tipo</th><th>Rubro</th><th>Concepto</th><th class="r">Importe</th><th>Usuario</th></tr></thead><tbody>${ms.map(m=>`<tr><td>${hm(m.ts)}</td><td>${m.type==='ingreso'?'<span class="tag ok">Ingreso</span>':'<span class="tag bad">Egreso</span>'}</td><td>${esc(m.rubroName)}</td><td>${esc(m.concept)}</td><td class="r">${m.type==='ingreso'?'':'- '}${money(m.amount)}</td><td>${esc(m.user)}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">Sin movimientos.</td></tr>'}</tbody></table></div></div>
  <div class="card" style="margin-top:1rem"><h3>Ventas de esta caja</h3><div class="tw"><table><thead><tr><th>Nº</th><th>Hora</th><th>Medio</th><th>Estado</th><th class="r">Total</th><th></th></tr></thead><tbody>${S.sales.filter(x=>x.sessId===s.id).slice().reverse().map(x=>`<tr><td>${esc(x.n)}</td><td>${hm(x.ts)}</td><td>${esc(MET[x.method]||x.method)}${x.channel&&x.channel!=='local'?' · '+esc(x.channel):''}</td><td><span class="tag ${x.status==='ok'?'ok':x.status==='pendiente'?'warn':'bad'}">${esc(x.status)}</span></td><td class="r">${money(x.total)}</td><td class="r">${x.status==='pendiente'?`<button class="btn sm" data-act="paysale" data-id="${x.id}">Cobro</button>`:''}${x.status==='ok'&&can('void')?`<button class="btn sm red" data-act="voidsale" data-id="${x.id}">Anular</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">Sin ventas.</td></tr>'}</tbody></table></div></div>`;},null,'Operación');
 A.openCaja=()=>{if(openSess())return;const v=cents(val('ap'));if(isNaN(v)||v<0)return toast('Ingresá el efectivo inicial (si es cero, escribí 0).',1);
- S.sessions.push({id:uid(),caja:S.tenant.caja,openedBy:user.name,openedAt:now(),opening:v,closedAt:0});audit('APERTURA_CAJA',money(v));save();rerender();};
+ const ck=cashOpenCheck();if(ck.err)return toast(ck.err,1);S.sessions.push(Object.assign({id:uid(),caja:S.tenant.caja,openedBy:user.name,openedAt:now(),opening:v,closedAt:0},ck.extra));audit('APERTURA_CAJA',money(v)+(ck.extra.regName?' · '+ck.extra.regName:''));save();rerender();};
 function voidCore(s,reason){if(s.status==='ok'||s.status==='pendiente'){restock(s);}if(s.coupon){S.coupons.forEach(c=>{c.uses=c.uses.filter(u=>u.sale!==s.id);});}if(s.stamped&&typeof stampReverse==='function')stampReverse(s);s.status='anulada';s.voidReason=reason;audit('ANULAR_VENTA',s.n+' · '+reason);emit('sale.voided',{sale:s.n});save();rerender();}
 A.voidsale=el=>{const s=S.sales.find(x=>x.id===el.dataset.id);if(!s)return;modal('Anular venta '+s.n,`<p>Se restituye el stock y la venta deja de sumar. Queda en auditoría.</p><label for="vm">Motivo (obligatorio)</label><input id="vm" maxlength="100">`,{onOk:w=>{if(val('vm').trim().length<3)return w._err('Escribí el motivo.'),false;voidCore(s,val('vm'));}});};
 
@@ -212,12 +274,12 @@ A.arqClose=()=>{const c=arqCtx();if(!c)return;if(c.a.declared===null)return toas
  const warn=(c.a.pend.n?`<div class="warnbox">${c.a.pend.n} cobro(s) digital(es) pendiente(s) (${money(c.a.pend.total)}) quedan fuera del cierre; si se confirman después se informan como cobro posterior.</div>`:'')+(c.a.reparte.some(r=>r.falta>0)?'<div class="errbox">Hay impuestos que no se llegan a cubrir con la ganancia del día.</div>':'');
  modal('Cerrar caja',`${warn}<p>Esperado ${money(c.a.expectedCash)} · contado ${money(c.a.declared)} · ${c.a.diff===0?'sin diferencia':(c.a.diff>0?'sobrante ':'faltante ')+money(Math.abs(c.a.diff))}</p><p>El cierre queda <b>congelado</b> con sello SHA-256. Sólo se podrán agregar notas.</p>`,{okText:'Cerrar y sellar',onOk:()=>{
   const day=dkey(now());const data=JSON.parse(JSON.stringify(c.a));const text=reportText(c.L,false);const ts=now();
-  const cl={id:uid(),ts,sessId:c.s.id,caja:c.s.caja,user:user.name,day,opening:c.s.opening,data,text,notes:[],obs:c.inp.notes};cl.hash=sha256(JSON.stringify({data,text,ts,user:cl.user,sess:c.s.id}));
+  const cl={id:uid(),ts,sessId:c.s.id,caja:c.s.caja,regId:c.s.regId||'',regName:c.s.regName||'',branchId:c.s.branchId||'',user:user.name,day,opening:c.s.opening,data,text,notes:[],obs:c.inp.notes};cl.hash=sha256(JSON.stringify({data,text,ts,user:cl.user,sess:c.s.id}));
   S.closures.push(cl);c.s.closedAt=ts;audit('CIERRE_CAJA','caja '+c.s.caja+' · total '+money(data.total)+' · dif '+money(data.diff)+' · sello '+cl.hash.slice(0,12));emit('cash.closed',{caja:c.s.caja,total:data.total});save();toast('Caja cerrada y sellada');location.hash='#panel/cierres';}});};
 
 /* ===== Cajas cerradas ===== */
 const verifyClosure=c=>c.hash===sha256(JSON.stringify({data:c.data,text:c.text,ts:c.ts,user:c.user,sess:c.sessId}));
-reg('cierres','Cajas cerradas','lock','close_cash',()=>`<div class="row"><h1 class="sp">Cajas cerradas</h1>${expBar('cierres')}</div><div class="card"><div class="tw"><table><thead><tr><th>Fecha</th><th>Caja</th><th>Cerró</th><th class="r">Ventas</th><th class="r">Diferencia</th><th>Sello</th><th></th></tr></thead><tbody>${S.closures.slice().reverse().map(c=>`<tr><td>${fmtDT(c.ts)}</td><td>${c.caja}</td><td>${esc(c.user)}</td><td class="r">${money(c.data.total)}</td><td class="r ${c.data.diff<0?'neg':''}">${money(c.data.diff)}</td><td class="sm mut">${c.hash.slice(0,10)}…</td><td class="r"><button class="btn sm" data-act="clview" data-id="${c.id}">Ver detalle</button></td></tr>`).join('')||'<tr><td colspan="7" class="mut">Todavía no hay cierres.</td></tr>'}</tbody></table></div></div>`,null,'Operación');
+reg('cierres','Cajas cerradas','lock','close_cash',()=>`<div class="row"><h1 class="sp">Cajas cerradas</h1>${expBar('cierres')}</div><div class="card"><div class="tw"><table><thead><tr><th>Fecha</th><th>Caja</th><th>Cerró</th><th class="r">Ventas</th><th class="r">Diferencia</th><th>Sello</th><th></th></tr></thead><tbody>${S.closures.slice().reverse().map(c=>`<tr><td>${fmtDT(c.ts)}</td><td>${c.caja}${c.regName?' · '+esc(c.regName):''}</td><td>${esc(c.user)}</td><td class="r">${money(c.data.total)}</td><td class="r ${c.data.diff<0?'neg':''}">${money(c.data.diff)}</td><td class="sm mut">${c.hash.slice(0,10)}…</td><td class="r"><button class="btn sm" data-act="clview" data-id="${c.id}">Ver detalle</button></td></tr>`).join('')||'<tr><td colspan="7" class="mut">Todavía no hay cierres.</td></tr>'}</tbody></table></div></div>`,null,'Operación');
 A.clview=el=>{const c=S.closures.find(x=>x.id===el.dataset.id);if(!c)return;const ok=verifyClosure(c);
  const w=modal('Cierre de caja '+fmtDT(c.ts),`<div class="${ok?'okbox':'errbox'}">Integridad: ${ok?'verificada (el sello coincide)':'ALTERADO: el sello no coincide'} · SHA-256 ${c.hash.slice(0,16)}…</div><div class="rep">${esc(c.text)}</div>
  <h3 style="margin-top:.8rem">Movimientos (con rubro)</h3><div class="tw"><table><tbody>${c.data.movs.map(m=>`<tr><td>${hm(m.ts)}</td><td>${esc(m.type)}</td><td>${esc(m.rubro)}</td><td>${esc(m.concept)}</td><td class="r">${money(m.amount)}</td></tr>`).join('')||'<tr><td class="mut">Sin movimientos</td></tr>'}</tbody></table></div>

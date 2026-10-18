@@ -4,12 +4,16 @@ Sistema de gestión (POS + inventario + caja + clientes + menú público) para *
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
 Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
+## Versión: SISTEMA VB V26
+
+El prompt maestro vigente está en `fuente/SISTEMA_VB_V26.md` (incluye un anexo *as-built* con lo que está hecho, probado y pendiente). Las pruebas automáticas están en `fuente/pruebas/`.
+
 ## Estado de esta entrega (leer antes de usar)
 
 | Pieza | Estado |
 |---|---|
 | `index.html` | **Armado sin conexión a la nube**: el ingreso dice *Pendiente de configuración* hasta compilarlo con la URL y la clave **publicable** del proyecto (ver «Conectar la nube»). |
-| Nube (Supabase) | Scripts SQL `supabase/00…05` + función `arca`. Probados con Postgres/PostgREST locales (no contra el proyecto real todavía). |
+| Nube (Supabase) | Scripts SQL `supabase/00…06` + función `arca`. Probados con Postgres/PostgREST locales (no contra el proyecto real todavía). |
 | CAE automático de ARCA | Implementado (servidor + navegador). **Sin probar contra ARCA real**: requiere certificado del comercio y prueba en homologación. Mientras tanto la venta «Con ARCA» queda *pendiente de CAE*. |
 | Hardware (impresora, balanza, lector) | Sin probar con equipos reales [VERIFICAR por modelo]. |
 | Textos legales | Plantillas [VERIFICAR] con asesor legal. |
@@ -18,7 +22,7 @@ Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. 
 
 0. Crear un proyecto nuevo en Supabase y anotar la *Project URL* y la clave **publicable** (`sb_publishable_…`).
 1. En ese proyecto: **Authentication → Providers → Email → desactivar «Confirm email»**.
-2. Aplicar los SQL en el *SQL Editor* siguiendo `supabase/LEEME-supabase.md`: en un proyecto nuevo se aplican `01` a `05` y **se salta el `00`** (sólo archiva un esquema viejo) (pegar el **contenido**, no el nombre del archivo).
+2. Aplicar los SQL en el *SQL Editor* siguiendo `supabase/LEEME-supabase.md`: en un proyecto nuevo se aplican `01` a `06` y **se salta el `00`** (sólo archiva un esquema viejo) (pegar el **contenido**, no el nombre del archivo).
 3. Desplegar la función `arca` y cargar su secreto (ver el mismo LEEME).
 4. Compilar con la dirección y la clave **publicable** (nunca la secreta):
 

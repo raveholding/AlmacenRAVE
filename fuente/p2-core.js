@@ -73,8 +73,8 @@ function clientClean(d){d.products=d.products.filter(p=>!/granel-1/.test(p.id)).
  d.cfg.ticket.msg='¡Gracias por tu compra!';return d;}
 const DEF0=()=>({v:3,
  tenant:{name:'RAVE',legal:'Almacén y Licorería RAVE',slogan:'Almacén y Licorería · Salta',wa:'5493874574892',address:'Urquiza 1052, Salta, Argentina',phone:'(387) 4 57 48 92',cuit:'',iva:'',caja:1,ig:'RAVE_LICORERIA',fb:'LICORERIA_RAVE'},
- rubros:SEED_RUBROS.map(r=>({...r})),
- cfg:{negStock:true,tax:{promo:3000000,vino:3000000},fee:{qr:0,modo:0,debito:0,credito:0,pedidosya:0},movAffectProfit:true,payFromCash:true,scaleMode:'peso',ticket:{w:80,msg:'¡Gracias por tu compra! Seguinos en Instagram @rave_licoreria',showLogo:true,legal:true}},
+ rubros:SEED_RUBROS.map(r=>({...r})),branches:[],registers:[],transfers:[],
+ cfg:{cashProfile:'simple',negStock:true,tax:{promo:3000000,vino:3000000},fee:{qr:0,modo:0,debito:0,credito:0,pedidosya:0},movAffectProfit:true,payFromCash:true,scaleMode:'peso',ticket:{w:80,msg:'¡Gracias por tu compra! Seguinos en Instagram @rave_licoreria',showLogo:true,legal:true}},
  products:seedProducts(),
  sales:[],sessions:[],movs:[],closures:[],seq:{},
  employees:[{id:'e1',name:'Empleado 1',puestoId:'pu_most',rate:250000,pin:'1234',active:true},{id:'e2',name:'Empleado 2',puestoId:'pu_most',rate:250000,pin:'4321',active:true}],
@@ -162,7 +162,7 @@ const negOK=()=>S.cfg.negStock!==false;
 const canOver=p=>negOK()&&!(p&&p.needStock);
 const stockTxt=p=>(p.stock<0?'−'+Math.abs(p.stock):String(p.stock).replace('.',','))+' '+unitLbl(p.unit);
 const empName=id=>(S.employees.find(e=>e.id===id)||{name:'—'}).name;
-const openSess=()=>S.sessions.find(s=>!s.closedAt);
+const openSess=()=>S.sessions.find(s=>!s.closedAt&&(s.caja===undefined||s.caja===S.tenant.caja)); /* la sesión abierta de ESTE equipo (otros equipos tienen la suya) */
 const saleOk=s=>s.status==='ok';
 const lineTotal=it=>Math.round(it.qty*it.price)-(it.disc||0);
 const lineCost=it=>Math.round(it.qty*it.cost);
@@ -202,19 +202,19 @@ function route(){const h=location.hash||'#menu';
  else{showMenu();}}
 window.addEventListener('hashchange',route);
 
-const NAV=[['inicio','Resumen'],['vender','Operación'],['pedidos','Operación'],['caja','Operación'],['arqueo','Operación'],['cierres','Operación'],['inventario','Operación'],
+const NAV=[['inicio','Resumen'],['vender','Operación'],['pedidos','Operación'],['caja','Operación'],['cajasx','Operación'],['arqueo','Operación'],['cierres','Operación'],['inventario','Operación'],
  ['clientes','Clientes y fidelización'],['fidel','Clientes y fidelización'],['cupones','Clientes y fidelización'],
  ['personal','Equipo'],['tareas','Equipo'],['menuadmin','Menú y web'],['legal','Menú y web'],
  ['nube','Sistema'],['dispositivos','Sistema'],['impex','Sistema'],['integ','Sistema'],['roles','Sistema'],['auditoria','Sistema'],['config','Sistema']];
-function showPanel(id){if(!SCREENS[id]||(SCREENS[id].perm&&!can(SCREENS[id].perm)))id='inicio';curScreen=id;$('#panel').hidden=false;
+function showPanel(id){if(!SCREENS[id]||(SCREENS[id].perm&&!can(SCREENS[id].perm))||(SCREENS[id].show&&!SCREENS[id].show()))id='inicio';curScreen=id;$('#panel').hidden=false;
  const order=NAV.map(x=>x[0]);const secOf=Object.fromEntries(NAV);
- const nav=Object.entries(SCREENS).filter(([k,s])=>!s.perm||can(s.perm)).sort((a,b)=>{const i=order.indexOf(a[0]),j=order.indexOf(b[0]);return (i<0?99:i)-(j<0?99:j);});let sec='';
+ const nav=Object.entries(SCREENS).filter(([k,s])=>(!s.perm||can(s.perm))&&(!s.show||s.show())).sort((a,b)=>{const i=order.indexOf(a[0]),j=order.indexOf(b[0]);return (i<0?99:i)-(j<0?99:j);});let sec='';
  $('#side').innerHTML=`<div class="brand"><img src="${LOGO_MENU}" alt="RAVE" style="width:48px;height:27px;object-fit:cover;border-radius:6px"><span>Sistema RAVE</span></div>`+nav.map(([k,s])=>{const sc=secOf[k]||'Otros';const h=(sc!==sec)?(sec=sc,`<div class="sec">${esc(sc)}</div>`):'';return h+`<a data-act="nav" data-id="${k}" class="${k===id?'on':''}" tabindex="0" role="link">${ico(s.icon)}<span>${esc(s.t)}</span></a>`;}).join('')+`<div class="sec">Desarrollado por</div><div class="sm" style="padding:0 .7rem;color:#a99f8f">Rave Holding<br><a style="color:#c9963e" href="https://wa.me/5493875143900" target="_blank" rel="noopener noreferrer">WhatsApp +54 9 387 514-3900</a><br><a style="color:#c9963e" href="mailto:raveholding@gmail.com">raveholding@gmail.com</a></div>`;
  const s=openSess();
- $('#top').innerHTML=`<button class="btn sm" id="burger" data-act="burger" aria-label="Abrir menú">☰</button><b style="font-family:Georgia,serif">${esc(S.tenant.name)}</b>${(window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente')?'':'<span class="demo-b">DEMO DE EVALUACIÓN</span>'}<span id="cloudtag" class="tag"></span><span class="tag ${s?'ok':'warn'}">${s?'Caja '+S.tenant.caja+' abierta':'Caja cerrada'}</span><span class="tag ${S.simOffline?'bad':'ok'}">${S.simOffline?'APIs externas caídas (simulado)':'Operativo'}</span><span id="devtag" class="tag"></span><span class="sp"></span><span class="sm mut">${esc(user.name)} · ${esc(user.role)}</span><a class="btn sm" href="#menu">Ver menú público</a><button class="btn sm" data-act="logout">Salir</button>`;
- const sc=SCREENS[id];$('#view').innerHTML=sc.render();sc.after&&sc.after();$('#side').classList.remove('open');window.scrollTo(0,0);try{document.documentElement.style.setProperty('--topH',($('#top').offsetHeight||56)+'px');}catch(e){}if(typeof devTag==='function')devTag();if(typeof cloudBadge==='function')cloudBadge();}
+ $('#top').innerHTML=`<button class="btn sm" id="burger" data-act="burger" aria-label="Abrir menú">☰</button><b style="font-family:Georgia,serif">${esc(S.tenant.name)}</b>${(window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente')?'':'<span class="demo-b">DEMO DE EVALUACIÓN</span>'}<span id="cloudtag" class="tag"></span><span class="tag ${s?'ok':'warn'}">${s?'Caja '+S.tenant.caja+' abierta':'Caja cerrada'}</span><span class="tag ${S.simOffline?'bad':'ok'}">${S.simOffline?'APIs externas caídas (simulado)':'Operativo'}</span><span id="devtag" class="tag"></span><span class="sp"></span><span class="sm mut">${esc(user.name)} · ${esc(user.role)}</span>${typeof asBtn==='function'?asBtn():''}<a class="btn sm" href="#menu">Ver menú público</a><button class="btn sm" data-act="logout">Salir</button>`;
+ const sc=SCREENS[id];$('#view').innerHTML=sc.render();sc.after&&sc.after();$('#side').classList.remove('open');window.scrollTo(0,0);try{document.documentElement.style.setProperty('--topH',($('#top').offsetHeight||56)+'px');}catch(e){}if(typeof devTag==='function')devTag();if(typeof cloudBadge==='function')cloudBadge();if(typeof asPaint==='function')asPaint();}
 A.nav=el=>go(el.dataset.id);A.burger=()=>$('#side').classList.toggle('open');
-A.logout=()=>{audit('LOGOUT','');user=null;location.hash='#menu';};
+A.logout=()=>{audit('LOGOUT','');if(typeof asReset==='function')asReset();user=null;location.hash='#menu';};
 const rerender=()=>{if(!$('#panel').hidden)showPanel(curScreen);};
 document.addEventListener('keydown',e=>{const a=e.target.closest&&e.target.closest('#side a');if(a&&(e.key==='Enter'||e.key===' ')){e.preventDefault();A.nav(a);}});
 

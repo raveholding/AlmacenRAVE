@@ -83,7 +83,10 @@ const COLS=[
  {c:'pedidos',key:'orderReqs',del:1},
  {c:'arrep',key:'arrep'},
  {c:'pya',key:'pya'},
- {c:'lotes',key:'batches'}];
+ {c:'lotes',key:'batches'},
+ {c:'sucs',key:'branches'},
+ {c:'cajas',key:'registers'},
+ {c:'ctransf',key:'transfers',once:1}];
 const BYC=Object.fromEntries(COLS.map(x=>[x.c,x]));
 const DELC=new Set(COLS.filter(x=>x.del).map(x=>x.c));
 const CFGIDS=['tenant','cfg','menu','loyalty','roles','integ','legal'];
@@ -91,7 +94,7 @@ const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','f
 const r3=n=>Math.round(n*1000)/1000;
 function stripOf(col,it){const d=JSON.parse(JSON.stringify(it));(col.strip||[]).forEach(k=>delete d[k]);return d;}
 function cfgWire(id){switch(id){
- case'tenant':{const t=JSON.parse(JSON.stringify(S.tenant));delete t.caja;return t;}
+ case'tenant':{const t=JSON.parse(JSON.stringify(S.tenant));delete t.caja;delete t.regId;return t;}
  case'cfg':return JSON.parse(JSON.stringify(S.cfg));
  case'menu':return JSON.parse(JSON.stringify(S.menu));
  case'loyalty':return{goal:S.loyalty.goal,reward:S.loyalty.reward};
@@ -122,7 +125,7 @@ function queueStock(){for(const p of S.products){if(!p||!p.id)continue;const b=c
 async function pushAll(){queueStock();const all=collectAll();const seen=new Set(),ch=[];
  for(const it of all){const key=it.c+'|'+it.id;seen.add(key);const h=cyrb(canon(it.w));if(cl.fp[key]!==h)ch.push({it,key,h});}
  for(const key of Object.keys(cl.fp)){if(seen.has(key))continue;const c=key.split('|')[0];if(DELC.has(c))ch.push({key,del:1,c,id:key.slice(c.length+1)});else delete cl.fp[key];}
- ch.sort((a,b)=>(a.it&&a.it.c==='prod'?0:1)-(b.it&&b.it.c==='prod'?0:1));
+ const rk=x=>{const c=x.it?x.it.c:x.c;return c==='prod'?0:(c==='ctransf'?2:1);};ch.sort((a,b)=>rk(a)-rk(b));
  let sent=0;
  for(let i=0;i<ch.length;i+=150){const part=ch.slice(i,i+150),body=[];
   for(const x of part){if(x.del){body.push({c:x.c,id:x.id,d:{},x:true});continue;}
@@ -150,7 +153,7 @@ async function applyRec(r){const c=r.coleccion,id=r.id,key=c+'|'+id;
  if(c==='cfg'){const d=r.datos;
   if(id==='clubkey'){if(d&&d.priv&&d.pub&&cl.dek){try{cl.clubPriv={pub:d.pub,priv:d.priv,jwk:await openJ(d.priv,cl.dek,'clubkey|'+cl.comercio.id)};}catch(e){}}return;}
   const h=cyrb(canon(d));const loc=cfgWire(id);if(cl.fp[key]!==undefined&&cyrb(canon(loc))!==cl.fp[key])return; // cambio local sin subir: gana el local
-  if(id==='tenant'){const caja=S.tenant.caja;S.tenant=Object.assign({},d,{caja});}
+  if(id==='tenant'){const caja=S.tenant.caja,regId=S.tenant.regId;S.tenant=Object.assign({},d,{caja,regId});}
   else if(id==='cfg')S.cfg=d;else if(id==='menu')S.menu=d;else if(id==='roles')S.roles=d;else if(id==='integ')S.integ=d;else if(id==='legal')S.legal=d;
   else if(id==='loyalty'){S.loyalty.goal=d.goal;S.loyalty.reward=d.reward;}
   cl.fp[key]=h;return;}
@@ -412,6 +415,7 @@ async function teamInit(){if(!CLOUD.on||cl.rol!=='admin')return;const box=docume
    ${inv.length?`<p class="sm"><b>Invitaciones pendientes:</b> ${inv.map(i=>esc(i.email)+' ('+esc(ROLES_LBL[i.rol]||i.rol)+')').join(', ')}</p>`:''}`;
    box.querySelectorAll('.nb-role').forEach(s=>s.addEventListener('change',async()=>{try{await rpc('cambiar_rol',{p_comercio:cl.comercio.id,p_usuario:s.dataset.u,p_rol:s.value});audit('EQUIPO_ROL',s.value);toast('Rol cambiado');}catch(e){toast(errTxt(e),1);rerender();}}));
   }catch(e){box.textContent='No se pudo cargar el equipo: '+errTxt(e);}}
+if(CLOUD.on){INV_HOOK.online=()=>!!(cl.ready&&cl.online);INV_HOOK.preview=async ids=>{const r=await rpc('inventario_vista_previa_borrado',{p_comercio:cl.comercio.id,p_ids:ids});return Array.isArray(r)?r:[];};}
 if(CLOUD.on){UI_HOOK.usersCard=()=>cl.rol==='admin'?teamCardHtml():'<div class="card" style="margin-top:1rem"><h3>Equipo</h3><p class="sm mut">Sólo el administrador puede invitar o quitar personas.</p></div>';UI_HOOK.usersAfter=teamInit;}
 /* ---------- pantalla "Nube" ---------- */
 const ROLES_LBL={admin:'Administrador',supervisor:'Supervisor',mostrador:'Mostrador',operador:'Operador'};
