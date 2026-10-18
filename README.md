@@ -4,11 +4,11 @@ Sistema de gestión (POS + inventario + caja + clientes + menú público) para *
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
 Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
-## Versión: SISTEMA VB V26 (+ V26.1)
+## Versión: SISTEMA VB 26 (`sistema_vb_26`)
 
 **V26.1 (2026-10-18):** cobro con **pagos mixtos** (p. ej. $ 40.000 efectivo + $ 20.000 cuenta corriente), validación de suma exacta, **alerta de vuelto**, arqueo que cuenta sólo el dinero que entró, débito automático en la cuenta corriente con estado *Pago parcial* y libro del cliente (migración `supabase/07-pagos-mixtos.sql`; pruebas `fuente/pruebas/v7.py`, `c16.py`, SQL 14). Marca oficial **VINCULAR BUSINESS** (banner, único celular (387) 4484132, vincularbusiness@gmail.com, lema) en ingreso, menú lateral, menú público ES/EN, tickets y mensajes del sistema.
 
-El prompt maestro vigente está en `fuente/SISTEMA_VB_V26.md` (incluye un anexo *as-built* con lo que está hecho, probado y pendiente). Las pruebas automáticas están en `fuente/pruebas/`.
+El prompt maestro vigente está en `fuente/sistema_vb_26.md` (incluye un anexo *as-built* con lo que está hecho, probado y pendiente). Las pruebas automáticas están en `fuente/pruebas/`.
 
 ## Estado de esta entrega (leer antes de usar)
 

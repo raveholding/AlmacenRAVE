@@ -255,7 +255,13 @@
     background:var(--charcoal-2); color:#eae6da; border-radius:14px;
     margin:22px 16px 10px; padding:26px 22px 22px; text-align:center;
   }
-  .dev-credit .dc-banner{ display:block; width:100%; height:auto; border-radius:12px; margin:0 0 14px; }
+  .dev-credit .dc-bwrap{ position:relative; margin:0 0 14px; }
+  .dev-credit .dc-banner{ display:block; width:100%; height:auto; border-radius:12px; }
+  .dev-credit .dc-ov{ position:absolute; top:85%; height:8.5%; border-radius:999px; }
+  .dev-credit .dc-ov-wa{ left:5.2%; width:24.9%; }
+  .dev-credit .dc-ov-mail{ left:31.8%; width:44%; }
+  .dev-credit .dc-ov:focus-visible{ outline:3px solid #fff; outline-offset:2px; }
+  .dev-credit .dc-btn.call{ background:transparent; border:1px solid #c9963e; color:#f3e6c8; }
   .dev-credit .dc-kicker{
     font-size:10.5px; letter-spacing:2px; text-transform:uppercase; color:var(--gold);
     font-weight:700; margin-bottom:6px;

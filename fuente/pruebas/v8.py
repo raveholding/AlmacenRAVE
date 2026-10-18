@@ -15,6 +15,9 @@ with sync_playwright() as p:
         chk('VINCULAR BUSINESS' in h and '(387) 4484132' in h and 'vincularbusiness@gmail.com' in h and 'Tu idea, en buenas manos.' in h,f+': login con datos oficiales y lema')
         chk('wa.me/5493874484132' in h,f+': enlace de WhatsApp al número oficial')
         chk(pg.locator('.vbcred img').count()==1 and ev("document.querySelector('.vbcred img').naturalWidth")>500,f+': banner cargado en el ingreso')
+        chk(ev("[...document.querySelectorAll('.vbb-a')].map(a=>a.href).join('|')")=='https://wa.me/5493874484132?text=Hola%20Vincular%20Business!%20Quiero%20consultar%20por%20el%20Sistema%20RAVE.|mailto:vincularbusiness@gmail.com',f+': botones clicables sobre el banner (WhatsApp y correo)')
+        chk(ev("[...document.querySelectorAll('.vbbtns a')].map(a=>a.getAttribute('href').split('?')[0]).join('|')")=='https://wa.me/5493874484132|tel:+5493874484132|mailto:vincularbusiness@gmail.com',f+': botones WhatsApp · Llamar · Correo')
+        chk(ev("[...document.querySelectorAll('.vbbtns a')].every(a=>a.getBoundingClientRect().height>=47)"),f+': botones de al menos 48 px')
         chk('Rave Holding' not in h and '5143900' not in h and 'raveholding@' not in h,f+': sin créditos viejos')
     errs.clear()
     pg.goto('file:///tmp/rave/index.html#acceso');pg.wait_for_timeout(600)
@@ -32,6 +35,7 @@ with sync_playwright() as p:
     chk('VINCULAR BUSINESS' in t and '(387) 4484132' in t and 'vincularbusiness@gmail.com' in t and 'Tu idea, en buenas manos.' in t,'menú público: créditos oficiales')
     chk('wa.me/5493874484132' in h and 'wa.me/5493875143900' not in h,'menú público: WhatsApp del desarrollador = número oficial (botón y flotante)')
     chk(ctx.evaluate("(()=>{const i=document.querySelector('.dc-banner');return !!i&&i.naturalWidth>500})()"),'menú público: banner cargado')
+    chk(ctx.evaluate("[...document.querySelectorAll('.dc-ov,.dc-btn')].map(a=>a.getAttribute('href')).join('|')").startswith('https://wa.me/5493874484132?text=')  and 'tel:+5493874484132' in ctx.evaluate("[...document.querySelectorAll('.dc-btn')].map(a=>a.getAttribute('href')).join('|')") and 'mailto:vincularbusiness@gmail.com' in h,'menú público: botones WhatsApp · Llamar · Correo y áreas del banner')
     chk('Rave Holding' not in h,'menú público: sin créditos viejos')
     ctx.evaluate("document.querySelector('.dev-credit').scrollIntoView()")
     # inglés

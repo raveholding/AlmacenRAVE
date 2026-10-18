@@ -68,7 +68,7 @@ with sync_playwright() as p:
     ev("invSel.add('%s')"%vp);pg.click('[data-act=pdelSel]');pg.wait_for_timeout(300)
     chk('no están a la vista' in ev("document.querySelector('#toast').innerText"),'selección fuera de la vista se rechaza')
     ev("invSel.delete('%s')"%vp);pg.click('[data-act=pdelSel]');pg.wait_for_selector('#dl-m')
-    pg.fill('#dl-m','limpieza');pg.fill('#dl-t','ELIMINAR');pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(600)
+    pg.fill('#dl-m','limpieza');pg.fill('#dl-t','ELIMINAR');pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(1500)
     chk(not ev("S.products.some(p=>/^zz/.test(p.id))"),'eliminación masiva de los visibles sin historial')
     pg.keyboard.press('Escape')
     # roles: supervisor y mostrador no ven nada

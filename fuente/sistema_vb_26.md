@@ -1,4 +1,4 @@
-# SISTEMA VB V26 — PROMPT MAESTRO INTEGRAL (ERP/POS CONVERSACIONAL Y MODULAR)
+# SISTEMA VB 26 (`sistema_vb_26`) — PROMPT MAESTRO INTEGRAL FINAL (ERP/POS CONVERSACIONAL Y MODULAR)
 
 Versión 26.0 · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisuucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
 
@@ -75,7 +75,7 @@ Actuá como un equipo senior liderado por un **Arquitecto de Software y Líder T
 8. **Hacé el trabajo completo** (código, pruebas, subidas): no pases pasos manuales que puedas hacer vos. Si falta un dato, consultá **una sola vez y junto**, antes de suponer.
 9. **Una sola pasada de correcciones.** Revisá todas las correcciones pendientes antes de dar algo por terminado y antes de armar instaladores. No hagas entregas parciales que dejen arreglos para después.
 10. **Todo queda probado** con pruebas automáticas de flujos reales con datos reales (no sólo "carga la pantalla") y, para trabajo de alto riesgo, revisado por un agente independiente.
-11. **Créditos (datos oficiales, no se cambian sin pedido del titular).** Desarrollado por **VINCULAR BUSINESS** · Único celular **(387) 4484132** · **vincularbusiness@gmail.com** · lema **“Tu idea, en buenas manos.”**. El banner oficial (imagen `assets/vb-banner.webp`, texto alternativo con los mismos datos) acompaña al ingreso y al menú público; el resto de los lugares lleva la línea de texto. Los usuarios tienen que saber quién desarrolló el sistema en ingreso, asistente, barra lateral, tickets, pantalla del cliente, menú, páginas de producto e instalador. Se puede cambiar la presentación (completa, corta, ícono), no eliminar.
+11. **Créditos (datos oficiales, no se cambian sin pedido del titular).** Desarrollado por **VINCULAR BUSINESS** · Único celular **(387) 4484132** · **vincularbusiness@gmail.com** · lema **“Tu idea, en buenas manos.”**. El **banner oficial final** (imagen `assets/vb-banner.webp`, texto alternativo con los mismos datos) acompaña al ingreso y al menú público **con botones reales**: áreas clicables sobre las píldoras del banner (WhatsApp `wa.me/5493874484132` y correo `mailto:`) y una fila de botones de al menos 48 px (**WhatsApp · Llamar `tel:+5493874484132` · Correo**); el resto de los lugares lleva la línea de texto. Los usuarios tienen que saber quién desarrolló el sistema en ingreso, asistente, barra lateral, tickets, pantalla del cliente, menú, páginas de producto e instalador. Se puede cambiar la presentación (completa, corta, ícono), no eliminar.
 12. **Entrega honesta.** Al final, en pocas líneas: qué quedó, qué tiene que hacer el dueño, qué no se pudo probar. Prohibido afirmar "100 % funcional", "sin errores" o "compatible con todo" sin evidencia reproducible.
 13. **El Core no conoce ningún rubro ni marca de hardware.** Lo específico vive en módulos, configuración o adaptadores (orden de dependencia: Adaptador → Módulo → Core).
 14. **Demos:** los datos inventados (costos, stock, códigos de barras, cupones, planes, Wi-Fi, clientes, ventas) se rotulan "ejemplo" en pantalla y no se presentan como reales.
@@ -894,12 +894,12 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 | 4.18 Checkout online | **Sólo panel honesto**: modo de venta (`whatsapp` por defecto), parámetros no secretos de entrega, lista de requisitos; **no se puede activar** sin proveedor y servidor; sin pagos simulados | `p4b-online.js` | `t/v5.py` 15/15 |
 | 4.19 Wallet y avisos | **Sólo panel honesto** (apagado, requisitos, consentimientos reales); sin pases ni avisos | `p4b-online.js` | `t/v5.py` |
 | 4.20 Pagos mixtos, vuelto y cuenta corriente parcial (V26.1) | **Hecho** en cliente y nube: modo mixto, suma exacta, alerta de vuelto, arqueo con dinero real, débito automático, estado Pago parcial, libro del cliente | `p3b-pos.js` (`payCheck`, `commitSale`, `saleOkHTML`), `p3-ops.js` (`arqueoCalc`), `p6-loyalty.js` (`ccLedger`), `07-pagos-mixtos.sql` | `t/v7.py`, `t/c16.py`, SQL 14 |
-| Marca oficial VINCULAR BUSINESS (V26.1) | **Hecho** en ingreso, barra lateral, menú público (ES/EN), tickets, tarjeta del Club, mensajes de error de SQL/funciones y README | `VB`/`vbFooter` en `p2-core.js`, `assets/vb-banner.webp`, `build/pub_body.html` | `t/v8.py` |
+| Marca oficial VINCULAR BUSINESS (V26.1) con banner final y botones WhatsApp/Llamar/Correo | **Hecho** en ingreso, barra lateral, menú público (ES/EN), tickets, tarjeta del Club, mensajes de error de SQL/funciones y README | `VB`/`vbFooter` en `p2-core.js`, `assets/vb-banner.webp`, `build/pub_body.html` | `t/v8.py` |
 | 6.10 Rubro financiero obligatorio | Se mantiene (también en traspasos y en el servidor) | `06-v26.sql` | SQL 152/152 |
 
 ### B. Resultados de las suites (2026-10-18)
 - SQL (Postgres 16 real, scripts 01–07 dos veces para comprobar idempotencia + tests 10–14): **173 OK / 0 FALLAN**.
-- Demo/local con Chromium: `d1` 11/11 · `v1` 19/19 · `v2` 24/24 · `v3` 41/41 · `v4` 61/61 · `v5` 15/15 · `v6` 6/6 · `v7` 34/34 (cobro mixto) · `v8` 18/18 (marca) (22 pantallas sin desborde a 320/360/768 px).
+- Demo/local con Chromium: `d1` 11/11 · `v1` 19/19 · `v2` 24/24 · `v3` 41/41 · `v4` 61/61 · `v5` 15/15 · `v6` 6/6 · `v7` 34/34 (cobro mixto) · `v8` 25/25 (marca y botones) (22 pantallas sin desborde a 320/360/768 px).
 - Nube con servidor de prueba local y equipos reales en paralelo: `c2` 29/29 · `c3` 12/12 · `c4` 35/35 · `c5` 7/7 · `c10` 8/8 sin fallas · `c14` 9/9 · `c15` 18/18 · `c16` 6/6 (venta mixta en la nube) (borrado, archivo con ventas, rechazo del servidor a un mostrador manipulado, cajas y traspaso inmutable).
 
 ### C. Límites declarados (no afirmar más que esto)
