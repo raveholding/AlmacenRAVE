@@ -53,7 +53,7 @@ const dowOfKey=k=>new Date(k+'T12:00:00Z').getUTCDay();
 const addDays=(k,n)=>{const d=new Date(k+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
 
 /* ---------- Estado + persistencia (IndexedDB; demo sin cifrado) ---------- */
-const PERMS={sell:'Vender',cash_mov:'Ingresos/egresos de caja',close_cash:'Arqueo y cierre de caja',view_cost:'Ver costos y ganancias',edit_products:'Editar inventario',void:'Anular ventas',impex:'Importar / exportar',staff:'Personal y fichaje (admin)',tasks:'Tareas del personal',integrations:'Integraciones',audit:'Ver auditoría',roles:'Usuarios y permisos',menu_admin:'Administrar menú público',config:'Configuración',customers:'Clientes, fidelización y cupones',devices:'Periféricos y ticket'};
+const PERMS={sell:'Vender',cash_mov:'Ingresos/egresos de caja',close_cash:'Arqueo y cierre de caja',view_cost:'Ver costos y ganancias',edit_products:'Editar inventario',void:'Anular ventas',impex:'Importar / exportar',staff:'Personal y fichaje (admin)',tasks:'Tareas del personal',integrations:'Integraciones',audit:'Ver auditoría',roles:'Usuarios y permisos',menu_admin:'Administrar menú público',config:'Configuración',customers:'Clientes, fidelización y cupones',devices:'Periféricos y ticket',purchases:'Proveedores y compras'};
 const SEED_RUBROS=[
  {id:'promo',name:'Combos y promos',owner:'',reparte:false,alcohol:true,kind:'rubro',color:'#c9963e',mNom:'Promos',mTitle:'Menú de Promos de Bebidas',mHint:'',layout:'grid'},
  {id:'vino',name:'Vinos',owner:'',reparte:false,alcohol:true,kind:'rubro',color:'#7b2d3b',mNom:'Vinos',mTitle:'Vinos',mHint:'Por bodega y variedad',layout:'bodegas'},
@@ -77,6 +77,7 @@ const DEF0=()=>({v:3,
  cfg:{cashProfile:'simple',negStock:true,tax:{promo:3000000,vino:3000000},fee:{qr:0,modo:0,debito:0,credito:0,pedidosya:0},movAffectProfit:true,payFromCash:true,scaleMode:'peso',ticket:{w:80,msg:'¡Gracias por tu compra! Seguinos en Instagram @rave_licoreria',showLogo:true,legal:true}},
  products:seedProducts(),
  sales:[],sessions:[],movs:[],closures:[],seq:{},
+ suppliers:[],pOrders:[],receipts:[],supLedger:[],
  employees:[{id:'e1',name:'Empleado 1',puestoId:'pu_most',rate:250000,pin:'1234',active:true},{id:'e2',name:'Empleado 2',puestoId:'pu_most',rate:250000,pin:'4321',active:true}],
  punches:[],
  puestos:[{id:'pu_soc',name:'Socios / dueños',parent:'',holders:''},{id:'pu_most',name:'Mostrador',parent:'pu_soc',holders:''},{id:'pu_dep',name:'Depósito y reposición',parent:'pu_soc',holders:''}],
@@ -88,7 +89,7 @@ const DEF0=()=>({v:3,
   {id:'t5',title:'Limpieza profunda de freezer',puestoId:'pu_dep',freq:'monthly',dom:1,active:true}],
  taskLogs:[],
  users:[{id:'u1',name:'ADMIN',role:'admin',pin:'1234'},{id:'u2',name:'Supervisor',role:'supervisor',pin:'1111'},{id:'u3',name:'Mostrador',role:'mostrador',pin:'0000'}],
- roles:{admin:Object.keys(PERMS),supervisor:['sell','cash_mov','close_cash','view_cost','edit_products','void','impex','tasks','audit','customers','devices'],mostrador:['sell','cash_mov','tasks','customers'],operador:['sell']},
+ roles:{admin:Object.keys(PERMS),supervisor:['sell','cash_mov','close_cash','view_cost','edit_products','void','impex','tasks','audit','customers','devices','purchases'],mostrador:['sell','cash_mov','tasks','customers'],operador:['sell']},
  audit:[],arqDraft:{},batches:[],
  pya:[],events:[],seenEvents:{},simOffline:false,
  arcaRcp:{},
@@ -122,7 +123,9 @@ const DBNAME=(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.
 function idb(){return new Promise((res,rej)=>{if(typeof indexedDB==='undefined')return rej();const r=indexedDB.open(DBNAME,1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
 async function loadState(){try{const db=await idb();return await new Promise(res=>{const q=db.transaction('kv').objectStore('kv').get('state');q.onsuccess=()=>res(q.result);q.onerror=()=>res(null);});}catch(e){return null;}}
 let saveT;function save(){if(CLOUD_HOOK){CLOUD_HOOK.persist();return;}clearTimeout(saveT);saveT=setTimeout(async()=>{try{const db=await idb();db.transaction('kv','readwrite').objectStore('kv').put(JSON.parse(JSON.stringify(S)),'state');}catch(e){}},300);}
-function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}return st;}
+/* "Proveedores y compras" es un permiso nuevo: si ningún rol lo tiene todavía (datos anteriores), lo reciben administrador y supervisor; si ya existe, se respeta lo que el dueño decidió */
+function rolesMigrate(r){if(!r)return r;const any=Object.values(r).some(a=>Array.isArray(a)&&a.includes('purchases'));if(!any){if(Array.isArray(r.supervisor))r.supervisor.push('purchases');if(Array.isArray(r.admin))r.admin.push('purchases');}return r;}
+function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);return st;}
 
 /* ---------- Permisos, auditoría ---------- */
 const can=p=>!!user&&(user.role==='admin'||(S.roles[user.role]||[]).includes(p));
@@ -208,7 +211,7 @@ function route(){const h=location.hash||'#menu';
  else{showMenu();}}
 window.addEventListener('hashchange',route);
 
-const NAV=[['inicio','Resumen'],['vender','Operación'],['pedidos','Operación'],['caja','Operación'],['cajasx','Operación'],['arqueo','Operación'],['cierres','Operación'],['inventario','Operación'],
+const NAV=[['inicio','Resumen'],['vender','Operación'],['pedidos','Operación'],['caja','Operación'],['cajasx','Operación'],['arqueo','Operación'],['cierres','Operación'],['inventario','Operación'],['proveedores','Operación'],
  ['clientes','Clientes y fidelización'],['fidel','Clientes y fidelización'],['cupones','Clientes y fidelización'],
  ['personal','Equipo'],['tareas','Equipo'],['menuadmin','Menú y web'],['legal','Menú y web'],
  ['nube','Sistema'],['dispositivos','Sistema'],['impex','Sistema'],['integ','Sistema'],['roles','Sistema'],['auditoria','Sistema'],['config','Sistema']];

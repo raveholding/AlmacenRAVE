@@ -1,0 +1,103 @@
+# Proveedores y compras · modo NUBE: pantalla real contra el servidor (funciones SQL), sin doble conteo de stock
+from cl_lib import *
+res=[]
+def chk(c,m):res.append(bool(ok(c,m)))
+def sy(pg,ms=3500):pg.evaluate("cloudSync(true)");pg.wait_for_timeout(ms)
+def cuit(pref,n):
+    d=[int(x) for x in (str(pref)+str(n).zfill(8))];w=[5,4,3,2,7,6,5,4,3,2]
+    t=sum(a*b for a,b in zip(d,w));r=11-(t%11);r=0 if r==11 else r
+    return ''.join(map(str,d))+str(r)
+C1=cuit(30,71234567)
+with sync_playwright() as p:
+    b=launch(p);ctxA,A=newpage(b,'A');create_commerce(A)
+    cid=sql("select id from comercios limit 1")
+    rub=ev(A,"S.rubros.find(r=>r.kind==='rubro').id")
+    ev(A,"""(()=>{S.products.push({id:'qa',name:'Gaseosa 2L',rubro:'%s',price:300000,cost:150000,stock:10,unit:'u',active:true,barcode:'',menu:false});
+      S.products.push({id:'qb',name:'Fideos 500g',rubro:'%s',price:120000,cost:0,stock:0,unit:'u',active:true,barcode:'',menu:false});
+      S.sessions.push({id:'ses-c17',caja:S.tenant.caja,openedBy:user.name,openedAt:now(),opening:0,closedAt:0});save();})()"""%(rub,rub))
+    sy(A,4500)
+    chk(sql("select datos->>'stock' from registros where coleccion='prod' and id='qa'").split('.')[0]=='10','producto base en el servidor con stock 10')
+    ev(A,"location.hash='#panel/proveedores'");A.wait_for_timeout(1500)
+    chk(ev(A,"CMP.mode()")=='nube','el módulo trabaja en modo nube')
+    chk('En la nube' in A.inner_text('#view'),'la pantalla muestra el indicador de nube')
+    # --- proveedor desde la pantalla
+    A.click('.cmp [data-act=cmpSupEdit][data-id=""]');A.wait_for_timeout(250)
+    A.fill('#sp-rs','Distribuidora Norte SA');A.fill('#sp-cuit',C1);A.select_option('#sp-iva','Responsable Inscripto');A.click('[data-m=ok]');A.wait_for_timeout(1500)
+    chk(sql("select count(*) from proveedores where cuit='%s' and tenant_id='%s'"%(C1,cid))=='1','proveedor guardado en la tabla del servidor')
+    chk('Distribuidora Norte SA' in A.inner_text('#view'),'aparece en la tabla de la pantalla')
+    A.click('.cmp [data-act=cmpSupEdit][data-id=""]');A.wait_for_timeout(250)
+    A.fill('#sp-rs','Repetido');A.fill('#sp-cuit',C1);A.click('[data-m=ok]');A.wait_for_timeout(1200)
+    chk('ya existe un proveedor' in A.inner_text('#modal-root .merr'),'el servidor rechaza el CUIT repetido y el mensaje se ve');A.click('[data-m=x]')
+    prov=sql("select id from proveedores where cuit='%s'"%C1)
+    # --- orden de compra
+    la=ev(A,"cmpProdIndex().labelOf.get('qa')");lb=ev(A,"cmpProdIndex().labelOf.get('qb')")
+    A.click('.cmp [data-act=cmpOcNew]');A.wait_for_timeout(300)
+    A.fill('#oc-0-p',la);A.fill('#oc-0-q','20');A.fill('#oc-0-c','1.200')
+    A.click('[data-act=cmpRowAdd][data-mode=oc]');A.fill('#oc-1-p',lb);A.fill('#oc-1-q','30');A.fill('#oc-1-c','800')
+    A.click('[data-m=ok]');A.wait_for_timeout(2500)
+    chk(sql("select estado||'|'||total from ordenes_compra where tenant_id='%s'"%cid)=='Solicitada|48000.00','orden Solicitada por $ 48.000 calculada por el servidor')
+    chk(A.inner_text('#k-pend')=='1','indicador: 1 orden pendiente')
+    # --- remito con OC, a cuenta corriente
+    A.click('.cmp [data-act=cmpTab][data-tab=remito]');A.wait_for_timeout(400)
+    A.fill('#cr-qin','norte');A.select_option('#cr-prov',prov);A.wait_for_timeout(300)
+    oc=sql("select id from ordenes_compra where tenant_id='%s'"%cid);A.select_option('#cr-oc',oc);A.wait_for_timeout(300)
+    ordr=ev(A,"crS.rows.map(r=>r.pid)")
+    for i,pid in enumerate(ordr):
+        A.fill('#rc-%d-q'%i,'20' if pid=='qa' else '30');A.fill('#rc-%d-c'%i,'1.300' if pid=='qa' else '800')
+    A.fill('[data-cr=nro]','0001-00004521')
+    A.click('[data-act=cmpRemitoGo]');A.wait_for_timeout(300)
+    A.click('[data-m=ok]');A.wait_for_timeout(5000)
+    chk('Ingreso de mercadería registrado' in A.inner_text('#cr-box'),'el resultado se muestra en pantalla (%s)'%A.inner_text('#cr-box')[:60].replace('\n',' '))
+    chk(sql("select estado from ordenes_compra where id='%s'"%oc)=='Recibida','servidor: la orden quedó Recibida')
+    chk(sql("select datos->>'stock' from registros where coleccion='prod' and id='qa'").split('.')[0]=='30','servidor: stock A = 10 + 20')
+    chk(sql("select datos->>'cost' from registros where coleccion='prod' and id='qa'")=='130000','servidor: costo A = $ 1.300')
+    chk(sql("select datos->>'stock' from registros where coleccion='prod' and id='qb'").split('.')[0]=='30','servidor: stock B = 30')
+    chk(sql("select saldo_cuenta_corriente from proveedores where id='%s'"%prov)=='50000.00','servidor: deuda con el proveedor $ 50.000 (26.000 + 24.000)')
+    # el equipo recibe el stock del servidor SIN sumarlo dos veces
+    ev(A,"cloudSync(true)");A.wait_for_timeout(3500);sy(A,3500)
+    chk(ev(A,"S.products.find(p=>p.id==='qa').stock")==30,'equipo: stock A = 30 (no se cuenta dos veces)')
+    chk(ev(A,"S.products.find(p=>p.id==='qa').cost")==130000,'equipo: costo A actualizado')
+    chk(sql("select datos->>'stock' from registros where coleccion='prod' and id='qa'").split('.')[0]=='30','servidor: sigue en 30 tras sincronizar el equipo')
+    chk(sql("select count(*) from registros where coleccion='smov' and datos->>'pid'='qa' and datos->>'dev'='servidor'")=='1' and sql("select coalesce(sum((datos->>'d')::numeric),0) from registros where coleccion='smov' and datos->>'pid'='qa'").split('.')[0]=='30','movimientos de stock de A: +10 inicial y un solo +20 del ingreso, nada duplicado')
+    # --- nuevo remito al contado, efectivo, caja abierta creada en el equipo
+    ev(A,"location.hash='#panel/proveedores'");A.wait_for_timeout(600)
+    A.click('.cmp [data-act=cmpTab][data-tab=remito]');A.wait_for_timeout(400)
+    A.fill('#cr-qin','norte');A.select_option('#cr-prov',prov);A.wait_for_timeout(300)
+    A.fill('#rc-0-p',la);A.fill('#rc-0-q','10');A.fill('#rc-0-c','1.500');A.fill('[data-cr=nro]','R-2')
+    A.select_option('[data-cr=tipo]','Remito');A.check('input[name=cr-cond][value=contado]');A.wait_for_timeout(250)
+    A.select_option('#cr-rubro',rub);A.click('[data-act=cmpRemitoGo]');A.wait_for_timeout(300);A.click('[data-m=ok]');A.wait_for_timeout(5000)
+    chk(sql("select count(*) from registros where coleccion='movs' and datos->>'type'='egreso' and (datos->>'amount')::numeric=1500000 and datos->>'sessId'='ses-c17'")=='1','servidor: egreso de caja $ 15.000 en la caja del equipo, con rubro')
+    chk(sql("select saldo_cuenta_corriente from proveedores where id='%s'"%prov)=='50000.00','servidor: la deuda no cambia por una compra al contado')
+    sy(A,3500)
+    chk(ev(A,"S.movs.filter(m=>m.type==='egreso'&&m.amount===1500000).length")==1,'equipo: el egreso aparece en la caja (llegó del servidor)')
+    chk(ev(A,"S.products.find(p=>p.id==='qa').stock")==40,'equipo: stock A = 40')
+    # --- pago y NC desde la pantalla
+    A.click('.cmp [data-act=cmpTab][data-tab=cuenta]');A.wait_for_timeout(500)
+    A.click('.cmp-acct [data-act=cmpPay]');A.wait_for_timeout(300)
+    A.fill('#pg-m','20.000');A.select_option('#pg-med','transferencia');A.select_option('#pg-r',rub);A.click('[data-m=ok]');A.wait_for_timeout(2500)
+    chk(sql("select saldo_cuenta_corriente from proveedores where id='%s'"%prov)=='30000.00','servidor: pago de $ 20.000, deuda $ 30.000')
+    A.click('.cmp-acct [data-act=cmpPay]');A.wait_for_timeout(300)
+    A.fill('#pg-m','31.000');A.select_option('#pg-r',rub);A.click('[data-m=ok]');A.wait_for_timeout(500)
+    chk('deuda' in A.inner_text('#modal-root .merr'),'no deja pagar más de la deuda');A.click('[data-m=x]')
+    A.click('.cmp-acct [data-act=cmpNc]');A.wait_for_timeout(300)
+    A.fill('#nc-m','500');A.fill('#nc-ref','NC-1');A.fill('#nc-mot','Botella rota');A.click('[data-m=ok]');A.wait_for_timeout(2500)
+    chk(sql("select saldo_cuenta_corriente from proveedores where id='%s'"%prov)=='29500.00','servidor: nota de crédito, deuda $ 29.500')
+    ev(A,"location.hash='#panel/proveedores'");A.wait_for_timeout(800)
+    chk(A.inner_text('#k-deuda')=='$ 29.500','indicador de deuda actualizado: $ 29.500')
+    # --- sin conexión: no guarda nada y lo dice
+    A.click('.cmp [data-act=cmpTab][data-tab=remito]');A.wait_for_timeout(300)
+    A.fill('#cr-qin','norte');A.select_option('#cr-prov',prov);A.wait_for_timeout(300)
+    A.fill('#rc-0-p',la);A.fill('#rc-0-q','5');A.fill('#rc-0-c','1.500');A.fill('[data-cr=nro]','F-OFF')
+    A.click('[data-act=cmpRemitoGo]');A.wait_for_timeout(300)
+    ctxA.set_offline(True);A.click('[data-m=ok]');A.wait_for_timeout(1500)
+    chk('Sin conexión' in A.inner_text('#modal-root .merr'),'sin internet: avisa que no se guardó (%s)'%A.inner_text('#modal-root .merr')[:50])
+    ctxA.set_offline(False)
+    chk(sql("select count(*) from ingresos_mercaderia where tenant_id='%s'"%cid)=='2','servidor: no quedó ningún ingreso a medias')
+    # reintento con la misma clave y conexión: se guarda una sola vez
+    A.wait_for_timeout(500);A.click('[data-m=ok]');A.wait_for_timeout(5000)
+    chk(sql("select count(*) from ingresos_mercaderia where tenant_id='%s'"%cid)=='3','reintentar con conexión: se guarda 1 vez')
+    chk(sql("select count(*) from ingresos_mercaderia where tenant_id='%s' and nro_comprobante_o_remito='F-OFF'"%cid)=='1','sin duplicados')
+    b.close()
+bad=[e for e in errs if 'TUNNEL' not in e and 'Failed to load resource' not in e]
+chk(not bad,'sin errores de consola/página %s'%bad[:3])
+print(sum(res),'OK /',len(res)-sum(res),'FALLAN de',len(res))

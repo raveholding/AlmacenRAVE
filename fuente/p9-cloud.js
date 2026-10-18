@@ -154,7 +154,7 @@ async function applyRec(r){const c=r.coleccion,id=r.id,key=c+'|'+id;
   if(id==='clubkey'){if(d&&d.priv&&d.pub&&cl.dek){try{cl.clubPriv={pub:d.pub,priv:d.priv,jwk:await openJ(d.priv,cl.dek,'clubkey|'+cl.comercio.id)};}catch(e){}}return;}
   const h=cyrb(canon(d));const loc=cfgWire(id);if(cl.fp[key]!==undefined&&cyrb(canon(loc))!==cl.fp[key])return; // cambio local sin subir: gana el local
   if(id==='tenant'){const caja=S.tenant.caja,regId=S.tenant.regId;S.tenant=Object.assign({},d,{caja,regId});}
-  else if(id==='cfg')S.cfg=d;else if(id==='menu')S.menu=d;else if(id==='roles')S.roles=d;else if(id==='integ')S.integ=d;else if(id==='legal')S.legal=d;
+  else if(id==='cfg')S.cfg=d;else if(id==='menu')S.menu=d;else if(id==='roles')S.roles=rolesMigrate(d);else if(id==='integ')S.integ=d;else if(id==='legal')S.legal=d;
   else if(id==='loyalty'){S.loyalty.goal=d.goal;S.loyalty.reward=d.reward;}
   cl.fp[key]=h;return;}
  const col=BYC[c];if(!col)return;const arr=arrOf(col);

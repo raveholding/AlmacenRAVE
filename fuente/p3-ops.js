@@ -173,6 +173,7 @@ const INV_HOOK={online:null,preview:null};
 function prodRefsLocal(p){const r=[];const n=S.sales.reduce((a,s)=>a+((s.items||[]).some(i=>i.pid===p.id)?1:0),0);if(n)r.push(n+' venta'+(n===1?'':'s'));
  const has=(a)=>{try{return JSON.stringify(a||[]).includes('"'+p.id+'"');}catch(e){return false;}};
  if(has(S.orderReqs))r.push('pedidos del menú');if(has(S.pya))r.push('pedidos PedidosYa');if(has(S.coupons)||has(S.plans))r.push('cupones o planes');
+ if(has(S.pOrders)||has(S.receipts))r.push('órdenes de compra o ingresos de mercadería');
  if(p.hist)r.push('ajustes o movimientos de stock');return r;}
 async function delPreview(ids){
  const items=ids.map(id=>{const p=prod(id);if(!p)return{id,name:'(no existe)',estado:'bloqueado',motivo:'ya no existe'};const refs=prodRefsLocal(p);
