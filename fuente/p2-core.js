@@ -1,5 +1,5 @@
 'use strict';
-/* ===== Sistema RAVE · Demo de evaluación · Rave Holding ===== */
+/* ===== Sistema RAVE · Demo de evaluación · Vincular Business ===== */
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -154,7 +154,12 @@ const cell=v=>{if(typeof v==='number')return String(v).replace('.',',');let s=St
 function toCSV(h,rows){return '﻿'+[h,...rows].map(r=>r.map(cell).join(';')).join('\r\n');}
 function toXLS(h,rows){const f=v=>{let s=typeof v==='number'?String(v):String(v??'');if(typeof v!=='number'&&/^[=+\-@\t\r]/.test(s))s="'"+s;return esc(s);};
  return '﻿<html><head><meta charset="utf-8"></head><body><table border="1"><tr>'+h.map(x=>`<th>${esc(x)}</th>`).join('')+'</tr>'+rows.map(r=>'<tr>'+r.map(v=>`<td>${f(v)}</td>`).join('')+'</tr>').join('')+'</table></body></html>';}
-const MET={efectivo:'Efectivo',fiado:'Cta. cte. / Fiado',debito:'Débito',credito:'Crédito',transferencia:'Transferencia',qr:'QR / Mercado Pago',modo:'MODO',pedidosya:'PedidosYa'};
+/* ===== Datos oficiales del desarrollador (se mantienen en TODOS los productos) ===== */
+const VB={name:'VINCULAR BUSINESS',phone:'(387) 4484132',wa:'5493874484132',mail:'vincularbusiness@gmail.com',lema:'Tu idea, en buenas manos.'};
+const vbWa=txt=>'https://wa.me/'+VB.wa+(txt?'?text='+encodeURIComponent(txt):'');
+const vbBanner=(st)=>`<img src="${VB_BANNER}" alt="Vincular Business · Desarrollo de sistemas · ${VB.lema} · Único celular ${VB.phone} · ${VB.mail}" loading="lazy" style="display:block;width:100%;max-width:${st||'520px'};height:auto;border-radius:12px;margin:0 auto">`;
+const vbFooter=(withBanner)=>`<div class="vbcred" style="margin-top:1rem">${withBanner?vbBanner():''}<p class="sm mut" style="margin:.5rem 0 0;text-align:center">Desarrollado por <b>${VB.name}</b> · <a href="${vbWa('Hola Vincular Business! Quiero consultar por el Sistema RAVE.')}" target="_blank" rel="noopener noreferrer">Único celular ${VB.phone}</a> · <a href="mailto:${VB.mail}">${VB.mail}</a><br><i>“${VB.lema}”</i></p></div>`;
+const MET={efectivo:'Efectivo',fiado:'Cta. cte. / Fiado',mixto:'Pago mixto',debito:'Débito',credito:'Crédito',transferencia:'Transferencia',qr:'QR / Mercado Pago',modo:'MODO',pedidosya:'PedidosYa'};
 const rubName=id=>(S.rubros.find(r=>r.id===id)||{name:'(sin rubro)'}).name;
 const rub=id=>S.rubros.find(r=>r.id===id);
 const UNITS={u:'und',kg:'kg',l:'lt'};const unitLbl=u=>UNITS[u]||u;
@@ -171,7 +176,7 @@ const initial=n=>(String(n||'?').trim()[0]||'?').toUpperCase();
 /* exportaciones disponibles en cualquier área */
 const EXPORTS={
  productos:{t:'Inventario',perm:'impex',h:()=>['id','nombre','rubro','precio','costo','stock','unidad','codigo_barras','menu','activo'],rows:()=>S.products.map(p=>[p.id,p.name,rubName(p.rubro),p.price/100,can('view_cost')?p.cost/100:'',p.stock,unitLbl(p.unit),p.barcode,p.menu?'si':'no',p.active?'si':'no'])},
- ventas:{t:'Ventas (una fila por ítem)',perm:'impex',h:()=>['nro','fecha','usuario','canal','medio','estado','documento','rubro','producto','cantidad','precio','importe','comision_total_venta'],rows:()=>S.sales.flatMap(s=>s.items.map(it=>[s.n,fmtDT(s.ts),s.user,s.channel||'local',MET[s.method]||s.method,s.status,(s.arca&&s.arca.cae?'factura '+s.arca.letra+' '+String(s.arca.pto).padStart(4,'0')+'-'+String(s.arca.nro).padStart(8,'0')+' CAE '+s.arca.cae:s.doc),rubName(it.rubro),it.name,it.qty,it.price/100,lineTotal(it)/100,(s.fee||0)/100]))},
+ ventas:{t:'Ventas (una fila por ítem)',perm:'impex',h:()=>['nro','fecha','usuario','canal','medio','estado','documento','rubro','producto','cantidad','precio','importe','comision_total_venta','pagos','a_cuenta_corriente','estado_pago'],rows:()=>S.sales.flatMap(s=>s.items.map(it=>[s.n,fmtDT(s.ts),s.user,s.channel||'local',salePayLabel(s),s.status,(s.arca&&s.arca.cae?'factura '+s.arca.letra+' '+String(s.arca.pto).padStart(4,'0')+'-'+String(s.arca.nro).padStart(8,'0')+' CAE '+s.arca.cae:s.doc),rubName(it.rubro),it.name,it.qty,it.price/100,lineTotal(it)/100,(s.fee||0)/100,salePays(s).map(pp=>(MET[pp.m]||pp.m)+' '+(pp.a/100)).join(' + '),saleFiadoAmt(s)/100,PSTATE_TXT[salePayState(s)]]))},
  movimientos:{t:'Ingresos y egresos de caja',perm:'impex',h:()=>['fecha','tipo','rubro','concepto','importe','usuario','caja_sesion'],rows:()=>S.movs.map(m=>[fmtDT(m.ts),m.type,m.rubroName||rubName(m.rubro),m.concept,m.amount/100,m.user,m.sessId])},
  cierres:{t:'Cajas cerradas',perm:'impex',h:()=>['fecha','caja','cerro','ventas','efectivo_esperado','declarado','diferencia','sello'],rows:()=>S.closures.map(c=>[fmtDT(c.ts),c.caja,c.user,c.data.total/100,c.data.expectedCash/100,c.data.declared/100,c.data.diff/100,c.hash])},
  fichadas:{t:'Fichadas del personal',perm:'impex',h:()=>['fecha','empleado','tipo','metodo','dispositivo'],rows:()=>S.punches.map(p=>[fmtDT(p.ts),empName(p.empId),p.kind==='in'?'Entrada':'Salida',p.method,p.device])},
@@ -209,7 +214,7 @@ const NAV=[['inicio','Resumen'],['vender','Operación'],['pedidos','Operación']
 function showPanel(id){if(!SCREENS[id]||(SCREENS[id].perm&&!can(SCREENS[id].perm))||(SCREENS[id].show&&!SCREENS[id].show()))id='inicio';curScreen=id;$('#panel').hidden=false;
  const order=NAV.map(x=>x[0]);const secOf=Object.fromEntries(NAV);
  const nav=Object.entries(SCREENS).filter(([k,s])=>(!s.perm||can(s.perm))&&(!s.show||s.show())).sort((a,b)=>{const i=order.indexOf(a[0]),j=order.indexOf(b[0]);return (i<0?99:i)-(j<0?99:j);});let sec='';
- $('#side').innerHTML=`<div class="brand"><img src="${LOGO_MENU}" alt="RAVE" style="width:48px;height:27px;object-fit:cover;border-radius:6px"><span>Sistema RAVE</span></div>`+nav.map(([k,s])=>{const sc=secOf[k]||'Otros';const h=(sc!==sec)?(sec=sc,`<div class="sec">${esc(sc)}</div>`):'';return h+`<a data-act="nav" data-id="${k}" class="${k===id?'on':''}" tabindex="0" role="link">${ico(s.icon)}<span>${esc(s.t)}</span></a>`;}).join('')+`<div class="sec">Desarrollado por</div><div class="sm" style="padding:0 .7rem;color:#a99f8f">Rave Holding<br><a style="color:#c9963e" href="https://wa.me/5493875143900" target="_blank" rel="noopener noreferrer">WhatsApp +54 9 387 514-3900</a><br><a style="color:#c9963e" href="mailto:raveholding@gmail.com">raveholding@gmail.com</a></div>`;
+ $('#side').innerHTML=`<div class="brand"><img src="${LOGO_MENU}" alt="RAVE" style="width:48px;height:27px;object-fit:cover;border-radius:6px"><span>Sistema RAVE</span></div>`+nav.map(([k,s])=>{const sc=secOf[k]||'Otros';const h=(sc!==sec)?(sec=sc,`<div class="sec">${esc(sc)}</div>`):'';return h+`<a data-act="nav" data-id="${k}" class="${k===id?'on':''}" tabindex="0" role="link">${ico(s.icon)}<span>${esc(s.t)}</span></a>`;}).join('')+`<div class="sec">Desarrollado por</div><div class="sm" style="padding:0 .7rem;color:#a99f8f"><b style="color:#eee">${VB.name}</b><br><i>“${VB.lema}”</i><br><a style="color:#c9963e" href="${vbWa()}" target="_blank" rel="noopener noreferrer">Único celular ${VB.phone}</a><br><a style="color:#c9963e" href="mailto:${VB.mail}">${VB.mail}</a></div>`;
  const s=openSess();
  $('#top').innerHTML=`<button class="btn sm" id="burger" data-act="burger" aria-label="Abrir menú">☰</button><b style="font-family:Georgia,serif">${esc(S.tenant.name)}</b>${(window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente')?'':'<span class="demo-b">DEMO DE EVALUACIÓN</span>'}<span id="cloudtag" class="tag"></span><span class="tag ${s?'ok':'warn'}">${s?'Caja '+S.tenant.caja+' abierta':'Caja cerrada'}</span><span class="tag ${S.simOffline?'bad':'ok'}">${S.simOffline?'APIs externas caídas (simulado)':'Operativo'}</span><span id="devtag" class="tag"></span><span class="sp"></span><span class="sm mut">${esc(user.name)} · ${esc(user.role)}</span>${typeof asBtn==='function'?asBtn():''}<a class="btn sm" href="#menu">Ver menú público</a><button class="btn sm" data-act="logout">Salir</button>`;
  const sc=SCREENS[id];$('#view').innerHTML=sc.render();sc.after&&sc.after();$('#side').classList.remove('open');window.scrollTo(0,0);try{document.documentElement.style.setProperty('--topH',($('#top').offsetHeight||56)+'px');}catch(e){}if(typeof devTag==='function')devTag();if(typeof cloudBadge==='function')cloudBadge();if(typeof asPaint==='function')asPaint();}
@@ -226,7 +231,7 @@ function showLogin(){if(CLOUD_HOOK||(window.RAVE_BUILD&&window.RAVE_BUILD.varian
  <label for="lp">PIN</label><input id="lp" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN">
  <div class="merr" id="lerr" role="alert"></div>
  <div class="row" style="margin-top:.8rem"><button class="btn gold sp" data-act="login">Ingresar</button><a class="btn" href="#menu">Volver al menú</a></div>
- <p class="sm mut" style="margin-top:1rem">Desarrollado por Rave Holding · <a href="https://wa.me/5493875143900" target="_blank" rel="noopener noreferrer">WhatsApp +54 9 387 514-3900</a></p></div>`;
+ ${vbFooter(true)}</div>`;
  $('#lp').addEventListener('keydown',e=>{if(e.key==='Enter')A.login();});}
 A.login=()=>{const err=$('#lerr');if(now()<lockUntil){err.textContent='Demasiados intentos. Esperá '+Math.ceil((lockUntil-now())/1000)+' s.';return;}
  const u=S.users.find(x=>x.id===val('lu'));if(u&&u.pin===val('lp')){loginFails=0;user=u;audit('LOGIN','ingreso desde menú/acceso');location.hash='#panel/inicio';}

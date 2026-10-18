@@ -80,7 +80,7 @@ function arcaReceiptModal(sale,stamp,extra,blocked){
  const a=sale.arca;const ok=a&&a.cae;
  const body=ok?`<div class="okbox"><b>Factura ${esc(a.letra)} ${String(a.pto).padStart(4,'0')}-${String(a.nro).padStart(8,'0')}</b> · CAE ${esc(a.cae)} · vto. ${esc(arcaFecha(a.vto))}${a.sim?'<br><span class="tag sim">SIMULADO · SIN VALIDEZ FISCAL</span>':''}</div>`
   :`<div class="warnbox"><b>Factura pendiente de CAE.</b> ${esc(extra||'')}<br><span class="sm">${blocked?'La venta ya está registrada, pero <b>no se reintenta sola</b>: revisá el dato que ARCA objetó. Desde Periféricos y ticket → Facturación electrónica podés pedir el CAE de nuevo o anular la venta.':'La venta ya está registrada. El sistema reintenta solo mientras haya un equipo abierto; también podés hacerlo desde Periféricos y ticket → Facturación electrónica.'}</span></div>`;
- modal('Venta '+sale.n+' registrada',`<div class="okbox">Total ${money(sale.total)} · ${esc(MET[sale.method])}${sale.recv&&sale.method==='efectivo'&&sale.recv>=sale.total?' · vuelto '+money(sale.recv-sale.total):''}${sale.fiado?' · queda en cuenta corriente':''}</div>${body}${stamp?`<div class="okbox">⭐ Sello sumado a ${esc(stamp.custName)}: ${stamp.stamps}/${S.loyalty.goal}${stamp.reward?' · ¡premio disponible!':''}</div>`:''}<p class="sm mut">¿Querés imprimir el ticket? ${ok?'Lleva CAE y QR de ARCA.':'Hasta tener CAE no hay factura válida.'}</p>`,
+ modal('Venta '+sale.n+' registrada',`${saleOkHTML(sale)}${body}${stamp?`<div class="okbox">⭐ Sello sumado a ${esc(stamp.custName)}: ${stamp.stamps}/${S.loyalty.goal}${stamp.reward?' · ¡premio disponible!':''}</div>`:''}<p class="sm mut">¿Querés imprimir el ticket? ${ok?'Lleva CAE y QR de ARCA.':'Hasta tener CAE no hay factura válida.'}</p>`,
   {okText:'Imprimir ticket',cancelText:'Nueva venta',onOk:()=>{printSale(sale.id,{reprint:true});}});}
 async function arcaPostSale(sale,stamp){
  if(!CLOUD.on){arcaSim(sale);arcaReceiptModal(sale,stamp);return;}
@@ -136,7 +136,7 @@ async function arcaRender(force){const box=document.getElementById('arca-box');i
   ${st&&st.config?`<span class="tag ${st.config.activo?'ok':'warn'}">${st.config.activo?'ACTIVA':'sin activar'}</span>`:'<span class="tag warn">sin configurar</span>'}</div>
   <p class="sm mut">Homologación y producción son entornos separados (certificados y puntos de venta distintos). <b>No se factura en serio hasta probar en homologación con el certificado real del cliente.</b></p>`;
  if(!st){h+='<div class="warnbox sm">No se pudo consultar el estado (sin conexión o la función <b>arca</b> no está desplegada en Supabase). Reintentá.</div><button class="btn sm" data-act="arcRefresh">Reintentar</button>';box.innerHTML=h;return;}
- if(st.servidor&&st.servidor.llave_maestra===false)h+='<div class="errbox sm"><b>Falta la clave maestra del servidor</b> (secreto <code>ARCA_MASTER_KEY</code>). Rave Holding la carga en Supabase; sin ella no se puede guardar ningún certificado.</div>';
+ if(st.servidor&&st.servidor.llave_maestra===false)h+='<div class="errbox sm"><b>Falta la clave maestra del servidor</b> (secreto <code>ARCA_MASTER_KEY</code>). Vincular Business la carga en Supabase; sin ella no se puede guardar ningún certificado.</div>';
  const c=st.config||{},cr=st.credenciales||{};
  if(admin){
   h+=`<h4 style="margin:.8rem 0 .2rem">1 · Datos del emisor</h4><div class="grid g2">

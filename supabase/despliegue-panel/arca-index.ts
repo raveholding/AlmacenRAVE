@@ -412,7 +412,7 @@ async function manejar(req: Request, env: Entorno, f: F = fetch, ahora: () => Da
   } catch (e) {
     if (e instanceof ErrorArca) return resp(e.etapa === "datos" ? 422 : 502, { error: e.message, etapa: e.etapa, reintentable: e.reintentable });
     console.error("arca: error interno:", e instanceof Error ? e.message.slice(0, 200) : "desconocido");
-    return resp(500, { error: "Error interno. Probá de nuevo; si sigue, avisá a Rave Holding." });
+    return resp(500, { error: "Error interno. Probá de nuevo; si sigue, avisá a Vincular Business." });
   }
 }
 
@@ -464,7 +464,7 @@ class Contexto {
     return { wsaa: (h ? this.env.ARCA_WSAA_URL_HOMO : this.env.ARCA_WSAA_URL_PROD) || d.wsaa, wsfe: (h ? this.env.ARCA_WSFE_URL_HOMO : this.env.ARCA_WSFE_URL_PROD) || d.wsfe };
   }
   async master() {
-    if (!this.env.ARCA_MASTER_KEY) throw new ErrorArca("Falta cargar el secreto ARCA_MASTER_KEY en la función (lo hace Rave Holding).", "config");
+    if (!this.env.ARCA_MASTER_KEY) throw new ErrorArca("Falta cargar el secreto ARCA_MASTER_KEY en la función (lo hace Vincular Business).", "config");
     return this.llave ??= await core.importarLlaveMaestra(this.env.ARCA_MASTER_KEY);
   }
   aad(que: string) { return `${que}|${this.comercio}|${this.ambiente}`; }
@@ -538,7 +538,7 @@ class Contexto {
     if (c?.cert && !forzar) throw new ErrorArca("Ya hay un certificado cargado: generar una clave nueva lo invalida. Confirmalo para continuar.", "datos");
     if (c?.cert) {
       const ap = await this.db.select<{ id: string }>("arca_comprobantes", `comercio_id=eq.${this.comercio}&ambiente=eq.${this.ambiente}&estado=eq.aprobado&select=id&limit=1`);
-      if (ap.length) throw new ErrorArca("Ya hay comprobantes con CAE en este ambiente: no se cambia la clave desde acá (pedí ayuda a Rave Holding).", "datos");
+      if (ap.length) throw new ErrorArca("Ya hay comprobantes con CAE en este ambiente: no se cambia la clave desde acá (pedí ayuda a Vincular Business).", "datos");
     }
     const par = core.generarCSR({ cuit: cfg.cuit, razon: cfg.razon_social, alias: cfg.alias });
     await this.guardarCred({ key_enc: await core.sellar(k, par.keyPem, this.aad("key")), csr: par.csrPem, cert: null, cert_vence: null, ta_enc: null, ta_vence: null });
@@ -722,7 +722,7 @@ function resumen(c: Cbte, cfg: Cfg, env: Entorno) {
 // ===== index.ts =====
 // Punto de entrada de la Edge Function "arca" (Supabase / Deno).
 // Variables que ya existen en Supabase: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY.
-// Secreto que carga Rave Holding (NO va al repositorio):   ARCA_MASTER_KEY  = 32 bytes aleatorios en base64
+// Secreto que carga Vincular Business (NO va al repositorio):   ARCA_MASTER_KEY  = 32 bytes aleatorios en base64
 //   supabase secrets set ARCA_MASTER_KEY="$(openssl rand -base64 32)"
 // Opcionales: ALLOWED_ORIGINS (ej. https://raveholding.github.io), ARCA_*_URL_*, ARCA_QR_BASE.
 

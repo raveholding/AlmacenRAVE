@@ -1,5 +1,5 @@
 /* ================= NUBE (Supabase) · cliente =================
-   Este módulo conecta el sistema con la base de Rave Holding en Supabase. Es OPCIONAL: sin URL y clave publicable el sistema
+   Este módulo conecta el sistema con la base de Vincular Business en Supabase. Es OPCIONAL: sin URL y clave publicable el sistema
    funciona igual, sólo en este equipo (demo). Reglas:
    · En el archivo sólo van la URL del proyecto y la clave PUBLICABLE (sb_publishable_…). Jamás una clave secreta.
    · Cuenta = correo + contraseña de Supabase Auth. La contraseña además abre la llave de cifrado (AES-256-GCM) de los datos:
@@ -205,7 +205,7 @@ function loginHtml(mode,msg,pre){const em=esc((pre&&pre.email)||(cl.meta&&cl.met
  const tab=(k,t)=>`<button type="button" class="btn sm ${mode===k?'gold':''}" data-act="cloudMode" data-mode="${k}">${t}</button>`;
  let f='';
  if(mode==='ingresar')f=`<label for="cl-em">Correo</label><input id="cl-em" type="email" autocomplete="username" value="${em}"><label for="cl-pw">Contraseña</label><input id="cl-pw" type="password" autocomplete="current-password">`;
- else if(mode==='crear')f=`<p class="sm mut">Para dueños. Rave Holding te da un <b>código de invitación</b> (se pide una sola vez).</p><label for="cl-nm">Nombre del comercio</label><input id="cl-nm" maxlength="80"><label for="cl-em">Correo</label><input id="cl-em" type="email" autocomplete="username" value="${em}"><label for="cl-pw">Contraseña (mínimo 10 caracteres)</label><input id="cl-pw" type="password" autocomplete="new-password"><label for="cl-co">Código de invitación de Rave Holding</label><input id="cl-co" autocomplete="off">`;
+ else if(mode==='crear')f=`<p class="sm mut">Para dueños. Vincular Business te da un <b>código de invitación</b> (se pide una sola vez).</p><label for="cl-nm">Nombre del comercio</label><input id="cl-nm" maxlength="80"><label for="cl-em">Correo</label><input id="cl-em" type="email" autocomplete="username" value="${em}"><label for="cl-pw">Contraseña (mínimo 10 caracteres)</label><input id="cl-pw" type="password" autocomplete="new-password"><label for="cl-co">Código de invitación de Vincular Business</label><input id="cl-co" autocomplete="off">`;
  else if(mode==='unirme')f=`<p class="sm mut">Para el equipo. El administrador te da un <b>código de acceso</b> y tu correo queda invitado.</p><label for="cl-em">Correo (el mismo con el que te invitaron)</label><input id="cl-em" type="email" autocomplete="username" value="${em}"><label for="cl-pw">Elegí tu contraseña (mínimo 10 caracteres)</label><input id="cl-pw" type="password" autocomplete="new-password"><label for="cl-co">Código de acceso</label><input id="cl-co" autocomplete="off">`;
  else f=`<p class="sm mut">Dejanos cómo contactarte y te ayudamos a volver a entrar. También podés escribir por WhatsApp.</p><label for="cl-sc">WhatsApp o correo</label><input id="cl-sc" maxlength="120"><label for="cl-sd">Contanos qué pasó</label><textarea id="cl-sd" rows="3" maxlength="500"></textarea>`;
  return `<div class="lbox"><div style="text-align:center"><img src="${LOGO_MENU}" alt="RAVE" style="width:150px;border-radius:12px"><h1>Acceso del equipo</h1><p class="mut sm">${esc(S.tenant.legal||'Sistema RAVE')}</p></div>
@@ -213,10 +213,10 @@ function loginHtml(mode,msg,pre){const em=esc((pre&&pre.email)||(cl.meta&&cl.met
  <div class="merr" id="lerr" role="alert">${esc(msg||'')}</div>
  <div class="row" style="margin-top:.8rem"><button class="btn gold sp" data-act="cloudGo" data-mode="${mode}" id="cl-go">${mode==='ingresar'?'Ingresar':mode==='ayuda'?'Enviar pedido':'Continuar'}</button><a class="btn" href="#menu">Volver al menú</a></div>
  ${mode==='ingresar'?'<p class="sm" style="margin-top:.6rem"><a href="#" data-act="cloudForgot">Olvidé mi contraseña</a></p>':''}
- <p class="sm mut" style="margin-top:1rem">Desarrollado por Rave Holding · <a href="https://wa.me/5493875143900" target="_blank" rel="noopener noreferrer">WhatsApp +54 9 387 514-3900</a> · <a href="mailto:raveholding@gmail.com">raveholding@gmail.com</a></p></div>`;}
+ ${vbFooter(true)}</div>`;}
 let loginMode='ingresar';
 function cloudLogin(msg){const L=$('#login');L.hidden=false;
- if(!CLOUD.on){L.innerHTML=`<div class="lbox"><h1>Acceso del equipo</h1><p>La conexión a la nube todavía no está configurada en este archivo (<b>Pendiente de configuración</b>). Rave Holding carga la dirección del proyecto y la clave publicable.</p><div class="row"><a class="btn" href="#menu">Volver al menú</a></div></div>`;return;}
+ if(!CLOUD.on){L.innerHTML=`<div class="lbox"><h1>Acceso del equipo</h1><p>La conexión a la nube todavía no está configurada en este archivo (<b>Pendiente de configuración</b>). Vincular Business carga la dirección del proyecto y la clave publicable.</p><div class="row"><a class="btn" href="#menu">Volver al menú</a></div></div>`;return;}
  if(cl.recoveryToken){L.innerHTML=`<div class="lbox"><h1>Nueva contraseña</h1><p class="sm mut">Elegí una contraseña nueva (mínimo 10 caracteres). Después vas a necesitar tu <b>código de recuperación</b> para volver a abrir tus datos.</p><label for="cl-pw">Contraseña nueva</label><input id="cl-pw" type="password" autocomplete="new-password"><div class="merr" id="lerr" role="alert">${esc(msg||'')}</div><div class="row" style="margin-top:.8rem"><button class="btn gold" data-act="cloudNewPass">Guardar</button></div></div>`;return;}
  L.innerHTML=loginHtml(loginMode,msg);
  const go=()=>A.cloudGo($('#cl-go'));L.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')go();}));}
@@ -420,13 +420,13 @@ if(CLOUD.on){UI_HOOK.usersCard=()=>cl.rol==='admin'?teamCardHtml():'<div class="
 /* ---------- pantalla "Nube" ---------- */
 const ROLES_LBL={admin:'Administrador',supervisor:'Supervisor',mostrador:'Mostrador',operador:'Operador'};
 reg('nube','Nube','globe','config',()=>{
- if(!CLOUD.on)return `<h1>Nube</h1><div class="card"><span class="tag warn">Pendiente de configuración</span><p>Esta copia funciona <b>sólo en este equipo</b>. Para sincronizar varios equipos y publicar el menú para el público, Rave Holding carga en el archivo la dirección del proyecto de Supabase y su clave <b>publicable</b> (nunca una clave secreta).</p></div>`;
+ if(!CLOUD.on)return `<h1>Nube</h1><div class="card"><span class="tag warn">Pendiente de configuración</span><p>Esta copia funciona <b>sólo en este equipo</b>. Para sincronizar varios equipos y publicar el menú para el público, Vincular Business carga en el archivo la dirección del proyecto de Supabase y su clave <b>publicable</b> (nunca una clave secreta).</p></div>`;
  let n=0;try{n=pendingCount();}catch(e){}
  const adm=cl.rol==='admin';
  return `<div class="row"><h1 class="sp">Nube</h1><button class="btn gold" data-act="nbSync">Sincronizar ahora</button></div>
  <div class="grid g2"><div class="card"><h3>Estado</h3><table><tbody>
  <tr><td>Comercio</td><td><b>${esc(cl.comercio.nombre)}</b> · dirección corta <code>${esc(cl.slug)}</code></td></tr>
- ${CLOUD.slug&&CLOUD.slug!==cl.slug?`<tr><td colspan="2"><div class="errbox">La dirección corta de este archivo (<code>${esc(CLOUD.slug)}</code>) no coincide con la del comercio (<code>${esc(cl.slug)}</code>): el público no verá el menú. Rave Holding tiene que corregir el archivo.</div></td></tr>`:''}
+ ${CLOUD.slug&&CLOUD.slug!==cl.slug?`<tr><td colspan="2"><div class="errbox">La dirección corta de este archivo (<code>${esc(CLOUD.slug)}</code>) no coincide con la del comercio (<code>${esc(cl.slug)}</code>): el público no verá el menú. Vincular Business tiene que corregir el archivo.</div></td></tr>`:''}
  <tr><td>Cuenta</td><td>${esc(cl.email)} · ${esc(ROLES_LBL[cl.rol]||cl.rol)}</td></tr>
  <tr><td>Este equipo</td><td>Caja ${S.tenant.caja}</td></tr>
  <tr><td>Conexión</td><td><span class="tag ${cl.online&&!cl.lastErr?'ok':'warn'}">${cl.lastErr?esc(cl.lastErr):cl.online?'Conectado':'Sin conexión'}</span></td></tr>

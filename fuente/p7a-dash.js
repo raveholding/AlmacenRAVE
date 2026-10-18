@@ -3,7 +3,7 @@ const dbF={per:'7',met:'',doc:'',rub:''};
 function dbRange(){const t=dkey(now());if(dbF.per==='hoy')return[t,t];if(dbF.per==='ayer'){const y=addDays(t,-1);return[y,y];}if(dbF.per==='7')return[addDays(t,-6),t];if(dbF.per==='30')return[addDays(t,-29),t];return['0000-00-00','9999-99-99'];}
 const dbPerTxt={hoy:'Hoy',ayer:'Ayer','7':'Últimos 7 días','30':'Últimos 30 días',todo:'Todo el historial'};
 function dbData(){const[a,b]=dbRange();
- const sales=S.sales.filter(s=>s.status==='ok'&&dkey(s.ts)>=a&&dkey(s.ts)<=b&&(!dbF.met||s.method===dbF.met)&&(!dbF.doc||(dbF.doc==='arca'?s.doc!=='ticket_interno':s.doc==='ticket_interno')));
+ const sales=S.sales.filter(s=>s.status==='ok'&&dkey(s.ts)>=a&&dkey(s.ts)<=b&&(!dbF.met||s.method===dbF.met||salePays(s).some(pp=>pp.m===dbF.met))&&(!dbF.doc||(dbF.doc==='arca'?s.doc!=='ticket_interno':s.doc==='ticket_interno')));
  const rows=[];sales.forEach(s=>s.items.forEach(it=>{if(dbF.rub&&it.rubro!==dbF.rub)return;rows.push({s,it});}));
  return{a,b,sales,rows};}
 const sumT=a=>a.reduce((x,s)=>x+s.total,0);
@@ -13,7 +13,7 @@ reg('inicio','Resumen','home',null,()=>{const D=dbData();const cv=can('view_cost
  const prof=D.rows.reduce((a,r)=>a+lineTotal(r.it)-lineCost(r.it),0)-D.sales.reduce((a,s)=>a+(s.fee||0),0);
  const days=[];for(let k=D.a<addDays(today,-29)?addDays(today,-29):D.a;k<=D.b&&days.length<31;k=addDays(k,1))days.push(k);const d7=days.slice(-14);
  const byDay=d7.map(k=>[dmy(k)+' '+DIAS[dowOfKey(k)].slice(0,3),sumT(S.sales.filter(s=>s.status==='ok'&&dkey(s.ts)===k))]);
- const byMet={};D.sales.forEach(s=>byMet[s.method]=(byMet[s.method]||0)+s.total);
+ const byMet={};D.sales.forEach(s=>salePays(s).forEach(pp=>{byMet[pp.m]=(byMet[pp.m]||0)+pp.a;}));
  const byRub={};D.rows.forEach(r=>byRub[r.it.rubro]=(byRub[r.it.rubro]||0)+lineTotal(r.it));const totR=Object.values(byRub).reduce((a,b)=>a+b,0);
  const byProd={};D.rows.forEach(r=>{const e=byProd[r.it.name]||(byProd[r.it.name]={q:0,t:0});e.q+=r.it.qty;e.t+=lineTotal(r.it);});
  const top=Object.entries(byProd).sort((a,b)=>b[1].t-a[1].t).slice(0,8);

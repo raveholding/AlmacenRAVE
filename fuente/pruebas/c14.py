@@ -17,7 +17,7 @@ with sync_playwright() as p:
     msg=A.get_attribute('[data-act=secCopy]','data-t')
     chk(inv in msg and 'mos@almacen.test' in msg and 'Tengo una invitación' in msg,'el mensaje trae enlace, correo y código')
     A.check('#sec-ok');A.click('#modal-root [data-m=ok]');A.wait_for_timeout(1500)
-    chk('mos@almacen.test' in A.inner_text('#nb-team'),'invitación pendiente listada en Usuarios y permisos')
+    A.wait_for_timeout(1500);chk('mos@almacen.test' in A.inner_text('#nb-team'),'invitación pendiente listada en Usuarios y permisos')
     # recargar y volver a entrar: la invitación y el equipo siguen
     A.reload();A.wait_for_selector('#login [data-mode]')
     A.fill('#cl-em','dueno@almacen.test');A.fill('#cl-pw','Clave-Muy-Segura-1');A.click('#cl-go');A.wait_for_selector('#panel:not([hidden])',timeout=20000)

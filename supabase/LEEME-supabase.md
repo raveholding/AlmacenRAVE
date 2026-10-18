@@ -2,7 +2,7 @@
 
 # Supabase · proyecto raveholding · Sistema RAVE
 
-Todo se hace con el **dueño del proyecto** (Rave Holding). Nada de esto va en el HTML.
+Todo se hace con el **dueño del proyecto** (Vincular Business). Nada de esto va en el HTML.
 
 ## 0 · Antes de empezar
 - **Backup** del proyecto (Database → Backups) por si ya tenía datos del sistema viejo.

@@ -15,7 +15,9 @@ function arqueoCalc(sess,inp){
  const sales=S.sales.filter(s=>s.sessId===sess.id&&s.status==='ok');
  const pend=S.sales.filter(s=>s.sessId===sess.id&&s.status==='pendiente');
  const byMethod={};let total=0;
- sales.forEach(s=>{const m=byMethod[s.method]||(byMethod[s.method]={n:0,gross:0,fee:0});m.n++;m.gross+=s.total;m.fee+=s.fee||0;total+=s.total;});
+ let aCtaCte=0,vueltoTot=0;
+ sales.forEach(s=>{const L=salePays(s);L.forEach(pp=>{const m=byMethod[pp.m]||(byMethod[pp.m]={n:0,gross:0,fee:0});m.n++;m.gross+=pp.a;m.fee+=(L.length>1?(pp.fee||0):(s.fee||0));});total+=s.total;aCtaCte+=saleFiadoAmt(s);vueltoTot+=s.vuelto||0;});
+ const cobrado=total-aCtaCte;
  const R={};S.rubros.forEach(r=>R[r.id]={sold:0,profit:0,fees:0,mov:0,items:{}});
  sales.forEach(s=>{const fees=allocFees(s);s.items.forEach((it,i)=>{const q=R[it.rubro];if(!q)return;const t=lineTotal(it);q.sold+=t;q.profit+=t-lineCost(it);q.fees+=fees[i];const e=q.items[it.name]||(q.items[it.name]={qty:0,total:0});e.qty+=it.qty;e.total+=t;});});
  const movs=S.movs.filter(m=>m.sessId===sess.id);let ing=0,egr=0,gAuto=0;
@@ -30,14 +32,17 @@ function arqueoCalc(sess,inp){
  const paid=inp.payFromCash?(sueldo+mer+inp.gastosManual):0;
  const expectedCash=sess.opening+cashSales+ing-egr-paid+tr.tin-tr.tout;
  const declared=inp.declared;const diff=isNaN(declared)?0:declared-expectedCash;
- return{total,count:sales.length,byMethod,pend:{n:pend.length,total:pend.reduce((a,s)=>a+s.total,0)},rub:R,ing,egr,gAuto,gManual:inp.gastosManual,gastos,sueldo,merienda:mer,
+ return{total,cobrado,aCtaCte,vueltoTot,count:sales.length,byMethod,pend:{n:pend.length,total:pend.reduce((a,s)=>a+s.total,0)},rub:R,ing,egr,gAuto,gManual:inp.gastosManual,gastos,sueldo,merienda:mer,
   empName:inp.emp?inp.emp.name:'',hours:inp.hours,rate:inp.rate,reparte,otros,cashSales,paid,opening:sess.opening,tin:tr.tin,tout:tr.tout,transfers:tr.list,expectedCash,declared:isNaN(declared)?null:declared,diff,
   movs:movs.map(m=>({ts:m.ts,type:m.type,rubro:m.rubroName||rubName(m.rubro),concept:m.concept,amount:m.amount,user:m.user}))};}
 function buildReport(a,dayKey,who,inp){
  const L=[];const P=(t,cls)=>L.push({t,cls:cls||''});
  P(dmy(dayKey)+' '+DIAS[dowOfKey(dayKey)]+' cerró '+who,'h');P('');
  P('MOSTRADOR TOTAL : '+money(a.total)+' ('+a.count+' venta'+(a.count===1?'':'s')+')','h');
- Object.keys(a.byMethod).forEach(m=>{const x=a.byMethod[m];P((MET[m]||m)+' '+money(x.gross)+(x.n>1?' ('+x.n+')':''));if(x.fee>0)P('  comisión - '+money(x.fee).replace('$ ','$ ')+' · neto '+money(x.gross-x.fee));});
+ Object.keys(a.byMethod).filter(m=>m!=='fiado').forEach(m=>{const x=a.byMethod[m];P((MET[m]||m)+' '+money(x.gross)+(x.n>1?' ('+x.n+')':''));if(x.fee>0)P('  comisión - '+money(x.fee).replace('$ ','$ ')+' · neto '+money(x.gross-x.fee));});
+ P('COBRADO REAL (dinero que entró) : '+money(a.cobrado),'h');
+ if(a.aCtaCte>0)P('A CUENTA CORRIENTE (deuda de clientes, NO entró a caja) : '+money(a.aCtaCte),'w');
+ if(a.vueltoTot>0)P('Vuelto entregado en el turno : '+money(a.vueltoTot)+' (ya descontado del efectivo)');
  if(a.pend.n)P('⚠ Cobros digitales pendientes de confirmar: '+a.pend.n+' · '+money(a.pend.total),'w');
  P('');P('POR RUBRO :','h');
  a.reparte.concat(a.otros).forEach(r=>{let t=r.name+(r.owner?' ('+r.owner+')':'')+' : vendió '+money(r.sold)+' · ganancia '+money(r.profit);if(r.mov)t+=' · mov. '+money(r.mov);P(t);});
@@ -227,10 +232,10 @@ reg('caja','Caja','cash','cash_mov',()=>{const s=openSess();
  const old=dkey(s.openedAt)!==dkey(now());
  return `<div class="row"><h1 class="sp">Caja ${S.tenant.caja}${cashHdr(s)}</h1>${expBar('movimientos')}<button class="btn gold" data-act="nav" data-id="arqueo">Arqueo y cierre →</button></div>
  ${old?`<div class="errbox">Esta caja se abrió el ${dmy(dkey(s.openedAt))} y sigue abierta: hay días con ventas sin cierre.</div>`:''}
- <div class="grid g4"><div class="card kpi"><b>${money(s.opening)}</b><span>Apertura (${esc(s.openedBy)} · ${fmtDT(s.openedAt)})</span></div><div class="card kpi"><b>${money(a.total)}</b><span>Ventas confirmadas (${a.count})</span></div><div class="card kpi"><b>${money(a.expectedCash)}</b><span>Efectivo esperado hoy</span></div>${a.pend.n?`<div class="card kpi"><b class="neg">${a.pend.n}</b><span>Cobros digitales pendientes · ${money(a.pend.total)}</span></div>`:''}</div>
+ <div class="grid g4"><div class="card kpi"><b>${money(s.opening)}</b><span>Apertura (${esc(s.openedBy)} · ${fmtDT(s.openedAt)})</span></div><div class="card kpi"><b>${money(a.total)}</b><span>Ventas confirmadas (${a.count})</span></div><div class="card kpi"><b>${money(a.cobrado)}</b><span>Cobrado real hoy</span></div>${a.aCtaCte?`<div class="card kpi"><b class="neg">${money(a.aCtaCte)}</b><span>A cuenta corriente (no entró a caja)</span></div>`:''}<div class="card kpi"><b>${money(a.expectedCash)}</b><span>Efectivo esperado hoy</span></div>${a.pend.n?`<div class="card kpi"><b class="neg">${a.pend.n}</b><span>Cobros digitales pendientes · ${money(a.pend.total)}</span></div>`:''}</div>
  <div class="row" style="margin:1rem 0"><button class="btn" data-act="mov" data-type="ingreso">+ Ingreso de efectivo</button><button class="btn" data-act="mov" data-type="egreso">− Egreso de efectivo</button></div>
  <div class="card"><h3>Movimientos</h3><div class="tw"><table><thead><tr><th>Hora</th><th>Tipo</th><th>Rubro</th><th>Concepto</th><th class="r">Importe</th><th>Usuario</th></tr></thead><tbody>${ms.map(m=>`<tr><td>${hm(m.ts)}</td><td>${m.type==='ingreso'?'<span class="tag ok">Ingreso</span>':'<span class="tag bad">Egreso</span>'}</td><td>${esc(m.rubroName)}</td><td>${esc(m.concept)}</td><td class="r">${m.type==='ingreso'?'':'- '}${money(m.amount)}</td><td>${esc(m.user)}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">Sin movimientos.</td></tr>'}</tbody></table></div></div>
- <div class="card" style="margin-top:1rem"><h3>Ventas de esta caja</h3><div class="tw"><table><thead><tr><th>Nº</th><th>Hora</th><th>Medio</th><th>Estado</th><th class="r">Total</th><th></th></tr></thead><tbody>${S.sales.filter(x=>x.sessId===s.id).slice().reverse().map(x=>`<tr><td>${esc(x.n)}</td><td>${hm(x.ts)}</td><td>${esc(MET[x.method]||x.method)}${x.channel&&x.channel!=='local'?' · '+esc(x.channel):''}</td><td><span class="tag ${x.status==='ok'?'ok':x.status==='pendiente'?'warn':'bad'}">${esc(x.status)}</span></td><td class="r">${money(x.total)}</td><td class="r">${x.status==='pendiente'?`<button class="btn sm" data-act="paysale" data-id="${x.id}">Cobro</button>`:''}${x.status==='ok'&&can('void')?`<button class="btn sm red" data-act="voidsale" data-id="${x.id}">Anular</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">Sin ventas.</td></tr>'}</tbody></table></div></div>`;},null,'Operación');
+ <div class="card" style="margin-top:1rem"><h3>Ventas de esta caja</h3><div class="tw"><table><thead><tr><th>Nº</th><th>Hora</th><th>Medio</th><th>Estado</th><th class="r">Total</th><th></th></tr></thead><tbody>${S.sales.filter(x=>x.sessId===s.id).slice().reverse().map(x=>`<tr><td>${esc(x.n)}</td><td>${hm(x.ts)}</td><td>${esc(salePayLabel(x))}${x.channel&&x.channel!=='local'?' · '+esc(x.channel):''}</td><td><span class="tag ${x.status==='ok'?'ok':x.status==='pendiente'?'warn':'bad'}">${esc(x.status)}</span></td><td class="r">${money(x.total)}</td><td class="r">${x.status==='pendiente'?`<button class="btn sm" data-act="paysale" data-id="${x.id}">Cobro</button>`:''}${x.status==='ok'&&can('void')?`<button class="btn sm red" data-act="voidsale" data-id="${x.id}">Anular</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">Sin ventas.</td></tr>'}</tbody></table></div></div>`;},null,'Operación');
 A.openCaja=()=>{if(openSess())return;const v=cents(val('ap'));if(isNaN(v)||v<0)return toast('Ingresá el efectivo inicial (si es cero, escribí 0).',1);
  const ck=cashOpenCheck();if(ck.err)return toast(ck.err,1);S.sessions.push(Object.assign({id:uid(),caja:S.tenant.caja,openedBy:user.name,openedAt:now(),opening:v,closedAt:0},ck.extra));audit('APERTURA_CAJA',money(v)+(ck.extra.regName?' · '+ck.extra.regName:''));save();rerender();};
 function voidCore(s,reason){if(s.status==='ok'||s.status==='pendiente'){restock(s);}if(s.coupon){S.coupons.forEach(c=>{c.uses=c.uses.filter(u=>u.sale!==s.id);});}if(s.stamped&&typeof stampReverse==='function')stampReverse(s);s.status='anulada';s.voidReason=reason;audit('ANULAR_VENTA',s.n+' · '+reason);emit('sale.voided',{sale:s.n});save();rerender();}

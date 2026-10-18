@@ -10,7 +10,7 @@
 --   · Un solo proyecto sirve a muchos comercios; cada fila lleva comercio_id
 --     y la base (RLS) sólo deja ver lo del comercio del que sos miembro.
 --   · Nadie puede crear un comercio por su cuenta: hace falta una invitación
---     que carga Rave Holding (ver rave_invitar_comercio al final).
+--     que carga Vincular Business (ver rave_invitar_comercio al final).
 --   · Roles: admin · supervisor · mostrador · operador.
 -- =====================================================================
 
@@ -58,7 +58,7 @@ create table if not exists public.cajas (
 );
 
 -- Invitaciones. Dos tipos:
---   comercio_id NULL  → alta de un comercio nuevo (la carga Rave Holding)
+--   comercio_id NULL  → alta de un comercio nuevo (la carga Vincular Business)
 --   comercio_id dado  → alta de una persona al equipo (la carga el admin)
 -- La persona debe presentar el código: acá sólo se guarda su huella.
 create table if not exists public.invitaciones (
@@ -149,10 +149,10 @@ begin
    where lower(email) = v_email and comercio_id is null and usada is null and vence > now()
    order by id desc limit 1 for update;
   if not found then
-    raise exception 'Tu correo no tiene una invitación para crear un comercio. Pedila a Rave Holding.' using errcode = '42501';
+    raise exception 'Tu correo no tiene una invitación para crear un comercio. Pedila a Vincular Business.' using errcode = '42501';
   end if;
   if v_inv.intentos >= 8 then
-    return jsonb_build_object('ok', false, 'error', 'Demasiados intentos con el código: pedí una invitación nueva a Rave Holding.');
+    return jsonb_build_object('ok', false, 'error', 'Demasiados intentos con el código: pedí una invitación nueva a Vincular Business.');
   end if;
   if v_inv.codigo_hash is distinct from extensions.crypt(coalesce(p_codigo, ''), v_inv.codigo_hash) then
     -- no se usa "raise": el contador de intentos tiene que quedar guardado
@@ -338,7 +338,7 @@ revoke all on function public.registrar_caja(uuid, int, text, text) from public,
 grant execute on function public.registrar_caja(uuid, int, text, text) to authenticated;
 
 -- ---------------------------------------------------------------------
--- 6. Soporte de Rave Holding (SÓLO desde el SQL Editor):
+-- 6. Soporte de Vincular Business (SÓLO desde el SQL Editor):
 --      select public.rave_invitar_comercio('dueño@correo.com', 'Nombre del comercio', 'CODIGO-DE-INVITACION');
 --    El dueño crea su cuenta en el sistema (correo + contraseña propia) y, en la pantalla "Crear comercio",
 --    escribe ese código. Sin invitación nadie puede crear comercios en este proyecto.

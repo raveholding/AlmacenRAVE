@@ -45,9 +45,11 @@ function ticketModel(sale,W){const T=S.tenant,cfg=S.cfg.ticket;const B=[];const 
  if(cb&&cb.letra==='A'&&cb.neto!=null){add('l',{l:'Neto gravado',r:money(cb.neto)});add('l',{l:'IVA',r:money(cb.iva)});}
  add('l',{l:'TOTAL',r:money(sale.total),b:1,big:1});
  if(cb&&cb.letra==='B'&&cb.iva>0)add('t',{s:'Régimen de Transparencia Fiscal (Ley 27.743) — IVA contenido: '+money(cb.iva)+' [VERIFICAR texto]'});
- add('t',{s:'Medio de pago: '+(MET[sale.method]||sale.method)});
- if(sale.method==='efectivo'&&sale.recv>=sale.total&&sale.recv>0){add('l',{l:'Recibido',r:money(sale.recv)});add('l',{l:'Vuelto',r:money(sale.recv-sale.total)});}
- if(sale.fiado&&sale.cust)add('t',{s:'A cuenta corriente. Saldo adeudado: '+money(debtOf(sale.cust))});
+ {const pl=salePays(sale);const fi=saleFiadoAmt(sale);
+  if(pl.length>1||fi>0){add('t',{s:'Medios de pago:',b:1});pl.forEach(pp=>add('l',{l:'  '+(MET[pp.m]||pp.m)+(pp.m==='fiado'?' (a cta. cte.)':''),r:money(pp.a)}));add('l',{l:'Cobrado',r:money(sale.total-fi)});}
+  else add('t',{s:'Medio de pago: '+(MET[sale.method]||sale.method)});
+  if(sale.recv>0&&(sale.vuelto>0||(sale.method==='efectivo'&&sale.recv>=sale.total))){add('l',{l:'Recibido',r:money(sale.recv)});add('l',{l:'Vuelto',r:money(sale.vuelto!=null&&sale.pays?sale.vuelto:sale.recv-sale.total)});}
+  if(fi>0&&sale.cust){add('t',{s:'Estado: '+(salePayState(sale)==='parcial'?'PAGO PARCIAL':'PENDIENTE DE COBRO')+' · saldo de esta venta '+money(fi)});add('t',{s:'Saldo adeudado en cuenta corriente: '+money(debtOf(sale.cust))});}}
  if(sale.cust){const c=custById(sale.cust);if(c){add('sep');add('c',{s:'Socio N.º '+pad4(c.num)+' · Club RAVE',b:1});const st=stampsOf(c.id);add('c',{s:'Sellos: '+Math.min(st,S.loyalty.goal)+'/'+S.loyalty.goal+(st>=S.loyalty.goal?' — ¡premio para canjear!':'')});}}
  add('sep');
  if(cb){add('c',{s:'CAE: '+cb.cae,b:1});add('c',{s:'Vto. CAE: '+String(cb.vto||'').split('-').reverse().join('/')});if(cb.qr){let ok=true;try{ok=!!QR.encode(cb.qr);}catch(e){ok=false;}if(ok)add('qr',{data:cb.qr});}}
@@ -57,7 +59,7 @@ function ticketModel(sale,W){const T=S.tenant,cfg=S.cfg.ticket;const B=[];const 
  add('c',{s:'Instagram @'+(T.ig||'').toLowerCase()+' · Facebook '+(T.fb||'')});
  if(!(cb&&cb.qr)){add('qr',{data:menuUrl()});add('c',{s:'Escaneá: menú, Club y sellos'});}else add('c',{s:'Menú y Club: '+menuUrl(),sm:1});
  if(cfg.legal){add('sep');wrapTxt('Defensa del Consumidor: reclamos en el local. Ventas a distancia: botón de arrepentimiento en el menú digital. Prohibida la venta de alcohol y tabaco a menores de 18 años. Beber con moderación.',W).forEach(l=>add('c',{s:l,sm:1}));}
- add('c',{s:'Sistema RAVE · Rave Holding',sm:1});add('c',{s:'WhatsApp +54 9 387 514-3900',sm:1});
+ add('c',{s:'Sistema RAVE · desarrollado por',sm:1});add('c',{s:VB.name,sm:1,b:1});add('c',{s:'Cel. '+VB.phone,sm:1});add('c',{s:VB.mail,sm:1});add('c',{s:VB.lema,sm:1});
  return B;}
 function ticketText(sale,W){W=W||(S.cfg.ticket.w===58?32:42);const L=[];ticketModel(sale,W).forEach(b=>{
  if(b.t==='sep')L.push('-'.repeat(W));else if(b.t==='c')L.push(' '.repeat(Math.max(0,Math.floor((W-b.s.length)/2)))+b.s);else if(b.t==='l')L.push(lr(b.l,b.r,W));else if(b.t==='t')L.push(b.s);else if(b.t==='logo')L.push('[ LOGO RAVE ]');else if(b.t==='qr')L.push('[ QR: '+b.data+' ]');});return L.join('\n');}

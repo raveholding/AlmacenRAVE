@@ -1,10 +1,12 @@
-# Almacén RAVE · Sistema RAVE (Rave Holding)
+# Almacén RAVE · Sistema RAVE (VINCULAR BUSINESS)
 
 Sistema de gestión (POS + inventario + caja + clientes + menú público) para **Almacén RAVE**.
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
 Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
-## Versión: SISTEMA VB V26
+## Versión: SISTEMA VB V26 (+ V26.1)
+
+**V26.1 (2026-10-18):** cobro con **pagos mixtos** (p. ej. $ 40.000 efectivo + $ 20.000 cuenta corriente), validación de suma exacta, **alerta de vuelto**, arqueo que cuenta sólo el dinero que entró, débito automático en la cuenta corriente con estado *Pago parcial* y libro del cliente (migración `supabase/07-pagos-mixtos.sql`; pruebas `fuente/pruebas/v7.py`, `c16.py`, SQL 14). Marca oficial **VINCULAR BUSINESS** (banner, único celular (387) 4484132, vincularbusiness@gmail.com, lema) en ingreso, menú lateral, menú público ES/EN, tickets y mensajes del sistema.
 
 El prompt maestro vigente está en `fuente/SISTEMA_VB_V26.md` (incluye un anexo *as-built* con lo que está hecho, probado y pendiente). Las pruebas automáticas están en `fuente/pruebas/`.
 
@@ -18,7 +20,7 @@ El prompt maestro vigente está en `fuente/SISTEMA_VB_V26.md` (incluye un anexo 
 | Hardware (impresora, balanza, lector) | Sin probar con equipos reales [VERIFICAR por modelo]. |
 | Textos legales | Plantillas [VERIFICAR] con asesor legal. |
 
-## Conectar la nube (lo hace Rave Holding)
+## Conectar la nube (lo hace Vincular Business)
 
 0. Crear un proyecto nuevo en Supabase y anotar la *Project URL* y la clave **publicable** (`sb_publishable_…`).
 1. En ese proyecto: **Authentication → Providers → Email → desactivar «Confirm email»**.
@@ -41,4 +43,4 @@ SUPABASE_URL="https://<ref>.supabase.co" SUPABASE_KEY="sb_publishable_…" RAVE_
 
 Cifrado AES-256-GCM en el equipo (clave envuelta con PBKDF2-SHA256 200.000), datos personales cifrados antes de subir, aislamiento por comercio con RLS, roles validados en el servidor, stock sumado por el servidor, clave privada de ARCA sólo en el servidor, sin secretos en el archivo. Sin la contraseña ni el código de recuperación los datos cifrados no se pueden recuperar (por diseño).
 
-Desarrollado por Rave Holding · WhatsApp +54 9 387 514-3900 · raveholding@gmail.com
+Desarrollado por **VINCULAR BUSINESS** · Único celular (387) 4484132 · vincularbusiness@gmail.com · *“Tu idea, en buenas manos.”*

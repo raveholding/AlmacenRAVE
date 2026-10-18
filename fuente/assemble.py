@@ -3,6 +3,9 @@ B=lambda f:open(f,encoding='utf8').read()
 body=B('build/pub_body.html'); css=B('build/pub_css.html'); fonts=B('build/pub_fonts.html')
 extra=B('pub/extra.css'); blocks=B('pub/blocks.html'); pre=B('pub/pre.js'); post=B('pub/post.js')
 logo=B('build/logo_menu.txt')
+import base64
+vbb='data:image/webp;base64,'+base64.b64encode(open('assets/vb-banner.webp','rb').read()).decode()
+body=B('build/pub_body.html').replace('VB_BANNER_SRC',vbb)
 # logo liviano
 body,n=re.subn(r'<img class="logo" src="data:image/png;base64,[^"]+"','<img class="logo" src="'+logo+'"',body); assert n==1
 # bloques nuevos

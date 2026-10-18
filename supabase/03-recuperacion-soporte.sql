@@ -1,12 +1,12 @@
 -- =====================================================================
--- Sistema RAVE · 03 · Recuperación de clave y soporte de Rave Holding
+-- Sistema RAVE · 03 · Recuperación de clave y soporte de Vincular Business
 -- Correr DESPUÉS de 01 y 02. Se puede correr las veces que haga falta.
 --
 --   (La llave de recuperación y la marca "temporal" ya están en 02.)
 --   1. restablecer_clave_miembro(): el ADMINISTRADOR pone una clave temporal
 --      a alguien de su equipo (nunca a otro administrador ni a gente que
 --      también está en otro comercio).
---   2. soporte_restablecer_clave(): sólo Rave Holding, desde el SQL Editor.
+--   2. soporte_restablecer_clave(): sólo Vincular Business, desde el SQL Editor.
 --   3. Pedidos de ayuda (solicitudes_soporte + pedir_soporte) con aviso por
 --      mail opcional.
 -- =====================================================================
@@ -35,10 +35,10 @@ begin
               where m.usuario_id = p_usuario
                 and not exists (select 1 from public.miembros a
                                  where a.comercio_id = m.comercio_id and a.usuario_id = auth.uid() and a.rol = 'admin')) then
-    raise exception 'esa persona también está en otro comercio: el restablecimiento lo hace soporte de Rave Holding';
+    raise exception 'esa persona también está en otro comercio: el restablecimiento lo hace soporte de Vincular Business';
   end if;
   if exists (select 1 from public.miembros where comercio_id = p_comercio and usuario_id = p_usuario and rol = 'admin') then
-    raise exception 'la clave de otro administrador la restablece soporte de Rave Holding';
+    raise exception 'la clave de otro administrador la restablece soporte de Vincular Business';
   end if;
   -- sólo personas que ya entraron alguna vez a este comercio (tienen su llave): evita tomar cuentas ajenas
   if not exists (select 1 from public.llaves where comercio_id = p_comercio and usuario_id = p_usuario) then
@@ -54,7 +54,7 @@ revoke all on function public.restablecer_clave_miembro(uuid, uuid, text) from p
 grant execute on function public.restablecer_clave_miembro(uuid, uuid, text) to authenticated;
 
 -- ---------------------------------------------------------------------
--- 2. Soporte de Rave Holding (SÓLO desde el SQL Editor de Supabase):
+-- 2. Soporte de Vincular Business (SÓLO desde el SQL Editor de Supabase):
 --      select public.soporte_restablecer_clave('correo@cliente.com', 'ClaveTemporal-2026');
 --    Después la persona entra con esa clave y el sistema le pide su código de
 --    recuperación (o su clave anterior) para volver a abrir la llave.
@@ -83,7 +83,7 @@ end $$;
 revoke all on function public.soporte_restablecer_clave(text, text) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------
--- 3. Pedidos de ayuda a Rave Holding
+-- 3. Pedidos de ayuda a Vincular Business
 -- ---------------------------------------------------------------------
 create table if not exists public.solicitudes_soporte (
   numero     bigint generated always as identity primary key,
@@ -105,7 +105,7 @@ alter table public.solicitudes_soporte enable row level security;
 -- sin políticas: nadie la lee ni la escribe por la API; se ve en el panel de Supabase.
 revoke all on public.solicitudes_soporte from anon, authenticated;
 
--- Configuración privada del aviso por mail (la carga Rave Holding en el SQL Editor):
+-- Configuración privada del aviso por mail (la carga Vincular Business en el SQL Editor):
 --   insert into public.soporte_config (id, url, token) values (1, 'https://script.google.com/macros/s/…/exec', '…')
 --   on conflict (id) do update set url = excluded.url, token = excluded.token;
 create table if not exists public.soporte_config (

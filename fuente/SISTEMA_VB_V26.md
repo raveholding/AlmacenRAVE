@@ -55,7 +55,7 @@ Convenciones: identificadores de código en inglés; textos de interfaz y respue
 | ¿Se vende sin stock (stock negativo)? | `[SÍ/NO]` (por defecto SÍ, con interruptor) |
 | ¿Lectura de facturas de proveedores con IA en la nube? | `[SÍ/NO]` (cuesta por uso) |
 | Modalidad | Solo menú QR / Sistema completo con nube / + instalador Windows |
-| Desarrollador (créditos obligatorios) | `[DESARROLLADOR]` · `[WHATSAPP_DEV]` · `[CORREO_DEV]` |
+| Desarrollador (créditos obligatorios) | **VINCULAR BUSINESS** · Único celular **(387) 4484132** (`wa.me/5493874484132`) · **vincularbusiness@gmail.com** · lema “Tu idea, en buenas manos.” (datos oficiales: se mantienen en TODOS los productos; ver regla 11 y 7.12) |
 
 ---
 
@@ -75,7 +75,7 @@ Actuá como un equipo senior liderado por un **Arquitecto de Software y Líder T
 8. **Hacé el trabajo completo** (código, pruebas, subidas): no pases pasos manuales que puedas hacer vos. Si falta un dato, consultá **una sola vez y junto**, antes de suponer.
 9. **Una sola pasada de correcciones.** Revisá todas las correcciones pendientes antes de dar algo por terminado y antes de armar instaladores. No hagas entregas parciales que dejen arreglos para después.
 10. **Todo queda probado** con pruebas automáticas de flujos reales con datos reales (no sólo "carga la pantalla") y, para trabajo de alto riesgo, revisado por un agente independiente.
-11. **Créditos.** Los usuarios públicos tienen que saber quién desarrolló el sistema: `[DESARROLLADOR]` (`[WHATSAPP_DEV]` · `[CORREO_DEV]`) en ingreso, asistente, barra lateral, tickets, pantalla del cliente, menú, páginas de producto e instalador. Se puede cambiar la presentación (completa, corta, ícono), no eliminar.
+11. **Créditos (datos oficiales, no se cambian sin pedido del titular).** Desarrollado por **VINCULAR BUSINESS** · Único celular **(387) 4484132** · **vincularbusiness@gmail.com** · lema **“Tu idea, en buenas manos.”**. El banner oficial (imagen `assets/vb-banner.webp`, texto alternativo con los mismos datos) acompaña al ingreso y al menú público; el resto de los lugares lleva la línea de texto. Los usuarios tienen que saber quién desarrolló el sistema en ingreso, asistente, barra lateral, tickets, pantalla del cliente, menú, páginas de producto e instalador. Se puede cambiar la presentación (completa, corta, ícono), no eliminar.
 12. **Entrega honesta.** Al final, en pocas líneas: qué quedó, qué tiene que hacer el dueño, qué no se pudo probar. Prohibido afirmar "100 % funcional", "sin errores" o "compatible con todo" sin evidencia reproducible.
 13. **El Core no conoce ningún rubro ni marca de hardware.** Lo específico vive en módulos, configuración o adaptadores (orden de dependencia: Adaptador → Módulo → Core).
 14. **Demos:** los datos inventados (costos, stock, códigos de barras, cupones, planes, Wi-Fi, clientes, ventas) se rotulan "ejemplo" en pantalla y no se presentan como reales.
@@ -552,6 +552,25 @@ Referencias oficiales de implementación a revisar durante el desarrollo: Apple 
 
 ---
 
+## 4.20 VENTAS, PAGOS MIXTOS, VUELTO Y CUENTA CORRIENTE PARCIAL (V26.1)
+
+**Objetivo.** Una venta se puede cobrar con **varios medios a la vez** (p. ej. $ 60.000 = $ 40.000 efectivo + $ 20.000 cuenta corriente) sin que la caja, el arqueo ni la cuenta del cliente se desfasen. Es una extensión del cobro existente (4.18 no cambia); no se duplica ninguna pantalla: el mismo modal "Confirmar cobro" gana el modo **Dividir el pago (mixto)**.
+
+**Reglas obligatorias.**
+1. **Identificación.** Cuenta corriente (total o parcial) exige un **cliente identificado**; nunca consumidor final anónimo. Se respeta su límite de crédito sobre la parte a cuenta corriente.
+2. **Suma exacta.** La suma de los medios imputados + la parte a cuenta corriente debe dar **exactamente** el total (centavos enteros). Si faltan o sobran centavos, el botón Cobrar no avanza y se muestra "Faltan $ X / Sobran $ X". Hay un botón **Resto** por línea. Un medio no se repite; QR/MODO (cobro digital pendiente) no se combinan con otro medio.
+3. **Alerta de vuelto.** En efectivo, "Recibe en mano" es opcional; si es mayor que el importe imputado a efectivo se muestra una **alerta grande, role="alert"**, con el vuelto exacto ("VUELTO A ENTREGAR $ X") en el cobro, en el comprobante y en el ticket. Si es menor, se bloquea con mensaje claro. El vuelto **nunca** forma parte de lo imputado.
+4. **Caja y arqueo.** El efectivo esperado suma **sólo el dinero que entró** (importe imputado a efectivo, neto de vuelto). La parte a cuenta corriente **no** suma a efectivo ni a "cobrado" del turno. El cierre informa por separado: *COBRADO REAL* · *A CUENTA CORRIENTE (deuda de clientes, no entró a caja)* · *vuelto entregado*, y el total vendido.
+5. **Cuenta corriente.** Al confirmar se genera automáticamente un **débito** por el saldo (auditoría `CTA_CTE_DEBITO`). El estado de la venta queda **Pagada / Pago parcial / Pendiente de cobro** con el saldo vinculado; el resumen del cliente se actualiza al instante con el libro (débitos, créditos, saldo corrido). Anular la venta saca el débito. El saldo **se deriva** de ventas y cobros (no existe un segundo saldo que pueda desfasarse).
+6. **Atomicidad.** Toda validación (stock, límite, suma, cliente, cupón, sello) ocurre **antes** de mutar; una venta rechazada no deja stock, caja, deuda ni numeración huérfanos. En la nube, `sincronizar()` valida cada venta en su propia sub-transacción; los importes derivados (`fiadoAmt`, `paid`, `balance`, `pstate`) los **calcula el servidor** y una venta con pagos registrados queda **inmutable** (se corrige con anulación / nota de crédito).
+7. **Modelo de datos** (equivalente relacional de `registros`): `Ventas(id, n, ts, total, cust, status, pstate)` · `Detalle_Ventas = ventas.items[]` · `Pagos_Venta = ventas.pays[] {m, a, fee}` (a = importe imputado) · `Cuentas_Corrientes_Movimientos` = débitos (parte `fiado` de cada venta) + créditos (colección `fiado`, cobros de deuda), consultable con `cc_movimientos(comercio, cliente)`.
+8. **Exportación y reportes.** La exportación de ventas agrega `pagos`, `a_cuenta_corriente` y `estado_pago`; el dashboard reparte cada venta mixta entre sus medios.
+9. **Límite declarado.** El límite de crédito se valida en el mostrador (equipo); el servidor valida estructura, suma y cliente pero **no rechaza por límite** para no romper la venta sin conexión (se informa y se audita).
+
+**Pruebas obligatorias:** 40.000 + 20.000 = 60.000; suma que no cierra (menos/más); cuenta corriente sin cliente; cliente inexistente; límite excedido; medio repetido; QR combinado; efectivo recibido menor; vuelto 10.000 (recibe 50.000 sobre 40.000); arqueo sólo con efectivo real; reporte de cierre con deuda separada; ficha del cliente con débito y saldo; cobro de deuda; anulación; reenvío adulterado desde el equipo; aislamiento A/B; 320/360 px. Implementadas en `t/v7.py`, `t/c16.py` y `supabase/tests/14-sql-tests.sql`.
+
+---
+
 ## 5. MÓDULOS OPCIONALES (aditivos, auditables, apagados por defecto si dependen de terceros)
 
 Reglas comunes: banderas por comercio/sucursal/rol/dispositivo; migraciones SQL aditivas, versionadas e idempotentes probadas sobre copia; `tenant_id`, RLS y pruebas cruzadas A/B en toda entidad; servidor valida y recalcula; idempotencia; límites de uso; auditoría; dinero en centavos enteros; sin proveedor/credencial/dispositivo → estado "Pendiente de configuración" y el resto sigue funcionando; ninguna integración se declara terminada por tener una pantalla simulada.
@@ -651,7 +670,7 @@ El menú público es anónimo y de sólo lectura; se configura **todo** desde Ad
 9. **Wi-Fi temporal de invitados** (red aislada de la del POS; QR de conexión; clave fija, rotación manual o automática sólo si el equipo lo permite; vigencia; cambios auditados; cartel legal `[VERIFICAR]`).
 10. **Redes sociales — lista editable con lugar para agregar más:** cada red con interruptor "Mostrar", tipo (Instagram, Facebook, TikTok, X, YouTube, WhatsApp, LinkedIn, Telegram, Threads, Spotify, sitio web, otra), nombre, usuario y enlace; validación https, sin espacios y **coherencia de dominio con la red elegida**; para mostrarla debe tener enlace; íconos SVG en línea (genérico si falta); X y YouTube vienen precargadas **como ejemplo y apagadas**; sin widgets de terceros (los enlaces no cargan scripts).
 11. **Información legal** (privacidad y consentimientos, precios y entregas, botón de arrepentimiento y defensa del consumidor, venta restringida por edad, Wi-Fi) y botón de arrepentimiento que abre el canal configurado y queda registrado.
-12. **Créditos del desarrollador** en menú, páginas de producto y PWA, con mensaje prellenado que identifica al comercio.
+12. **Créditos del desarrollador (VINCULAR BUSINESS, datos oficiales de la regla 11)** en menú, páginas de producto y PWA, con banner oficial y mensaje prellenado (`wa.me/5493874484132`) que identifica al comercio.
 13. **Administración:** secciones (identidad, frases y leyendas, idiomas, bloques y orden, Club, Wi-Fi, ubicación y reseñas, redes, compartir y QR, acceso oculto, SEO/Open Graph, créditos y legales, vista previa y publicación); **borrador y publicación** con versión, usuario, fecha y hash; comparar y **revertir** a la versión anterior; el menú se actualiza sin recargar; sólo admin o rol autorizado (validado en servidor); validaciones al guardar; importar/exportar la configuración con diferencias, modo prueba y reversión.
 14. **SEO y rendimiento:** páginas por producto con Open Graph y JSON-LD (sólo con datos existentes), sitemap, PWA instalable, imágenes con `srcset` y carga diferida, accesibilidad AA (teclado, foco atrapado en modales, textos alternativos), 320/360 px sin desbordes.
 15. **Dependencias de terceros** (siempre decirlas al cliente): reseñas (API y cuotas), mapa embebido (consentimiento y CSP), rotación automática de Wi-Fi (equipo de red), textos legales, traducciones, widgets de redes.
@@ -874,12 +893,14 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 | 4.13 Asistente conversacional | **Hecho en modo texto con reglas locales**; voz del navegador **apagada por defecto**; modelo de lenguaje externo y voz en la nube: **Pendiente de configuración** | `p3d-assist.js` (`ActionRegistry` lista blanca de 14 acciones; confirmación por riesgo; críticas bloqueadas con acceso guiado; auditoría; estados `borrador`/`pendiente de sincronización`/`ejecutado`/`rechazado`/`fallido`) | `t/v4.py` 61/61 |
 | 4.18 Checkout online | **Sólo panel honesto**: modo de venta (`whatsapp` por defecto), parámetros no secretos de entrega, lista de requisitos; **no se puede activar** sin proveedor y servidor; sin pagos simulados | `p4b-online.js` | `t/v5.py` 15/15 |
 | 4.19 Wallet y avisos | **Sólo panel honesto** (apagado, requisitos, consentimientos reales); sin pases ni avisos | `p4b-online.js` | `t/v5.py` |
+| 4.20 Pagos mixtos, vuelto y cuenta corriente parcial (V26.1) | **Hecho** en cliente y nube: modo mixto, suma exacta, alerta de vuelto, arqueo con dinero real, débito automático, estado Pago parcial, libro del cliente | `p3b-pos.js` (`payCheck`, `commitSale`, `saleOkHTML`), `p3-ops.js` (`arqueoCalc`), `p6-loyalty.js` (`ccLedger`), `07-pagos-mixtos.sql` | `t/v7.py`, `t/c16.py`, SQL 14 |
+| Marca oficial VINCULAR BUSINESS (V26.1) | **Hecho** en ingreso, barra lateral, menú público (ES/EN), tickets, tarjeta del Club, mensajes de error de SQL/funciones y README | `VB`/`vbFooter` en `p2-core.js`, `assets/vb-banner.webp`, `build/pub_body.html` | `t/v8.py` |
 | 6.10 Rubro financiero obligatorio | Se mantiene (también en traspasos y en el servidor) | `06-v26.sql` | SQL 152/152 |
 
 ### B. Resultados de las suites (2026-10-18)
-- SQL (Postgres 16 real, scripts 01–06 dos veces para comprobar idempotencia + tests 10–13): **152 OK / 0 FALLAN**.
-- Demo/local con Chromium: `d1` 11/11 · `v1` 19/19 · `v2` 24/24 · `v3` 41/41 · `v4` 61/61 · `v5` 15/15 · `v6` 6/6 (22 pantallas sin desborde a 320/360/768 px).
-- Nube con servidor de prueba local y equipos reales en paralelo: `c2` 29/29 · `c3` 12/12 · `c4` 35/35 · `c5` 7/7 · `c10` 8/8 sin fallas · `c14` 9/9 · `c15` 18/18 (borrado, archivo con ventas, rechazo del servidor a un mostrador manipulado, cajas y traspaso inmutable).
+- SQL (Postgres 16 real, scripts 01–07 dos veces para comprobar idempotencia + tests 10–14): **173 OK / 0 FALLAN**.
+- Demo/local con Chromium: `d1` 11/11 · `v1` 19/19 · `v2` 24/24 · `v3` 41/41 · `v4` 61/61 · `v5` 15/15 · `v6` 6/6 · `v7` 34/34 (cobro mixto) · `v8` 18/18 (marca) (22 pantallas sin desborde a 320/360/768 px).
+- Nube con servidor de prueba local y equipos reales en paralelo: `c2` 29/29 · `c3` 12/12 · `c4` 35/35 · `c5` 7/7 · `c10` 8/8 sin fallas · `c14` 9/9 · `c15` 18/18 · `c16` 6/6 (venta mixta en la nube) (borrado, archivo con ventas, rechazo del servidor a un mostrador manipulado, cajas y traspaso inmutable).
 
 ### C. Límites declarados (no afirmar más que esto)
 - Checkout online, Wallet/avisos, WhatsApp Business API, correo, voz/LLM en la nube, transportistas: **sin proveedor conectado y sin prueba real**.
@@ -894,6 +915,9 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 - Una prueba de servidor que inventa un registro sin el campo obligatorio (p. ej. traspaso sin rubro) **debe** ser rechazada: usar la misma función de dominio que la pantalla para generar datos de prueba.
 - Con varios modales apilados, las pruebas deben accionar el último (`.last`), no el primero.
 - El asistente reutiliza el servicio de dominio (`stockAdjust`, líneas del ticket); no se duplicó lógica. Texto libre dictado no se guarda en la auditoría; se guarda acción, campos resueltos y resultado.
+- Los importes derivados de una venta (deuda, cobrado, estado) los calcula el servidor; el navegador sólo propone. Una venta con pagos no se reescribe: se anula.
+- Una función de pago compartida (`payCheck`) valida tanto la pantalla (aviso en vivo) como `commitSale` (decisión): no hay dos reglas que puedan divergir.
+- Los textos de ayuda/soporte dentro de SQL y funciones también llevan los datos oficiales del desarrollador: al cambiarlos hay que reaplicar `INSTALAR-TODO.sql` (es idempotente).
 - Tarjetas de tamaño físico fijo (modelo de tarjeta del Club, 342 px) necesitan contenedor con `overflow-x:auto` para no desbordar a 320 px.
 
 ---

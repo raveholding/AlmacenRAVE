@@ -1,5 +1,5 @@
 /* ===== Venta (POS) · barra de teclas F arriba, cobro con cliente, cupón y fiado ===== */
-const pos={lines:[],method:'efectivo',arca:false,rcp:null,sel:-1,q:'',rub:'',cust:'',coupon:'',stamp:'',recv:''};
+const pos={lines:[],method:'efectivo',arca:false,rcp:null,sel:-1,q:'',rub:'',cust:'',coupon:'',stamp:'',recv:'',mix:false,pays:[]};
 const prod=id=>S.products.find(p=>p.id===id);
 const pfull=p=>p.name+(p.sub?' ('+p.sub+')':'');
 const qtyIn=pid=>pos.lines.filter(l=>l.pid===pid).reduce((a,l)=>a+l.qty,0);
@@ -13,6 +13,32 @@ const FKEYS=[
  {n:9,l:'Cantidad',act:'fqty'},{n:10,l:'Precio',act:'fprice'},{n:11,l:'Buscar',act:'fsearch'},{n:12,l:'Cobrar',act:'cobrar',gold:true}];
 function fbarHTML(){return FKEYS.map(k=>`<button type="button" class="fk ${k.gold?'gold':''} ${(k.act==='fpay'&&pos.method===k.m)?'on':''}" data-act="${k.act}" ${k.m?`data-m="${k.m}"`:''} aria-label="${esc(k.l)} (F${k.n})"><b>${k.dyn?(pos.arca?'CON ARCA':'SIN ARCA'):esc(k.l)}</b><small>F${k.n}</small></button>`).join('');}
 
+/* ---- pagos de una venta: contrato único (venta simple o mixta) ----
+   sale.pays = [{m,a,fee}] en centavos IMPUTADOS a la factura (el vuelto no entra: es plata del cliente que vuelve).
+   La parte 'fiado' es deuda en cuenta corriente: no es dinero cobrado ni entra a la caja del turno. */
+const PAY_MIX=['efectivo','debito','credito','transferencia','fiado'];
+function salePays(s){return(s.pays&&s.pays.length)?s.pays:[{m:s.method,a:s.total,fee:s.fee||0}];}
+function saleFiadoAmt(s){return s.pays&&s.pays.length?s.pays.filter(p=>p.m==='fiado').reduce((a,p)=>a+p.a,0):(s.fiado?s.total:0);}
+function saleCollected(s){return s.total-saleFiadoAmt(s);}
+function salePayState(s){const f=saleFiadoAmt(s);return f<=0?'pagada':(f>=s.total?'pendiente':'parcial');}
+const PSTATE_TXT={pagada:'Pagada',parcial:'Pago parcial',pendiente:'Pendiente de cobro'};
+function salePayLabel(s){const L=salePays(s);if(L.length<2)return MET[s.method]||s.method;return 'Mixto: '+L.map(p=>(MET[p.m]||p.m)+' '+money(p.a)).join(' + ');}
+function payCheck(pays,total,cust,recv){
+ /* validación única (la usa la pantalla para avisar y commitSale para decidir) */
+ if(!Array.isArray(pays)||!pays.length)return{err:'Elegí al menos un medio de pago.'};
+ const seen={};let sum=0;
+ for(const p of pays){
+  if(!p||!MET[p.m]||p.m==='mixto')return{err:'Medio de pago inválido.'};
+  if(seen[p.m])return{err:'El medio '+(MET[p.m]||p.m)+' está repetido: sumá los importes en una sola línea.'};seen[p.m]=1;
+  if(!Number.isInteger(p.a)||p.a<=0)return{err:'El importe de '+(MET[p.m]||p.m)+' debe ser mayor a cero.'};sum+=p.a;}
+ if(pays.length>1&&pays.some(p=>p.m==='qr'||p.m==='modo'))return{err:'QR y MODO se cobran solos (quedan pendientes de confirmación): no se pueden combinar con otro medio.'};
+ if(sum!==total)return{err:'La suma de los pagos ('+money(sum)+') no coincide con el total ('+money(total)+'): '+(sum<total?'faltan ':'sobran ')+money(Math.abs(total-sum))+'.',diff:total-sum};
+ const fi=pays.find(p=>p.m==='fiado');
+ if(fi&&!cust)return{err:'La cuenta corriente exige identificar al cliente (no puede ser consumidor final).'};
+ const ef=pays.find(p=>p.m==='efectivo');let vuelto=0;
+ if(recv>0){if(!ef)return{err:'Indicaste efectivo recibido pero no hay una línea de efectivo.'};if(recv<ef.a)return{err:'El efectivo recibido ('+money(recv)+') es menor al importe en efectivo ('+money(ef.a)+').'};vuelto=recv-ef.a;}
+ return{ok:1,vuelto,fiadoAmt:fi?fi.a:0,cash:ef?ef.a:0};}
+
 function commitSale(method,arca,channel,lines,opts){
  opts=opts||{};
  const sess=openSess();if(!sess)return{err:'No hay caja abierta.'};lines=lines||pos.lines;if(!lines.length)return{err:'La operación está vacía.'};
@@ -24,20 +50,28 @@ function commitSale(method,arca,channel,lines,opts){
  const ben=(typeof applyBenefit==='function')?applyBenefit(lines,cust?cust.id:'',opts.coupon||''):{disc:0,kind:''};
  if(opts.coupon&&ben.kind!=='coupon'&&ben.couponErr)return{err:'Cupón: '+ben.couponErr};
  const gross=lines.reduce((a,l)=>a+Math.round(l.qty*l.price),0);const total=gross-ben.disc;const alloc=allocDisc(lines,ben.disc);
- if(method==='fiado'){if(!cust)return{err:'La cuenta corriente necesita un cliente.'};const lim=cust.limit||0;const deuda=debtOf(cust.id);
-  if(!(lim>0))return{err:'El cliente no tiene límite de crédito asignado.'};if(deuda+total>lim)return{err:'Supera el límite de crédito: debe '+money(deuda)+' de '+money(lim)+'.'};}
+ /* pagos: una sola línea (venta simple) o varias (mixta). Todo se valida ANTES de tocar stock, caja o cuenta corriente. */
+ const pays=(opts.pays&&opts.pays.length?opts.pays:[{m:method,a:total}]).map(p=>({m:p.m,a:p.a}));
+ const pc=payCheck(pays,total,cust,opts.recv||0);if(pc.err)return{err:pc.err};
+ method=pays.length>1?'mixto':pays[0].m;
+ if(pc.fiadoAmt>0){const lim=cust.limit||0;const deuda=debtOf(cust.id);
+  if(!(lim>0))return{err:'El cliente no tiene límite de crédito asignado.'};if(deuda+pc.fiadoAmt>lim)return{err:'Supera el límite de crédito: debe '+money(deuda)+' de '+money(lim)+' y esta venta suma '+money(pc.fiadoAmt)+'.'};}
  let stampRes=null;if(opts.stampCode){if(!cust)return{err:'El código de sello necesita un cliente.'};stampRes=verifyStampCode(opts.stampCode,cust.id);if(!stampRes.ok)return{err:'Sello: '+stampRes.msg};}
  const c=S.tenant.caja;S.seq[c]=(S.seq[c]||0)+1;const digital=method==='qr'||method==='modo';
+ pays.forEach(p=>{p.fee=(digital||p.m==='fiado')?0:Math.round(p.a*((S.cfg.fee[p.m]||0))/100);});
+ const fiadoAmt=pc.fiadoAmt;
  const sale={id:uid(),n:c+'-'+S.seq[c],ts:now(),user:user?user.name:'sistema',caja:c,sessId:sess.id,items:lines.map((l,i)=>({pid:l.pid,name:l.name,rubro:l.rubro,qty:l.qty,price:l.price,cost:l.cost,list:l.list,disc:alloc[i]||0})),total,method,
   doc:arca?'factura_pendiente_cae':'ticket_interno',status:digital?'pendiente':'ok',fee:0,channel:channel||'local',cust:cust?cust.id:'',custName:cust?cust.name+' '+cust.last:'',
-  coupon:ben.kind==='coupon'?ben.code:'',benefit:ben.disc?{kind:ben.kind,label:ben.label,disc:ben.disc}:null,recv:opts.recv||0,fiado:method==='fiado'};
- if(!digital&&method!=='fiado'){sale.fee=Math.round(total*((S.cfg.fee[method]||0))/100);}
+  coupon:ben.kind==='coupon'?ben.code:'',benefit:ben.disc?{kind:ben.kind,label:ben.label,disc:ben.disc}:null,recv:opts.recv||0,fiado:fiadoAmt>0,
+  pays,fiadoAmt,paid:total-fiadoAmt,balance:fiadoAmt,vuelto:pc.vuelto,pstate:fiadoAmt<=0?'pagada':(fiadoAmt>=total?'pendiente':'parcial')};
+ sale.fee=pays.reduce((a,p)=>a+p.fee,0);
  const neg=[];for(const pid in need){const p=prod(pid);p.stock=Math.round((p.stock-need[pid])*1000)/1000;if(p.stock<0)neg.push(p.name+' → '+p.stock);}if(neg.length)audit('VENTA_SIN_STOCK',neg.join(' · '));
  S.sales.push(sale);S.lastSale=sale.id;
  if(ben.kind==='coupon'&&ben.couponId){const cp=S.coupons.find(x=>x.id===ben.couponId);if(cp)cp.uses.push({ts:now(),sale:sale.id,cust:cust?cust.id:''});}
  if(opts.receptor&&arca&&typeof arcaRcpStore==='function')arcaRcpStore(sale.id,opts.receptor);
  if(stampRes&&stampRes.ok){commitStamp(cust.id,stampRes,'venta '+sale.n);sale.stamped=true;}
- audit('VENTA',sale.n+' · '+MET[method]+' · '+money(total)+(sale.benefit?' · '+ben.label+' -'+money(ben.disc):'')+' · '+(arca?'Con ARCA (pend. CAE)':'Sin ARCA')+(cust?' · cliente '+cust.num:''));
+ audit('VENTA',sale.n+' · '+salePayLabel(sale)+' · '+money(total)+(sale.benefit?' · '+ben.label+' -'+money(ben.disc):'')+' · '+(arca?'Con ARCA (pend. CAE)':'Sin ARCA')+(cust?' · cliente '+cust.num:'')+(pc.vuelto?' · vuelto '+money(pc.vuelto):''));
+ if(fiadoAmt>0)audit('CTA_CTE_DEBITO',sale.n+' · '+custFull(cust)+' · débito '+money(fiadoAmt)+' · estado '+PSTATE_TXT[sale.pstate]);
  emit('sale.created',{sale:sale.n,total,method});if(digital)emit('payment.pending',{sale:sale.n,method});
  if(typeof pubRefresh==='function')pubRefresh();save();return{sale,stamp:stampRes&&stampRes.ok?stampRes:null};}
 
@@ -87,44 +121,84 @@ A.ncgo=el=>{$$('#modal-root .ov').forEach(o=>o.remove());A.voidsale(el);};
 function cobroW(){const d=$('#modal-root .dlg[aria-label="Confirmar cobro"]');return d?d.closest('.ov'):null;}
 function cobroSync(){const w=cobroW();if(!w)return;const g=id=>w.querySelector('#'+id);if(g('cb-cup'))pos.coupon=g('cb-cup').value.trim().toUpperCase();if(g('cb-code'))pos.stamp=g('cb-code').value.trim();if(g('rcv'))pos.recv=g('rcv').value;if(typeof arcaRcpSync==='function')arcaRcpSync(w);}
 function cobroRender(){const w=cobroW();if(!w)return;cobroSync();w.querySelector('.mb').innerHTML=cobroView();}
+function mixParsed(){ /* pagos tal como están cargados en pantalla (centavos); NaN = número inválido */
+ return pos.pays.map(p=>({m:p.m,a:p.a===''?0:cents(p.a),r:p.r===''?0:cents(p.r)}));}
+function mixSummaryHTML(tot){
+ const L=mixParsed();const sum=L.reduce((a,p)=>a+(isNaN(p.a)?0:p.a),0);const diff=tot-sum;
+ const ef=L.find(p=>p.m==='efectivo');const rc=ef&&!isNaN(ef.r)?ef.r:0;const efA=ef&&!isNaN(ef.a)?ef.a:0;
+ const fi=L.find(p=>p.m==='fiado'&&!isNaN(p.a)&&p.a>0);
+ let h=`<div class="row sm"><span class="sp">Total a cobrar</span><b>${money(tot)}</b></div><div class="row sm"><span class="sp">Imputado en los medios</span><b>${money(sum)}</b></div>`;
+ h+=diff===0?'<div class="okbox sm" role="status"><b>✔ Cubierto exacto.</b></div>':diff>0?`<div class="errbox sm" role="status"><b>Faltan ${money(diff)}</b> para completar el total.</div>`:`<div class="errbox sm" role="status"><b>Sobran ${money(-diff)}</b>: los medios suman más que el total.</div>`;
+ if(fi)h+=`<div class="warnbox sm">A cuenta corriente: <b>${money(fi.a)}</b> · <u>no ingresa a la caja</u>, queda como deuda del cliente.</div>`;
+ if(ef&&rc>0){if(rc>=efA&&efA>0){const v=rc-efA;h+=v>0?`<div class="vuelto" role="alert" aria-live="assertive"><span>VUELTO A ENTREGAR</span><b>${money(v)}</b><small>Recibido ${money(rc)} − efectivo imputado ${money(efA)}</small></div>`:'<div class="okbox sm">Efectivo justo: sin vuelto.</div>';}
+  else if(efA>0)h+=`<div class="errbox sm"><b>Efectivo recibido insuficiente:</b> faltan ${money(efA-rc)} para el importe en efectivo.</div>`;}
+ return h;}
 function cobroView(){
- const cust=custById(pos.cust);const ben=posBen();const gross=posGross();const tot=gross-ben.disc;const m=pos.method;
- const chips=POS_METHODS.map((k,i)=>`<button type="button" class="btn sm ${m===k?'on':''}" data-act="cbmet" data-m="${k}">${esc(MET[k]||k)}${i<4?` (F${i+1})`:''}</button>`).join('');
- const custBox=cust?`<div class="okbox row"><span class="sp"><b>${esc(cust.name+' '+cust.last)}</b> · socio ${esc(pad4(cust.num))}${memberActive(cust)?' · ⭐ '+esc(memberActive(cust).name):''}${m==='fiado'?` · debe ${money(debtOf(cust.id))} de ${money(cust.limit||0)}`:''}</span><button class="btn sm" data-act="cbcust" data-id="">Quitar</button></div>`
-  :`<label for="cb-q">Cliente ${m==='fiado'?'(obligatorio)':'(opcional: sellos, cupones, membresía)'}</label><input id="cb-q" placeholder="Buscar por nombre o WhatsApp" autocomplete="off"><div id="cb-res"></div>`;
+ const cust=custById(pos.cust);const ben=posBen();const gross=posGross();const tot=gross-ben.disc;const m=pos.mix?'mixto':pos.method;
+ const needCust=m==='fiado'||(pos.mix&&pos.pays.some(p=>p.m==='fiado'));
+ const chips=POS_METHODS.map((k,i)=>`<button type="button" class="btn sm ${m===k?'on':''}" data-act="cbmet" data-m="${k}">${esc(MET[k]||k)}${i<4?` (F${i+1})`:''}</button>`).join('')+`<button type="button" class="btn sm ${pos.mix?'on':''}" data-act="cbmix" aria-pressed="${pos.mix?'true':'false'}">Dividir el pago (mixto)</button>`;
+ const custBox=cust?`<div class="okbox row"><span class="sp"><b>${esc(cust.name+' '+cust.last)}</b> · socio ${esc(pad4(cust.num))}${memberActive(cust)?' · ⭐ '+esc(memberActive(cust).name):''}${needCust?` · debe ${money(debtOf(cust.id))} de ${money(cust.limit||0)}`:''}</span><button class="btn sm" data-act="cbcust" data-id="">Quitar</button></div>`
+  :`<label for="cb-q">Cliente ${needCust?'(obligatorio para cuenta corriente)':'(opcional: sellos, cupones, membresía)'}</label><input id="cb-q" placeholder="Buscar por nombre o WhatsApp" autocomplete="off"><div id="cb-res"></div>`;
  const benTxt=(ben.disc?`<div class="okbox">${esc(ben.label)}: − ${money(ben.disc)}${ben.note?'<br><span class="sm">'+esc(ben.note)+'</span>':''}</div>`:'')+(pos.coupon&&ben.couponErr?`<div class="errbox">Cupón: ${esc(ben.couponErr)}</div>`:'')+(!ben.disc&&ben.note?`<div class="warnbox sm">${esc(ben.note)}</div>`:'');
+ const mixHtml=pos.mix?`<div class="card" id="mixbox" style="margin:.5rem 0"><h3 style="margin-top:0">Pagos del cliente</h3><p class="sm mut">Repartí el total entre los medios. La suma debe dar exactamente el total. El efectivo que entrega el cliente va en “Recibe en mano”; si es más que el importe, se calcula el vuelto.</p>
+  ${pos.pays.map((p,i)=>`<div class="mixrow" data-row="${i}"><div><label for="mx-m${i}">Medio</label><select id="mx-m${i}" data-pi="${i}" data-pf="m">${PAY_MIX.map(k=>`<option value="${k}" ${p.m===k?'selected':''}>${esc(MET[k])}</option>`).join('')}</select></div>
+   <div><label for="mx-a${i}">Importe a imputar ($)</label><input id="mx-a${i}" inputmode="decimal" autocomplete="off" placeholder="0" data-pi="${i}" data-pf="a" value="${esc(p.a)}"></div>
+   ${p.m==='efectivo'?`<div><label for="mx-r${i}">Recibe en mano ($)</label><input id="mx-r${i}" inputmode="decimal" autocomplete="off" placeholder="Justo: dejalo vacío" data-pi="${i}" data-pf="r" value="${esc(p.r)}"></div>`:'<div></div>'}
+   <div class="mixbtns"><button type="button" class="btn sm" data-act="cbrest" data-i="${i}">Resto</button>${pos.pays.length>1?`<button type="button" class="btn sm red" data-act="cbmrm" data-i="${i}" aria-label="Quitar este medio">✕</button>`:''}</div></div>`).join('')}
+  ${pos.pays.length<PAY_MIX.length?'<button type="button" class="btn sm" data-act="cbmadd">+ Agregar medio</button>':''}
+  <div id="mx-sum" style="margin-top:.6rem">${mixSummaryHTML(tot)}</div></div>`:'';
  return `<div class="card" style="margin-bottom:.6rem">${pos.lines.map(l=>`<div class="row sm"><span class="sp">${esc(l.name)} × ${numAR(l.qty,3)}</span><b>${money(Math.round(l.qty*l.price))}</b></div>`).join('')}${ben.disc?`<div class="row sm"><span class="sp">Subtotal</span><span>${money(gross)}</span></div><div class="row sm" style="color:var(--ok)"><span class="sp">${esc(ben.label)}</span><b>− ${money(ben.disc)}</b></div>`:''}<hr><div class="row"><span class="sp">TOTAL</span><span class="total">${money(tot)}</span></div></div>
  <div class="row" style="margin-bottom:.5rem">${chips}</div>
  <p class="sm"><b>Documento:</b> ${pos.arca?'Factura electrónica (CAE al cobrar)':'Ticket interno — DOCUMENTO NO VÁLIDO COMO FACTURA'} <button class="btn sm" data-act="parca">${pos.arca?'CON ARCA':'SIN ARCA'} (F8)</button></p>
  ${custBox}
+ ${mixHtml}
  ${typeof arcaRcpHtml==='function'?arcaRcpHtml():''}
  <div class="grid g2"><div><label for="cb-cup">Cupón</label><div class="row"><input id="cb-cup" class="sp" maxlength="24" placeholder="CÓDIGO" autocomplete="off" value="${esc(pos.coupon)}"><button class="btn sm" data-act="cbcup">Aplicar</button></div></div>
  <div><label for="cb-code">Código de sello del cliente</label><input id="cb-code" inputmode="numeric" placeholder="Ej.: 0007 4821" autocomplete="off" value="${esc(pos.stamp)}"></div></div>
  ${benTxt}
  ${m==='fiado'&&!cust?'<div class="warnbox">Elegí el cliente para dejar la venta en cuenta corriente.</div>':''}
- ${m==='efectivo'?`<label for="rcv">Recibido ($) — opcional</label>${numIn('rcv',0,'0')}<p id="vuelto" class="sm mut"></p>`:''}
+ ${m==='efectivo'?`<label for="rcv">Recibido ($) — opcional</label>${numIn('rcv',0,'0')}<div id="vuelto" class="sm mut" aria-live="assertive"></div>`:''}
+ ${pos.mix&&needCust&&!cust?'<div class="warnbox">Hay una línea de cuenta corriente: identificá al cliente (no puede ser consumidor final).</div>':''}
  ${(m==='qr'||m==='modo')?'<div class="warnbox">Cobro digital: queda <b>pendiente</b> hasta que llegue la confirmación del webhook. El stock se reserva y el cobro no cuenta en caja hasta confirmarse.</div>':''}`;}
+function vueltoHTML(r,tot){if(isNaN(r)||!r)return '';if(r>tot)return `<div class="vuelto" role="alert"><span>VUELTO A ENTREGAR</span><b>${money(r-tot)}</b><small>Recibido ${money(r)} − total ${money(tot)}</small></div>`;if(r===tot)return '<div class="okbox sm">Efectivo justo: sin vuelto.</div>';return `<div class="errbox sm"><b>Falta ${money(tot-r)}</b> para completar el efectivo.</div>`;}
 A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin permiso',1);if(!openSess()){toast('Abrí la caja para vender.',1);return;}
  if(cobroW())return;
  const w=modal('Confirmar cobro',cobroView(),{wide:true,okText:'Cobrar (F12)',onOk:()=>{cobroSync();
   const rc=pos.recv?cents(pos.recv):0;
   if(pos.stamp&&!pos.cust){const vr=verifyStampCode(pos.stamp,'');if(vr.ok)pos.cust=vr.cust.id;}
   if(pos.arca&&typeof arcaRcpCheck==='function'){const er=arcaRcpCheck();if(er){toast(er,1);return false;}}
-  const r=commitSale(pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv:isNaN(rc)?0:rc,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null});
+  let pays=null,recv=isNaN(rc)?0:rc;
+  if(pos.mix){const L=mixParsed();if(L.some(p=>isNaN(p.a)||isNaN(p.r))){toast('Revisá los importes: hay un número inválido.',1);return false;}
+   pays=L.filter(p=>p.a>0).map(p=>({m:p.m,a:p.a}));const ef=L.find(p=>p.m==='efectivo');recv=ef?ef.r:0;}
+  const r=commitSale(pos.mix?'mixto':pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv,pays,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null});
   if(r.err){toast(r.err,1);return false;}
-  const sale=r.sale;pos.lines=[];pos.sel=-1;pos.cust='';pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';posCart();posGrid();
+  const sale=r.sale;pos.lines=[];pos.sel=-1;pos.cust='';pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];posCart();posGrid();
   toast('Venta '+sale.n+' registrada'+(r.stamp?' · sello sumado':''));
   setTimeout(()=>{if(sale.status==='pendiente')payModal(sale);else if(sale.doc!=='ticket_interno'&&typeof arcaPostSale==='function')arcaPostSale(sale,r.stamp);else receiptModal(sale,r.stamp);},50);}});
  w.addEventListener('input',e=>{const t=e.target;
-  if(t.id==='rcv'){const r=cents(t.value);const tot=posTotal();$('#vuelto',w).textContent=(!isNaN(r)&&r>=tot)?'Vuelto: '+money(r-tot):(isNaN(r)?'':'Falta '+money(tot-r));}
+  if(t.id==='rcv'){const v=$('#vuelto',w);if(v)v.innerHTML=vueltoHTML(cents(t.value),posTotal());}
+  if(t.dataset&&t.dataset.pi!==undefined&&t.dataset.pf!=='m'){pos.pays[+t.dataset.pi][t.dataset.pf]=t.value;const sm=$('#mx-sum',w);if(sm)sm.innerHTML=mixSummaryHTML(posTotal());}
   if(t.id==='cb-q'){const q=t.value.trim().toLowerCase();const res=$('#cb-res',w);if(!q){res.innerHTML='';return;}
    const L=S.customers.filter(c=>(c.name+' '+c.last).toLowerCase().includes(q)||c.wa.replace(/\D/g,'').includes(q.replace(/\D/g,'')||'zz')||pad4(c.num)===q).slice(0,6);
-   res.innerHTML=L.map(c=>`<button class="btn sm" style="margin:.2rem .2rem 0 0" data-act="cbcust" data-id="${c.id}">${esc(c.name+' '+c.last)} · ${esc(pad4(c.num))}</button>`).join('')||'<span class="sm mut">Sin resultados</span>';}});};
-A.cbmet=el=>{pos.method=el.dataset.m;cobroRender();posCart();};
+   res.innerHTML=L.map(c=>`<button class="btn sm" style="margin:.2rem .2rem 0 0" data-act="cbcust" data-id="${c.id}">${esc(c.name+' '+c.last)} · ${esc(pad4(c.num))}</button>`).join('')||'<span class="sm mut">Sin resultados</span>';}});
+ w.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.pi!==undefined&&t.dataset.pf==='m'){const row=pos.pays[+t.dataset.pi];row.m=t.value;if(row.m!=='efectivo')row.r='';cobroRender();}});};
+A.cbmix=()=>{cobroSync();pos.mix=!pos.mix;if(pos.mix){const first=(PAY_MIX.includes(pos.method)&&pos.method!=='fiado')?pos.method:'efectivo';pos.pays=[{m:first,a:'',r:''},{m:'fiado',a:'',r:''}];}else{pos.pays=[];}cobroRender();};
+A.cbmadd=()=>{const used=pos.pays.map(p=>p.m);const m=PAY_MIX.find(k=>!used.includes(k));if(m){pos.pays.push({m,a:'',r:''});cobroRender();}};
+A.cbmrm=el=>{pos.pays.splice(+el.dataset.i,1);cobroRender();};
+A.cbrest=el=>{const L=mixParsed();const i=+el.dataset.i;const others=L.reduce((a,p,j)=>a+(j===i||isNaN(p.a)?0:p.a),0);const rest=posTotal()-others;if(rest<=0)return toast('No queda resto: los otros medios ya cubren el total.',1);pos.pays[i].a=pesosStr(rest);cobroRender();};
+A.cbmet=el=>{pos.method=el.dataset.m;pos.mix=false;pos.pays=[];cobroRender();posCart();};
 A.cbcust=el=>{pos.cust=el.dataset.id||'';cobroRender();};
 A.cbcup=()=>{cobroRender();};
+function saleOkHTML(sale){
+ const L=salePays(sale);const f=saleFiadoAmt(sale);
+ let h=`<div class="okbox"><b>Total ${money(sale.total)}</b> · ${esc(salePayLabel(sale))}${f>0?' · '+esc(PSTATE_TXT[salePayState(sale)]):''}</div>`;
+ if(L.length>1||f>0)h+=`<div class="card sm" style="margin:.4rem 0">${L.map(p=>`<div class="row"><span class="sp">${esc(MET[p.m]||p.m)}${p.m==='fiado'?' <span class="tag warn">deuda, no entra a caja</span>':''}</span><b>${money(p.a)}</b></div>`).join('')}<hr><div class="row"><span class="sp">Cobrado ahora (dinero real)</span><b>${money(sale.total-f)}</b></div>${f>0?`<div class="row"><span class="sp">Saldo a cuenta corriente</span><b class="neg">${money(f)}</b></div>`:''}</div>`;
+ if(sale.vuelto>0)h+=`<div class="vuelto" role="alert"><span>VUELTO A ENTREGAR</span><b>${money(sale.vuelto)}</b><small>Recibido ${money(sale.recv)}</small></div>`;
+ else if(!sale.pays&&sale.recv&&sale.method==='efectivo'&&sale.recv>=sale.total)h+=`<div class="vuelto" role="alert"><span>VUELTO A ENTREGAR</span><b>${money(sale.recv-sale.total)}</b></div>`;
+ if(f>0&&sale.cust)h+=`<div class="warnbox sm">Cuenta corriente de <b>${esc(sale.custName)}</b>: débito de ${money(f)} generado. Saldo total adeudado: <b>${money(debtOf(sale.cust))}</b>.</div>`;
+ return h;}
 function receiptModal(sale,stamp){
- modal('Venta '+sale.n+' registrada',`<div class="okbox">Total ${money(sale.total)} · ${esc(MET[sale.method])}${sale.recv&&sale.method==='efectivo'&&sale.recv>=sale.total?' · vuelto '+money(sale.recv-sale.total):''}${sale.fiado?' · queda en cuenta corriente':''}</div>${stamp?`<div class="okbox">⭐ Sello sumado a ${esc(stamp.custName)}: ${stamp.stamps}/${S.loyalty.goal}${stamp.reward?' · ¡premio disponible!':''}</div>`:''}<p class="sm mut">¿Querés imprimir el ticket? Si hay impresora térmica conectada se imprime directo; si no, se abre la impresión del navegador.</p>`,
+ modal('Venta '+sale.n+' registrada',`${saleOkHTML(sale)}${stamp?`<div class="okbox">⭐ Sello sumado a ${esc(stamp.custName)}: ${stamp.stamps}/${S.loyalty.goal}${stamp.reward?' · ¡premio disponible!':''}</div>`:''}<p class="sm mut">¿Querés imprimir el ticket? Si hay impresora térmica conectada se imprime directo; si no, se abre la impresión del navegador.</p>`,
   {okText:'Imprimir ticket',cancelText:'Nueva venta',onOk:()=>{printSale(sale.id);}});}
 function payModal(s){modal('Cobro '+MET[s.method]+' · '+s.n,`<div class="card" style="text-align:center"><div style="font:700 3rem Georgia">▦</div><p>QR <span class="tag sim">SIMULADO</span> por ${money(s.total)}</p><p class="sm mut">En producción: el servidor crea la orden y el proveedor confirma por webhook firmado. Volver del checkout o mostrar una captura <b>nunca</b> acredita el cobro.</p></div>`,
  {okText:'Simular pago aprobado',cancelText:'Dejar pendiente',onOk:()=>{const r=webhook(s.id,s.method+'_'+s.id+'_approved','approved');toast(r==='ok'?'Pago confirmado por webhook (simulado)':r==='offline'?'API caída (simulada): el cobro sigue pendiente':'Evento '+r,r==='ok'?0:1);rerender();}});}
@@ -158,7 +232,7 @@ document.addEventListener('keydown',e=>{if(curScreen!=='vender'||$('#panel').hid
 document.addEventListener('keydown',e=>{if(curScreen!=='vender'||$('#panel').hidden)return;const ov=$('#modal-root .ov');const m=/^F(\d{1,2})$/.exec(e.key);if(!m)return;const n=+m[1];if(n<1||n>12)return;
  if(ov){if(!cobroW())return;e.preventDefault();
   if(n===12){ov.querySelector('[data-m=ok]').click();return;}
-  const mm={1:'efectivo',2:'debito',3:'credito',4:'fiado'}[n];if(mm){pos.method=mm;cobroRender();posCart();}else if(n===8)A.parca();
+  const mm={1:'efectivo',2:'debito',3:'credito',4:'fiado'}[n];if(mm){pos.method=mm;pos.mix=false;pos.pays=[];cobroRender();posCart();}else if(n===8)A.parca();
   return;}
  e.preventDefault();
  const k=FKEYS[n-1];const el={dataset:{m:k.m||''}};
