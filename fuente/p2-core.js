@@ -53,7 +53,7 @@ const dowOfKey=k=>new Date(k+'T12:00:00Z').getUTCDay();
 const addDays=(k,n)=>{const d=new Date(k+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
 
 /* ---------- Estado + persistencia (IndexedDB; demo sin cifrado) ---------- */
-const PERMS={sell:'Vender',cash_mov:'Ingresos/egresos de caja',close_cash:'Arqueo y cierre de caja',view_cost:'Ver costos y ganancias',edit_products:'Editar inventario',void:'Anular ventas',impex:'Importar / exportar',staff:'Personal y fichaje (admin)',tasks:'Tareas del personal',integrations:'Integraciones',audit:'Ver auditoría',roles:'Usuarios y permisos',menu_admin:'Administrar menú público',config:'Configuración',customers:'Clientes, fidelización y cupones',devices:'Periféricos y ticket',purchases:'Proveedores y compras'};
+const PERMS={sell:'Vender',cash_mov:'Ingresos/egresos de caja',close_cash:'Arqueo y cierre de caja',view_cost:'Ver costos y ganancias',edit_products:'Editar inventario',void:'Anular ventas',impex:'Importar / exportar',staff:'Personal y fichaje (admin)',tasks:'Tareas del personal',integrations:'Integraciones',audit:'Ver auditoría',roles:'Usuarios y permisos',menu_admin:'Administrar menú público',config:'Configuración',customers:'Clientes, fidelización y cupones',devices:'Periféricos y ticket',purchases:'Proveedores y compras',price_lists:'Listas de precio, escalones y acuerdos',credit_ov:'Autorizar excepciones de crédito'};
 const SEED_RUBROS=[
  {id:'promo',name:'Combos y promos',owner:'',reparte:false,alcohol:true,kind:'rubro',color:'#c9963e',mNom:'Promos',mTitle:'Menú de Promos de Bebidas',mHint:'',layout:'grid'},
  {id:'vino',name:'Vinos',owner:'',reparte:false,alcohol:true,kind:'rubro',color:'#7b2d3b',mNom:'Vinos',mTitle:'Vinos',mHint:'Por bodega y variedad',layout:'bodegas'},
@@ -65,7 +65,21 @@ function seedProducts(){return SEED_PRODS.map((p,i)=>({id:p.id,name:p.nom,sub:p.
  .concat([{id:'granel-1',name:'Maní con cáscara a granel',sub:'ejemplo para probar la balanza',grupo:'',rubro:'promo',price:850000,cost:610000,stock:12.5,unit:'kg',barcode:'',plu:'12',menu:false,active:true,desc:'',demo:true}]);}
 const BUILD_VER=(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.ver)||'sin dato';
 const IS_CLIENT=!!(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente');
-const DEF=()=>{const d=DEF0();return IS_CLIENT?clientClean(d):d;};
+const DEF=()=>{const d=DEF0();return IS_CLIENT?clientClean(d):wsDemoSeed(d);};
+/* DEMO: canal mayorista encendido con datos rotulados «ejemplo» (el sistema del cliente nace apagado y sin esto) */
+function wsDemoSeed(d){d.cfg=d.cfg||{};if(!d.cfg.wholesale)d.cfg.wholesale={on:true,example:true,allowClub:false,grace:0,lists:[]};
+ const ok=d.products.filter(p=>p.unit==='u'&&p.rubro!=='tabaco'&&!p.archived&&p.price>0);const r100=x=>Math.round(x/100)*100;
+ const a=ok[0],b=ok[1],c=ok[2],e=ok[3];
+ if(a&&!a.prices){a.prices={L2:r100(a.price*0.9)};a.tiers=[{list:'L2',from:6,to:11,price:r100(a.price*0.85),pct:0},{list:'L2',from:12,to:0,price:r100(a.price*0.8),pct:0}];a.packs=[{id:'pk-a6',name:'Caja ×6',qty:6,barcode:'',mode:'ambas',fixed:0,pct:5}];}
+ if(b&&!b.prices){b.prices={L2:r100(b.price*0.9)};b.packs=[{id:'pk-b12',name:'Caja ×12',qty:12,barcode:'',mode:'bulto_cerrado',fixed:12*r100(b.price*0.84),pct:0}];}
+ if(c&&!c.prices){c.prices={L2:r100(c.price*0.9),L5:r100(c.price*0.82)};c.floor=r100(c.price*0.7);}
+ if(e&&!e.prices){e.prices={L2:r100(e.price*0.92)};e.wsEx=1;}
+ return wsDemoCust(d);}
+/* cliente y acuerdo de ejemplo (la demo recrea sus clientes al sembrar, por eso va aparte) */
+function wsDemoCust(d){const r100=x=>Math.round(x/100)*100;
+ d.customers=d.customers||[];if(!d.customers.some(x=>x.example)){const t=now();d.customers.push({id:'cw-ejemplo-demo',num:d.customers.reduce((m,x)=>Math.max(m,x.num||0),0)+1,name:'Distribuidora',last:'Ejemplo (demo)',birth:'1980-01-01',wa:'+5493875550100',dni:'',cards:[],cardSecrets:{},origin:'ejemplo',consent:{club:true,comm:false,analytics:false,version:'v1-2026-demo',ts:t},ts:t,status:'activo',limit:50000000,secret:'demo-secret-ejemplo-0000',notes:'Cliente de ejemplo del canal mayorista',channel:'mayorista',list:'L2',taxid:'20123456786',term:15,zone:'Salta capital',seller:'',example:true});}
+ d.agreements=d.agreements||[];const e=d.products.find(p=>p.wsEx===1);if(e&&!d.agreements.some(x=>x.example)){d.agreements.push({id:'ag-ejemplo-demo',cust:'cw-ejemplo-demo',pid:e.id,price:r100(e.price*0.8),pct:0,from:'',to:'',active:true,by:'ejemplo',ts:now(),example:true});}
+ return d;}
 /* La copia del CLIENTE nace limpia: sin costos ni stock inventados, sin usuarios/PIN de prueba, sin cupones, planes, Wi-Fi ni redes "de ejemplo". */
 function clientClean(d){d.products=d.products.filter(p=>!/granel-1/.test(p.id)).map(p=>{const q=Object.assign({},p);q.cost=0;q.stock=0;delete q.demo;return q;});
  d.cfg.tax={};d.employees=[];d.users=[];d.tasks=d.tasks.slice();d.coupons=[];d.plans=[];d.customers=[];
@@ -89,7 +103,7 @@ const DEF0=()=>({v:3,
   {id:'t5',title:'Limpieza profunda de freezer',puestoId:'pu_dep',freq:'monthly',dom:1,active:true}],
  taskLogs:[],
  users:[{id:'u1',name:'ADMIN',role:'admin',pin:'1234'},{id:'u2',name:'Supervisor',role:'supervisor',pin:'1111'},{id:'u3',name:'Mostrador',role:'mostrador',pin:'0000'}],
- roles:{admin:Object.keys(PERMS),supervisor:['sell','cash_mov','close_cash','view_cost','edit_products','void','impex','tasks','audit','customers','devices','purchases'],mostrador:['sell','cash_mov','tasks','customers'],operador:['sell']},
+ roles:{admin:Object.keys(PERMS),supervisor:['sell','cash_mov','close_cash','view_cost','edit_products','void','impex','tasks','audit','customers','devices','purchases','price_lists','credit_ov'],mostrador:['sell','cash_mov','tasks','customers'],operador:['sell']},
  audit:[],arqDraft:{},batches:[],
  pya:[],events:[],seenEvents:{},simOffline:false,
  arcaRcp:{},
@@ -114,6 +128,7 @@ const DEF0=()=>({v:3,
   clubOn:true,pitch:{es:'Comprá tus bebidas —y mucho más— **sin bajarte del auto**. Escaneá este QR y armá tu pedido: **te confirmamos el stock por WhatsApp**, coordinás el pago y te lo alcanzamos en el transcurso de la tarde.',en:'Buy your drinks —and much more— **without leaving your car**. Scan this QR and build your order: **we confirm stock by WhatsApp**, you arrange payment and we bring it to you during the afternoon.'},
   footer:{es:'Almacén y Licorería · Urquiza 1052 · Salta, Argentina',en:'Grocery & Liquor store · Urquiza 1052 · Salta, Argentina'},
   hideTeamBtn:false,version:0,published:null},
+ agreements:[],creditOv:[],creditUse:[],
  lastSale:null});
 let S=DEF(), user=null;
 
@@ -124,8 +139,8 @@ function idb(){return new Promise((res,rej)=>{if(typeof indexedDB==='undefined')
 async function loadState(){try{const db=await idb();return await new Promise(res=>{const q=db.transaction('kv').objectStore('kv').get('state');q.onsuccess=()=>res(q.result);q.onerror=()=>res(null);});}catch(e){return null;}}
 let saveT;function save(){if(CLOUD_HOOK){CLOUD_HOOK.persist();return;}clearTimeout(saveT);saveT=setTimeout(async()=>{try{const db=await idb();db.transaction('kv','readwrite').objectStore('kv').put(JSON.parse(JSON.stringify(S)),'state');}catch(e){}},300);}
 /* "Proveedores y compras" es un permiso nuevo: si ningún rol lo tiene todavía (datos anteriores), lo reciben administrador y supervisor; si ya existe, se respeta lo que el dueño decidió */
-function rolesMigrate(r){if(!r)return r;const any=Object.values(r).some(a=>Array.isArray(a)&&a.includes('purchases'));if(!any){if(Array.isArray(r.supervisor))r.supervisor.push('purchases');if(Array.isArray(r.admin))r.admin.push('purchases');}return r;}
-function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);return st;}
+function rolesMigrate(r){if(!r)return r;for(const perm of['purchases','price_lists','credit_ov']){const any=Object.values(r).some(a=>Array.isArray(a)&&a.includes(perm));if(!any){if(Array.isArray(r.supervisor))r.supervisor.push(perm);if(Array.isArray(r.admin))r.admin.push(perm);}}return r;}
+function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);if(!IS_CLIENT&&st.cfg&&st.cfg.wholesale===undefined)wsDemoSeed(st);return st;}
 
 /* ---------- Permisos, auditoría ---------- */
 const can=p=>!!user&&(user.role==='admin'||(S.roles[user.role]||[]).includes(p));

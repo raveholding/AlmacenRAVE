@@ -1,6 +1,6 @@
 # SISTEMA VB 26F (`SISTEMA_VB_26F`) — PROMPT MAESTRO INTEGRAL FINAL (ERP/POS CONVERSACIONAL Y MODULAR)
 
-Versión 26F · revisión V26.4 (integra V26.1 pagos mixtos, V26.2 proveedores y compras, V26.3 Club/tarjeta/DNI/NFC y la **especificación del módulo Mayorista/Minorista 4.22**) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
+Versión 26F · revisión V26.5 (integra V26.1 pagos mixtos, V26.2 proveedores y compras, V26.3 Club/tarjeta/DNI/NFC y la **especificación del módulo Mayorista/Minorista 4.22**) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
 
 **Objetivo de V26:** construir el sistema desde el inicio con una arquitectura extensible y un asistente conversacional transversal por voz y texto, integrado al catálogo de acciones de negocio. Incorporar además cajas operativas y principales configurables, gestión multisucursal, borrado protegido de artículos, ordenamiento reutilizable de todas las tablas y un checkout e-commerce opcional que convive con el flujo actual de pedidos por WhatsApp, tarjetas de fidelización guardables en Apple Wallet/Google Wallet y avisos automáticos multicanal con consentimiento y control de frecuencia. Este prompt define requisitos y criterios de aceptación; ninguna función se considera implementada hasta demostrarla con archivos, migraciones y pruebas reales.
 
@@ -8,7 +8,7 @@ Versión 26F · revisión V26.4 (integra V26.1 pagos mixtos, V26.2 proveedores y
 
 | Cambio | Dónde | Estado en el código (2026-10-19) |
 |---|---|---|
-| Módulo **Mayorista / Minorista** con listas de precios, bultos, crédito, documentos vinculados, lotes/FEFO, cobranzas, cierre ciego, reportes y contabilidad opcional (a partir del documento `mayorista_integracion`). Absorbe 5.2 | **4.22** (fases F1–F7) | **Especificado; no implementado** |
+| Módulo **Mayorista / Minorista** con listas de precios, bultos, crédito, documentos vinculados, lotes/FEFO, cobranzas, cierre ciego, reportes y contabilidad opcional (a partir del documento `mayorista_integracion`). Absorbe 5.2 | **4.22** (fases F1–F7) | **F1 implementada y publicada** (canal, listas L1–L5, escalones, acuerdos, bultos, crédito con plazo y excepción); F2–F7 especificadas, no implementadas |
 | **Correcciones del Club V26.3** consolidadas con su checklist de aceptación: tarjeta en el celular al escanear el QR del menú, importación sin pérdida de altas, sellos por QR / código / DNI / NFC, cupones por audiencia | 4.6, prueba 36, anexo B/C/D | **Hecho y probado** (límites en el anexo C) |
 | Se corrige lo que decía 4.2: el selector **Remito / Presupuesto** no está en el código (sólo Ticket interno o Factura electrónica) | 4.2, 4.22.0 | **Pendiente** (fase F2) |
 | **Punto de reanudación** para seguir trabajando: repositorios, comandos, estado de la nube, pendientes, preguntas y prompt de arranque | **Anexo E** | — |
@@ -649,11 +649,11 @@ Antes de cada fase se vuelve a inspeccionar el repositorio: esta tabla es el pun
 | Requisito | Estado hoy | Qué hacer |
 |---|---|---|
 | Auditoría encadenada por hash; cambio de precio de línea auditado; `LIMITE_CREDITO` auditado | **Existe** (`audit()`, columnas fecha/usuario/acción/detalle/hash) | **Completar:** evento estructurado (módulo, entidad, valor anterior/nuevo, dispositivo); IP sólo del lado servidor; las filas viejas se leen con valores por defecto |
-| Cuenta corriente, límite de crédito, pagos mixtos, vuelto | **Existe** (4.20, `c.limit`, libro del cliente) | **Completar:** plazo máximo en días, vencimiento por documento, antigüedad de saldos, bloqueo y excepción autorizada |
+| Cuenta corriente, límite de crédito, pagos mixtos, vuelto | **Existe** (4.20, `c.limit`, libro del cliente) | **Hecho en F1:** plazo por cliente, vencimiento por documento (FIFO), antigüedad, tolerancia, bloqueo y excepción autorizada de un solo uso (anexo F) |
 | Factura A/B/C con CAE automático y condición de IVA del receptor | **Existe** (4.12) | Reutilizar; MiPyME/FCE **no existe** (`[VERIFICAR]`) |
 | Selector de documento **Ticket interno / Remito / Presupuesto** de 4.2 | **Parcial:** el código sólo emite *Ticket interno* o *Factura electrónica*; **Remito y Presupuesto no están implementados** | **Completar** dentro de 4.22.4 (no agregar una segunda vez) |
-| Bultos, escalones por cantidad, listas de precio, venta mayorista | **No existe** (5.2 y N.2 sólo especificados) | **Agregar** (fase F1) |
-| Canal por operación; categoría de cliente mayorista; zona; vendedor | **No existe** (sólo se nombra la atribución de vendedor en 5.8) | **Agregar** (F1/F6) |
+| Bultos, escalones por cantidad, listas de precio, venta mayorista | **Hecho en F1 (V26.5)**, detrás de `wholesale.on`: ver anexo F | Completar import/export de escalones y presentaciones; mostrar la regla en el ticket impreso |
+| Canal por operación; categoría de cliente mayorista; zona; vendedor | **Hecho en F1:** canal por operación (`sale.wch`), canal/lista/CUIT/plazo/zona/vendedor en la ficha del cliente | Reportes por canal/zona/vendedor en F6 |
 | Lotes, vencimientos, FEFO | **No existe** (compras 4.21 suma stock y costo, sin lote) | **Agregar** (F3), enganchado a `procesar_recepcion` |
 | Matriz talle/color/estampa | **No existe** | **Agregar** (F4), sólo si el rubro lo requiere |
 | Pesables | **Parcial:** unidades `u/kg/l`, PLU, EAN-13 de balanza, edición enlazada cantidad×precio×importe | **Completar:** unidad de stock distinta de la de facturación (pieza/caja ↔ kg) |
@@ -1231,7 +1231,7 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 | 6.10 Rubro financiero obligatorio | Se mantiene (también en traspasos y en el servidor) | `06-v26.sql` | SQL 152/152 |
 | 4.6 Club V26.3: tarjeta en el celular, importación de altas, sellos por QR/código/DNI/NFC, cupones | **Hecho** en cliente y nube (NFC y cámara reales sin probar) | `p6-loyalty.js`, `p9-cloud.js`, `pub/post.js`, `09-club-tarjeta.sql` | `c18` 51/51 · `c19` 21/21 · SQL 307/307 |
 | 4.2 Selector Remito / Presupuesto | **Pendiente** (hoy sólo Ticket interno o Factura electrónica) | — | — |
-| **4.22 Mayorista / Minorista (V26.4)** | **Especificado; no implementado** (matriz 4.22.0, fases F1–F7) | Este documento | — |
+| **4.22 Mayorista / Minorista (V26.4–V26.5)** | **F1 hecha y probada** (anexo F); F2–F7 especificadas, no implementadas (matriz 4.22.0) | Este documento | — |
 
 ### B. Resultados de las suites (2026-10-18)
 - SQL (Postgres 16 real, scripts 01–08 dos veces para comprobar idempotencia + tests 10–15; `INSTALAR-TODO.sql` aplicado dos veces sobre una base nueva): **293 OK / 0 FALLAN** (173 anteriores + 120 de proveedores y compras).
@@ -1247,7 +1247,7 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 ### C. Límites declarados (no afirmar más que esto)
 - **Club V26.3:** **NFC y lectura de QR con la cámara no se probaron con hardware ni celulares reales** (en las pruebas se simula la lectura; Web NFC sólo existe en Chrome para Android; `BarcodeDetector` depende del navegador). El lector de QR USB que escribe como teclado funciona en cualquier equipo. **Wallet (Apple/Google) no está implementado.** El límite global de usos de un cupón se controla en cada equipo y se concilia al sincronizar: dos cajas pueden gastar a la vez el último uso (mejora pendiente: reserva atómica en servidor). Si el cliente borra los datos del navegador pierde la tarjeta de su celular; el mostrador puede seguir sellando por DNI/NFC.
 - Proveedores y compras: probado contra un servidor de prueba equivalente y con navegador real; **hardware, lectura de facturas con IA y ARCA** no forman parte de este módulo. La función `api` requiere que el dueño la despliegue en su proyecto (no la necesita la pantalla). El producto no es clave foránea (vive en el catálogo genérico): lo valida la función.
-- **Mayorista/minorista (4.22, V26.4):** especificado, **no construido**: no hay listas de precios, bultos, canal, lotes, documentos vinculados, cierre ciego, cheques ni asientos. El selector Remito/Presupuesto de 4.2 tampoco existe todavía.
+- **Mayorista/minorista (4.22):** la fase F1 (listas, escalones, bultos, canal, crédito con plazo) está construida (anexo F). **No construido:** lotes, documentos vinculados, cierre ciego, cheques ni asientos. El selector Remito/Presupuesto de 4.2 tampoco existe todavía.
 - Checkout online, Wallet/avisos, WhatsApp Business API, correo, voz/LLM en la nube, transportistas: **sin proveedor conectado y sin prueba real**.
 - Gastronomía (mesas/comandas) y servicios (agenda) no están en este comercio: las acciones del asistente correspondientes no existen (están en la tabla de exclusiones).
 - Multisucursal en servidor, hardware real (impresoras, balanzas, huellas) y ARCA en producción: **no probados**. ARCA homologación fue cargada y aprobada por el dueño.
@@ -1276,23 +1276,46 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 
 **E.2 Construcción y pruebas.** Las partes `p1-head.html`, `p2-core.js` … `p9b-arca.js`, `assemble.py`, `build/pub_body.html` y `pub/*` (menú público en iframe) se ensamblan con `python3 build.py demo|cliente`; el cliente lleva la URL real y la clave publicable. Pruebas con navegador real: `bash t/run_c.sh <script>.py` (nube, contra un servidor de prueba equivalente) y `t/*.py` (demo); regresión completa: `bash t/regress.sh`; SQL: `bash supabase/tests/run.sh` (Postgres 16, PostgREST y Deno locales). Si el entorno de trabajo no conserva esas herramientas, recrearlas desde `fuente/` y `supabase/` antes de tocar nada, y volver a correr la regresión como línea base.
 
-**E.3 Nube.** Proyecto de Supabase en plan Pro; scripts `01`–`09` aplicados (`INSTALAR-TODO.sql` = 01–09, validado dos veces sobre base nueva); Edge Function `api` desplegada con "Verify JWT" apagado (valida la sesión adentro). **La próxima migración es la `10`.** La referencia del proyecto y la clave publicable viven en el repositorio del cliente; ningún secreto está en el HTML.
+**E.3 Nube.** Proyecto de Supabase en plan Pro; scripts `01`–`09` aplicados en producción (`INSTALAR-TODO.sql` = 01–10); **`10-mayorista-precios.sql` está en el repositorio pero hay que verificar en el proyecto si ya se corrió antes de activar `wholesale.on`**; Edge Function `api` desplegada con "Verify JWT" apagado (valida la sesión adentro). **La próxima migración nueva es la `11`.** La referencia del proyecto y la clave publicable viven en el repositorio del cliente; ningún secreto está en el HTML.
 
-**E.4 Estado funcional (2026-10-19).** V26.3 publicada: Club con tarjeta en el celular, importación sin pérdida de altas, sellos por QR/código/DNI/NFC y cupones por audiencia; SQL 307/307; regresión de demo y nube sin fallas (anexo B). 4.22 **no** está construido.
+**E.4 Estado funcional (2026-10-19).** V26.3 publicada: Club con tarjeta en el celular, importación sin pérdida de altas, sellos por QR/código/DNI/NFC y cupones por audiencia; SQL 307/307; regresión de demo y nube sin fallas (anexo B). 4.22 **F1 construida** (V26.5, anexo F); F2–F7 no.
 
 **E.5 Pendientes conocidos (por prioridad).**
 1. *Dueño:* entrar una vez como administrador con la versión nueva para que el menú se republique (meta, premio y cupones del Club); repetir el alta de prueba con un celular real (el alta de prueba anterior quedó rechazada a propósito).
 2. *Club:* reserva atómica del último uso de un cupón en el servidor (hoy dos cajas pueden gastarlo a la vez); recuperación de la tarjeta si el cliente borra los datos del celular (reutilizando la verificación WhatsApp + cumpleaños y el alias de tarjeta); prueba con NFC y cámara reales; Wallet (necesita cuentas y certificados).
 3. *4.2:* selector de documento Remito/Presupuesto (hoy sólo Ticket interno o Factura electrónica); se completa en 4.22 F2.
-4. *4.22:* fases F1–F7 según decida el dueño (recomendadas para un almacén/licorería: F1, F5 con cierre ciego y F6).
+4. *4.22:* F1 hecha. Siguen, según decida el dueño, F5 (cierre ciego; recomendada para un almacén/licorería) y F6 (reportes por canal); F2–F4 y F7 sólo si el negocio las necesita.
 5. *Otros:* multisucursal con RLS por sucursal en el servidor, ARCA en producción, hardware real, Checkout online, Wallet/avisos, voz en la nube.
 
 **E.6 Preguntas que se hacen UNA sola vez y juntas antes de empezar 4.22.** ¿Qué fases se construyen? · ¿Nombres de las listas L1–L5 y a qué clientes aplica cada una? · ¿Se vende por bulto/pack y de qué tamaño? · ¿Plazo máximo de crédito y tolerancia de mora? · ¿Algún rubro con lote y vencimiento? · ¿Cierre ciego sí/no y para qué roles? · ¿Cajas separadas por canal? · ¿Se cobra con cheque/eCheq o con retenciones? · ¿Habrá contabilidad con contador (nombre, método PPP/FIFO)?
 
 **E.7 Prompt de arranque (pegar al abrir una sesión nueva).**
 
-> Leé `SISTEMA_VB_26F.md` completo y el Anexo E. Inspeccioná los repositorios `AlmacenRAVE` y `raveV2` (sección 12) y corré la regresión como línea base. Después construí la **fase F1 de 4.22** (canal, listas L1–L5, escalones, acuerdos, presentaciones/bultos, `priceResolve` único para pantalla, `commitSale` y servidor, crédito con plazo y excepción autorizada): listá los supuestos; si falta algún dato de E.6, preguntalo una sola vez y junto; creá `10-mayorista-precios.sql` (aditiva, idempotente, con RLS y pruebas A/B) y agregala a `INSTALAR-TODO.sql`; implementala detrás de `wholesale.on` (apagada en el cliente, encendida con datos "ejemplo" en la demo); escribí las pruebas 1–3 y 12–14 de 4.22.14 junto con el código; corré la regresión con la bandera apagada y encendida; publicá demo y cliente; y entregame el informe honesto (qué quedó, qué debo hacer yo, qué no se pudo probar). No rompas nada de lo existente ni afirmes "100 % funcional" sin evidencia.
+> Leé `SISTEMA_VB_26F.md` completo y el Anexo E (y el anexo F). Inspeccioná los repositorios `AlmacenRAVE` y `raveV2` (sección 12) y corré la regresión como línea base. La fase F1 de 4.22 ya está construida; continuá con la fase que yo indique (recomendadas F5 cierre ciego y F6 reportes por canal): listá los supuestos; si falta algún dato de E.6, preguntalo una sola vez y junto; creá la migración `11-…sql` aditiva e idempotente con RLS y pruebas A/B y agregala a `INSTALAR-TODO.sql`; implementala detrás de su bandera (apagada en el cliente, con datos "ejemplo" en la demo); escribí las pruebas junto con el código; corré la regresión con la bandera apagada y encendida; publicá demo y cliente; y entregame el informe honesto (qué quedó, qué debo hacer yo, qué no se pudo probar). No rompas nada de lo existente ni afirmes "100 % funcional" sin evidencia.
+
+
+## ANEXO F — AS-BUILT DE LA FASE F1 DE 4.22 (V26.5, 2026-10-19; evidencia reproducible)
+
+**F.1 Qué se construyó** (módulo `p6b-wholesale.js`, bandera `S.cfg.wholesale.on`: **apagada en el cliente; encendida con datos «ejemplo» en la demo**).
+- **Resolución única de precio** `priceResolve(p,qty,{cust,chan})`, usada por la pantalla, `commitSale` y la revisión: base L1 → acuerdo del cliente (gana y no combina con escalones) → lista del cliente (si falta el precio, cae a L1 y lo explica) → escalón por cantidad **sumada del mismo producto en la operación** (sólo baja el precio, nunca lo sube) → bonificación por bulto cerrado (sólo cuando la cantidad es múltiplo del bulto; nunca sube el precio) → piso de precio.
+- **Canal mayorista** sólo con cliente identificado con CUIT válido (dígito verificador); si no, se cobra al precio minorista con aviso. El mayorista no recibe cupones, membresía ni sellos del Club salvo `allowClub`.
+- **Datos:** producto `prices{L2..L5}`, `tiers[{list,from,to,price,pct}]` (los escalones pertenecen a una lista; `to` vacío sólo en el último; sin solapes), `packs[{id,name,qty,barcode,mode,fixed,pct}]` (modo `ambas` o `bulto_cerrado`; bonificación `fixed` = precio por bulto, o `pct`), `floor`. Cliente: `channel`, `list`, `taxid` (cifrado como dato personal), `term`, `zone`, `seller`. Colecciones nuevas: `S.agreements` (`acuer`), `S.creditOv` (`cexc`, excepciones de crédito) y `S.creditUse` (`cexcu`, consumo sólo-agregar).
+- **Ediciones manuales** de precio de línea: `line.man=1` (regla `MAN`, fuera del recálculo). **Piso:** sólo con permiso `price_lists` y motivo.
+- **Crédito:** límite + plazo (`cust.term` → `sale.due`) + tolerancia `grace`; deuda vencida por FIFO; bloqueo por vencida o por límite salvo excepción de **un solo uso** (`credit_ov`, con monto máximo, vigencia y motivo). La venta guarda `wch`, y cada ítem `lr` (regla), `ll` (lista) y `lb` (base L1).
+- **Permisos nuevos:** `price_lists` y `credit_ov` (administrador siempre; supervisor por defecto).
+- **Servidor (`10-mayorista-precios.sql`, 25 KB):** `sincronizar` extendida (colecciones `acuer`, `cexc`, `cexcu`), validación del canal y de la existencia del cliente, y marca `credit_review`/`crw` cuando una venta a cuenta corriente supera el límite o no tiene límite sin una excepción válida del mismo cliente (la venta ya hecha nunca se rechaza: 4.20.9). Función `rave_deuda_cliente` no ejecutable desde la API.
+
+**F.2 Pruebas (resultados reales).** Demo `ws1` 53/53; nube con dos equipos `c20` 19/19; SQL `17-sql-tests.sql` 28 verificaciones (suite completa 335/335, con doble corrida idempotente); regresión completa con la bandera apagada: v1–v8, d1, p1, p2, a1, s1 y c1–c20 sin fallas (c15 falló una vez por temporización y pasó 18/18 al repetirlo solo).
+
+**F.3 Límites declarados (no afirmar lo contrario).**
+1. El servidor **no recalcula** precios de lista ni escalones: valida estructura, canal, existencia del cliente y el crédito (`credit_review`); el precio lo resuelve el equipo.
+2. El CUIT va cifrado; el servidor no lo valida. El bloqueo por mora vencida por plazo corre en el equipo (el servidor sólo marca límite).
+3. No hay anulación con PIN de supervisor: el piso, el crédito y el cambio de canal exigen un usuario con sesión y permiso.
+4. El alta al Club exige nombre, apellido, nacimiento ≥ 18 y consentimiento: una empresa mayorista se registra como persona de contacto.
+5. Falta importar/exportar escalones y presentaciones, y mostrar la regla aplicada en el ticket impreso.
+6. F2–F7 no están implementadas (remito/presupuesto encadenados, lotes/FEFO, matriz talle/color, cierre ciego, reportes por canal, contabilidad). Hardware/NFC reales sin probar.
+7. Para usar la bandera con nube hay que **haber corrido `10-mayorista-precios.sql`** en Supabase; la pantalla de Configuración lo avisa.
 
 ---
 
-FIN DE SISTEMA VB 26F (revisión V26.4)
+FIN DE SISTEMA VB 26F (revisión V26.5)

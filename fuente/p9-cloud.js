@@ -70,7 +70,7 @@ const COLS=[
  {c:'movs',key:'movs'},
  {c:'cierres',key:'closures',strip:['notes'],once:1},
  {c:'rubros',key:'rubros',del:1},
- {c:'clientes',key:'customers',pii:['name','last','birth','wa','email','secret','notes','dni','cardSecrets'],del:1},
+ {c:'clientes',key:'customers',pii:['name','last','birth','wa','email','secret','notes','dni','cardSecrets','taxid'],del:1},
  {c:'fiado',key:'fiadoPays',once:1},
  {c:'emp',key:'employees',pii:['pin','dni'],del:1},
  {c:'fich',key:'punches'},
@@ -86,7 +86,10 @@ const COLS=[
  {c:'lotes',key:'batches'},
  {c:'sucs',key:'branches'},
  {c:'cajas',key:'registers'},
- {c:'ctransf',key:'transfers',once:1}];
+ {c:'ctransf',key:'transfers',once:1},
+ {c:'acuer',key:'agreements',del:1},
+ {c:'cexc',key:'creditOv'},
+ {c:'cexcu',key:'creditUse',once:1}];
 const BYC=Object.fromEntries(COLS.map(x=>[x.c,x]));
 const DELC=new Set(COLS.filter(x=>x.del).map(x=>x.c));
 const CFGIDS=['tenant','cfg','menu','loyalty','roles','integ','legal'];
