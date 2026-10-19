@@ -1,8 +1,17 @@
 # SISTEMA VB 26F (`SISTEMA_VB_26F`) — PROMPT MAESTRO INTEGRAL FINAL (ERP/POS CONVERSACIONAL Y MODULAR)
 
-Versión 26F (final; integra V26.1 pagos mixtos, V26.2 proveedores y compras y V26.3 Club/tarjeta/DNI/NFC) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisuucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
+Versión 26F · revisión V26.4 (integra V26.1 pagos mixtos, V26.2 proveedores y compras, V26.3 Club/tarjeta/DNI/NFC y la **especificación del módulo Mayorista/Minorista 4.22**) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
 
-**Objetivo de V26:** construir el sistema desde el inicio con una arquitectura extensible y un asistente conversacional transversal por voz y texto, integrado al catálogo de acciones de negocio. Incorporar además cajas operativas y principales configurables, gestión multisuucursal, borrado protegido de artículos, ordenamiento reutilizable de todas las tablas y un checkout e-commerce opcional que convive con el flujo actual de pedidos por WhatsApp, tarjetas de fidelización guardables en Apple Wallet/Google Wallet y avisos automáticos multicanal con consentimiento y control de frecuencia. Este prompt define requisitos y criterios de aceptación; ninguna función se considera implementada hasta demostrarla con archivos, migraciones y pruebas reales.
+**Objetivo de V26:** construir el sistema desde el inicio con una arquitectura extensible y un asistente conversacional transversal por voz y texto, integrado al catálogo de acciones de negocio. Incorporar además cajas operativas y principales configurables, gestión multisucursal, borrado protegido de artículos, ordenamiento reutilizable de todas las tablas y un checkout e-commerce opcional que convive con el flujo actual de pedidos por WhatsApp, tarjetas de fidelización guardables en Apple Wallet/Google Wallet y avisos automáticos multicanal con consentimiento y control de frecuencia. Este prompt define requisitos y criterios de aceptación; ninguna función se considera implementada hasta demostrarla con archivos, migraciones y pruebas reales.
+
+**Qué cambia en esta revisión (V26.4)** — todo es aditivo: no se quitó ni se reescribió ningún requisito anterior.
+
+| Cambio | Dónde | Estado en el código (2026-10-19) |
+|---|---|---|
+| Módulo **Mayorista / Minorista** con listas de precios, bultos, crédito, documentos vinculados, lotes/FEFO, cobranzas, cierre ciego, reportes y contabilidad opcional (a partir del documento `mayorista_integracion`). Absorbe 5.2 | **4.22** (fases F1–F7) | **Especificado; no implementado** |
+| **Correcciones del Club V26.3** consolidadas con su checklist de aceptación: tarjeta en el celular al escanear el QR del menú, importación sin pérdida de altas, sellos por QR / código / DNI / NFC, cupones por audiencia | 4.6, prueba 36, anexo B/C/D | **Hecho y probado** (límites en el anexo C) |
+| Se corrige lo que decía 4.2: el selector **Remito / Presupuesto** no está en el código (sólo Ticket interno o Factura electrónica) | 4.2, 4.22.0 | **Pendiente** (fase F2) |
+| **Punto de reanudación** para seguir trabajando: repositorios, comandos, estado de la nube, pendientes, preguntas y prompt de arranque | **Anexo E** | — |
 
 ---
 
@@ -16,6 +25,7 @@ Versión 26F (final; integra V26.1 pagos mixtos, V26.2 proveedores y compras y V
 6. Nada de este documento contiene datos personales ni comerciales de un cliente en particular. Los datos de ejemplo que se carguen en una demo se rotulan "ejemplo" y se reemplazan por los reales.
 7. La arquitectura conversacional se diseña desde el inicio y es transversal, pero la ejecución de cada acción depende de permisos, configuración, conexión, validaciones y confirmaciones. No se interpreta que la IA tenga acceso irrestricto al sistema.
 8. Entregá cambios verificables en el repositorio: un diseño, mockup, conversación simulada o respuesta textual no equivale a una función operativa.
+9. **Para continuar el trabajo en una sesión nueva**, empezá por el **Anexo E** (punto de reanudación y prompt de arranque) y por la matriz **4.22.0** (qué existe y qué falta). Primero se inspecciona y se corre la regresión como línea base; después se construye por fases.
 
 Convenciones: identificadores de código en inglés; textos de interfaz y respuestas en castellano rioplatense simple (con versión en inglés donde se pida); `[VERIFICAR]` = dato normativo o técnico que debe confirmarse en la fuente oficial antes de afirmarlo.
 
@@ -53,6 +63,10 @@ Convenciones: identificadores de código en inglés; textos de interfaz y respue
 | Periféricos: impresora térmica/A4/etiquetas, lector de códigos, balanza, cajón, pantalla de cliente, lector NFC/huellas | `[MARCAS Y MODELOS]` |
 | ¿Fichaje NFC/biométrico? ¿Wi-Fi de clientes? | `[SÍ/NO]` |
 | ¿Se vende sin stock (stock negativo)? | `[SÍ/NO]` (por defecto SÍ, con interruptor) |
+| Venta mayorista (ver 4.22) | `[NO / SÍ]` · nombres de listas `[L1…L5]` · ¿bultos/packs y tamaño? `[SÍ/NO]` · plazo máximo y tolerancia de mora `[DÍAS]` · fases a construir `[F1…F7]` |
+| Rubros con lote y vencimiento, talle/color, pesables doble unidad, kits | `[…]` |
+| Cierre de caja (4.22.6) | ciego `[SÍ/NO]` · cajas separadas minorista/mayorista `[SÍ/NO]` · cobros con cheque/eCheq/retenciones `[SÍ/NO]` |
+| Contabilidad (4.22.8) | `[NO / SÍ]` · contador `[NOMBRE]` · método de valuación `[PPP / FIFO]` · percepciones y alícuotas `[PENDIENTE — VERIFICAR con el contador]` |
 | ¿Lectura de facturas de proveedores con IA en la nube? | `[SÍ/NO]` (cuesta por uso) |
 | Modalidad | Solo menú QR / Sistema completo con nube / + instalador Windows |
 | Desarrollador (créditos obligatorios) | **VINCULAR BUSINESS** · Único celular **(387) 4484132** (`wa.me/5493874484132`) · **vincularbusiness@gmail.com** · lema “Tu idea, en buenas manos.” (datos oficiales: se mantienen en TODOS los productos; ver regla 11 y 7.12) |
@@ -95,11 +109,11 @@ ERP/SaaS multicomercio para negocios de `[PAÍS]`, en tres piezas con el mismo c
 - **Asistente conversacional transversal:** entrada de voz/texto, interpretación estructurada, catálogo/registro de acciones, validación de permisos, política de confirmación, ejecución por servicios del dominio, respuesta y auditoría. No accede directamente a la base de datos ni evita las reglas del Core.
 - **Organización operativa:** sucursales, cajas operativas, caja principal/consolidada, sesiones, movimientos, asignaciones y cierres con jerarquía explícita y trazabilidad de distribuciones.
 - **Configuración:** datos del comercio, rubro, horarios, interruptores, atajos, modelo de cajas.
-- **Módulos:** ventas/POS, costos y precios, descuentos/cupones/membresías, facturación, inventario por rubros, bultos, insumos/recetas, cajas y finanzas con rubro obligatorio, compras/IA, gastos, clientes/fiados, fidelización, personal/fichaje, menú público y su administración, reportes/Analytics, comisiones, importar/exportar, correo, WhatsApp, marketing/redes, cobros online, Google Drive/APIs, Meta Pixel, legal.
+- **Módulos:** ventas/POS, costos y precios, descuentos/cupones/membresías, facturación, inventario por rubros, bultos, insumos/recetas, cajas y finanzas con rubro obligatorio, compras/IA, gastos, clientes/fiados, fidelización, personal/fichaje, menú público y su administración, reportes/Analytics, comisiones, importar/exportar, correo, WhatsApp, marketing/redes, cobros online, Google Drive/APIs, Meta Pixel, legal, **mayorista/minorista con trazabilidad (4.22)** y contabilidad opcional.
 - **Hardware (HAL):** `DeviceManager` con drivers intercambiables por tipo (`printer_thermal`, `printer_a4`, `printer_label`, `scale`, `scanner`, `nfc_reader`, `fingerprint_reader`, `cash_drawer`, `display`).
 - **Adaptadores por rubro:** comercio, gastronomía, servicios, profesional, ONG.
 
-**Orden del panel (navegación):** Resumen (Dashboard Analytics, **primera pantalla, antes de Vender**) → Operación (Vender, Pedidos, Caja, Arqueo/cierre, Cajas cerradas, Inventario) → Clientes y fidelización (Clientes, Fidelización, Cupones y membresías) → Equipo (Personal y fichaje, Tareas) → Menú y web (Menú público, Legal y cumplimiento) → Sistema (Periféricos y ticket, Importar/Exportar, Integraciones, Roles, Auditoría, Configuración). El asistente conversacional está disponible mediante un punto de acceso transversal y contextual, sin reemplazar la navegación ni ocultar los estados de ejecución.
+**Orden del panel (navegación):** Resumen (Dashboard Analytics, **primera pantalla, antes de Vender**) → Operación (Vender, Pedidos, Caja, Arqueo/cierre, Cajas cerradas, Inventario; con `wholesale.docs`: Pedidos de venta, Remitos, Cobranzas y Trazabilidad) → Clientes y fidelización (Clientes, Fidelización, Cupones y membresías) → Equipo (Personal y fichaje, Tareas) → Menú y web (Menú público, Legal y cumplimiento) → Sistema (Periféricos y ticket, Importar/Exportar, Integraciones, Roles, Auditoría, Configuración; con `accounting.on`: Contabilidad). El asistente conversacional está disponible mediante un punto de acceso transversal y contextual, sin reemplazar la navegación ni ocultar los estados de ejecución.
 
 ---
 
@@ -134,14 +148,15 @@ ERP/SaaS multicomercio para negocios de `[PAÍS]`, en tres piezas con el mismo c
 - **Medios de pago:** efectivo, débito, crédito, transferencia, QR/billetera, cuenta corriente (requiere cliente con límite asignado y lo respeta). Cobros digitales quedan **pendientes** hasta confirmación verificada del proveedor (webhook firmado); volver del checkout o una captura nunca acredita un cobro.
 - **Edición de cada línea:** cantidad, precio unitario e importe enlazados (cantidad × precio = importe); si se edita el importe, en productos por peso se recalcula la cantidad y en productos por unidad el precio. No admite cero ni negativos. Todo cambio de precio queda en auditoría (producto, precio de lista, aplicado, usuario).
 - **Venta con o sin stock (interruptor):** configuración global "Permitir vender sin stock" (por defecto **activada**) y, por producto, "Exigir stock" (ese producto nunca se vende sin stock). Con la opción activa, vender más de lo que hay **se permite**: el stock queda en **negativo**, la línea del ticket muestra "Sin stock: quedará en negativo (−N und)", se registra en auditoría (`VENTA_SIN_STOCK`) y el producto se marca en rojo en Inventario, en Vender y en las alertas del Resumen hasta regularizarlo (compra o ajuste). Con la opción apagada o con "Exigir stock", el botón del producto se deshabilita y el servidor rechaza la venta. Ajustes manuales a negativo sólo si el producto admite venta sin stock. Anular/devolver restituye el stock en la unidad base. El menú público trata stock ≤ 0 como "sin stock" según la regla del comercio.
-- **Documento:** Sin factura fiscal → Ticket interno, Remito o Presupuesto, numeración propia por caja ("2-15" = ticket 15 de la caja 2), leyenda "DOCUMENTO NO VÁLIDO COMO FACTURA" (nunca "Factura"). Con factura → A/B/C y notas de crédito/débito, validación de condición fiscal del cliente; el **CAE se pide solo al servidor fiscal (ver 4.12)** y, mientras la integración no esté habilitada y probada, queda "pendiente de CAE" y se carga a mano; con CAE es inmutable (se corrige con nota). El interruptor tiene texto y color distintos, el documento resultante es visible antes de confirmar, el valor por defecto es configurable por sucursal y rol, y cambiarlo pide motivo y queda auditado. Los presupuestos no suman como venta.
+- **Documento:** Sin factura fiscal → Ticket interno, Remito o Presupuesto, numeración propia por caja ("2-15" = ticket 15 de la caja 2), leyenda "DOCUMENTO NO VÁLIDO COMO FACTURA" (nunca "Factura"). Con factura → A/B/C y notas de crédito/débito, validación de condición fiscal del cliente; el **CAE se pide solo al servidor fiscal (ver 4.12)** y, mientras la integración no esté habilitada y probada, queda "pendiente de CAE" y se carga a mano; con CAE es inmutable (se corrige con nota). El interruptor tiene texto y color distintos, el documento resultante es visible antes de confirmar, el valor por defecto es configurable por sucursal y rol, y cambiarlo pide motivo y queda auditado. Los presupuestos no suman como venta. **Estado real (2026-10-19):** el código emite *Ticket interno* o *Factura electrónica*; el selector Remito/Presupuesto se completa en 4.22.4 (una sola vez, sin duplicarlo).
+- **Canal y precio mayorista:** cuando `wholesale.on` está encendida, el precio de cada línea sale de `priceResolve` (4.22.1.3); apagada, Vender se comporta exactamente como se describe arriba.
 - Los totales se recalculan siempre en el sistema (servidor): nunca se confía en el precio que llega de afuera. Se muestra el cálculo completo antes de confirmar.
 - **Modo táctil/POS:** áreas de 48×48 px con 8 px de separación, teclado numérico en pantalla, gestos; nada depende sólo del hover o del clic derecho. Kiosco a pantalla completa con PIN de supervisor, cierre por inactividad y pantalla de cliente secundaria.
 - **Campos numéricos (regla de todo el sistema):** nunca arrancan con "0" cargado; vacíos con placeholder; si traen valor, al entrar quedan seleccionados. Teclado en pantalla: teclas ≥ 56 px, el primer dígito reemplaza el valor, vacío muestra "Escribí el número", botones "Borrar todo / Cancelar / Listo".
 - Los campos `type=number` se leen con `valueAsNumber`; los textos con el parser local (coma decimal); fechas con año de 4 cifras primero.
 
 ### 4.3 Descuentos, cupones, membresías y beneficios
-- **Regla de oro:** un beneficio por compra. Cupón **o** membresía (se aplica el mejor, nunca acumulados), mayorista, descuento manual y promociones de tarjeta tampoco se acumulan salvo configuración expresa visible antes de cobrar.
+- **Regla de oro:** un beneficio por compra. Cupón **o** membresía (se aplica el mejor, nunca acumulados), mayorista, descuento manual y promociones de tarjeta tampoco se acumulan salvo configuración expresa visible antes de cobrar. La resolución completa del precio (acuerdo especial, lista, escalón, bulto y un solo beneficio) está en **4.22.1.3**.
 - Los productos de venta restringida por edad (p. ej. tabaco) **no participan** de promociones ni descuentos.
 - Cupón: código único por tenant, estado, vigencia, porcentaje o monto fijo, compra mínima, tope, límite total y por cliente, audiencia (todos / socios / cumpleaños), exclusiones. El servidor valida y consume de forma atómica e idempotente; devolver/anular libera el uso.
 - El descuento se **reparte por línea** (método del mayor resto, centavos enteros); el ticket conserva base, cupón, descuento, regla y precio final.
@@ -161,6 +176,7 @@ ERP/SaaS multicomercio para negocios de `[PAÍS]`, en tres piezas con el mismo c
 - Pantalla "Cajas cerradas": lista y calendario, filtros, alertas de días sin cierre, ficha imprimible (A4) con verificación de integridad, CSV.
 - Importes en centavos enteros o `DECIMAL(14,2)`, nunca float. Fechas en UTC y visualización en `[ZONA_HORARIA]`.
 - Modelo flexible de cajas (una caja/una persona, varias personas, varias cajas, por sucursal/turno/responsable/socio). Se aplica la especificación jerárquica de **4.14**: caja simple, cajas operativas y caja principal/consolidada se configuran sin obligar a todos los clientes a usar la estructura completa. Reparto entre socios, sueldos y reporte de cierre para WhatsApp son un **módulo opcional apagado por defecto** (sección 5.9); sin socios configurados el reporte no muestra secciones vacías ni "()" huérfanos.
+- **Cierre ciego, caja por canal, cheques/eCheq y retenciones sufridas:** especificados en **4.22.6** (`cash.blind` apagada por defecto). La foto sellada del cierre no cambia de forma: el formato ampliado se lee con valores por defecto en cierres anteriores.
 
 ### 4.6 Clientes, Club y fidelización
 - **Clientes:** consentimientos separados por finalidad (atención/club, comunicaciones comerciales, analítica/publicidad) con versión, fecha y origen; sin consentimiento comercial el cliente queda fuera de campañas; WhatsApp y correo cifrados; duplicados por los últimos 10 dígitos del WhatsApp; fiados (límite de crédito sólo modificable por rol autorizado, antigüedad, alertas); baja que anonimiza y conserva el historial contable.
@@ -168,6 +184,7 @@ ERP/SaaS multicomercio para negocios de `[PAÍS]`, en tres piezas con el mismo c
 - **Tarjeta de sellos:** libro mayor (los sellos no se editan, se corrigen con un movimiento compensatorio auditado); meta configurable; 1 sello por día por socio; código de 8 dígitos (N.º de socio + código de 4 dígitos que cambia cada 2 minutos) o QR firmado, de **un solo uso**; el cliente consulta su tarjeta digital en el menú (recuperación con dos factores: WhatsApp + fecha de nacimiento); canje de premio auditado y reversión al anular la venta. El alta al Club no regala sellos.
 - **Tarjeta del Club en la nube (V26.3) — flujo completo:** (1) el cliente escanea el QR del menú, completa nombre y apellido, WhatsApp, cumpleaños y **DNI (opcional)**, y acepta el consentimiento; (2) **su celular genera** el identificador y la clave secreta de su tarjeta (80 y 192 bits al azar), los manda cifrados (RSA-OAEP + AES-GCM con la llave pública del comercio) y **muestra la tarjeta en el acto**, con su QR y su código de 4 cifras que cambian cada 2 minutos (estado «en trámite» hasta que el negocio la active); (3) el equipo (admin, supervisor o mostrador, con sesión abierta) descifra el alta cada 20 s o al abrir el cobro / Fidelización, crea el cliente **con el mismo id que la tarjeta** y le asigna el N.º de socio; (4) el celular consulta el estado con `club_estado(slug, id)` (anónimo, `09-club-tarjeta.sql`: sólo devuelve N.º de socio y cantidad de sellos de quien conoce el identificador secreto; nunca nombre, WhatsApp, DNI ni cumpleaños) y pasa a mostrar «Socio N.º 0007 · 3 / 8». Un segundo celular del mismo cliente (mismo WhatsApp **y** mismo cumpleaños) obtiene su propia tarjeta sobre la misma ficha; con otro cumpleaños el alta se rechaza (evita colgarse de una cuenta ajena). Las altas que el equipo no puede abrir **no se descartan** (quedan «nueva»); sólo se rechazan las inválidas (menores de 18, datos incompletos, WhatsApp repetido con otro cumpleaños).
 - **Sellos en el mostrador (V26.3)** — un sello por socio cada 24 h en todos los casos, auditado con el medio usado: por **QR** de la tarjeta (`RAVE2|id|código`, un solo uso; lector USB que escribe solo o cámara con `BarcodeDetector` si el navegador la ofrece), por **código de 8 números** (N.º de socio + código), por **DNI** (se escribe; si hay dos clientes con el mismo DNI se pide buscarlo por nombre) o por **tarjeta/etiqueta NFC** (`RAVE2N|id`, Web NFC: sólo Chrome en Android; la etiqueta se graba desde la ficha del cliente). Disponible en Vender → Cobrar (campo «Sello del Club») y en Fidelización. El cobro también encuentra al cliente por DNI. La etiqueta NFC es fija (no rota como el QR): el límite de un sello por día y la baja de la tarjeta son su defensa. El DNI es opcional, va cifrado en la nube (`__pii`) y se borra en la baja.
+- **Checklist de aceptación del Club (correcciones V26.3 que no se pueden perder):** (1) el cliente que escanea el QR del menú recibe su tarjeta **en el acto**, con QR y código que rotan cada 2 minutos, aunque no haya sesión del negocio abierta: **jamás se oculta el bloque de la tarjeta por falta de sesión**; (2) el alta de un celular no se pierde: una alta ilegible o duplicada queda «nueva» y sólo se rechazan las inválidas (menores de 18, datos incompletos, WhatsApp repetido con otro cumpleaños); (3) la importación de altas corre sola (cada 20 s, al abrir Cobrar o Fidelización), es **no destructiva** y con bloqueo para que no corra dos veces a la vez; (4) el cliente nace con el **mismo id que la tarjeta** y recibe su N.º de socio; el celular lo consulta con `club_estado`, que nunca devuelve nombre, WhatsApp, DNI ni cumpleaños; (5) sellos por **QR, código de 8 cifras, DNI o NFC**: uno cada 24 h por socio, un solo uso por código, auditados con el medio; (6) el **DNI es opcional**, va cifrado (`__pii`), se borra en la baja y, si dos clientes lo comparten, se pide elegir por nombre; (7) la **meta y el premio** del Club se publican en el menú por la lista cerrada de `rave_limpiar_menu`; (8) los **cupones** por audiencia (todos / socios / cumpleaños) aplican en todo el sistema, con límite por cliente y uso sincronizado; (9) las pruebas con códigos que rotan usan reloj ajustable en **todos** los dispositivos (`window.__now`); (10) la tarjeta vive en el celular: si el cliente borra los datos del navegador la pierde, y el mostrador sigue sellando por DNI o NFC.
 - **Wallet (Apple/Google):** no implementado — necesita cuentas de desarrollador y certificados de firma de pases (ver 4.19). Alternativa vigente: la tarjeta queda guardada en el celular (se puede agregar a la pantalla de inicio) y, si se pierde, el mostrador suma sellos con DNI o NFC.
 - **Tarjeta modelo del negocio (en Fidelización):** vista previa de frente y dorso a tamaño tarjeta (85,6 × 54 mm) con logo, nombre, sellos de ejemplo configurables, premio, dirección, WhatsApp y red social del comercio; el dorso lleva un QR al menú; impresión "con ejemplo" y "en blanco" lista para imprimir/cortar. Los datos salen de la configuración, nunca fijos en el código.
 - **Tarjeta digital entregable:** además de consultar/imprimir la tarjeta web existente, el cliente debe poder recibir un enlace seguro para guardarla en Apple Wallet o Google Wallet cuando el comercio haya habilitado y configurado esa plataforma. La tarjeta y el envío de avisos se implementan según **4.19** y el módulo opcional **5.23**; no crear una segunda cuenta ni un saldo paralelo.
@@ -610,12 +627,284 @@ Referencias oficiales de implementación a revisar durante el desarrollo: Apple 
 
 ---
 
+## 4.22 MÓDULO MAYORISTA / MINORISTA CON TRAZABILIDAD INTEGRAL Y CONTROL ADMINISTRATIVO-CONTABLE (V26.4)
+
+**Estado: ESPECIFICACIÓN. Nada de 4.22 está implementado al 2026-10-19** (matriz 4.22.0). Se construye por fases (4.22.12), todas detrás de banderas, sin alterar el comportamiento actual. Con `wholesale.on` apagada el sistema se comporta **exactamente** como hoy (la regresión completa es obligatoria con la bandera apagada y con la encendida). En el sistema del cliente nace **apagada**; en la demo nace **encendida con datos rotulados "ejemplo"**.
+
+**Objetivo.** Operación dual **Mayorista / Minorista** sobre el mismo catálogo, stock, clientes y caja, compatible con varios rubros (alimentos y bebidas, cosmética, indumentaria, bazar y ferretería, carnes y pesables), con control de cajas, contabilidad automática **opcional** y trazabilidad de cada documento, movimiento y usuario. Extiende 4.2, 4.3, 4.4, 4.5, 4.12, 4.20 y 4.21 y **absorbe 5.2** (que pasa a ser un resumen que remite acá). No crea un segundo POS, un segundo stock, una segunda lista de clientes ni una segunda caja.
+
+**Principios (no se negocian).**
+1. **Un solo catálogo, un solo stock (unidad base), un solo libro de clientes, una sola caja.** El canal es un atributo de la operación, no un sistema paralelo.
+2. **Un solo punto de cálculo de precio** (`priceResolve`, 4.22.1.3), usado por la pantalla, `commitSale` y el servidor: no hay dos reglas que puedan divergir (lección de `payCheck`).
+3. **Una fuente de precio y un solo beneficio por compra** (4.3): lista/acuerdo/escalón definen el precio; después se aplica a lo sumo un beneficio.
+4. **El servidor recalcula** precio, descuento, stock, lote, crédito y totales; nunca se confía en lo que manda el navegador. Sin conexión no se inventa ninguna confirmación (cobro, sincronización, CAE).
+5. **Histórico congelado:** cada línea guarda la regla aplicada; cambiar listas, escalones, reglas o costos no reescribe ventas, remitos, cierres sellados ni asientos.
+6. **Toda entidad nueva** lleva `tenant_id`, RLS, claves foráneas compuestas `(id, tenant_id)`, auditoría, idempotencia, dinero en centavos enteros o `numeric(14,2)` y prueba cruzada A/B.
+7. **Lo que el adjunto original pide y choca con decisiones ya tomadas** se resuelve en 4.22.13; no se implementa en silencio ninguna de las dos versiones.
+
+### 4.22.0 Matriz de detección (inspección del código real, 2026-10-19)
+
+Antes de cada fase se vuelve a inspeccionar el repositorio: esta tabla es el punto de partida, no un sustituto.
+
+| Requisito | Estado hoy | Qué hacer |
+|---|---|---|
+| Auditoría encadenada por hash; cambio de precio de línea auditado; `LIMITE_CREDITO` auditado | **Existe** (`audit()`, columnas fecha/usuario/acción/detalle/hash) | **Completar:** evento estructurado (módulo, entidad, valor anterior/nuevo, dispositivo); IP sólo del lado servidor; las filas viejas se leen con valores por defecto |
+| Cuenta corriente, límite de crédito, pagos mixtos, vuelto | **Existe** (4.20, `c.limit`, libro del cliente) | **Completar:** plazo máximo en días, vencimiento por documento, antigüedad de saldos, bloqueo y excepción autorizada |
+| Factura A/B/C con CAE automático y condición de IVA del receptor | **Existe** (4.12) | Reutilizar; MiPyME/FCE **no existe** (`[VERIFICAR]`) |
+| Selector de documento **Ticket interno / Remito / Presupuesto** de 4.2 | **Parcial:** el código sólo emite *Ticket interno* o *Factura electrónica*; **Remito y Presupuesto no están implementados** | **Completar** dentro de 4.22.4 (no agregar una segunda vez) |
+| Bultos, escalones por cantidad, listas de precio, venta mayorista | **No existe** (5.2 y N.2 sólo especificados) | **Agregar** (fase F1) |
+| Canal por operación; categoría de cliente mayorista; zona; vendedor | **No existe** (sólo se nombra la atribución de vendedor en 5.8) | **Agregar** (F1/F6) |
+| Lotes, vencimientos, FEFO | **No existe** (compras 4.21 suma stock y costo, sin lote) | **Agregar** (F3), enganchado a `procesar_recepcion` |
+| Matriz talle/color/estampa | **No existe** | **Agregar** (F4), sólo si el rubro lo requiere |
+| Pesables | **Parcial:** unidades `u/kg/l`, PLU, EAN-13 de balanza, edición enlazada cantidad×precio×importe | **Completar:** unidad de stock distinta de la de facturación (pieza/caja ↔ kg) |
+| Kits / combos / packs | **No existe** (tampoco recetas 5.10 implementadas) | **Agregar** (F3) con una única estructura de componentes que sirva también a 5.10 |
+| Pedido de venta, picking, remito con constancia, trazabilidad inversa | **No existe.** "Pedidos" del panel son los del menú/PedidosYa y **no son lo mismo**: el módulo nuevo se llama **Pedidos de venta** | **Agregar** (F2) |
+| Cierre ciego | **No existe:** Caja muestra el efectivo esperado y el Arqueo calcula la diferencia en vivo al tipear | **Agregar** bandera `cash.blind` (F5) |
+| Caja minorista vs. cobranza mayorista; cheques en cartera, eCheq, retenciones sufridas | **No existe** (cheque sólo como medio de pago a proveedores en 4.21) | **Agregar** (F5), sin integración bancaria |
+| Reportes por canal / vendedor / zona / lote / marca | **Parcial:** Resumen por rubro, medio de pago, fiscal/interno | **Completar** (F6) |
+| Margen por canal con costo histórico | **Parcial:** margen estimado con el último costo cargado | **Completar:** costo histórico por línea; PPP/FIFO en F7 |
+| PPP/FIFO, CMV, asientos, plan de cuentas, Libro IVA Ventas, subdiario, percepciones | **No existe** | **Agregar** como módulo opcional `accounting.on` (F7), con contador |
+
+### 4.22.1 Canal, listas de precios y resolución de precio
+
+**1.1 Canal y cliente.**
+- `channel ∈ {minorista, mayorista}` por operación. Se hereda del cliente (`customers.default_channel`) y se puede cambiar en la operación con permiso; el cambio pide motivo y se audita.
+- Ficha de cliente (campos nuevos con valor por defecto; ninguno obligatorio para clientes existentes): lista de precios asignada, grupo, condición frente al IVA, ID fiscal, zona de cobranza, vendedor asignado, límite de crédito (ya existe), plazo máximo en días.
+- **Mayorista exige cliente identificado con ID fiscal válido** (CUIT con dígito verificador, como 4.21). Consumidor final nunca vende como mayorista.
+- Un cliente puede ser a la vez socio del Club: ver 4.22.1.3 (f) sobre beneficios.
+
+**1.2 Listas de precio (configurables, no cinco fijas).** El adjunto original dice "al menos 4 listas fijas" y enumera cinco niveles; se resuelve con **hasta 5 listas configurables** con nombre editable, activables, con vigencia desde-hasta, moneda e **impuestos incluidos/excluidos declarado** (nunca implícito):
+
+| Lista | Uso típico (nombre editable) |
+|---|---|
+| L1 | Minorista / consumidor final (**base**; es el precio que ya tiene cada producto) |
+| L2 | Mayorista nivel 1 (compra por bulto/pack) |
+| L3 | Mayorista nivel 2 (pallet o franja de cantidad media) |
+| L4 | Mayorista nivel 3 / distribuidor (gran volumen) |
+| L5 | Especial / cliente VIP (acuerdo comercial) |
+
+- `price_lists` (cabecera) y `price_list_items(product_id|variant_id, list_id, sale_unit, price)`; un producto sin precio en una lista **cae a L1 y lo informa** (nunca un precio vacío o cero).
+- **Escalones por cantidad** `price_tiers(product_id|group_id, list_id|null, from_qty, to_qty|null, price | pct_off, unit, valid_from, valid_to)`. Los rangos de un mismo producto/lista **no se solapan** (se valida al guardar; el último es abierto) y se expresan en **unidad base**. Caso del adjunto, obligatorio como prueba: 1–9 → $ 100 · 10–49 → $ 90 · 50–99 → $ 80 · 100+ → $ 70.
+- **Acuerdo especial** `special_agreements(customer_id, product_id|category_id, price | pct_off, valid_from, valid_to, approved_by)`: sobreescribe la lista del cliente mientras esté vigente; lo crea un rol autorizado y queda auditado.
+- **Presentaciones** `pack_presentations(product_id, name, qty_base, barcode, sale_mode)`: unidad, caja ×6, pallet ×N; `sale_mode ∈ {suelta, bulto_cerrado, ambas}`; código de barras propio por presentación (no se asume igual al de la unidad). **El stock es uno solo, en unidad base** (2 bultos de 6 = 12 u); "sólo bulto cerrado" exige múltiplos enteros.
+- Edición de listas, escalones, acuerdos y pisos: rol con permiso `price_lists` (administrador por defecto); mostrador y operador no pueden, ni por pantalla ni por API.
+- **Cambios masivos** de listas (por porcentaje, por categoría): vista previa con precio anterior/nuevo, confirmación, auditoría y reversión del lote (mismo patrón que 4.9).
+
+**1.3 `priceResolve` — resolución determinista del precio (orden fijo, la misma función en pantalla, `commitSale` y servidor).**
+1. **Base:** precio L1 vigente del producto/presentación.
+2. **Acuerdo especial vigente** del cliente (producto o categoría): si existe, **gana** y no se mezcla con escalones salvo que el acuerdo lo declare.
+3. **Si no hay acuerdo:** precio de la **lista asignada al cliente**; si el producto no figura en ella, se usa L1 y se informa el motivo.
+4. **Escalón por cantidad:** se evalúa sobre la **cantidad agregada del mismo producto (o grupo de precio) en la operación**, en unidad base. Si el precio del escalón es **menor** que el del paso 3, se aplica el escalón ("salvo que supere un escalón superior" del adjunto); **un escalón nunca sube un precio**.
+5. **Bulto cerrado:** bonificación configurable por presentación (precio fijo por bulto o %), según 5.2/N.2. Si conviven precio fijo y porcentaje, el administrador elige y fija la prioridad; **nunca se combinan en silencio**.
+6. **Piso de precio** (`price_floor` por producto/lista, opcional): un precio resuelto menor que el piso requiere supervisor + motivo.
+7. **Un solo beneficio** (4.3): cupón **o** membresía **o** descuento manual autorizado; lo que no es acumulable según configuración se descarta y **se muestra por qué**. Productos de venta restringida por edad no participan de promociones. Para el canal mayorista, `wholesale.allowClubBenefits` (apagada) decide si los sellos del Club y los cupones del Club se otorgan o se canjean: por defecto **no**.
+8. Redondeo a centavos con regla explícita y consistente; el descuento se reparte por línea (método del mayor resto, 4.3).
+
+`priceResolve` devuelve: precio unitario, **código de la regla aplicada**, motivo legible ("Mayorista · lista L2 · escalón 10–49 u"), el precio minorista como alternativa y **qué condición falta** si no se alcanzó el mínimo ("faltan 4 u para precio de 10–49 u").
+
+**1.4 Pantalla Vender (sin quitar nada de 4.2).** Indicador visible **Minorista / Mayorista / Bulto cerrado** con el motivo de elegibilidad; selector de presentación sin duplicar productos ni crear líneas incompatibles; al cambiar la cantidad se recalcula el tramo en vivo y, si baja de un mínimo, se retira el descuento y se pide confirmar cuando el total cambia sustancialmente; cantidad inválida para bulto cerrado impide cambiar de presentación; teclas F1–F12 y numeración **sin cambios**; áreas táctiles ≥ 48 px; teclado numérico sin "0" precargado (4.2). El ticket y los reportes muestran el descuento por línea **sin revelar costos**.
+
+**1.5 Snapshot por línea (histórico inmutable).** Producto/presentación/variante, cantidad en unidad de venta **y** en unidad base, factor de bulto, lista, escalón, regla (código), precio de lista, % e importe de descuento, precio final, costo histórico unitario, lote(s), vendedor, usuario, canal. Las devoluciones y notas de crédito usan **lo realmente cobrado** en la operación original (nunca se edita una venta para simular una devolución).
+
+**1.6 Publicación en el menú.** Los precios mayoristas **no** se publican salvo que el comercio lo habilite expresamente producto por producto; el menú nunca recibe costo, margen, reglas internas, acuerdos ni listas de clientes. Si se publican escalas, hay que actualizar `rave_limpiar_menu` (lista cerrada de campos) y probarlo.
+
+### 4.22.2 Crédito y condiciones de venta
+
+- **Condiciones:** contado, cuenta corriente, cheque diferido, transferencia, tarjeta (se reutilizan los medios y el cobro mixto de 4.20; se agrega **cheque diferido** como medio con fecha de cobro y alta en cartera, 4.22.6).
+- **Límite** de monto y **plazo máximo en días** por cliente; cada documento a cuenta corriente guarda su `due_date`. Antigüedad de saldos 0–30 / 31–60 / 61–90 / +90 días.
+- **Bloqueo automático** al **confirmar** una venta o pedido a cuenta corriente cuando el cliente tiene documentos vencidos más allá de la tolerancia configurada **o** el saldo + la operación superan el límite. Contado, transferencia y tarjeta siguen permitidos.
+- **Excepción crediticia:** supervisor/administrador autoriza con **motivo obligatorio, monto máximo y vigencia**; queda `credit_overrides(customer_id, amount, valid_until, approved_by, reason)` y un evento de auditoría con usuario autorizante. La excepción se consume (no queda abierta).
+- **Dónde se valida (decisión de arquitectura, coherente con 4.20.9):** el bloqueo es **duro en el equipo** con los datos locales; en la nube el servidor, al sincronizar, **no rechaza la venta ya realizada** (rompería el trabajo sin conexión) pero la marca `credit_review`, alerta en el Resumen y la deja visible en el cliente. Los **pedidos de venta mayoristas** (documentos que se crean con conexión) sí se validan en el servidor.
+- Cambiar límite, plazo, lista, zona o vendedor de un cliente: rol autorizado, valor anterior/nuevo en auditoría.
+
+### 4.22.3 Adaptación por rubro (cada capacidad es una bandera por producto o por rubro)
+
+**a) Lotes y vencimientos (alimentos, bebidas, cremas y cosmética) — `track_lots`.**
+- `product_lots(id, product_id, lot_no, expires_on, qty_base, unit_cost, supplier_id, receipt_id)`; el stock del producto es la **suma de sus lotes** más el saldo "sin asignar"; cada movimiento de stock (`smov`) puede llevar `lot_id`.
+- **Recepción (4.21 `procesar_recepcion`):** si el producto tiene `track_lots`, el renglón exige número de lote y vencimiento; todo o nada, igual que el resto de la recepción. Almacenamiento y despacho conservan el lote.
+- **Salida FEFO automática:** al confirmar remito o venta se asignan lotes por vencimiento ascendente (puede partirse una línea en varios lotes); se guarda `lot_id` por línea. **Un lote vencido no se vende** (bloqueo; excepción con motivo y rol, auditada). Alerta de vencimiento próximo con días configurables.
+- **Conflicto declarado con "vender sin stock" (4.2):** si no hay lote disponible y el producto admite venta sin stock, la línea queda en el lote virtual **SIN ASIGNAR** (stock negativo, marcado en rojo como hoy) y se regulariza al ingresar el lote real, con reasignación manual auditada. Nunca se inventa un lote.
+- Reportes: ventas por lote/vencimiento y **búsqueda hacia adelante** ("¿a qué clientes salió el lote X?") para retiros del mercado.
+
+**b) Indumentaria y calzado — matriz talle/color/estampa (`wholesale.matrix`, apagada).**
+- Producto **padre** con atributos configurables (talle, color, estampa) y **variantes hijas** con SKU y código de barras propios; stock, costo y precio por variante (el precio del padre se hereda salvo anulación).
+- **Carga rápida en grilla** para pedidos mayoristas: filas = color, columnas = talle, con **curvas de talles** reutilizables (p. ej. 1-2-2-2-1) que se expanden en cantidades por variante; totales por fila/columna y escalón calculado sobre la cantidad total del padre (grupo de precio).
+- Importación/exportación con padre-hijo (4.9); no se crean productos duplicados para simular variantes.
+
+**c) Carnes y pesables — doble unidad de medida.**
+- `stock_uom` (pieza, caja, media res) distinta de `bill_uom` (kg, g): cada pieza/caja tiene su **peso real** (se registra al ingreso o en el despacho) y el stock se lleva en piezas **y** en kilos; la venta por kilo descuenta peso de las piezas/lotes asignados.
+- Reutiliza balanza (HAL, 4.10) y EAN-13 de balanza con peso embebido; los datos que vuelven de la balanza **no son confiables**: rango y tipo se validan; peso estable; redondeo declarado (gramos enteros); merma configurable con tolerancia.
+- Carnes y frescos: lote + vencimiento + origen/proveedor por pieza; requisitos sanitarios y de rotulado `[VERIFICAR con la autoridad sanitaria nacional y provincial]`.
+
+**d) Bazar, varios y ferretería — kits, combos y packs desarmables (`wholesale.kits`).**
+- `bom(parent_id, component_id, qty_base, kind ∈ {kit, receta})`: **una sola estructura de componentes** para kits y para recetas (5.10); no se crea otra.
+- Kit **virtual** (stock = mínimo de `stock_componente ÷ cantidad`) o **armado** (stock propio, se arma/desarma con movimientos). La venta de un kit virtual descuenta los componentes de forma **atómica**; un kit armado descuenta el kit; **nunca los dos**. La devolución vuelve a los componentes.
+- Se muestra el precio del kit frente a la suma de componentes; el descuento del kit se reparte entre componentes para los reportes (mayor resto).
+
+### 4.22.4 Documentos vinculados y trazabilidad de ventas
+
+**Cadena mayorista:** `Presupuesto → Pedido de venta → Orden de picking → Remito/despacho → Factura/comprobante → Recibo de cobranza + asiento de caja`.
+
+- `sales_docs(id, tenant_id, type, number, state, origin_doc_id, customer_id, channel, seller_id, branch_id, created_by, …)` y `sales_doc_lines(…, origin_line_id)` (el vínculo por **línea** permite entregas parciales y faltantes pendientes). Numeración correlativa por tipo y caja/punto, con bloqueo (sin saltos ni repetidos).
+- **Estados válidos por tipo** y transiciones permitidas en una tabla; un documento cerrado **no se edita** (se corrige con nota/ajuste vinculado); idempotencia por clave en cada transición.
+- **Presupuesto:** no suma como venta (4.2); tiene vigencia; al pasar a pedido congela precios o los recalcula según configuración.
+- **Pedido de venta:** valida cliente, crédito (servidor) y precio; puede **reservar** stock (`wholesale.reserve`, apagada); la reserva se libera al cancelar o vencer. *No* descuenta stock.
+- **Orden de picking:** propone lotes FEFO, se confirma escaneando, registra diferencias.
+- **Remito/despacho:** descuenta stock con el lote asignado, imprime sin validez fiscal ("DOCUMENTO NO VÁLIDO COMO FACTURA") y guarda la **constancia de recepción** (firma en pantalla o foto, adjunto cifrado). La existencia de un remito electrónico oficial y su alcance `[VERIFICAR]`.
+- **Factura:** desde uno o varios remitos del mismo cliente ("facturación por período") o directa; con ARCA según 4.12 (clase por emisor y receptor, CAE, QR); el CAE no se sincroniza como dato genérico (lección v2.2).
+- **Recibo de cobranza:** imputa a uno o varios documentos (total o parcial), con los medios de 4.22.6 y asiento de caja con **rubro obligatorio** (6.10).
+- **Trazabilidad inversa y directa:** pantalla **Trazabilidad**: desde cualquier factura o cobro se navega hacia atrás hasta remito(s) firmados, picking, lotes usados, pedido y presupuesto; y desde un lote hacia adelante hasta los clientes. Cada salto es un vínculo real de datos, no un texto.
+- **Minorista POS (circuito existente):** el ticket del POS equivale a pedido + remito + comprobante + cobro **en un solo paso**: se genera la cadena mínima de forma implícita (un documento con vínculos nulos). No se agrega fricción en el mostrador.
+- Nombres: el módulo se llama **Pedidos de venta** para no chocar con "Pedidos" (menú/PedidosYa). Aparece en la navegación sólo con `wholesale.docs` encendida.
+
+### 4.22.5 Auditoría de punta a punta
+
+- **Evento:** `id`, `ts` (servidor, UTC), `user`, `role`, `device_id`, `ip` (sólo servidor; criterio de retención y de truncado `[VERIFICAR con asesor legal]`), `module`, `action`, `entity`, `entity_id`, `old_value`, `new_value`, `reason`, `hash`, `hash_prev`.
+- **Hoy** la auditoría ya está encadenada con hash. Se **completa** con las columnas estructuradas sin romper las filas viejas (se leen con valores por defecto) y sin duplicar el mecanismo.
+- **Obligatorio auditar:** cambios manuales de precio en POS o pedido; descuentos por encima de la regla automática; anulaciones, notas de crédito y cancelaciones de renglón; cambios de límite, plazo, lista, zona o vendedor del cliente; ajustes directos de inventario; excepciones de crédito; cambios de listas, escalones y acuerdos; cambio de canal de una operación; cambios de lote/vencimiento y reasignaciones; intento de ver el esperado en cierre ciego; sellos y canjes del Club.
+- **"Inalterable" con precisión:** en el servidor la tabla es **sólo-agregar** (triggers que impiden `UPDATE` y `DELETE`, como el libro de proveedores) con hash encadenado; en el equipo el encadenado **detecta** manipulación pero no la impide. La defensa real es el servidor. Este límite se declara; no se escribe "inalterable" sin él.
+- Pantalla de Auditoría con filtros por usuario, módulo, acción, entidad y fecha; exportación con fórmulas neutralizadas; sólo roles autorizados.
+
+### 4.22.6 Cajas, cobranzas y valores
+
+- **Apertura** con fondo por cajero (ya existe). Modelo de cajas de 4.14: se agrega `channel_scope ∈ {minorista, mayorista, ambos}` a la caja; **no** se crea otra fuente de verdad.
+- **Cierre ciego (`cash.blind`, por caja y rol):** el cajero declara efectivo, comprobantes de tarjeta/cupones, cheques y otros valores **antes** de ver el esperado; recién entonces el sistema muestra esperado vs. declarado y diferencia por medio. Mientras la sesión está abierta, el rol cajero no ve el esperado en Caja, Arqueo, tablero ni exportaciones; supervisor y administrador sí. **Límite declarado:** en un sistema que funciona sin conexión los datos están en el equipo, así que ocultar es control de interfaz y de proceso, no cifrado: el intento de consultar el esperado se audita. El cierre sellado (SHA-256, congelado en la nube) **no cambia de forma** y el formato ampliado se lee con valores por defecto en cierres anteriores.
+- **Medios por tipo de caja:** minorista (efectivo, débito, crédito, QR/billetera); cobranza mayorista (efectivo, transferencia, **cheque en cartera**, **eCheq**, **retenciones/percepciones sufridas**).
+- **Valores en cartera:** `valores(id, type ∈ {cheque, echeq}, bank, number, drawer_tax_id, amount, issued_on, due_on, state, customer_id, receipt_id)` con ciclo *en cartera → depositado / endosado → cobrado / rechazado*; alerta de vencimiento; un **rechazo reabre la deuda** con un movimiento compensatorio (nunca se edita el recibo). Sin integración bancaria; requisitos y plazos de cheques/eCheq `[VERIFICAR]`.
+- **Retenciones sufridas:** se cargan en el recibo (impuesto, jurisdicción, N.º de certificado, importe); **reducen la deuda pero no son dinero**: no suman al efectivo esperado ni al "cobrado real".
+- **Movimientos manuales:** ya exigen rubro y motivo (6.10); se agregan *retiro a caja fuerte* y *depósito bancario* como par vinculado egreso-ingreso, sin doble conteo.
+- **Arqueo analítico:** esperado, declarado, sobrante/faltante por medio y total; los cobros de cuenta corriente y la parte fiada siguen separados de "efectivo real" (4.20).
+
+### 4.22.7 Reportes e históricos de ventas multidimensionales
+
+- **Filtros:** canal, sucursal, caja, vendedor, zona de cobranza, rubro/categoría/subcategoría/marca, lote/vencimiento, cliente, medio de pago, fiscal/interno y período. Subcategoría, marca y zona son campos nuevos **opcionales** (valor por defecto vacío).
+- **KPIs, siempre con fórmula, período y denominador visibles:** ventas brutas · descuentos · devoluciones/notas de crédito · **ventas netas = brutas − descuentos − NC** · costo de lo vendido (costo histórico por línea) · **margen bruto = ventas netas − costo**, por producto y por canal (si falta el costo, la línea se informa como "sin costo" y se cuenta aparte; nunca se inventa) · ticket promedio · volumen promedio por venta (unidades base y bultos) · top de productos **por volumen** y **por margen** (rankings distintos) · participación en ingresos (N/D si el denominador es cero).
+- El Resumen (4.1) **gana el filtro Canal**; no se reemplaza. Gráficos accesibles con tabla equivalente; exportación CSV/XLSX con fórmulas neutralizadas y columnas según permiso de costos. No comparar períodos incompatibles; en la nube, agregaciones en el servidor con paginación (no bajar todo al navegador).
+- Nunca llamar "ganancia neta" a un margen bruto.
+
+### 4.22.8 Contabilidad y cumplimiento fiscal (`accounting.on`, apagada por defecto)
+
+- **Alcance honesto:** asientos **de gestión** generados desde las operaciones; **no reemplazan** los libros legales ni al contador. Formatos, plan de cuentas definitivo y presentaciones oficiales `[VERIFICAR con el contador del cliente]`.
+- **Plan de cuentas configurable** con plantilla de ejemplo (caja, bancos, valores a depositar, deudores por ventas, mercaderías, IVA débito fiscal, retenciones y percepciones, **Ventas Mayoristas**, **Ventas Minoristas**, costo de mercadería vendida, descuentos otorgados, proveedores…). El ingreso se abre por canal.
+- **Asientos automáticos**, vinculados al documento de origen, **balanceados al centavo** (restricción o trigger: Σ débito = Σ crédito), inmutables y corregidos por contraasiento: (1) facturación de venta (deudores/caja a ventas + IVA + percepciones); (2) **CMV** (CMV a mercaderías) según el método de valuación; (3) cobranzas y descuentos otorgados; (4) notas de crédito (revierten); (5) cierre de caja.
+- **Valuación:** hoy el costo es el **último costo de compra**. Se agrega `avg_cost` (**PPP**, recalculado en cada ingreso de 4.21) y capas de ingreso (**FIFO**, por lote cuando hay lotes). El método es una decisión del comercio con **fecha de corte** (no reescribe lo histórico). Migración: el costo actual entra como saldo inicial.
+- **IVA:** alícuota por producto (21 %, 10,5 %, 27 %, 0 %, exento, no gravado `[VERIFICAR alícuotas y encuadres vigentes]`); precio con IVA incluido al consumidor final y discriminado al responsable inscripto, con la representación declarada; el redondeo por alícuota cierra al centavo (lección de 4.12).
+- **Percepciones / retenciones** (Ingresos Brutos y otros nacionales/provinciales): tabla por jurisdicción y condición del cliente (alícuota, base, mínimo no imponible, vigencia) **cargada por el contador**; el sistema **no trae alícuotas inventadas**; la base y el redondeo son visibles y el importe se discrimina en el comprobante y en el libro. Integración con padrones oficiales: etapa futura `[VERIFICAR]`.
+- **Comprobantes:** A/B/C ya cubiertos por 4.12; **Factura de Crédito Electrónica MiPyME: no implementada**, régimen, comprobantes y servicios a `[VERIFICAR]` antes de comprometer nada.
+- **Informes:** Subdiario contable, Mayor por cuenta, Balance de sumas y saldos y **Libro IVA Ventas** (por comprobante y alícuota: neto, IVA, exento, no gravado, percepciones; A/B/C, NC y ND), exportables. El formato oficial de presentación del Libro IVA `[VERIFICAR con ARCA y el contador]`; no se inventa un diseño de registro.
+
+### 4.22.9 Modelo de datos y migraciones
+
+Entidades nuevas (todas con `tenant_id`, RLS, `created_at/updated_at/created_by`, borrado lógico, claves foráneas compuestas y pruebas A/B):
+
+```
+customers (ALTER, campos opcionales) ──< credit_overrides
+price_lists ──< price_list_items >── products / product_variants
+price_tiers  >── products | price_groups      special_agreements >── customers, products
+pack_presentations >── products               zones ──< customers      sellers >── employees
+sales_docs ──< sales_doc_lines                (origin_doc_id / origin_line_id = cadena)
+sales_docs 1── picking_orders · delivery_notes (constancia adjunta cifrada)
+receipts ──< receipt_allocations >── sales_docs      receipts ──< valores_cartera · retenciones
+product_lots ──< stock_moves(lot_id)          bom (kits / recetas)       product_variants >── products (padre)
+cost_layers · avg_cost                        tax_rules (percepciones)
+accounts ──< journal_lines >── journal_entries >── sales_docs | receipts | cash_closings
+audit_log (extender, sólo-agregar)            cash_closings (snapshot ampliado, formato versionado)
+```
+
+**Migraciones propuestas** (aditivas, numeradas, idempotentes; **no existen todavía**: se crean y se prueban en el repositorio **antes** de mencionárselas al dueño; se agregan a `INSTALAR-TODO.sql` en orden): `10-mayorista-precios.sql` (F1) · `11-documentos-venta.sql` (F2) · `12-lotes-kits-matriz.sql` (F3/F4) · `13-cobranzas-valores.sql` (F5) · `14-contable.sql` (F7). Cada colección nueva exige actualizar la lista cerrada de `sincronizar()`, su política de lectura, exportación, importación y respaldo. Los **importes derivados** (totales, deuda, estado) los calcula el servidor. Los estados persistidos de la versión anterior deben cargar sin errores (campos nuevos con valores por defecto).
+
+### 4.22.10 Flujogramas
+
+```
+CIRCUITO MAYORISTA
+Presupuesto (vigencia) ─► Pedido de venta ─► [¿crédito OK?] ──no──► Excepción autorizada (motivo) o rechazo
+                                │ sí                                  │
+                                ▼                                     ▼
+                      Reserva opcional ─► Picking (lotes FEFO, escaneo, diferencias)
+                                                  ▼
+                              Remito/despacho (descuenta stock + lote, constancia firmada)
+                                                  ▼
+                     Factura (1..n remitos; ARCA 4.12) ─► Recibo de cobranza (medios, valores, retenciones)
+                                                  ▼
+                       Asiento de caja (rubro obligatorio) ─► [accounting.on] asientos ─► Cierre de caja
+
+CIRCUITO MINORISTA POS (sin pasos extra)
+Carrito (priceResolve) ─► Ticket interno / Factura ─► Cobro (mixto, 4.20) ─► Cierre de caja (ciego opcional)
+        └─ cadena implícita: pedido + remito + comprobante + cobro en una sola operación
+```
+
+### 4.22.11 Reportes de cierre (entregables)
+
+1. **Planilla de arqueo y cierre de caja unificada** (A4 imprimible): minorista y mayorista por separado y total; por medio; valores en cartera; retenciones; esperado vs. declarado; sobrante/faltante; usuario, hora, observaciones, sello SHA-256 y verificación de integridad.
+2. **Informe de trazabilidad de ventas y márgenes por canal:** por documento (con la cadena completa), producto, lote, vendedor, zona; fórmulas visibles.
+3. **Libro IVA Ventas y Subdiario contable** (sólo con `accounting.on`; formatos oficiales `[VERIFICAR]`).
+
+Todos con tabla accesible, CSV/XLSX con fórmulas neutralizadas, permisos de costos y filtros aplicados visibles en el encabezado.
+
+### 4.22.12 Permisos, banderas y fases de construcción
+
+- **Permisos nuevos** (los de hoy no cambian): `price_lists`, `credit_override`, `wholesale_sell`, `picking`, `dispatch`, `collections`, `valores`, `accounting`, `audit_read`. Administrador y supervisor por defecto en los de gestión; vendedor/mostrador sólo vende; **depósito** sólo picking y despacho. Todo se valida **en el servidor**.
+- **Banderas:** `wholesale.on` · `wholesale.docs` · `wholesale.lots` · `wholesale.matrix` · `wholesale.kits` · `wholesale.reserve` · `wholesale.allowClubBenefits` · `cash.blind` · `accounting.on`. Todas apagadas en el cliente; se encienden por fase.
+- **Fases** (cada una termina con **regresión completa verde y publicación**; ninguna deja el sistema a medias):
+
+| Fase | Contenido | SQL | Aplica a un almacén/licorería |
+|---|---|---|---|
+| F1 | Canal, listas, escalones, acuerdos, presentaciones/bultos, `priceResolve`, crédito con plazo y excepción | 10 | **Sí** |
+| F2 | Pedidos de venta, picking, remito (con constancia), presupuesto, factura desde remitos, recibo, trazabilidad | 11 | Opcional |
+| F3 | Lotes/FEFO, kits, pesables con doble unidad | 12 | Lotes sí (si hay vencimientos); pesables y kits según catálogo |
+| F4 | Matriz talle/color/estampa | 12 | No (indumentaria) |
+| F5 | Cobranzas, cheques/eCheq, retenciones, caja por canal, **cierre ciego** | 13 | **Sí** (cierre ciego); valores opcional |
+| F6 | Reportes por canal/vendedor/zona/lote, KPIs y los 3 informes | — | **Sí** |
+| F7 | Contabilidad, PPP/FIFO, IVA por alícuota, percepciones, Libro IVA | 14 | Sólo con contador |
+
+Antes de empezar cada fase: inspeccionar (sección 12), listar supuestos, escribir las pruebas junto con el código. **La decisión de qué fases se construyen es del dueño**; el orden recomendado es el de la tabla.
+
+### 4.22.13 Contradicciones del adjunto original y decisión tomada (regla 2 de la sección 2)
+
+| El adjunto pide | Choca con | Decisión por defecto (configurable) |
+|---|---|---|
+| "Al menos 4 listas fijas" y lista 5 | Su propia enumeración (5 niveles) | 5 listas **configurables** (4.22.1.2) |
+| Bloqueo automático de crédito en todo documento | 4.20.9: el servidor no rechaza ventas por límite para no romper lo offline | Bloqueo duro en el equipo; el servidor marca `credit_review`; los **pedidos** (con conexión) sí se validan en servidor (4.22.2) |
+| Cierre ciego | El Arqueo y Caja de hoy muestran el esperado | Bandera `cash.blind`; ocultamiento de interfaz + auditoría, con el límite offline declarado (4.22.6) |
+| FEFO y lote obligatorios en la **venta** | 4.2: se puede vender sin stock | Lote virtual SIN ASIGNAR, regularización auditada (4.22.3a) |
+| Registro "inalterable" | El encadenado del equipo sólo detecta | Servidor sólo-agregar + hash; límite declarado (4.22.5) |
+| "IP/Dispositivo" en cada evento | Datos personales | IP sólo del lado servidor, retención a `[VERIFICAR]`; dispositivo = id propio del equipo |
+| Bonificación automática por bulto | 4.3: un beneficio por compra | La bonificación de bulto es parte del **precio**, no un descuento extra; el cupón/membresía no se acumula con ella salvo configuración visible |
+| Precio especial VIP "sobreescribible" | Escalones por cantidad | El acuerdo vigente gana; no se mezcla con escalones salvo que lo declare (4.22.1.3) |
+| Asientos, CMV, Libro IVA | El sistema hoy no es contable y el costo es el último costo | Módulo opcional con PPP/FIFO, alcance honesto y contador (4.22.8) |
+| Remito/Presupuesto "de 4.2" | No están en el código | Se completan en F2, una sola vez |
+
+### 4.22.14 Pruebas obligatorias (con números conocidos, calculados de forma independiente)
+
+1. **Precio:** unidad $ 100 con descuento mayorista 15 % → $ 85; bulto de 6 a $ 100 con 10 % → **$ 540 por bulto** ($ 90 por unidad); **2 bultos descuentan 12 u** de stock; escalones 1–9/10–49/50–99/100+ → 100/90/80/70 con 9, 10, 49, 50, 99, 100 u; un escalón **nunca sube** el precio de la lista del cliente; acuerdo especial vigente, vencido y futuro; producto sin precio en la lista → cae a L1 con motivo; escalones solapados rechazados; piso de precio; porcentaje inválido (negativo, `NaN`, 100 %); descuento que dejaría el total negativo; cupón + mayorista (no se acumulan); bonificación de bulto vs. cupón; tabaco/alcohol de venta restringida sin promociones.
+2. **Bulto cerrado:** sólo bulto con cantidad múltiplo y no múltiplo; venta mixta suelta + bulto; código de barras de bulto y de unidad; cambio de presentación que deja cantidad inválida.
+3. **Crédito:** saldo vencido bloquea cuenta corriente pero no contado; saldo + operación > límite; excepción con usuario, monto y vigencia que se consume; venta hecha **sin conexión** que excede el límite → al sincronizar queda `credit_review` y **no** se rechaza; pedido mayorista con conexión se valida en servidor; antigüedad de saldos.
+4. **Documentos:** pedido de 100 u → remito de 60 + remito de 40 (faltante pendiente); factura desde 2 remitos; nota de crédito vinculada; **trazabilidad inversa** de una factura hasta el presupuesto y los lotes; **búsqueda hacia adelante** de un lote; idempotencia de cada transición (doble clic, reintento); numeración sin saltos con dos cajas; documento cerrado no editable; ticket POS genera la cadena implícita sin pasos extra; presupuesto no suma como venta.
+5. **Lotes/FEFO:** venta que toma de varios lotes por vencimiento; lote vencido bloqueado (y excepción auditada); venta sin stock → SIN ASIGNAR y regularización; recepción sin lote para producto con `track_lots` rechazada y **revierte todo**; dos cajas vendiendo la última unidad de un lote al mismo tiempo; devolución al lote original.
+6. **Kits y pesables:** kit virtual (stock = mínimo de componentes), venta descuenta componentes una sola vez, kit armado no descuenta componentes, devolución; pesable 1,250 kg con balanza simulada y EAN-13 embebido, peso fuera de rango rechazado, stock en piezas y en kilos coherente.
+7. **Matriz:** curva de talles 1-2-2-2-1 expande a variantes; stock por variante; escalón sobre el total del padre; importación padre-hijo.
+8. **Caja:** cierre ciego (el esperado **no** aparece en el DOM, en las respuestas ni en las exportaciones del cajero hasta declarar; sí para supervisor; el intento queda auditado); cierre sellado idéntico en forma y verificable; cierres viejos cargan con el formato nuevo; cheque en cartera → depositado → **rechazado reabre la deuda**; retención sufrida **no** suma al efectivo esperado; depósito bancario como par egreso-ingreso sin doble conteo.
+9. **Contabilidad:** todo asiento balancea al centavo (prueba de propiedad con ventas aleatorias); **PPP:** compra 10 u a $ 100 + compra 10 u a $ 120 → costo promedio $ 110, venta de 5 u → CMV $ 550; **FIFO** con las mismas compras: venta de 5 u → CMV $ 500; IVA 21 % con redondeo conflictivo por alícuota que cierra al centavo; **Libro IVA Ventas = suma de los comprobantes del período**; nota de crédito revierte; cambio de método de valuación con fecha de corte no reescribe lo histórico.
+10. **Reportes:** conjunto de datos conocido con descuentos, devoluciones, notas de crédito, costos históricos distintos, vendedor distinto del cajero y vendedor ausente → ventas netas, margen por canal, ticket promedio y rankings coinciden con el cálculo independiente; costo ausente informado como "sin costo"; filtros que no alteran otras pantallas.
+11. **Auditoría:** `UPDATE`/`DELETE` rechazados por el servidor; cadena de hash válida y rota detectada; cada acción obligatoria de 4.22.5 genera su evento con valor anterior/nuevo y usuario; filas viejas se leen sin errores.
+12. **Seguridad y aislamiento:** RLS A/B en **todas** las tablas nuevas, RPC y exportaciones; mostrador/operador rechazados **en el servidor** para listas, límites, acuerdos y valores; `tenant_id` manipulado; XSS en nombre de lista, lote, constancia y observaciones; CSV con fórmulas; la API pública y el menú **sin** costo, margen, listas ni acuerdos.
+13. **Club y beneficios:** una venta mayorista a un socio del Club **no** otorga sello ni consume cupón con `allowClubBenefits` apagada; con la bandera encendida, un solo beneficio y un sello por 24 h; el alta y los sellos del Club (4.6) siguen funcionando igual con `wholesale.on` encendida y apagada.
+14. **Regresión y forma:** con las banderas **apagadas** el comportamiento y las suites previas no cambian; encendidas y apagadas en la misma base (el estado previo carga sin errores); sincronización idempotente (reenviar el lote no duplica); sin conexión → cola y reconciliación honestas; 320/360/768/1024/1440 sin desbordes y con áreas táctiles medidas con números (≥ 44/48 px); consola sin errores; `file://` y `https`.
+
+### 4.22.15 Criterios de aceptación y límites declarados
+
+- Una fase se da por terminada sólo cuando: migración aplicada y probada dos veces sobre base nueva y sobre la base con datos; pruebas de 4.22.14 de esa fase verdes; **regresión completa verde** con la bandera apagada y encendida; revisión independiente de seguridad para F1 (precios y crédito), F5 (cajas y valores) y F7 (asientos); documentación y publicación. Nada se declara "100 % funcional".
+- **Dependen de terceros:** contador (plan de cuentas, percepciones, formatos), certificado y servicios de ARCA (FCE MiPyME, comprobantes), bancos (eCheq, depósitos), padrones provinciales, autoridad sanitaria (carnes y frescos), balanza y lector reales (**pendiente de prueba física** hasta tener marca y modelo).
+- **Fuera de alcance de 4.22:** integración bancaria, padrones automáticos de percepciones, FCE MiPyME, remito electrónico oficial, logística de transporte, liquidación de comisiones (5.8) y la multisucursal en servidor (queda como en el anexo).
+
+---
+
 ## 5. MÓDULOS OPCIONALES (aditivos, auditables, apagados por defecto si dependen de terceros)
 
 Reglas comunes: banderas por comercio/sucursal/rol/dispositivo; migraciones SQL aditivas, versionadas e idempotentes probadas sobre copia; `tenant_id`, RLS y pruebas cruzadas A/B en toda entidad; servidor valida y recalcula; idempotencia; límites de uso; auditoría; dinero en centavos enteros; sin proveedor/credencial/dispositivo → estado "Pendiente de configuración" y el resto sigue funcionando; ninguna integración se declara terminada por tener una pantalla simulada.
 
 - **5.1 Costos, porcentajes y precios:** recargo (precio = costo × (1 + p/100); costo 100 + 30 % = 130) y margen bruto (precio = costo / (1 − p/100); costo 100 + 30 % = 142,86); rechazar margen < 0 o ≥ 100; recalcular en vivo; cambio manual pide confirmación; historial; roles autorizados ven costo.
-- **5.2 Mayorista, bultos y descuentos:** unidad base, unidades por bulto, venta suelta/bulto cerrado/ambas, tramos sin solapar, descuento % (10 = 10 %), stock siempre en unidad base (2 bultos de 6 = 12), mostrar "Minorista / Mayorista / Bulto cerrado" y el motivo; histórico congela la regla aplicada.
+- **5.2 Mayorista, bultos y descuentos (resumen; la especificación completa, la matriz de brechas y las fases están en 4.22):** unidad base, unidades por bulto, venta suelta/bulto cerrado/ambas, tramos sin solapar, descuento % (10 = 10 %), stock siempre en unidad base (2 bultos de 6 = 12), mostrar "Minorista / Mayorista / Bulto cerrado" y el motivo; histórico congela la regla aplicada.
 - **5.3 Tarjetas, cuotas y financiación:** planes de cuotas y promociones con vigencia, interés explícito, costo financiero visible, sin guardar PAN/CVV/PIN, distinguir "registrar medio" de "procesar pago", conciliación e idempotencia `[VERIFICAR normativa]`.
 - **5.4 Correo:** SMTP/API en servidor, plantillas versionadas, cola con reintentos, baja y lista de supresión, nunca campañas sin consentimiento.
 - **5.5 WhatsApp:** "Abrir WhatsApp" (enlace `wa.me` con texto codificado; no es envío automático) separado de WhatsApp Business API oficial (tokens en servidor, webhooks verificados, plantillas autorizadas `[VERIFICAR]`); estados preparado / abierto / aceptado / entregado / fallido; nunca scraping ni automatizar WhatsApp Web.
@@ -749,12 +1038,12 @@ El rubro se cambia en Administración sin tocar los datos. Cada línea indica qu
 
 | Rubro | Prender | Vocabulario | Apagar / notas |
 |---|---|---|---|
-| **Comercio / almacén / licorería / kiosco** | POS minorista/mayorista, bultos, balanza, stock, rubros con color, venta sin stock (opción), fidelización, cupones, menú QR | producto, rubro, bulto | Control de edad y horario sólo si hay venta restringida |
+| **Comercio / almacén / licorería / kiosco** | POS minorista/mayorista (4.22: fases F1, F5 y F6 recomendadas), bultos, balanza, stock, rubros con color, venta sin stock (opción), fidelización, cupones, menú QR | producto, rubro, bulto | Control de edad y horario sólo si hay venta restringida |
 | **Gastronomía (bar, restaurante, café)** | Mesas, comandas por sector (cocina/barra), recetas e insumos, agregados, mozos y comisiones, menú QR como carta | plato, mesa, comanda, mozo | Mayorista apagado; venta sin stock apagada para insumos críticos |
 | **Servicios (taller, estética, peluquería)** | Órdenes de trabajo Kanban, técnicos/profesionales, comisiones o alquiler de sillas/gabinetes, agenda de turnos, sellos de fidelización | orden, servicio, profesional | Stock y balanza apagados; "Exigir stock" en repuestos |
 | **Profesionales (estudios, consultorios)** | Órdenes como expedientes/consultas, honorarios, compras y gastos, datos sensibles sólo cifrados | expediente, cliente/paciente, honorario | Menú público apagado si no aplica; sin Pixel ni publicidad |
 | **ONG / clubes** | Catálogo = campañas/donaciones, clientes = socios con consentimiento, cuenta corriente = cuotas, membresías | socio, cuota, campaña | Sin control de edad ni alcohol |
-| **Mayorista / distribuidor** | Bultos cerrados, tramos mayoristas, cuenta corriente con límites, listas de precios por grupo de clientes | cliente, bulto, lista | Menú público opcional con precios mayoristas habilitados |
+| **Mayorista / distribuidor** | Módulo **4.22** completo: listas L1–L5, escalones, bultos, crédito con plazo, pedidos de venta → remito → factura → recibo, lotes/FEFO, cobranzas con valores, cierre ciego, reportes por canal; contabilidad opcional (`accounting.on`) | cliente, bulto, lista, pedido de venta, remito, recibo | Menú público opcional con precios mayoristas habilitados producto por producto |
 
 Cada negocio define en la **ficha de particularidades (L)** lo que no es general, como módulo opcional apagado por defecto: rubros internos o secciones, socios y reparto, cierres a medida, reportes propios, impuestos fijos, empleados compartidos, formatos de mensajes. Para cada punto: qué se quiere, quién lo usa, qué datos entran, qué sale y si toca el cierre sellado.
 
@@ -776,6 +1065,7 @@ Cada negocio define en la **ficha de particularidades (L)** lo que no es general
 10. Para el borrado de artículos, identifica todas las referencias históricas y toda ruta de backend. La seguridad no se da por validada si sólo desaparece el botón para el usuario no administrador.
 11. Para Checkout Online, detecta si ya existen carrito, solicitudes de WhatsApp, órdenes, pagos, webhooks, clientes y configuración de envío. Reutiliza lo que corresponda sin confundir solicitud de WhatsApp con orden de compra pagable ni registrar dos veces una misma venta.
 12. Para wallet y avisos, detecta módulo Club/ledger, consentimientos, proveedor de correo/WhatsApp/SMS, scheduler/worker, colas y auditoría. Reutiliza preferencias, clientes y servicios de comunicaciones existentes; verifica qué estados reporta cada proveedor; no declares automático un flujo que dependa de que el navegador esté abierto.
+13. Para mayorista/minorista (4.22), partí de la matriz 4.22.0 y volvé a inspeccionar antes de cada fase: listas, bultos, canal, lotes, remitos, cierres y asientos que ya existan se completan, no se duplican. El módulo **Pedidos de venta** no se confunde con **Pedidos** (menú/PedidosYa). Todo campo nuevo de producto, cliente, venta o cierre se lee con valor por defecto en los datos viejos y en los cierres sellados.
 
 ---
 
@@ -821,6 +1111,8 @@ Pruebas **automáticas con navegador real** (flujos con datos reales, `file://` 
 33. **Wallet de fidelización:** sin cuentas/certificados el módulo queda pendiente y la tarjeta web sigue funcionando; generar pase Apple firmado por backend y enlace Google oficial en entornos de prueba; validar propietario/tenant, ID opaco, datos mínimos, QR/código sin PII y canje validado en servidor; token vencido, usado, alterado o de otro comercio rechazado; tarjeta no declara “guardada” sin señal verificable; actualización de saldo al cambiar el ledger; revocación/baja de registro cuando esté soportada; ningún secreto en HTML, bundle, logs, backups o respuestas.
 34. **Avisos automáticos y consentimiento:** comprobar cada trigger configurado sólo tras evento confirmado; separación marketing/transaccional; cliente sin opt-in comercial excluido; baja inmediata e idempotente; cambio de preferencias; ventanas de silencio, zona horaria, cooldown y límite de frecuencia; doble evento no duplica mensaje; proveedor caído/rechazo/429/timeout, reintento y DLQ; estados “aceptado”, “enviado”, “entregado” y “leído” sólo cuando el canal los reporte; el worker funciona sin navegador abierto; fallo de comunicaciones no rompe POS, nube, fidelización ni checkout.
 35. **Envío y automatización segura:** link de tarjeta expira, no se enumera, tiene alcance limitado y no filtra datos por query/logs; destinatario no autenticado recibe respuesta genérica; plantillas con XSS/inyección neutralizados; WhatsApp usa sólo API oficial/plantillas vigentes, correos incluyen baja cuando corresponda, notificaciones push requieren permiso del usuario; pruebas de aislamiento entre tenants y sucursales, rate limits, pausa de campaña masiva y auditoría de quién la activó.
+36. **Club V26.3 (4.6):** celular nuevo → tarjeta en el acto → importación por un equipo con sesión (admin y mostrador) → el celular pasa de «en trámite» a «Socio N.º 0001»; sellos por QR, código de 8 cifras, DNI y NFC (simulado, con reloj ajustable en todos los dispositivos); segundo sello el mismo día rechazado; código repetido rechazado; premio y reversión por anulación; segundo celular del mismo cliente (mismo WhatsApp **y** mismo cumpleaños) con tarjeta propia y con otro cumpleaños rechazado; altas viejas y altas que el equipo no puede abrir **no se descartan**; DNI repetido (pide elegir), inválido y borrado en la baja; el DNI nunca en claro en la nube; `club_estado` sin datos personales y con aislamiento A/B; meta y premio publicados; cupones de todos y de socios, con límite por cliente y uso sincronizado. NFC y cámara con hardware real: **pendiente de prueba física**.
+37. **Mayorista/minorista (4.22):** las pruebas de **4.22.14**, fase por fase; con las banderas apagadas la regresión de las suites anteriores no cambia, y con ellas encendidas y apagadas sobre la misma base el estado previo carga sin errores.
 
 Matriz de trazabilidad: requisito → archivos/tablas/funciones → pruebas → resultado. Nada se declara "aprobado" sin evidencia reproducible.
 
@@ -859,7 +1151,7 @@ Matriz de trazabilidad: requisito → archivos/tablas/funciones → pruebas → 
 
 **Lo que depende de terceros (decírselo siempre al cliente):** CAE real (certificado y servicio del organismo fiscal, alta del punto de venta, clave fiscal del titular); nube (proyecto del proveedor, scripts SQL ejecutados por quien tiene acceso, secretos de las funciones); IA en la nube (clave y costos); cobros online (cuenta, credenciales, webhooks, sandbox); Apple Wallet (cuenta/desarrollo, certificado de firma y servicio seguro para pases actualizables); Google Wallet (cuenta de emisor, permisos de API y credenciales de servidor); WhatsApp Business, correo, SMS y push (proveedor, plantillas, permisos, dominios, opt-ins, cuotas y costos); transportistas (credenciales, cobertura y API vigente); Meta (permisos, políticas, consentimiento); tiendas de apps y firma de código (cuentas y certificados pagos); agente local y hardware real (etapa futura / sin probar); normativa (registro de bases, plazos de conservación, comunicaciones comerciales, horarios de venta restringida y textos legales: asesor y fuente oficial); recuperación (sin contraseña ni código no hay datos).
 
-**Definición de terminado:** todo publicado (web, instalador, SQL aplicado) · pruebas en verde y revisión independiente sin pendientes de seguridad · regresión · documentación (guía de nube, de Windows, prueba desde cero, arquitectura de compras/cajas, soporte, este prompt) · entrega honesta con límites. Para V26 se suma: cobertura de acciones conversacionales trazable por módulo; migraciones de cajas/sucursales aplicadas en base de prueba; pruebas RBAC/RLS y conciliación; pruebas de borrado admin; inventario de tablas con ordenamiento y pruebas de accesibilidad; si Checkout Online está activado, prueba real/sandbox de orden, pago, webhook idempotente, envío y no exposición de secretos; si Wallet/avisos están activados, prueba de generación/guardado de pase, actualización, consentimiento, baja, cola/worker, idempotencia y estados reales de entrega. Sin credenciales/cuenta del propietario, declarar el paso productivo pendiente y mantener el módulo apagado.
+**Definición de terminado:** todo publicado (web, instalador, SQL aplicado) · pruebas en verde y revisión independiente sin pendientes de seguridad · regresión · documentación (guía de nube, de Windows, prueba desde cero, arquitectura de compras/cajas, soporte, este prompt) · entrega honesta con límites. Para V26 se suma: cobertura de acciones conversacionales trazable por módulo; migraciones de cajas/sucursales aplicadas en base de prueba; pruebas RBAC/RLS y conciliación; pruebas de borrado admin; inventario de tablas con ordenamiento y pruebas de accesibilidad; si Checkout Online está activado, prueba real/sandbox de orden, pago, webhook idempotente, envío y no exposición de secretos; si Wallet/avisos están activados, prueba de generación/guardado de pase, actualización, consentimiento, baja, cola/worker, idempotencia y estados reales de entrega. Sin credenciales/cuenta del propietario, declarar el paso productivo pendiente y mantener el módulo apagado. Para V26.4 se suma: cada fase de 4.22 con su migración aplicada y probada dos veces (base nueva y base con datos), las pruebas de 4.22.14 de esa fase, regresión con banderas apagadas y encendidas, y revisión independiente de F1, F5 y F7.
 
 **Formato de la entrega final (obligatorio):** módulos implementados; migraciones; suites de prueba y resultados; integraciones realmente configuradas; secretos que debe cargar el dueño por canal seguro; dependencias pagas; dispositivos probados (marca/modelo/versión/SO/driver) y pendientes de prueba física; límites conocidos y riesgos abiertos. Prohibido "100 % funcional", "sin errores" o "aprobado" sin evidencia.
 
@@ -887,6 +1179,7 @@ Matriz de trazabilidad: requisito → archivos/tablas/funciones → pruebas → 
 18. Si el cliente necesita e-commerce, configurar Checkout Online de 4.18: escoger modo de venta, probar sandbox, definir métodos/tarifas de entrega, configurar secretos por canal seguro, registrar webhook, revisar privacidad/devoluciones y aprobar las pruebas antes de activar producción. Si no se necesita, mantenerlo apagado y confirmar que WhatsApp sigue funcionando.
 19. Si el cliente utiliza fidelización digital, configurar 4.19: proveedores/cuentas de Apple Wallet y/o Google Wallet, certificados y secretos por canal seguro, diseño y contenido mínimo del pase, enlace/autenticación de cliente, canales automáticos, plantillas, reglas, horarios, límites, consentimiento por finalidad/canal, baja y política de retención. Probar la generación, el guardado real en dispositivos compatibles, las actualizaciones y los avisos con estados verificados; si faltan requisitos de proveedor, conservar la tarjeta web y mostrar la dependencia pendiente.
 20. Publicar (sección 15), capacitar al dueño y entregar el informe honesto.
+21. Si el cliente vende por mayor (4.22): completar las filas de la ficha, responder las preguntas de E.6 una sola vez, elegir las fases, construirlas en orden con regresión verde en cada una y dejar `wholesale.on` apagada hasta que el dueño valide las listas y los clientes mayoristas con datos reales.
 
 ---
 
@@ -936,6 +1229,9 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 | 4.21 Proveedores y compras (V26.2) | **Hecho** en cliente, nube y API: proveedores con CUIT validado, órdenes de compra, **ingreso de mercadería atómico** (stock + costo + deuda o egreso de caja con rubro; todo o nada), pagos, notas de crédito, libro sólo-agregar, tablero (deuda y órdenes pendientes), tabla ordenable, carga de remito, API REST con idempotencia, exportaciones | `supabase/08-proveedores-compras.sql`, `supabase/functions/api/` (+ `despliegue-panel/api-index.ts`), `p4c-compras.js` (motores nube y local), `p4d-compras-ui.js` (pantalla), CSS `.cmp-*` en `p1-head.html` | SQL 120 pruebas nuevas, concurrencia, `a1` 27/27 (API), `p1` 47/47 (demo), `c17` 31/31 (nube), `p2` 41/41 (responsive) |
 | Marca oficial VINCULAR BUSINESS (V26.1) con banner final y botones WhatsApp/Llamar/Correo | **Hecho** en ingreso, barra lateral, menú público (ES/EN), tickets, tarjeta del Club, mensajes de error de SQL/funciones y README | `VB`/`vbFooter` en `p2-core.js`, `assets/vb-banner.webp`, `build/pub_body.html` | `t/v8.py` |
 | 6.10 Rubro financiero obligatorio | Se mantiene (también en traspasos y en el servidor) | `06-v26.sql` | SQL 152/152 |
+| 4.6 Club V26.3: tarjeta en el celular, importación de altas, sellos por QR/código/DNI/NFC, cupones | **Hecho** en cliente y nube (NFC y cámara reales sin probar) | `p6-loyalty.js`, `p9-cloud.js`, `pub/post.js`, `09-club-tarjeta.sql` | `c18` 51/51 · `c19` 21/21 · SQL 307/307 |
+| 4.2 Selector Remito / Presupuesto | **Pendiente** (hoy sólo Ticket interno o Factura electrónica) | — | — |
+| **4.22 Mayorista / Minorista (V26.4)** | **Especificado; no implementado** (matriz 4.22.0, fases F1–F7) | Este documento | — |
 
 ### B. Resultados de las suites (2026-10-18)
 - SQL (Postgres 16 real, scripts 01–08 dos veces para comprobar idempotencia + tests 10–15; `INSTALAR-TODO.sql` aplicado dos veces sobre una base nueva): **293 OK / 0 FALLAN** (173 anteriores + 120 de proveedores y compras).
@@ -951,6 +1247,7 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 ### C. Límites declarados (no afirmar más que esto)
 - **Club V26.3:** **NFC y lectura de QR con la cámara no se probaron con hardware ni celulares reales** (en las pruebas se simula la lectura; Web NFC sólo existe en Chrome para Android; `BarcodeDetector` depende del navegador). El lector de QR USB que escribe como teclado funciona en cualquier equipo. **Wallet (Apple/Google) no está implementado.** El límite global de usos de un cupón se controla en cada equipo y se concilia al sincronizar: dos cajas pueden gastar a la vez el último uso (mejora pendiente: reserva atómica en servidor). Si el cliente borra los datos del navegador pierde la tarjeta de su celular; el mostrador puede seguir sellando por DNI/NFC.
 - Proveedores y compras: probado contra un servidor de prueba equivalente y con navegador real; **hardware, lectura de facturas con IA y ARCA** no forman parte de este módulo. La función `api` requiere que el dueño la despliegue en su proyecto (no la necesita la pantalla). El producto no es clave foránea (vive en el catálogo genérico): lo valida la función.
+- **Mayorista/minorista (4.22, V26.4):** especificado, **no construido**: no hay listas de precios, bultos, canal, lotes, documentos vinculados, cierre ciego, cheques ni asientos. El selector Remito/Presupuesto de 4.2 tampoco existe todavía.
 - Checkout online, Wallet/avisos, WhatsApp Business API, correo, voz/LLM en la nube, transportistas: **sin proveedor conectado y sin prueba real**.
 - Gastronomía (mesas/comandas) y servicios (agenda) no están en este comercio: las acciones del asistente correspondientes no existen (están en la tabla de exclusiones).
 - Multisucursal en servidor, hardware real (impresoras, balanzas, huellas) y ARCA en producción: **no probados**. ARCA homologación fue cargada y aprobada por el dueño.
@@ -968,7 +1265,34 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 - Una función de pago compartida (`payCheck`) valida tanto la pantalla (aviso en vivo) como `commitSale` (decisión): no hay dos reglas que puedan divergir.
 - Los textos de ayuda/soporte dentro de SQL y funciones también llevan los datos oficiales del desarrollador: al cambiarlos hay que reaplicar `INSTALAR-TODO.sql` (es idempotente).
 - Tarjetas de tamaño físico fijo (modelo de tarjeta del Club, 342 px) necesitan contenedor con `overflow-x:auto` para no desbordar a 320 px.
+- **Lección V26.4:** un requisito escrito en este prompt no prueba que exista en el código (el selector Remito/Presupuesto figuraba en 4.2 y no estaba construido). Antes de planificar cualquier fase se completa la matriz de detección contra el código real, no contra el texto del prompt, y se corrige el prompt si miente.
+- **Lección V26.4:** un adjunto de requisitos nuevos se contrasta contra las decisiones ya tomadas (offline-first, un beneficio por compra, costo = último costo, stock negativo permitido) y las contradicciones se resuelven por escrito (4.22.13) antes de programar; no se implementan dos versiones en silencio.
 
 ---
 
-FIN DE SISTEMA VB V26
+## ANEXO E — PUNTO DE REANUDACIÓN (datos de ESTA instalación; es la única parte con datos de un cliente: borrarla al replicar el prompt para otro negocio)
+
+**E.1 Repositorios y publicaciones.** Cliente (Almacén RAVE): repositorio `AlmacenRAVE`, publicado en `https://raveholding.github.io/AlmacenRAVE/`; contiene `index.html` ensamblado, `fuente/` (partes del código, `assemble.py`, `build.py`, pruebas y este prompt) y `supabase/` (scripts SQL y funciones). Demo: repositorio `raveV2`, publicado en `https://raveholding.github.io/raveV2/` (sólo el HTML ensamblado con datos de ejemplo y simulador fiscal). **Nunca reutilizar la base local ni la clave publicable entre ambos**, ni publicar la demo encima del cliente.
+
+**E.2 Construcción y pruebas.** Las partes `p1-head.html`, `p2-core.js` … `p9b-arca.js`, `assemble.py`, `build/pub_body.html` y `pub/*` (menú público en iframe) se ensamblan con `python3 build.py demo|cliente`; el cliente lleva la URL real y la clave publicable. Pruebas con navegador real: `bash t/run_c.sh <script>.py` (nube, contra un servidor de prueba equivalente) y `t/*.py` (demo); regresión completa: `bash t/regress.sh`; SQL: `bash supabase/tests/run.sh` (Postgres 16, PostgREST y Deno locales). Si el entorno de trabajo no conserva esas herramientas, recrearlas desde `fuente/` y `supabase/` antes de tocar nada, y volver a correr la regresión como línea base.
+
+**E.3 Nube.** Proyecto de Supabase en plan Pro; scripts `01`–`09` aplicados (`INSTALAR-TODO.sql` = 01–09, validado dos veces sobre base nueva); Edge Function `api` desplegada con "Verify JWT" apagado (valida la sesión adentro). **La próxima migración es la `10`.** La referencia del proyecto y la clave publicable viven en el repositorio del cliente; ningún secreto está en el HTML.
+
+**E.4 Estado funcional (2026-10-19).** V26.3 publicada: Club con tarjeta en el celular, importación sin pérdida de altas, sellos por QR/código/DNI/NFC y cupones por audiencia; SQL 307/307; regresión de demo y nube sin fallas (anexo B). 4.22 **no** está construido.
+
+**E.5 Pendientes conocidos (por prioridad).**
+1. *Dueño:* entrar una vez como administrador con la versión nueva para que el menú se republique (meta, premio y cupones del Club); repetir el alta de prueba con un celular real (el alta de prueba anterior quedó rechazada a propósito).
+2. *Club:* reserva atómica del último uso de un cupón en el servidor (hoy dos cajas pueden gastarlo a la vez); recuperación de la tarjeta si el cliente borra los datos del celular (reutilizando la verificación WhatsApp + cumpleaños y el alias de tarjeta); prueba con NFC y cámara reales; Wallet (necesita cuentas y certificados).
+3. *4.2:* selector de documento Remito/Presupuesto (hoy sólo Ticket interno o Factura electrónica); se completa en 4.22 F2.
+4. *4.22:* fases F1–F7 según decida el dueño (recomendadas para un almacén/licorería: F1, F5 con cierre ciego y F6).
+5. *Otros:* multisucursal con RLS por sucursal en el servidor, ARCA en producción, hardware real, Checkout online, Wallet/avisos, voz en la nube.
+
+**E.6 Preguntas que se hacen UNA sola vez y juntas antes de empezar 4.22.** ¿Qué fases se construyen? · ¿Nombres de las listas L1–L5 y a qué clientes aplica cada una? · ¿Se vende por bulto/pack y de qué tamaño? · ¿Plazo máximo de crédito y tolerancia de mora? · ¿Algún rubro con lote y vencimiento? · ¿Cierre ciego sí/no y para qué roles? · ¿Cajas separadas por canal? · ¿Se cobra con cheque/eCheq o con retenciones? · ¿Habrá contabilidad con contador (nombre, método PPP/FIFO)?
+
+**E.7 Prompt de arranque (pegar al abrir una sesión nueva).**
+
+> Leé `SISTEMA_VB_26F.md` completo y el Anexo E. Inspeccioná los repositorios `AlmacenRAVE` y `raveV2` (sección 12) y corré la regresión como línea base. Después construí la **fase F1 de 4.22** (canal, listas L1–L5, escalones, acuerdos, presentaciones/bultos, `priceResolve` único para pantalla, `commitSale` y servidor, crédito con plazo y excepción autorizada): listá los supuestos; si falta algún dato de E.6, preguntalo una sola vez y junto; creá `10-mayorista-precios.sql` (aditiva, idempotente, con RLS y pruebas A/B) y agregala a `INSTALAR-TODO.sql`; implementala detrás de `wholesale.on` (apagada en el cliente, encendida con datos "ejemplo" en la demo); escribí las pruebas 1–3 y 12–14 de 4.22.14 junto con el código; corré la regresión con la bandera apagada y encendida; publicá demo y cliente; y entregame el informe honesto (qué quedó, qué debo hacer yo, qué no se pudo probar). No rompas nada de lo existente ni afirmes "100 % funcional" sin evidencia.
+
+---
+
+FIN DE SISTEMA VB 26F (revisión V26.4)
