@@ -79,8 +79,8 @@ function commitSale(method,arca,channel,lines,opts){
 
 function posGrid(){const g=$('#pgrid');if(!g)return;const q=pos.q.trim().toLowerCase();
  const list=S.products.filter(p=>p.active&&(!pos.rub||p.rubro===pos.rub)&&(!q||pfull(p).toLowerCase().includes(q)||(p.barcode&&p.barcode.includes(q))));
- g.innerHTML=list.map(p=>`<button class="pbtn" data-act="padd" data-id="${p.id}" ${(p.stock<=0&&!canOver(p))?'disabled':''}><b>${esc(p.name)}</b>${p.sub?`<span>${esc(p.sub)}</span>`:''}<span><i class="rdot" style="background:${rub(p.rubro)?safeColor(rub(p.rubro).color):'#999'}"></i>${esc(rubName(p.rubro))}</span><span>${money(p.price)}${p.unit!=='u'?' / '+unitLbl(p.unit):''} · <span class="${p.stock<0?'negs':''}">stock ${stockTxt(p)}</span></span></button>`).join('')||'<p class="mut">Sin resultados.</p>';}
-function posCart(){const c=$('#pcart');if(!c)return;const sess=openSess();if(typeof wsRecalc==='function')wsRecalc();
+ g.innerHTML=list.map(p=>wsTile(p,`<button class="pbtn" data-act="padd" data-id="${p.id}" ${(p.stock<=0&&!canOver(p))?'disabled':''}><b>${esc(p.name)}</b>${p.sub?`<span>${esc(p.sub)}</span>`:''}<span><i class="rdot" style="background:${rub(p.rubro)?safeColor(rub(p.rubro).color):'#999'}"></i>${esc(rubName(p.rubro))}</span><span>${money(p.price)}${p.unit!=='u'?' / '+unitLbl(p.unit):''} · <span class="${p.stock<0?'negs':''}">stock ${stockTxt(p)}</span></span></button>`)).join('')||'<p class="mut">Sin resultados.</p>';}
+function posCart(){const c=$('#pcart');if(!c)return;const sess=openSess();if(typeof wsRecalc==='function'){wsRecalc();wsGridSync();}
  const fb=$('#fbar');if(fb)fb.innerHTML=fbarHTML();
  c.innerHTML=(sess?'':`<div class="warnbox">No hay caja abierta. <a href="#panel/caja">Abrí la caja</a> para vender.</div>`)+
  (pos.lines.length?pos.lines.map((l,i)=>`<div class="cline" style="${i===pos.sel?'background:#fbf5e8;border-radius:10px;padding:.5rem':''}"><div class="row"><b class="sp">${esc(l.name)}</b><span class="tag">${esc(rubName(l.rubro))}</span><button class="btn sm red" data-act="prm" data-i="${i}" aria-label="Quitar">✕</button></div>

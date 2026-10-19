@@ -8,16 +8,16 @@ with sync_playwright() as p:
     chk(ev(A,"can('price_lists')&&can('credit_ov')"),'el administrador tiene los permisos nuevos')
     # datos: producto con escalón, cliente mayorista con CUIT, caja abierta
     ev(A,"""(()=>{const r=S.rubros.find(r=>r.kind==='rubro');
-     S.products.push({id:'cw1',name:'Prod mayorista',rubro:r.id,price:10000,cost:5000,stock:100,unit:'u',barcode:'',active:true,menu:false,prices:{L2:10000},tiers:[{list:'L2',from:10,to:0,price:9000,pct:0}]});
-     S.customers.push({id:'ccw1xxxxxxxxxxx1',num:1,name:'Distri',last:'Norte',birth:'1980-01-01',wa:'+5493875550999',dni:'',cards:[],cardSecrets:{},origin:'mostrador',consent:{club:true,comm:false,analytics:false,version:'v1',ts:now()},ts:now(),status:'activo',limit:100000,secret:'s'.repeat(24),notes:'',channel:'mayorista',list:'L2',taxid:'20123456786',term:15,zone:'Z1',seller:''});
-     S.cfg.wholesale={on:true,example:false,allowClub:false,grace:0,lists:[]};
+     S.products.push({id:'cw1',name:'Prod mayorista',rubro:r.id,price:10000,cost:5000,stock:100,unit:'u',barcode:'',active:true,menu:false,pres:[{lv:'d',qty:10,unit:9000,barcode:''}]});
+     S.customers.push({id:'ccw1xxxxxxxxxxx1',num:1,name:'Distri',last:'Norte',birth:'1980-01-01',wa:'+5493875550999',dni:'',cards:[],cardSecrets:{},origin:'mostrador',consent:{club:true,comm:false,analytics:false,version:'v1',ts:now()},ts:now(),status:'activo',limit:100000,secret:'s'.repeat(24),notes:'',channel:'mayorista',taxid:'20123456786',term:15,zone:'Z1',seller:''});
+     S.cfg.wholesale={on:true,example:false,allowClub:false,grace:0};
      S.sessions.push({id:uid(),caja:S.tenant.caja,openedBy:user.name,openedAt:now(),opening:0,closedAt:0});save();})()""")
     ev(A,"S.agreements.push({id:'agw1',cust:'ccw1xxxxxxxxxxx1',pid:'cw1',price:9500,pct:0,from:'',to:'',active:false,by:'t',ts:now()});save()")
     wait_sync(A,3000)
     chk(sql("select count(*) from public.registros where coleccion='acuer'")=='1','el acuerdo viaja a la nube')
     raw=sql("select datos::text from public.registros where coleccion='clientes' and id='ccw1xxxxxxxxxxx1'")
     chk('20123456786' not in raw and '__pii' in raw,'el CUIT del cliente viaja CIFRADO (no está en texto plano en el servidor)')
-    chk('"tiers"' in sql("select datos::text from public.registros where coleccion='prod' and id='cw1'"),'los escalones del producto viajan en el artículo')
+    chk('"pres"' in sql("select datos::text from public.registros where coleccion='prod' and id='cw1'"),'las presentaciones del producto viajan en el artículo')
     # excepción de crédito autorizada por el admin
     ev(A,"A.wsCredOv({dataset:{id:'ccw1xxxxxxxxxxx1',need:'300000'}})");A.wait_for_selector('#co-w')
     A.fill('#co-w','Excepción de prueba en la nube');A.click('#modal-root [data-m=ok]');A.wait_for_timeout(500)
@@ -35,7 +35,7 @@ with sync_playwright() as p:
     chk(ev(B,"wsOn()")==True,'B recibe la bandera del canal mayorista')
     chk(ev(B,"custById('ccw1xxxxxxxxxxx1')&&custById('ccw1xxxxxxxxxxx1').taxid")=='20123456786','B descifra el CUIT del cliente')
     chk(ev(B,"(S.agreements||[]).length")==1 and ev(B,"(S.creditOv||[]).length")==1,'B recibe el acuerdo y la excepción')
-    chk(ev(B,"priceResolve(prod('cw1'),10,{cust:custById('ccw1xxxxxxxxxxx1'),chan:'mayorista'}).price")==9000,'B calcula el mismo precio (escalón 10 u = $90)')
+    chk(ev(B,"priceResolve(prod('cw1'),10,{cust:custById('ccw1xxxxxxxxxxx1'),chan:'mayorista'}).price")==9000,'B calcula el mismo precio (Display ×10 = $90 por unidad)')
     chk(ev(B,"can('price_lists')")==False and ev(B,"can('credit_ov')")==False,'el mostrador no tiene permisos de listas ni de excepciones')
     # B vende al contado en mayorista por pantalla
     ev(B,"location.hash='#panel/vender'");B.wait_for_timeout(600)
@@ -46,7 +46,7 @@ with sync_playwright() as p:
     ev(B,"document.querySelectorAll('#modal-root .ov').forEach(o=>o.remove())")
     wait_sync(B,3500)
     row=sql("select datos::text from public.registros where coleccion='ventas' order by actualizado desc limit 1")
-    chk('"wch": "mayorista"' in row and '"lr": "L2-E10"' in row,'la venta mayorista llega a la nube con canal y regla')
+    chk('"wch": "mayorista"' in row and '"lr": "P-d"' in row,'la venta mayorista llega a la nube con canal y regla')
     # B a cuenta corriente: $900 > límite $1.000? no: 900 <= 1000 → entra; la segunda supera el límite y B no puede autorizar
     ev(B,"pos.lines=[];pos.cust='ccw1xxxxxxxxxxx1';A.padd({dataset:{id:'cw1'}});lineEdit(0,'qty','10')")
     r=ev(B,"(()=>{const r=commitSale('fiado',false,'local',pos.lines,{custId:'ccw1xxxxxxxxxxx1',ws:{chan:'mayorista'}});return{err:r.err||'',cov:r.sale&&r.sale.cov}})()")

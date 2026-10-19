@@ -67,17 +67,22 @@ const BUILD_VER=(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUI
 const IS_CLIENT=!!(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente');
 const DEF=()=>{const d=DEF0();return IS_CLIENT?clientClean(d):wsDemoSeed(d);};
 /* DEMO: canal mayorista encendido con datos rotulados «ejemplo» (el sistema del cliente nace apagado y sin esto) */
-function wsDemoSeed(d){d.cfg=d.cfg||{};if(!d.cfg.wholesale)d.cfg.wholesale={on:true,example:true,allowClub:false,grace:0,lists:[]};
- const ok=d.products.filter(p=>p.unit==='u'&&p.rubro!=='tabaco'&&!p.archived&&p.price>0);const r100=x=>Math.round(x/100)*100;
- const a=ok[0],b=ok[1],c=ok[2],e=ok[3];
- if(a&&!a.prices){a.prices={L2:r100(a.price*0.9)};a.tiers=[{list:'L2',from:6,to:11,price:r100(a.price*0.85),pct:0},{list:'L2',from:12,to:0,price:r100(a.price*0.8),pct:0}];a.packs=[{id:'pk-a6',name:'Caja ×6',qty:6,barcode:'',mode:'ambas',fixed:0,pct:5}];}
- if(b&&!b.prices){b.prices={L2:r100(b.price*0.9)};b.packs=[{id:'pk-b12',name:'Caja ×12',qty:12,barcode:'',mode:'bulto_cerrado',fixed:12*r100(b.price*0.84),pct:0}];}
- if(c&&!c.prices){c.prices={L2:r100(c.price*0.9),L5:r100(c.price*0.82)};c.floor=r100(c.price*0.7);}
- if(e&&!e.prices){e.prices={L2:r100(e.price*0.92)};e.wsEx=1;}
- return wsDemoCust(d);}
+function wsDemoSeed(d){d.cfg=d.cfg||{};if(!d.cfg.wholesale)d.cfg.wholesale={on:true,example:true,allowClub:false,grace:0,levels:[{id:'d',name:'Display'},{id:'f',name:'Fardo'},{id:'p',name:'Pallet'}]};
+ wsDemoPres(d.products);d.cfg.wholesale.seeded=1;return wsDemoCust(d);}
+/* presentaciones de ejemplo: Display ×6, Fardo ×24 y Pallet ×480 con precio por unidad decreciente (sólo productos por unidad, sin tabaco) */
+function wsDemoPres(prods){const el=(prods||[]).filter(p=>p.unit==='u'&&p.rubro!=='tabaco'&&!p.archived&&p.price>0);const ok=el.filter(p=>p.rubro==='vino').concat(el.filter(p=>p.rubro!=='vino'&&p.rubro!=='promo'),el.filter(p=>p.rubro==='promo'));const r100=x=>Math.round(x/100)*100;
+ ok.slice(0,4).forEach((p,i)=>{if(p.pres)return;
+  p.pres=[{lv:'d',qty:6,unit:r100(p.price*0.92),barcode:''},{lv:'f',qty:24,unit:r100(p.price*0.85),barcode:''},{lv:'p',qty:480,unit:r100(p.price*0.78),barcode:''}];
+  if(i===2)p.floor=r100(p.price*0.7);if(i===3)p.wsEx=1;});}
+/* modelo anterior (listas L1–L5, escalones, bultos) → presentaciones */
+function wsMigrate(st){if(!st.cfg||!st.cfg.wholesale)return;const w=st.cfg.wholesale;
+ if(w.lists!==undefined)delete w.lists;if(!Array.isArray(w.levels))w.levels=[{id:'d',name:'Display'},{id:'f',name:'Fardo'},{id:'p',name:'Pallet'}];
+ (st.products||[]).forEach(p=>{if(p.prices!==undefined)delete p.prices;if(p.tiers!==undefined)delete p.tiers;if(p.packs!==undefined)delete p.packs;});
+ (st.customers||[]).forEach(c=>{if(c.list!==undefined)delete c.list;});
+ if(w.example&&!IS_CLIENT&&!w.seeded){wsDemoPres(st.products);w.seeded=1;}}
 /* cliente y acuerdo de ejemplo (la demo recrea sus clientes al sembrar, por eso va aparte) */
 function wsDemoCust(d){const r100=x=>Math.round(x/100)*100;
- d.customers=d.customers||[];if(!d.customers.some(x=>x.example)){const t=now();d.customers.push({id:'cw-ejemplo-demo',num:d.customers.reduce((m,x)=>Math.max(m,x.num||0),0)+1,name:'Distribuidora',last:'Ejemplo (demo)',birth:'1980-01-01',wa:'+5493875550100',dni:'',cards:[],cardSecrets:{},origin:'ejemplo',consent:{club:true,comm:false,analytics:false,version:'v1-2026-demo',ts:t},ts:t,status:'activo',limit:50000000,secret:'demo-secret-ejemplo-0000',notes:'Cliente de ejemplo del canal mayorista',channel:'mayorista',list:'L2',taxid:'20123456786',term:15,zone:'Salta capital',seller:'',example:true});}
+ d.customers=d.customers||[];if(!d.customers.some(x=>x.example)){const t=now();d.customers.push({id:'cw-ejemplo-demo',num:d.customers.reduce((m,x)=>Math.max(m,x.num||0),0)+1,name:'Distribuidora',last:'Ejemplo (demo)',birth:'1980-01-01',wa:'+5493875550100',dni:'',cards:[],cardSecrets:{},origin:'ejemplo',consent:{club:true,comm:false,analytics:false,version:'v1-2026-demo',ts:t},ts:t,status:'activo',limit:50000000,secret:'demo-secret-ejemplo-0000',notes:'Cliente de ejemplo del canal mayorista',channel:'mayorista',taxid:'20123456786',term:15,zone:'Salta capital',seller:'',example:true});}
  d.agreements=d.agreements||[];const e=d.products.find(p=>p.wsEx===1);if(e&&!d.agreements.some(x=>x.example)){d.agreements.push({id:'ag-ejemplo-demo',cust:'cw-ejemplo-demo',pid:e.id,price:r100(e.price*0.8),pct:0,from:'',to:'',active:true,by:'ejemplo',ts:now(),example:true});}
  return d;}
 /* La copia del CLIENTE nace limpia: sin costos ni stock inventados, sin usuarios/PIN de prueba, sin cupones, planes, Wi-Fi ni redes "de ejemplo". */
@@ -140,7 +145,7 @@ async function loadState(){try{const db=await idb();return await new Promise(res
 let saveT;function save(){if(CLOUD_HOOK){CLOUD_HOOK.persist();return;}clearTimeout(saveT);saveT=setTimeout(async()=>{try{const db=await idb();db.transaction('kv','readwrite').objectStore('kv').put(JSON.parse(JSON.stringify(S)),'state');}catch(e){}},300);}
 /* "Proveedores y compras" es un permiso nuevo: si ningún rol lo tiene todavía (datos anteriores), lo reciben administrador y supervisor; si ya existe, se respeta lo que el dueño decidió */
 function rolesMigrate(r){if(!r)return r;for(const perm of['purchases','price_lists','credit_ov']){const any=Object.values(r).some(a=>Array.isArray(a)&&a.includes(perm));if(!any){if(Array.isArray(r.supervisor))r.supervisor.push(perm);if(Array.isArray(r.admin))r.admin.push(perm);}}return r;}
-function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);if(!IS_CLIENT&&st.cfg&&st.cfg.wholesale===undefined)wsDemoSeed(st);return st;}
+function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);if(!IS_CLIENT&&st.cfg&&st.cfg.wholesale===undefined)wsDemoSeed(st);wsMigrate(st);return st;}
 
 /* ---------- Permisos, auditoría ---------- */
 const can=p=>!!user&&(user.role==='admin'||(S.roles[user.role]||[]).includes(p));
