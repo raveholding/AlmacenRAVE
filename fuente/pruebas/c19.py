@@ -1,0 +1,91 @@
+from cl_lib import *
+import re
+res=[]
+def chk(c,m):res.append(bool(ok(c,m)))
+def frame(C):
+    for _ in range(40):
+        fr=[f for f in C.frames if f.name=='pubframe']
+        if fr:return fr[0]
+        C.wait_for_timeout(250)
+with sync_playwright() as p:
+    b=launch(p)
+    ctx,A=newpage(b,'A');create_commerce(A)
+    ev(A,"(()=>{const p=S.products[0];p.stock=30;save();S.sessions.push({id:uid(),caja:S.tenant.caja,openedBy:user.name,openedAt:now(),opening:0,closedAt:0});save();})()")
+    wait_sync(A,2500);ev(A,"cloudPublishMenu(true)");A.wait_for_timeout(2000)
+    # mostrador B
+    ev(A,"location.hash='#panel/nube'");A.wait_for_selector('#nb-em')
+    A.fill('#nb-em','mos@almacen.test');A.fill('#nb-nm','Mostrador 2');A.select_option('#nb-rl','mostrador')
+    A.click('[data-act=nbInvite]');A.wait_for_selector('#sec-ok');inv=A.inner_text('#modal-root p[style*=monospace]');A.check('#sec-ok');A.click('#modal-root [data-m=ok]')
+    ctxB,B=newpage(b,'B')
+    B.goto(BASE+'/cliente.html#acceso');B.wait_for_selector('#login [data-mode]')
+    B.click('[data-mode="unirme"]');B.fill('#cl-em','mos@almacen.test');B.fill('#cl-pw','Mostrador-Clave-22');B.fill('#cl-co',inv)
+    B.click('#cl-go');B.wait_for_selector('#ask-v',timeout=15000);B.fill('#ask-v','2');B.click('#modal-root [data-m=ok]');B.wait_for_selector('#panel:not([hidden])',timeout=20000);B.wait_for_timeout(3000)
+    ev(B,"S.sessions.push({id:uid(),caja:S.tenant.caja,openedBy:user.name,openedAt:now(),opening:0,closedAt:0});save();")
+    chk(ev(B,"!!(cl.clubPriv&&cl.clubPriv.jwk)"),'el mostrador también tiene la llave para abrir las altas del Club')
+    # dos clientes se anotan desde el celular
+    ctxC,C=newpage(b,'C',390)
+    C.goto(BASE+'/cliente.html#menu');C.wait_for_timeout(4000)
+    f=frame(C);f.click('#ag-yes');C.wait_for_timeout(400)
+    def join(f,n,w,bd,dni):
+        f.evaluate("document.getElementById('club-form').scrollIntoView()")
+        f.fill('#club-nombre',n);f.fill('#club-whatsapp',w);f.fill('#club-cumple',bd);f.fill('#club-dni',dni);f.check('#club-consent')
+        f.click('#club-form button[type=submit]');C.wait_for_timeout(2500)
+    join(f,'Marta Díaz','3874001111','1988-07-09','28111222')
+    cidM=ev(C,"localStorage.getItem('rave.card')")
+    # el MOSTRADOR (no el admin) lo importa
+    ev(B,"importAltas()");B.wait_for_timeout(1500)
+    chk(ev(B,"S.customers.some(c=>c.name==='Marta'&&c.dni==='28111222')"),'el mostrador importa el alta del Club')
+    chk(sql("select estado from club_altas")=='importada','alta marcada como importada por el mostrador')
+    wait_sync(B,2500);wait_sync(A,2500)
+    chk(ev(A,"S.customers.some(c=>c.name==='Marta')"),'el admin recibe a la socia importada por el mostrador')
+    # Fidelización: sellar por DNI desde la pantalla
+    ev(B,"location.hash='#panel/fidel'");B.wait_for_selector('#fd-c')
+    B.fill('#fd-c','28.111.222');B.click('[data-act=fdOk]');B.wait_for_selector('#fd-r .okbox',timeout=5000)
+    t=B.inner_text('#fd-r')
+    chk('Marta' in t and 'DNI' in t and '1/10' in t,'pantalla Fidelización: sello por DNI -> "%s"'%re.sub(r'\s+',' ',t)[:80])
+    B.fill('#fd-c','28111222');B.click('[data-act=fdOk]');B.wait_for_selector('#fd-r .errbox',timeout=5000)
+    chk('24 h' in B.inner_text('#fd-r'),'segundo intento el mismo día: límite antifraude')
+    B.fill('#fd-c','hola');B.click('[data-act=fdOk]');B.wait_for_selector('#fd-r .errbox',timeout=5000)
+    chk(B.inner_text('#fd-r').strip()!='','texto basura: mensaje claro "%s"'%B.inner_text('#fd-r')[:60])
+    chk(B.locator('[data-act=fdQr]').count()==1 and B.locator('[data-act=fdNfc]').count()==1,'botones de QR por cámara y NFC presentes')
+    B.click('[data-act=fdNfc]');B.wait_for_timeout(500)
+    chk('NFC' in B.inner_text('#toast') or 'NFC' in B.inner_text('body'),'sin NFC en el navegador: avisa con claridad (no rompe)')
+    # POS: elegir cliente por DNI en el cobro y sellar con DNI al otro día
+    ev(B,"S.loyalty.ledger.forEach(e=>e.ts-=90000000);save();location.hash='#panel/vender'");B.wait_for_timeout(800)
+    ev(B,"(()=>{const p=S.products[0];pos.lines=[{pid:p.id,name:p.name,rubro:p.rubro,qty:1,price:p.price,cost:p.cost,list:p.price}];A.cobrar();})()")
+    B.wait_for_selector('#cb-q');B.fill('#cb-q','28111222');B.wait_for_timeout(400)
+    chk(B.locator('#cb-res button[data-act=cbcust]').count()==1,'cobro: el cliente se encuentra por DNI')
+    B.click('#cb-res button[data-act=cbcust]');B.wait_for_timeout(300)
+    B.fill('#cb-code','28111222')
+    chk(B.locator('[data-act=cbQr]').count()==1 and B.locator('[data-act=cbNfc]').count()==1,'cobro: botones QR / NFC')
+    B.click('#modal-root [data-m=ok]');B.wait_for_timeout(1500)
+    chk(ev(B,"stampsOf(S.customers.find(c=>c.name==='Marta').id)")==2,'cobro con DNI: segundo sello sumado (2)')
+    chk(ev(B,"S.sales.some(s=>s.stamped)"),'la venta quedó marcada con sello')
+    B.keyboard.press('Escape')
+    # ficha: DNI duplicado y vacío
+    ev(A,"location.hash='#panel/clientes'");A.wait_for_selector('#cuq')
+    A.fill('#cuq','28111222');A.wait_for_timeout(400)
+    chk(A.locator('tbody tr').count()==1,'Clientes: se busca por DNI')
+    ev(A,"S.customers.push(custCreate({name:'Otro',last:'Cliente',birth:'1990-02-02',wa:'3874009999',comm:false},'mostrador'));save()")
+    A.fill('#cuq','');A.wait_for_timeout(300)
+    oid=ev(A,"S.customers.find(c=>c.name==='Otro').id")
+    ev(A,"A.cuEdit({dataset:{id:'%s'}})"%oid);A.wait_for_selector('#cu-d')
+    A.fill('#cu-d','28111222');A.click('#modal-root [data-m=ok]');A.wait_for_timeout(400)
+    chk('Ya existe un cliente con ese DNI' in A.inner_text('#modal-root .merr'),'ficha: DNI repetido rechazado')
+    A.fill('#cu-d','12');A.click('#modal-root [data-m=ok]');A.wait_for_timeout(400)
+    chk('7 u 8' in A.inner_text('#modal-root .merr'),'ficha: DNI inválido rechazado')
+    A.fill('#cu-d','');A.click('#modal-root [data-m=ok]');A.wait_for_timeout(400)
+    chk(A.locator('#modal-root .ov').count()==0,'ficha: DNI vacío permitido')
+    chk(A.locator('[data-act=cuNfc]').count()==0,'(sin tarjeta NFC en la ficha cerrada)')
+    # baja borra el DNI y las tarjetas
+    mid=ev(A,"S.customers.find(c=>c.name==='Marta').id")
+    ev(A,"(()=>{const c=custById('%s');c.status='baja';c.dni='';c.cards=[];save();})()"%mid)
+    ev(B,"cloudSync(true)");B.wait_for_timeout(2500);A.evaluate("cloudSync(true)");A.wait_for_timeout(2500)
+    ev(C,"cardPoll()");C.wait_for_timeout(1500)
+    chk(sql("select count(*) from registros where coleccion='clientes' and datos::text like '%28111222%'")=='0','el DNI nunca aparece en claro en la nube')
+    r=sql("select public.club_estado('almacen-rave','%s')"%cidM)
+    chk('"socio": false' in r,'socio dado de baja: la tarjeta deja de mostrar datos (%s)'%r)
+    bad=[e for e in errs if 'net::ERR' not in e and '403' not in e and '503' not in e and 'Failed to load resource' not in e]
+    chk(not bad,'sin errores JS %s'%bad[:4])
+    b.close()
+print(sum(res),'/',len(res))

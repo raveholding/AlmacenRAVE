@@ -18,21 +18,47 @@ const OTP_MS=120000;
 const stampsOf=cid=>S.loyalty.ledger.filter(e=>e.cust===cid).reduce((a,e)=>a+e.n,0);
 const rewardsOf=cid=>Math.floor(stampsOf(cid)/S.loyalty.goal);
 const otpWin=t=>Math.floor(t/OTP_MS);
-const otpFor=(c,w)=>pad4(parseInt(sha256(c.secret+'|'+c.id+'|'+w).slice(0,8),16)%10000);
+const normDni=s=>String(s||'').replace(/\D/g,'');
+const dniOk=d=>d.length>=7&&d.length<=8;
+const cardIdOk=id=>/^[A-Za-z0-9_-]{8,64}$/.test(String(id||''));
+const custByCard=id=>id?(S.customers.find(c=>c.id===id||(Array.isArray(c.cards)&&c.cards.includes(id)))||null):null;
+const custByDni=d=>{d=normDni(d);if(d.length<6||d.length>9)return[];return S.customers.filter(c=>c.status!=='baja'&&c.dni&&normDni(c.dni)===d);};
+const cardIds=c=>[c.id].concat(Array.isArray(c.cards)?c.cards:[]);
+const cardSecret=(c,cid)=>(!cid||cid===c.id)?(c.secret||''):((c.cardSecrets||{})[cid]||'');
+const otpFor=(c,w,cid)=>pad4(parseInt(sha256(cardSecret(c,cid)+'|'+(cid||c.id)+'|'+w).slice(0,8),16)%10000);
 function cardCode(c){const w=otpWin(now());return{socio:pad4(c.num),otp:otpFor(c,w),secs:Math.max(1,Math.ceil(((w+1)*OTP_MS-now())/1000)),win:w};}
-function verifyStampCode(code,custId){const d=String(code||'').replace(/\D/g,'');
- if(d.length!==8)return{ok:false,msg:'El código son 8 números: N.º de socio (4) + código (4).'};
- const num=+d.slice(0,4),otp=d.slice(4);const c=S.customers.find(x=>x.num===num&&x.status!=='baja');if(!c)return{ok:false,msg:'Socio inexistente.'};
+function stampLimit(c){const last=S.loyalty.ledger.filter(e=>e.cust===c.id&&e.kind==='stamp').pop();
+ if(last&&now()-last.ts<86400000)return{ok:false,msg:'Este socio ya sumó un sello en las últimas 24 h (límite antifraude).'};return{ok:true};}
+/* Código de la tarjeta: 8 números (N.º de socio + código de 4) o el QR "RAVE2|id de tarjeta|código" (también "RAVE|socio|código") */
+function verifyStampCode(code,custId){const raw=String(code||'').trim();let c=null,otp='',only='';
+ let m=/^RAVE2\|([A-Za-z0-9_-]{8,64})\|(\d{4})$/.exec(raw);
+ if(m){only=m[1];otp=m[2];c=custByCard(only);if(!c||c.status==='baja')return{ok:false,msg:'Tarjeta desconocida. Si el cliente se anotó recién, esperá unos segundos a que se sincronice y probá de nuevo.'};}
+ else{m=/^RAVE\|(\d{4})\|(\d{4})$/.exec(raw);const d=m?m[1]+m[2]:raw.replace(/\D/g,'');
+  if(d.length!==8)return{ok:false,msg:'El código son 8 números: N.º de socio (4) + código (4).'};
+  const num=+d.slice(0,4);otp=d.slice(4);c=S.customers.find(x=>x.num===num&&x.status!=='baja');if(!c)return{ok:false,msg:'Socio inexistente.'};}
  if(custId&&c.id!==custId)return{ok:false,msg:'El código pertenece a otro socio.'};
- const w=otpWin(now());let win=null;[w,w-1].forEach(x=>{if(win===null&&otpFor(c,x)===otp)win=x;});
+ const w=otpWin(now());let win=null,card='';
+ for(const id of(only?[only]:cardIds(c))){if(!cardSecret(c,id))continue;for(const x of[w,w-1]){if(win===null&&otpFor(c,x,id)===otp){win=x;card=id;}}}
  if(win===null)return{ok:false,msg:'Código vencido o incorrecto. Pedile al cliente que lo actualice en su tarjeta.'};
- if(S.loyalty.usedOtp[c.id+':'+win])return{ok:false,msg:'Ese código ya se usó (es de un solo uso).'};
- const last=S.loyalty.ledger.filter(e=>e.cust===c.id&&e.kind==='stamp').pop();
- if(last&&now()-last.ts<86400000)return{ok:false,msg:'Este socio ya sumó un sello en las últimas 24 h (límite antifraude).'};
- return{ok:true,cust:c,custName:custFull(c),win};}
-function commitStamp(cid,res,ref){S.loyalty.ledger.push({id:uid(),cust:cid,ts:now(),kind:'stamp',n:1,ref:ref||'',user:user?user.name:'sistema'});S.loyalty.usedOtp[cid+':'+res.win]=now();
+ const key=card+':'+win;if(S.loyalty.usedOtp[key])return{ok:false,msg:'Ese código ya se usó (es de un solo uso).'};
+ const lim=stampLimit(c);if(!lim.ok)return lim;
+ return{ok:true,cust:c,custName:custFull(c),win,key,how:'código'};}
+/* Sello desde el mostrador: acepta el código/QR de la tarjeta, la etiqueta NFC ("RAVE2N|id") o el DNI del cliente */
+function resolveStamp(input,custId){const raw=String(input||'').trim();
+ const fin=(c,how)=>{if(!c||c.status==='baja')return{ok:false,msg:'No encontramos a ese socio.'};if(custId&&c.id!==custId)return{ok:false,msg:'Eso pertenece a otro socio.'};const lim=stampLimit(c);if(!lim.ok)return lim;return{ok:true,cust:c,custName:custFull(c),how};};
+ const nf=/^RAVE2N\|([A-Za-z0-9_-]{8,64})$/.exec(raw);if(nf)return fin(custByCard(nf[1]),'NFC');
+ if(/^RAVE2?\|/.test(raw))return verifyStampCode(raw,custId);
+ if(!raw)return{ok:false,msg:'Ingresá el código, pasá el QR o la tarjeta NFC, o escribí el DNI.'};
+ if(!/^[\d\s.\-]+$/.test(raw))return verifyStampCode(raw,custId);
+ const d=normDni(raw);let codeErr=null;
+ if(d.length===8){const r=verifyStampCode(d,custId);if(r.ok)return r;codeErr=r;}
+ const L=custByDni(d);
+ if(L.length===1)return fin(L[0],'DNI');
+ if(L.length>1)return{ok:false,msg:'Hay más de un cliente con ese DNI: buscalo por nombre en el cobro.'};
+ return codeErr||{ok:false,msg:(d.length>=6&&d.length<=9)?'No hay ningún socio con ese DNI.':'El código son 8 números: N.º de socio (4) + código (4). Para el DNI escribí 7 u 8 números.'};}
+function commitStamp(cid,res,ref){S.loyalty.ledger.push({id:uid(),cust:cid,ts:now(),kind:'stamp',n:1,ref:(ref||'')+(res.how&&res.how!=='código'?' · '+res.how:''),user:user?user.name:'sistema'});if(res.key)S.loyalty.usedOtp[res.key]=now();
  const st=stampsOf(cid);res.stamps=Math.min(st,S.loyalty.goal);res.reward=st>=S.loyalty.goal;res.custName=res.custName||custFull(custById(cid));
- audit('SELLO',res.custName+' · '+st+'/'+S.loyalty.goal+' · '+(ref||''));save();}
+ audit('SELLO',res.custName+' · '+st+'/'+S.loyalty.goal+' · '+(ref||'')+(res.how?' · por '+res.how:''));save();}
 function stampReverse(sale){if(!sale.cust)return;S.loyalty.ledger.push({id:uid(),cust:sale.cust,ts:now(),kind:'adjust',n:-1,ref:'reversión por anulación '+sale.n,user:user?user.name:'sistema'});audit('SELLO_REVERSION',sale.n);}
 function redeemReward(cid){const c=custById(cid);if(!c)return'Cliente inexistente.';if(stampsOf(cid)<S.loyalty.goal)return'Todavía no completó los '+S.loyalty.goal+' sellos.';
  S.loyalty.ledger.push({id:uid(),cust:cid,ts:now(),kind:'redeem',n:-S.loyalty.goal,ref:S.loyalty.reward,user:user?user.name:'sistema'});audit('CANJE_PREMIO',custFull(c)+' · '+S.loyalty.reward);save();return'';}
@@ -84,8 +110,9 @@ function allocDisc(lines,disc){const idx=[],bases=[];lines.forEach((l,i)=>{if(!n
 const clubHits=[];
 function custCreate(f,origin){const nm=String(f.name||'').trim().replace(/[<>]/g,'').slice(0,40),ls=String(f.last||'').trim().replace(/[<>]/g,'').slice(0,40);
  const b=parseBirth(f.birth);const w=normWA(f.wa);
- const c={id:uid(),num:S.customers.reduce((m,x)=>Math.max(m,x.num||0),0)+1,name:nm,last:ls,birth:b?b.y+'-'+String(b.mo).padStart(2,'0')+'-'+String(b.d).padStart(2,'0'):'',wa:waFull(w),origin,
-  consent:{club:true,comm:!!f.comm,analytics:!!f.analytics,version:IS_CLIENT?'v1-2026':'v1-2026-demo',ts:now()},ts:now(),status:'activo',limit:0,secret:uid()+uid(),notes:''};
+ const dn=normDni(f.dni);
+ const c={id:(f.id&&cardIdOk(f.id))?f.id:uid(),num:S.customers.reduce((m,x)=>Math.max(m,x.num||0),0)+1,name:nm,last:ls,birth:b?b.y+'-'+String(b.mo).padStart(2,'0')+'-'+String(b.d).padStart(2,'0'):'',wa:waFull(w),dni:(dniOk(dn)&&!custByDni(dn).length)?dn:'',cards:[],cardSecrets:{},origin,
+  consent:{club:true,comm:!!f.comm,analytics:!!f.analytics,version:IS_CLIENT?'v1-2026':'v1-2026-demo',ts:now()},ts:now(),status:'activo',limit:0,secret:(f.secret&&String(f.secret).length>=16)?String(f.secret):uid()+uid(),notes:''};
  S.customers.push(c);return c;}
 function clubJoin(f){const en=()=>window.RAVE_LANG&&window.RAVE_LANG()==='en';const bad=(es,e)=>({ok:false,msg:en()?e:es});
  const full=String(f.nombre||'').trim().replace(/\s+/g,' ');const parts=full.split(' ');
@@ -93,23 +120,24 @@ function clubJoin(f){const en=()=>window.RAVE_LANG&&window.RAVE_LANG()==='en';co
  const last=parts.pop(),name=parts.join(' ');
  const b=parseBirth(f.cumple);if(!b)return bad('Elegí una fecha de cumpleaños válida.','Choose a valid birthday.');
  const w=normWA(f.whatsapp);if(!w||/^(\d)\1+$/.test(w))return bad('Ingresá un WhatsApp válido.','Enter a valid WhatsApp number.');
+ const dn=normDni(f.dni);if(String(f.dni||'').trim()&&!dniOk(dn))return bad('El DNI debe tener 7 u 8 números (o dejalo vacío).','The ID number must have 7 or 8 digits (or leave it empty).');
  if(ageOf(b)<18)return bad('El Club RAVE es sólo para mayores de 18 años.','RAVE Club is for adults (18+) only.');
  const t=now();const recent=clubHits.filter(x=>t-x<60000);if(recent.length>=3)return bad('Demasiados intentos, probá en un minuto.','Too many attempts, try again in a minute.');
  clubHits.length=0;recent.forEach(x=>clubHits.push(x));clubHits.push(t);
  const dup=S.customers.find(c=>normWA(c.wa)===w);
  if(dup){audit('CLUB_ALTA_DUP','intento con número ya registrado');save();return{ok:true,msg:en()?'Done! If your details are valid you are now in the Club. If you already had a card, recover it with your WhatsApp and birthday.':'¡Listo! Si los datos son válidos, ya estás en el Club. Si ya tenías tarjeta, recuperala con tu WhatsApp y tu cumpleaños.'};}
- const c=custCreate({name,last,birth:f.cumple,wa:f.whatsapp,comm:f.comm},'menú público');audit('CLUB_ALTA','menú público · socio '+pad4(c.num));save();pubRefresh();
+ const c=custCreate({name,last,birth:f.cumple,wa:f.whatsapp,comm:f.comm,dni:f.dni},'menú público');audit('CLUB_ALTA','menú público · socio '+pad4(c.num));save();pubRefresh();
  return{ok:true,cardId:c.id,msg:en()?'Welcome to the Club! Your card is ready below.':'¡Bienvenido/a al Club RAVE! Tu tarjeta ya está lista más abajo.'};}
 
 /* ---------- API que ve el menú público (nunca devuelve secretos ni datos de terceros) ---------- */
-function pubCard(id){const c=custById(id);if(!c||c.status==='baja')return null;const st=stampsOf(c.id);const g=S.loyalty.goal;const mb=memberActive(c);
+function pubCard(id){const c=custByCard(id);if(!c||c.status==='baja')return null;const st=stampsOf(c.id);const g=S.loyalty.goal;const mb=memberActive(c);
  return{name:c.name,num:pad4(c.num),stamps:Math.min(st,g),goal:g,rewards:Math.floor(st/g),rewardText:S.loyalty.reward,member:mb?{name:mb.name,until:mb.until,pct:mb.pct}:null};}
-function pubCardCode(id){const c=custById(id);if(!c||c.status==='baja')return null;const k=cardCode(c);return{socio:k.socio,otp:k.otp,secs:k.secs,qr:QR.svg('RAVE|'+k.socio+'|'+k.otp,4,2)};}
+function pubCardCode(id){const c=custByCard(id);if(!c||c.status==='baja'||!cardSecret(c,id))return null;const k=cardCode(c);const otp=otpFor(c,k.win,id);return{socio:k.socio,otp,secs:k.secs,qr:QR.svg('RAVE2|'+id+'|'+otp,4,2)};}
 function pubCardLogin(wa,bd){const w=normWA(wa);const b=parseBirth(bd);if(!w||!b)return null;
  const c=S.customers.find(x=>normWA(x.wa)===w&&x.status!=='baja'&&x.birth===b.y+'-'+String(b.mo).padStart(2,'0')+'-'+String(b.d).padStart(2,'0'));return c?c.id:null;}
 function cpDesc(cp){return cp.type==='pct'?cp.value+' % de descuento':money(cp.value)+' de descuento';}
 function cpCond(cp){const a=[];if(cp.min)a.push('Compra mínima '+money(cp.min));if(cp.to)a.push('Hasta '+dmy(cp.to));if(cp.perCust)a.push(cp.perCust+' uso por cliente');if(cp.aud==='club')a.push('Sólo socios del Club');if(cp.aud==='cumple')a.push('Semana del cumpleaños');a.push('Excluye tabaco');return a.join(' · ');}
-function pubCoupons(id){const c=id?custById(id):null;const today=dkey(now());
+function pubCoupons(id){const c=id?custByCard(id):null;const today=dkey(now());
  return S.coupons.filter(cp=>cp.active&&cp.public!==false&&(!cp.from||today>=cp.from)&&(!cp.to||today<=cp.to)&&(!cp.maxUses||cp.uses.length<cp.maxUses)&&(cp.aud==='todos'||(cp.aud==='club'&&c)||(cp.aud==='cumple'&&c&&isBirthWeek(c))))
   .map(cp=>({code:cp.code,desc:(cp.note||cpDesc(cp)),cond:cpCond(cp)}));}
 function pubCouponInfo(code,total){code=String(code||'').trim().toUpperCase();const cp=S.coupons.find(x=>x.code===code);
@@ -120,20 +148,43 @@ function pubCouponInfo(code,total){code=String(code||'').trim().toUpperCase();co
  const d=cpDesc(cp);const dd=cpDisc(cp,total);return{ok:true,code:cp.code,desc:d+(cp.aud!=='todos'?' (se valida en el mostrador con tu tarjeta)':' (se valida en el mostrador)'),descEn:(cp.type==='pct'?cp.value+' % off':money(cp.value)+' off')+' (validated at the counter)',total:Math.max(0,total-dd)};}
 function pubPlans(){return S.plans.filter(p=>p.active).map(p=>({name:p.name,price:p.price/100,period:p.period,desc:p.desc}));}
 
+/* ---------- lectura de QR con la cámara y NFC (según lo que permita el navegador) ---------- */
+async function stampPrep(){try{if(typeof CLOUD!=='undefined'&&CLOUD.on&&typeof importAltas==='function')await importAltas();}catch(e){}}
+function qrScan(cb){
+ if(typeof BarcodeDetector==='undefined'||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return toast('Este navegador no lee QR con la cámara. Usá un lector USB (escribe solo) o escribí el código.',1);
+ let stream=null,timer=null,done=false;const stop=()=>{done=true;clearInterval(timer);if(stream)stream.getTracks().forEach(t=>t.stop());};
+ const w=modal('Escanear QR de la tarjeta','<video id="qr-v" playsinline muted style="width:100%;max-height:55vh;background:#000;border-radius:12px"></video><p class="sm mut" id="qr-m">Apuntá la cámara al QR de la tarjeta del cliente.</p>',{okText:'Cerrar',onOk:()=>{stop();}});
+ const det=new BarcodeDetector({formats:['qr_code']});
+ navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(st=>{stream=st;const v=$('#qr-v',w);if(!v){stop();return;}v.srcObject=st;v.play().catch(()=>{});
+  timer=setInterval(async()=>{if(done)return;if(!w.isConnected){stop();return;}try{const r=await det.detect(v);if(r&&r.length&&r[0].rawValue){const t=r[0].rawValue;stop();w.querySelectorAll('button').forEach(b=>{if(/cerrar|cancel/i.test(b.textContent))b.click();});cb(t);}}catch(e){}},300);
+ }).catch(()=>{const m=$('#qr-m',w);if(m)m.textContent='No pudimos abrir la cámara (permiso denegado o sin cámara). Usá un lector USB o escribí el código.';});}
+function nfcScan(cb){
+ if(typeof NDEFReader==='undefined')return toast('Este navegador no lee NFC (hace falta Chrome en un celular Android con NFC). Podés usar el QR o el DNI.',1);
+ const ac=new AbortController();const rd=new NDEFReader();
+ const w=modal('Leer tarjeta NFC','<p>📡 Acercá la tarjeta o etiqueta NFC del cliente a la parte trasera del celular…</p><p class="sm mut" id="nfc-m"></p>',{okText:'Cancelar',onOk:()=>{ac.abort();}});
+ rd.scan({signal:ac.signal}).then(()=>{rd.onreading=ev=>{if(!w.isConnected){ac.abort();return;}for(const rec of ev.message.records){if(rec.recordType==='text'||rec.recordType==='mime'||rec.recordType==='unknown'){let t='';try{t=new TextDecoder(rec.encoding||'utf-8').decode(rec.data);}catch(e){}if(t){ac.abort();w.querySelectorAll('button').forEach(b=>{if(/cancel/i.test(b.textContent))b.click();});cb(t);return;}}}
+   const m=$('#nfc-m',w);if(m)m.textContent='Esa etiqueta no tiene datos de una tarjeta RAVE.';};})
+  .catch(e=>{const m=$('#nfc-m',w);if(m)m.textContent='No pudimos activar el NFC: '+(e&&e.name==='NotAllowedError'?'permiso denegado.':'¿está encendido el NFC del celular?');});}
+A.cuNfc=el=>{const c=custById(el.dataset.id);if(!c)return;
+ if(typeof NDEFReader==='undefined')return toast('Grabar NFC necesita Chrome en un celular Android con NFC. Esta etiqueta se puede grabar desde esa ficha.',1);
+ const w=modal('Grabar etiqueta NFC · '+custFull(c),'<p>📡 Acercá una etiqueta NFC <b>virgen</b> a la parte trasera del celular. Se graba la tarjeta del socio; después alcanza con acercarla en el mostrador para sumar el sello.</p><p class="sm mut" id="nfc-m"></p><p class="sm mut">Una etiqueta NFC es fija (no cambia como el QR): cuidala como una tarjeta. Si se pierde, dá de baja la tarjeta y emití otra.</p>',{okText:'Cerrar',onOk:()=>{}});
+ new NDEFReader().write({records:[{recordType:'text',data:'RAVE2N|'+c.id}]}).then(()=>{audit('NFC_GRABAR','socio '+pad4(c.num));const m=$('#nfc-m',w);if(m)m.innerHTML='<b>✔ Etiqueta grabada.</b>';}).catch(()=>{const m=$('#nfc-m',w);if(m)m.textContent='No se pudo grabar (¿acercaste la etiqueta? ¿está encendido el NFC?).';});};
+
 /* ================= PANTALLA: CLIENTES ================= */
 let cuF={q:''};
 function custRow(c){const st=stampsOf(c.id),mb=memberActive(c),dt=debtOf(c.id);
  return `<tr><td>${pad4(c.num)}</td><td><b>${esc(custFull(c))}</b>${c.status==='baja'?' <span class="tag bad">baja</span>':''}${c.origin==='ejemplo'?' <span class="tag sim">ej.</span>':''}</td><td>${esc(c.wa)}</td><td>${esc(birthTxt(c.birth))}</td><td class="sm">${esc(c.origin)}<br>${c.consent.comm?'<span class="tag ok">promos sí</span>':'<span class="tag">promos no</span>'}</td><td>${Math.min(st,S.loyalty.goal)}/${S.loyalty.goal}${st>=S.loyalty.goal?' 🎁':''}</td><td class="sm">${mb?'⭐ '+esc(mb.name)+'<br>hasta '+esc(mb.until):'—'}</td><td class="r">${c.limit?`${money(dt)}<br><span class="sm mut">de ${money(c.limit)}</span>`:'<span class="mut sm">sin crédito</span>'}</td><td class="r"><button class="btn sm" data-act="cuEdit" data-id="${c.id}">Ficha</button></td></tr>`;}
-reg('clientes','Clientes','users','customers',()=>{const q=cuF.q.toLowerCase();const L=S.customers.filter(c=>!q||custFull(c).toLowerCase().includes(q)||c.wa.includes(q.replace(/\D/g,'')||'zzz')||pad4(c.num)===q);
+reg('clientes','Clientes','users','customers',()=>{const q=cuF.q.toLowerCase();const L=S.customers.filter(c=>!q||custFull(c).toLowerCase().includes(q)||c.wa.includes(q.replace(/\D/g,'')||'zzz')||pad4(c.num)===q||(c.dni&&normDni(q).length>=6&&normDni(c.dni)===normDni(q)));
  const sub=S.customers.filter(hasComm).length;const deuda=S.customers.reduce((a,c)=>a+Math.max(0,debtOf(c.id)),0);
  return `<div class="row"><h1 class="sp">Clientes del Club RAVE</h1>${expBar('clientes')}<button class="btn" data-act="cuCamp">Campaña WhatsApp</button><button class="btn gold" data-act="cuEdit" data-id="">+ Cliente</button></div>
  <div class="grid g4"><div class="card kpi"><b>${S.customers.filter(c=>c.status!=='baja').length}</b><span>Socios activos</span></div><div class="card kpi"><b>${sub}</b><span>Aceptaron promociones (se les puede escribir)</span></div><div class="card kpi"><b>${S.members.filter(m=>m.status==='activa'&&m.to>now()).length}</b><span>Membresías vigentes</span></div><div class="card kpi"><b>${money(deuda)}</b><span>Deuda total en cuenta corriente</span></div></div>
- <div class="card" style="margin-top:1rem"><input id="cuq" placeholder="Buscar por nombre, WhatsApp o N.º de socio…" value="${esc(cuF.q)}" style="max-width:360px"><div class="tw"><table><thead><tr><th>N.º</th><th>Cliente</th><th>WhatsApp</th><th>Cumple</th><th>Origen · consentimiento</th><th>Sellos</th><th>Membresía</th><th class="r">Cta. cte.</th><th></th></tr></thead><tbody>${L.map(custRow).join('')||'<tr><td colspan="9" class="mut">Sin clientes.</td></tr>'}</tbody></table></div>
+ <div class="card" style="margin-top:1rem"><input id="cuq" placeholder="Buscar por nombre, WhatsApp, DNI o N.º de socio…" value="${esc(cuF.q)}" style="max-width:360px"><div class="tw"><table><thead><tr><th>N.º</th><th>Cliente</th><th>WhatsApp</th><th>Cumple</th><th>Origen · consentimiento</th><th>Sellos</th><th>Membresía</th><th class="r">Cta. cte.</th><th></th></tr></thead><tbody>${L.map(custRow).join('')||'<tr><td colspan="9" class="mut">Sin clientes.</td></tr>'}</tbody></table></div>
  <p class="sm mut">Datos personales (Ley 25.326 [VERIFICAR]): sin consentimiento de promociones el cliente queda excluido de campañas. La baja anonimiza los datos y conserva el historial contable.</p></div>`;},
  ()=>{const i=$('#cuq');if(i)i.addEventListener('input',e=>{cuF.q=e.target.value;const p=e.target.selectionStart;rerender();const n=$('#cuq');n.focus();n.setSelectionRange(p,p);});});
 A.cuEdit=el=>{const c=el.dataset.id?custById(el.dataset.id):null;const isAdm=can('config');
  const w=modal(c?'Ficha de '+custFull(c):'Nuevo cliente',`<div class="grid g2"><div><label for="cu-n">Nombre</label><input id="cu-n" maxlength="40" value="${esc(c?c.name:'')}"></div><div><label for="cu-l">Apellido</label><input id="cu-l" maxlength="40" value="${esc(c?c.last:'')}"></div></div>
  <div class="grid g2"><div><label for="cu-w">WhatsApp (con código de área)</label><input id="cu-w" inputmode="tel" placeholder="387 1234567" value="${esc(c?c.wa.replace(/^\+549/,''):'')}"></div><div><label for="cu-b">Fecha de nacimiento</label><input id="cu-b" type="date" value="${esc(c?c.birth:'')}"></div></div>
+ <div class="grid g2"><div><label for="cu-d">DNI (opcional: sirve para sumar sellos en el mostrador)</label><input id="cu-d" inputmode="numeric" maxlength="10" placeholder="Ej.: 30123456" autocomplete="off" value="${esc(c?(c.dni||''):'')}"></div>${c&&cardIdOk(c.id)?'<div><label>Tarjeta NFC</label><button class="btn sm" type="button" data-act="cuNfc" data-id="'+c.id+'">Grabar etiqueta NFC</button></div>':''}</div>
  <label class="chk"><input type="checkbox" id="cu-c1" ${c?(c.consent.club?'checked':''):'checked'}> Participa del Club RAVE (tratamiento de datos)</label><label class="chk"><input type="checkbox" id="cu-c2" ${c&&c.consent.comm?'checked':''}> Aceptó recibir promociones por WhatsApp</label>
  ${c?`<div class="card" style="margin:.6rem 0"><div class="row"><b class="sp">Cuenta corriente</b><span>Debe ${money(debtOf(c.id))}</span></div>${ccLedgerHTML(c.id)}<label for="cu-lim">Límite de crédito ($) — sólo administración</label>${numIn('cu-lim',c.limit||0,'0',can('config')||can('void')?'':'disabled')}<div class="row" style="margin-top:.5rem"><button class="btn sm" data-act="cuPay" data-id="${c.id}">Registrar cobro de deuda</button><button class="btn sm" data-act="cuMember" data-id="${c.id}">Membresía</button><button class="btn sm" data-act="cuRedeem" data-id="${c.id}">Canjear premio (${Math.min(stampsOf(c.id),S.loyalty.goal)}/${S.loyalty.goal})</button></div></div>
  <label for="cu-nt">Notas internas</label><input id="cu-nt" maxlength="120" value="${esc(c.notes||'')}"><div class="row" style="margin-top:.6rem">${c.status!=='baja'?`<button class="btn sm red" data-act="cuBaja" data-id="${c.id}">Dar de baja (derecho de supresión)</button>`:''}</div>`:''}`,
@@ -141,13 +192,15 @@ A.cuEdit=el=>{const c=el.dataset.id?custById(el.dataset.id):null;const isAdm=can
   const wa=normWA(val('cu-w'));if(!wa)return w._err('WhatsApp inválido.'),false;const b=parseBirthISO(val('cu-b'));if(!b)return w._err('Fecha de nacimiento inválida (año de 4 cifras).'),false;if(ageOf(b)<18)return w._err('El Club es sólo para mayores de 18 años.'),false;
   if(!$('#cu-c1',w).checked)return w._err('Hace falta el consentimiento de participación en el Club.'),false;
   const dup=S.customers.find(x=>normWA(x.wa)===wa&&(!c||x.id!==c.id));if(dup)return w._err('Ya existe un cliente con ese WhatsApp.'),false;
-  if(c){c.name=nm;c.last=ls;c.wa=waFull(wa);c.birth=val('cu-b');if(c.consent.comm!==$('#cu-c2',w).checked){c.consent.comm=$('#cu-c2',w).checked;c.consent.ts=now();audit('CONSENTIMIENTO',custFull(c)+' promos '+(c.consent.comm?'sí':'no'));}
+  const dn=normDni(val('cu-d'));if(val('cu-d').trim()&&!dniOk(dn))return w._err('El DNI debe tener 7 u 8 números (o dejalo vacío).'),false;
+  if(dn&&S.customers.some(x=>x.status!=='baja'&&x.dni&&normDni(x.dni)===dn&&(!c||x.id!==c.id)))return w._err('Ya existe un cliente con ese DNI.'),false;
+  if(c){c.name=nm;c.last=ls;c.wa=waFull(wa);c.birth=val('cu-b');if((c.dni||'')!==dn){audit('CLIENTE_DNI',custFull(c)+' · DNI '+(dn?'cargado/cambiado':'borrado'));c.dni=dn;}if(c.consent.comm!==$('#cu-c2',w).checked){c.consent.comm=$('#cu-c2',w).checked;c.consent.ts=now();audit('CONSENTIMIENTO',custFull(c)+' promos '+(c.consent.comm?'sí':'no'));}
    if($('#cu-lim',w)&&!$('#cu-lim',w).disabled){const lim=cents(val('cu-lim')===''?'0':val('cu-lim'));if(isNaN(lim)||lim<0)return w._err('Límite inválido.'),false;if(lim!==(c.limit||0))audit('LIMITE_CREDITO',custFull(c)+' '+money(c.limit||0)+' → '+money(lim));c.limit=lim;}
    c.notes=($('#cu-nt',w)?val('cu-nt'):c.notes||'').trim();audit('EDITAR_CLIENTE',custFull(c));}
-  else{const n=custCreate({name:nm,last:ls,birth:val('cu-b'),wa:val('cu-w'),comm:$('#cu-c2',w).checked},'mostrador');audit('ALTA_CLIENTE','mostrador · socio '+pad4(n.num));}
+  else{const n=custCreate({name:nm,last:ls,birth:val('cu-b'),wa:val('cu-w'),comm:$('#cu-c2',w).checked,dni:dn},'mostrador');audit('ALTA_CLIENTE','mostrador · socio '+pad4(n.num));}
   save();pubRefresh();rerender();toast('Cliente guardado');}});};
 A.cuBaja=el=>{const c=custById(el.dataset.id);if(!c)return;confirmBox('Baja del cliente','Se anonimizan nombre, WhatsApp y cumpleaños. Las ventas y la cuenta corriente históricas se conservan. '+(debtOf(c.id)>0?'<b>Ojo: tiene deuda de '+money(debtOf(c.id))+'.</b>':''),()=>{
- const n=pad4(c.num);c.status='baja';c.name='Socio';c.last='N.º '+n;c.wa='';c.birth='';c.consent={club:false,comm:false,analytics:false,version:c.consent.version,ts:now()};c.secret=uid();audit('BAJA_CLIENTE','socio '+n);save();pubRefresh();$$('#modal-root .ov').forEach(o=>o.remove());rerender();toast('Cliente dado de baja');},'Dar de baja');};
+ const n=pad4(c.num);c.status='baja';c.name='Socio';c.last='N.º '+n;c.wa='';c.birth='';c.dni='';c.cards=[];c.cardSecrets={};c.consent={club:false,comm:false,analytics:false,version:c.consent.version,ts:now()};c.secret=uid();audit('BAJA_CLIENTE','socio '+n);save();pubRefresh();$$('#modal-root .ov').forEach(o=>o.remove());rerender();toast('Cliente dado de baja');},'Dar de baja');};
 A.cuPay=el=>{const c=custById(el.dataset.id);if(!c)return;if(!openSess()&&true)toast('Sin caja abierta sólo se registra el cobro no efectivo.');
  modal('Cobro de cuenta corriente · '+custFull(c),`<p>Deuda: <b>${money(debtOf(c.id))}</b></p><label for="fp-a">Importe ($)</label>${numIn('fp-a',0,'0')}<label for="fp-m">Medio</label><select id="fp-m"><option value="efectivo">Efectivo (entra a la caja)</option><option value="transferencia">Transferencia</option><option value="debito">Débito</option><option value="qr">QR</option></select><p class="sm mut">Se clasifica en el rubro "Cobranza de cuenta corriente" (rubro obligatorio en todo movimiento).</p>`,
  {onOk:w=>{const e=fiadoPay(c.id,cents(val('fp-a')),val('fp-m'));if(e)return w._err(e),false;toast('Cobro registrado');$$('#modal-root .ov').forEach(o=>o!==w&&o.remove());rerender();}});};
@@ -189,8 +242,9 @@ function cmRefresh(){const n=+($('#cm-n')||{}).value||0;const c=cardModelHTML(n,
 reg('fidel','Fidelización','check','customers',()=>{const L=S.loyalty;const led=L.ledger.slice().reverse().slice(0,40);const goal=L.goal;
  const soc=S.customers.filter(c=>c.status!=='baja');const pend=soc.filter(c=>stampsOf(c.id)>=goal);const canj=L.ledger.filter(e=>e.kind==='redeem').length;
  return `<div class="row"><h1 class="sp">Fidelización · tarjeta de sellos</h1></div>
- <div class="grid g2"><div class="card"><h3>Validar sello del cliente</h3><p class="sm mut">El cliente muestra su tarjeta del menú: un código de 8 números (socio + código) o un QR que cambia cada 2 minutos. Pasá el lector o escribilo. Un sello por socio cada 24 h; cada código sirve una sola vez.</p>
-  <div class="row"><input id="fd-c" class="sp" inputmode="text" placeholder="Ej.: 0007 4821 o lector de QR" autocomplete="off" aria-label="Código de sello"><button class="btn gold" data-act="fdOk">Sumar sello</button></div><div id="fd-r"></div></div>
+ <div class="grid g2"><div class="card"><h3>Sumar sello a un cliente</h3><p class="sm mut">Tres formas: <b>QR</b> de la tarjeta del cliente (cambia cada 2 minutos; con lector USB o con la cámara), <b>tarjeta/etiqueta NFC</b> (Chrome en Android) o <b>DNI</b> (escribilo). También sirve el código de 8 números de la tarjeta. Un sello por socio cada 24 h; cada código del QR sirve una sola vez.</p>
+  <div class="row"><input id="fd-c" class="sp" inputmode="text" placeholder="DNI, código (0007 4821) o lector de QR" autocomplete="off" aria-label="Código, QR o DNI para sumar sello"><button class="btn gold" data-act="fdOk">Sumar sello</button></div>
+  <div class="row" style="margin-top:.4rem"><button class="btn sm" data-act="fdQr" type="button">📷 Escanear QR con la cámara</button><button class="btn sm" data-act="fdNfc" type="button">📡 Leer tarjeta NFC</button></div><div id="fd-r" aria-live="polite"></div></div>
  <div class="card"><h3>Reglas del club</h3><div class="grid g2"><div><label for="fd-g">Sellos para el premio</label><input id="fd-g" inputmode="numeric" value="${goal}"></div><div><label for="fd-w">Premio</label><input id="fd-w" maxlength="100" value="${esc(L.reward)}"></div></div><button class="btn" data-act="fdSave" style="margin-top:.6rem">Guardar reglas</button><p class="sm mut">Los sellos son un libro mayor: no se editan, se corrigen con un movimiento compensatorio. El alta al club no regala sellos.</p></div></div>
  <div class="card" style="margin:1rem 0"><div class="row"><h3 class="sp">Tarjeta modelo del negocio</h3><label for="cm-n" class="sm mut" style="margin:0">Sellos de ejemplo</label><select id="cm-n" style="max-width:90px" aria-label="Sellos de ejemplo">${Array.from({length:S.loyalty.goal+1},(_,i)=>`<option value="${i}" ${i===Math.min(6,S.loyalty.goal)?'selected':''}>${i}</option>`).join('')}</select><button class="btn sm" data-act="cmPrint" data-mode="sample">Imprimir con ejemplo</button><button class="btn sm gold" data-act="cmPrint" data-mode="blank">Imprimir en blanco</button></div>
  <div class="row" style="align-items:flex-start;gap:1rem;margin-top:.6rem"><div id="cm-front" aria-label="Frente de la tarjeta" style="max-width:100%;overflow-x:auto"></div><div id="cm-back" aria-label="Dorso de la tarjeta" style="max-width:100%;overflow-x:auto"></div></div><p class="sm mut">Modelo de ejemplo con los datos del negocio: los sellos se cargan en el mostrador con el código del cliente; el premio y la cantidad salen de las reglas de arriba. El QR del dorso lleva al menú, donde cada socio ve su tarjeta digital.</p></div>
@@ -198,8 +252,10 @@ reg('fidel','Fidelización','check','customers',()=>{const L=S.loyalty;const led
  ${pend.length?`<div class="card"><h3>Premios para entregar</h3>${pend.map(c=>`<div class="row" style="padding:.3rem 0"><span class="sp">${esc(custFull(c))} · socio ${pad4(c.num)}</span><button class="btn sm gold" data-act="cuRedeem" data-id="${c.id}">Entregar premio</button></div>`).join('')}</div>`:''}
  <div class="card" style="margin-top:1rem"><h3>Últimos movimientos</h3><div class="tw"><table><thead><tr><th>Fecha</th><th>Socio</th><th>Movimiento</th><th class="r">Sellos</th><th>Detalle</th><th>Usuario</th></tr></thead><tbody>${led.map(e=>{const c=custById(e.cust);return `<tr><td>${fmtDT(e.ts)}</td><td>${esc(custFull(c))}</td><td>${e.kind==='stamp'?'Sello':e.kind==='redeem'?'Canje':'Ajuste'}</td><td class="r">${e.n>0?'+':''}${e.n}</td><td class="sm">${esc(e.ref)}</td><td>${esc(e.user)}</td></tr>`;}).join('')||'<tr><td colspan="6" class="mut">Sin movimientos todavía.</td></tr>'}</tbody></table></div></div>`;},
  ()=>{const i=$('#fd-c');if(i)i.addEventListener('keydown',e=>{if(e.key==='Enter')A.fdOk();});const n=$('#cm-n');if(n)n.addEventListener('change',cmRefresh);cmRefresh();},'Clientes');
-A.fdOk=()=>{const code=val('fd-c');const r=verifyStampCode(code,'');const box=$('#fd-r');if(!r.ok){box.innerHTML=`<div class="errbox">${esc(r.msg)}</div>`;return;}
- commitStamp(r.cust.id,r,'mostrador');pubRefresh();box.innerHTML=`<div class="okbox">⭐ Sello sumado a <b>${esc(r.custName)}</b>: ${r.stamps}/${S.loyalty.goal}${r.reward?' · <b>¡premio disponible!</b>':''}</div>`;$('#fd-c').value='';setTimeout(()=>{if(curScreen==='fidel')rerender();},1600);};
+A.fdOk=async()=>{const box=$('#fd-r');const code=val('fd-c');if(typeof stampPrep==='function')await stampPrep();const r=resolveStamp(code,'');if(!r.ok){box.innerHTML=`<div class="errbox">${esc(r.msg)}</div>`;return;}
+ commitStamp(r.cust.id,r,'mostrador');pubRefresh();box.innerHTML=`<div class="okbox">⭐ Sello sumado a <b>${esc(r.custName)}</b> (por ${esc(r.how)}): ${r.stamps}/${S.loyalty.goal}${r.reward?' · <b>¡premio disponible!</b>':''}</div>`;$('#fd-c').value='';setTimeout(()=>{if(curScreen==='fidel')rerender();},1600);};
+A.fdQr=()=>qrScan(t=>{const i=$('#fd-c');if(i){i.value=t;A.fdOk();}});
+A.fdNfc=()=>nfcScan(t=>{const i=$('#fd-c');if(i){i.value=t;A.fdOk();}});
 A.fdSave=()=>{const g=parseNum(val('fd-g'));if(!(g>=2&&g<=30&&Number.isInteger(g)))return toast('Los sellos para el premio van de 2 a 30.',1);if(val('fd-w').trim().length<3)return toast('Escribí el premio.',1);
  S.loyalty.goal=g;S.loyalty.reward=val('fd-w').trim();audit('CONFIG_FIDELIZACION',g+' sellos · '+S.loyalty.reward);save();pubRefresh();toast('Reglas guardadas');rerender();};
 

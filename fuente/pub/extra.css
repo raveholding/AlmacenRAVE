@@ -34,3 +34,5 @@
 .club-consent2{margin-top:0}
 .legal-body h4{margin:12px 0 4px}
 .arrep-btn{display:block;width:100%;min-height:48px;margin-top:10px;border:1px solid var(--gold);background:transparent;color:inherit;border-radius:10px;font:600 13px Poppins,sans-serif;cursor:pointer}
+.club-hint{display:block;margin-top:4px;font-size:11px;opacity:.7}
+.loy-tip{font-size:12px;opacity:.75;margin:10px 0 0}

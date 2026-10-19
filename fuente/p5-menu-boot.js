@@ -19,8 +19,7 @@ const LOCAL_API={
 window.RAVE_API=cloudApiWrap(LOCAL_API);
 function buildPubDoc(){const m=/[?&]lang=(es|en)/.exec(location.search+location.hash);const qs=m?('?lang='+m[1]):'';
  const base=/^https?:/.test(location.protocol)?location.href.split('#')[0]:PUBLIC_URL();
- const hideCard=(CLOUD.on&&!cl.ready)?'<style>#loyalty-block{display:none!important}</style>':'';
- const inj=`<script>window.__QS=${JSON.stringify(qs)};<\/script><link rel="canonical" href="${esc(base)}">${hideCard}`;
+ const inj=`<script>window.__QS=${JSON.stringify(qs)};<\/script><link rel="canonical" href="${esc(base)}">`;
  return PUB_DOC.replace('<body>','<body>'+inj);}
 function showMenu(){const el=$('#pub');el.hidden=false;
  if(!el.querySelector('iframe')){el.innerHTML=`<iframe id="pubframe" title="Menú público de ${esc(S.tenant.name)}" style="border:0;width:100%;height:100%;display:block;background:#242220"></iframe>`;$('#pubframe').srcdoc=buildPubDoc();}

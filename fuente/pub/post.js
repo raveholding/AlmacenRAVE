@@ -67,17 +67,21 @@
     var id=cardId(), c=id?API.card(id):null;
     var no=$('#loy-nocard'), cd=$('#loy-card'); if(!no||!cd) return;
     stopTick();
-    if(!c){ no.hidden=false; cd.hidden=true; if(id){try{localStorage.removeItem('rave.card');}catch(e){}} renderPlans(null); return; }
+    var rec=document.querySelector('.loy-rec'), canRec=!(API.canRecover&&!API.canRecover());
+    if(rec) rec.style.display=canRec?'':'none';
+    var nt=$('#loy-nocard-txt'); if(nt&&!canRec) nt.textContent=L('Tu tarjeta se crea al sumarte al Club (formulario de arriba) y queda guardada en este celular. Si cambiaste de celular, volvé a anotarte con el mismo WhatsApp y cumpleaños.','Your card is created when you join the Club (form above) and is kept on this phone. If you changed phones, sign up again with the same WhatsApp and birthday.');
+    if(!c){ no.hidden=false; cd.hidden=true; if(id&&canRec){try{localStorage.removeItem('rave.card');}catch(e){}} renderPlans(null); return; }
     no.hidden=true; cd.hidden=false;
     var dots=''; for(var i=0;i<c.goal;i++) dots+='<i class="'+(i<c.stamps?'on':'')+'">'+(i<c.stamps?'★':'')+'</i>';
     var left=Math.max(0,c.goal-c.stamps);
-    cd.innerHTML='<div class="loy-card"><h3>'+esc(c.name)+'</h3><div class="loy-sub">'+L('Socio N° ','Member # ')+esc(c.num)+'</div>'
+    cd.innerHTML='<div class="loy-card"><h3>'+esc(c.name)+'</h3><div class="loy-sub">'+(c.pending?L('Socio N° en trámite · el negocio la activa en unos segundos','Member # pending · the shop activates it in a few seconds'):L('Socio N° ','Member # ')+esc(c.num))+'</div>'
      +'<div class="loy-stamps" style="grid-template-columns:repeat('+Math.min(c.goal,5)+',1fr)">'+dots+'</div>'
      +'<div class="loy-meta"><span>'+c.stamps+' / '+c.goal+' '+L('sellos','stamps')+'</span><span>'+(left?L('Te faltan '+left,left+' to go'):L('¡Tenés un premio!','You have a reward!'))+'</span></div>'
      +(c.rewards?'<div class="loy-reward">🎁 '+L('Premio disponible: ','Reward available: ')+esc(c.rewardText)+(c.rewards>1?' (x'+c.rewards+')':'')+'</div>':'')
      +(c.member?'<div class="loy-member">⭐ '+esc(c.member.name)+' · '+L('hasta ','until ')+esc(c.member.until)+(c.member.pct?' · '+c.member.pct+'% '+L('de descuento en el mostrador','off at the counter'):'')+'</div>':'')
      +'<div id="loy-codebox"></div>'
      +'<button type="button" class="loy-btn" id="loy-show">'+L('Mostrar mi código para sumar sello','Show my code to get a stamp')+'</button>'
+     +'<p class="loy-tip">'+L('Tip: agregá esta página a la pantalla de inicio de tu celular para tener tu tarjeta siempre a mano. Si la perdés, en el mostrador te pueden sumar los sellos con tu DNI.','Tip: add this page to your phone home screen to keep your card at hand. If you lose it, the counter can add your stamps with your ID number.')+'</p>'
      +'<button type="button" class="loy-link" id="loy-out">'+L('No soy yo / quitar tarjeta de este dispositivo','Not me / remove card from this device')+'</button></div>';
     $('#loy-show').addEventListener('click',showCode);
     $('#loy-out').addEventListener('click',function(){try{localStorage.removeItem('rave.card');}catch(e){} renderCard(); renderCoupons();});
@@ -87,7 +91,7 @@
     var id=cardId(), box=$('#loy-codebox'); if(!id||!box) return;
     function draw(){
       var k=API.cardCode(id); if(!k){box.innerHTML=''; stopTick(); return;}
-      box.innerHTML='<div class="loy-code">'+k.qr+'<div class="lc-n">'+esc(k.socio)+' · '+esc(k.otp)+'</div><div class="lc-s">'+L('Mostralo en el mostrador · vence en ','Show it at the counter · expires in ')+'<b id="lc-t">'+k.secs+'</b> s · '+L('un sello por día','one stamp per day')+'</div></div>';
+      box.innerHTML='<div class="loy-code">'+k.qr+'<div class="lc-n">'+(k.pending?esc(k.otp):esc(k.socio)+' · '+esc(k.otp))+'</div>'+(k.pending?'<div class="lc-s">'+L('Tarjeta todavía no activada: mostrá igual este QR en el mostrador.','Card not activated yet: show this QR at the counter anyway.')+'</div>':'')+'<div class="lc-s">'+L('Mostralo en el mostrador · vence en ','Show it at the counter · expires in ')+'<b id="lc-t">'+k.secs+'</b> s · '+L('un sello por día','one stamp per day')+'</div></div>';
     }
     draw(); stopTick();
     tick=setInterval(function(){

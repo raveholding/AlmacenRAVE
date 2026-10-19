@@ -12,9 +12,9 @@ body,n=re.subn(r'<img class="logo" src="data:image/png;base64,[^"]+"','<img clas
 mark='<!-- El panel de administrador viejo fue reemplazado'
 assert body.count(mark)==1; body=body.replace(mark,blocks+'\n  '+mark)
 # alta del club: la versión con nube responde con una Promise (cifra y envía al servidor)
-p1="var r = API ? API.clubJoin({ nombre:nombre, whatsapp:whatsDigits, cumple:cumple, comm:comm }) : { ok:false };"
+p1="var r = API ? API.clubJoin({ nombre:nombre, whatsapp:whatsDigits, cumple:cumple, comm:comm, dni:dniDigits }) : { ok:false };"
 assert body.count(p1)==1
-body=body.replace(p1,"var r0 = API ? API.clubJoin({ nombre:nombre, whatsapp:whatsDigits, cumple:cumple, comm:comm }) : { ok:false };\n    Promise.resolve(r0).then(function(r){")
+body=body.replace(p1,"var r0 = API ? API.clubJoin({ nombre:nombre, whatsapp:whatsDigits, cumple:cumple, comm:comm, dni:dniDigits }) : { ok:false };\n    Promise.resolve(r0).then(function(r){")
 p2="setTimeout(function(){ okMsg.style.display = 'none'; }, 5000);\n  });"
 assert body.count(p2)==1
 body=body.replace(p2,"setTimeout(function(){ okMsg.style.display = 'none'; }, 5000);\n    }).catch(function(){ errMsg.style.display = 'block'; });\n  });")

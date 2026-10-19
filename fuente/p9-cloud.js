@@ -70,7 +70,7 @@ const COLS=[
  {c:'movs',key:'movs'},
  {c:'cierres',key:'closures',strip:['notes'],once:1},
  {c:'rubros',key:'rubros',del:1},
- {c:'clientes',key:'customers',pii:['name','last','birth','wa','email','secret','notes'],del:1},
+ {c:'clientes',key:'customers',pii:['name','last','birth','wa','email','secret','notes','dni','cardSecrets'],del:1},
  {c:'fiado',key:'fiadoPays',once:1},
  {c:'emp',key:'employees',pii:['pin','dni'],del:1},
  {c:'fich',key:'punches'},
@@ -308,7 +308,7 @@ async function cloudSync(force){if(!cl.ready||cl.busy||!CLOUD.on)return;cl.busy=
   await pushAll();await pullAll();
   cl.lastOk=Date.now();cl.lastErr='';cl.online=true;
   if(cl.rol==='admin')autoPublish();
-  if(Date.now()-(cl.lastAltas||0)>60000){cl.lastAltas=Date.now();try{await importAltas();}catch(e){}}
+  if(Date.now()-(cl.lastAltas||0)>20000){cl.lastAltas=Date.now();try{await importAltas();}catch(e){}}
   if(typeof arcaTick==='function'){try{await arcaTick();}catch(e){}}
   await cloudMetaSave();await cloudPersistNow();
  }catch(e){
@@ -333,7 +333,7 @@ A.cloudForgot=async()=>{const email=(val('cl-em')||'').trim().toLowerCase();if(!
 A.cloudNewPass=async()=>{const p=val('cl-pw');if(p.length<10)return lerr('La contraseña necesita al menos 10 caracteres.');
  try{cl.ses={access:cl.recoveryToken,refresh:'',exp:Date.now()+3000000};await hreq('/auth/v1/user',{method:'PUT',body:{password:p}});cl.ses=null;cl.recoveryToken=null;loginMode='ingresar';cloudLogin('Contraseña cambiada. Ingresá con la nueva.');}catch(e){lerr(errTxt(e));}};
 /* ---------- llave pública del Club (alta anónima desde el menú, cifrada de punta a punta) ---------- */
-async function ensureClubKey(){if(cl.clubPriv||!cl.dek||cl.rol!=='admin')return;
+async function ensureClubKey(){if(cl.clubPriv||!cl.dek||cl.rol!=='admin'||!cl.online||!cl.lastOk)return; // sin haber leído la nube no se crea otra llave (dejaría sin abrir las altas ya hechas)
  const kp=await crypto.subtle.generateKey({name:'RSA-OAEP',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['encrypt','decrypt']);
  const pub=await crypto.subtle.exportKey('jwk',kp.publicKey),priv=await crypto.subtle.exportKey('jwk',kp.privateKey);
  cl.clubPriv={pub,priv:await sealJ(priv,cl.dek,'clubkey|'+cl.comercio.id),jwk:priv,new:true};try{await cloudSync(true);}catch(e){}}
@@ -344,20 +344,39 @@ async function rsaSeal(jwkPub,obj){const pk=await crypto.subtle.importKey('jwk',
 async function rsaOpen(jwkPriv,box){const sk=await crypto.subtle.importKey('jwk',jwkPriv,{name:'RSA-OAEP',hash:'SHA-256'},false,['decrypt']);
  const raw=await crypto.subtle.decrypt({name:'RSA-OAEP'},sk,unb64(box.k));const ak=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']);
  return JSON.parse(td.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(box.iv)},ak,unb64(box.ct))));}
-async function importAltas(){if(!cl.ready||!cl.clubPriv||!cl.clubPriv.jwk||!cl.online)return 0;
+async function importAltas(){if(!cl.ready||!cl.clubPriv||!cl.clubPriv.jwk||!cl.online||importAltas.busy)return 0;
+ importAltas.busy=true;
+ try{
  const rows=await sel(`club_altas?select=id,cifrado&comercio_id=eq.${cl.comercio.id}&estado=eq.nueva&order=id&limit=100`);if(!rows.length)return 0;
- const ok=[],bad=[];
- for(const r of rows){try{const p=await rsaOpen(cl.clubPriv.jwk,r.cifrado);const b=parseBirth(p.birth);const w=normWA(p.wa);
-   if(!b||!w||ageOf(b)<18||String(p.name||'').trim().length<1||String(p.last||'').trim().length<1){bad.push(r.id);continue;}
-   if(!S.customers.some(c=>normWA(c.wa)===w)){const c=custCreate({name:p.name,last:p.last,birth:p.birth,wa:p.wa,comm:!!p.comm},'menú público');c.id='alta'+r.id;}
-   ok.push(r.id);}catch(e){bad.push(r.id);}}
- if(ok.length)await rpc('club_altas_marcar',{p_comercio:cl.comercio.id,p_ids:ok,p_estado:'importada'});
- if(bad.length)await rpc('club_altas_marcar',{p_comercio:cl.comercio.id,p_ids:bad,p_estado:'rechazada'});
- if(ok.length){audit('CLUB_ALTAS_IMPORT',ok.length+' altas del menú público ('+bad.length+' rechazadas)');save();}return ok.length;}
+ const ok=[],bad=[];let undec=0,made=0,alias=0;
+ for(const r of rows){
+  let p;try{p=await rsaOpen(cl.clubPriv.jwk,r.cifrado);}catch(e){undec++;continue;} // no se descarta: queda "nueva" (no es culpa del cliente)
+  const b=parseBirth(p.birth),w=normWA(p.wa);
+  if(!b||!w||ageOf(b)<18||String(p.name||'').trim().length<1||String(p.last||'').trim().length<1){bad.push(r.id);continue;}
+  const iso=b.y+'-'+String(b.mo).padStart(2,'0')+'-'+String(b.d).padStart(2,'0');
+  const cid=cardIdOk(p.cid)?p.cid:'',sec=(typeof p.secret==='string'&&p.secret.length>=16&&p.secret.length<=80)?p.secret:'';
+  if((cid&&custByCard(cid))||(!cid&&S.customers.some(c=>c.id==='alta'+r.id))){ok.push(r.id);continue;} // ya estaba importada
+  const dupC=S.customers.find(c=>c.status!=='baja'&&normWA(c.wa)===w);
+  if(dupC){
+   if(cid&&sec&&dupC.birth===iso){dupC.cards=Array.isArray(dupC.cards)?dupC.cards:[];dupC.cardSecrets=dupC.cardSecrets||{};if(!dupC.cards.includes(cid)){dupC.cards.push(cid);dupC.cardSecrets[cid]=sec;}alias++;audit('CLUB_TARJETA_NUEVA','socio '+pad4(dupC.num)+' · segunda tarjeta (otro celular)');ok.push(r.id);}
+   else if(!cid){ok.push(r.id);}
+   else{bad.push(r.id);audit('CLUB_ALTA_RECHAZADA','WhatsApp ya registrado con otro cumpleaños (alta '+r.id+')');}
+   continue;}
+  const c=custCreate({id:cid,secret:sec,name:p.name,last:p.last,birth:iso,wa:p.wa,comm:!!p.comm,dni:p.dni},'menú público');
+  if(!cid)c.id='alta'+r.id;
+  made++;ok.push(r.id);}
+ if(ok.length||bad.length)try{
+  if(ok.length)await rpc('club_altas_marcar',{p_comercio:cl.comercio.id,p_ids:ok,p_estado:'importada'});
+  if(bad.length)await rpc('club_altas_marcar',{p_comercio:cl.comercio.id,p_ids:bad,p_estado:'rechazada'});
+ }catch(e){} // si falla el aviso, la próxima vuelta las reconoce como ya importadas
+ if(undec&&importAltas.undec!==undec){importAltas.undec=undec;audit('CLUB_ALTAS_SIN_ABRIR',undec+' altas del menú no se pueden abrir con la llave de este comercio');}
+ if(made||alias||bad.length){audit('CLUB_ALTAS_IMPORT',made+' socios nuevos, '+alias+' tarjetas nuevas de socios existentes, '+bad.length+' rechazadas');save();if(typeof pubRefresh==='function')pubRefresh();if(typeof curScreen!=='undefined'&&(curScreen==='clientes'||curScreen==='fidel'))rerender();}
+ return made+alias;
+ }finally{importAltas.busy=false;}}
 /* ---------- menú público en la nube ---------- */
 function menuContent(){const site=pubSite();
- const cps=S.coupons.filter(cp=>cp.active&&cp.public!==false&&cp.aud==='todos').map(cp=>({code:cp.code,type:cp.type,value:cp.value,min:cp.min||0,from:cp.from||'',to:cp.to||'',note:cp.note||'',aud:cp.aud}));
- return{site,catalog:pubCatalog(),plans:pubPlans(),coupons:cps,legal:legalPublic(),clubkey:cl.clubPriv?cl.clubPriv.pub:null};}
+ const cps=S.coupons.filter(cp=>cp.active&&cp.public!==false).map(cp=>({code:cp.code,type:cp.type,value:cp.value,min:cp.min||0,from:cp.from||'',to:cp.to||'',note:cp.note||'',aud:cp.aud||'todos',max:cp.maxUses||0,per:cp.perCust||0}));
+ return{site,catalog:pubCatalog(),plans:pubPlans(),coupons:cps,legal:legalPublic(),loyalty:{goal:S.loyalty.goal,reward:S.loyalty.reward},clubkey:cl.clubPriv?cl.clubPriv.pub:null};}
 async function cloudPublishMenu(manual){if(!cl.ready||cl.rol!=='admin')return{ok:false};
  const c=menuContent();const h=sha256(canon(c));if(!manual&&h===cl.pubHash)return{ok:true,same:true};
  const r=await rpc('publicar_menu',{p_comercio:cl.comercio.id,p_contenido:c,p_hash:h});cl.pubHash=h;cl.lastPub=Date.now();cl.pubVer=r.version;
@@ -372,15 +391,36 @@ async function cloudClubJoin(f){const en=()=>window.RAVE_LANG&&window.RAVE_LANG(
  if(parts.length<2||full.length<3||full.length>80)return bad('Ingresá tu nombre y apellido.','Enter your first and last name.');
  const last=parts.pop(),name=parts.join(' ');const b=parseBirth(f.cumple);if(!b)return bad('Elegí una fecha de cumpleaños válida.','Choose a valid birthday.');
  const w=normWA(f.whatsapp);if(!w||/^(\d)\1+$/.test(w))return bad('Ingresá un WhatsApp válido.','Enter a valid WhatsApp number.');
+ const dn=normDni(f.dni);if(String(f.dni||'').trim()&&!dniOk(dn))return bad('El DNI debe tener 7 u 8 números (o dejalo vacío).','The ID number must have 7 or 8 digits (or leave it empty).');
  if(ageOf(b)<18)return bad('El Club RAVE es sólo para mayores de 18 años.','RAVE Club is for adults (18+) only.');
  const t=now();const recent=clubHits.filter(x=>t-x<60000);if(recent.length>=3)return bad('Demasiados intentos, probá en un minuto.','Too many attempts, try again in a minute.');
  clubHits.length=0;recent.forEach(x=>clubHits.push(x));clubHits.push(t);
  const key=snapC()&&snapC().clubkey;if(!key)return bad('El Club no está disponible en este momento.','The Club is not available right now.');
- try{const enc=await rsaSeal(key,{name:name.replace(/[<>]/g,'').slice(0,40),last:last.replace(/[<>]/g,'').slice(0,40),birth:b.y+'-'+String(b.mo).padStart(2,'0')+'-'+String(b.d).padStart(2,'0'),wa:waFull(w),comm:!!f.comm,v:'v1',ts:t});
+  const b64u=u=>b64(u).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');const cid='k'+b64u(rnd(15)).slice(0,19),secret=b64u(rnd(24));
+ const iso=b.y+'-'+String(b.mo).padStart(2,'0')+'-'+String(b.d).padStart(2,'0'),nm=name.replace(/[<>]/g,'').slice(0,40),ls=last.replace(/[<>]/g,'').slice(0,40);
+ try{const enc=await rsaSeal(key,{name:nm,last:ls,birth:iso,wa:waFull(w),dni:dn,comm:!!f.comm,cid,secret,v:'v2',ts:t});
   const r=await rpc('club_alta',{p_slug:CLOUD.slug,p_huella:sha256(uid()+uid()+uid()+t),p_cifrado:enc},{auth:false});
   if(!r||!r.ok)return bad((r&&r.error)||'No pudimos registrarte, probá de nuevo.','We could not sign you up, please try again.');
  }catch(e){return bad('No pudimos registrarte (¿hay internet?). Probá de nuevo.','We could not sign you up (is there internet?). Please try again.');}
- return{ok:true,msg:en()?'Done! We received your request: the card is activated at the counter.':'¡Listo! Recibimos tu solicitud: tu tarjeta se activa en el mostrador.'};}
+ LS.set('rave.card',cid);LS.set('rave.cardsec',secret);LS.set('rave.cardinfo',JSON.stringify({name:(nm+' '+ls).trim(),birth:iso}));LS.del('rave.cardest');delete cardEst[cid];
+ setTimeout(cardPoll,2500);setTimeout(cardPoll,9000);
+ return{ok:true,cardId:cid,msg:en()?'Welcome to the Club! Your card is below. The shop activates it in a few seconds.':'¡Bienvenido/a al Club RAVE! Tu tarjeta ya está abajo. El negocio la activa en unos segundos.'};}
+/* ---------- tarjeta del Club en el celular del cliente (nube): la clave de la tarjeta nace y vive en ese celular ---------- */
+const LS={get(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
+const cardEst={};
+function cardEstGet(id){if(cardEst[id])return cardEst[id];try{const o=JSON.parse(LS.get('rave.cardest')||'null');if(o&&o.id===id){cardEst[id]={socio:!!o.socio,num:o.num,sellos:o.sellos};return cardEst[id];}}catch(e){}return {socio:false};}
+function cardFrameRefresh(){try{const fr=document.getElementById('pubframe');if(fr&&fr.contentWindow&&fr.contentWindow.RAVE_CARD_REFRESH)fr.contentWindow.RAVE_CARD_REFRESH();}catch(e){}}
+async function cardPoll(){const id=LS.get('rave.card');if(!CLOUD.on||!id||!CLOUD.slug||document.hidden)return;
+ try{const r=await rpc('club_estado',{p_slug:CLOUD.slug,p_cid:id},{auth:false});
+  if(r&&r.ok){const e={socio:!!r.socio,num:r.num,sellos:+r.sellos||0};const old=JSON.stringify(cardEstGet(id));cardEst[id]=e;LS.set('rave.cardest',JSON.stringify(Object.assign({id},e)));if(JSON.stringify(e)!==old)cardFrameRefresh();}}catch(e){}}
+if(CLOUD.on&&typeof setInterval==='function')setInterval(cardPoll,15000);
+function pubCloudCard(id){if(!id||id!==LS.get('rave.card')||!LS.get('rave.cardsec'))return null;
+ let info={};try{info=JSON.parse(LS.get('rave.cardinfo')||'{}');}catch(e){}
+ const e=cardEstGet(id),lo=(snapC()&&snapC().loyalty)||{goal:S.loyalty.goal,reward:S.loyalty.reward};const g=lo.goal||8,st=e.socio?Math.max(0,+e.sellos||0):0;
+ return{name:(info.name||'').split(' ')[0]||'',num:e.socio?pad4(+e.num):'—',stamps:Math.min(st,g),goal:g,rewards:Math.floor(st/g),rewardText:lo.reward||'',member:null,pending:!e.socio};}
+function pubCloudCode(id){const sec=LS.get('rave.cardsec');if(!id||!sec||id!==LS.get('rave.card'))return null;
+ const w=otpWin(now()),otp=otpFor({id,secret:sec},w,id),e=cardEstGet(id);
+ return{socio:e.socio?pad4(+e.num):'----',otp,secs:Math.max(1,Math.ceil(((w+1)*OTP_MS-now())/1000)),qr:QR.svg('RAVE2|'+id+'|'+otp,4,2),pending:!e.socio};}
 function cloudApiWrap(local){if(!CLOUD.on)return local;
  const pub=()=>!cl.ready;
  const pick=(l,p)=>(...a)=>pub()?p(...a):l(...a);
@@ -390,8 +430,9 @@ function cloudApiWrap(local){if(!CLOUD.on)return local;
   site:pick(local.site,()=>{const c=snapC();return c?c.site:{title:'',sub:{es:'',en:''},pitch:{es:'',en:''},promo:{on:false,es:'',en:''},address:'',social:[],icons:{},footer:{es:'',en:''},wa:'',alcFrom:7,alcTo:24,hideTeamBtn:false,clubOn:false,wifi:{on:false}};}),
   catalog:pick(local.catalog,()=>{const c=snapC();return c?c.catalog:{secciones:[],productos:[]};}),
   clubJoin:pick(local.clubJoin,cloudClubJoin),
-  card:pick(local.card,()=>null),cardCode:pick(local.cardCode,()=>null),cardLogin:pick(local.cardLogin,()=>null),
-  coupons:pick(local.coupons,()=>{const c=snapC();return((c&&c.coupons)||[]).filter(cpOk).map(cp=>({code:cp.code,desc:cp.note||(cp.type==='pct'?cp.value+' % de descuento':money(cp.value)+' de descuento'),cond:(cp.min?'Compra mínima '+money(cp.min)+' · ':'')+'Excluye tabaco'}));}),
+  card:id=>pub()?pubCloudCard(id):(local.card(id)||pubCloudCard(id)),cardCode:id=>pub()?pubCloudCode(id):(local.cardCode(id)||pubCloudCode(id)),cardLogin:pick(local.cardLogin,()=>null),canRecover:()=>!pub(),
+  coupons:(id)=>{if(!pub())return local.coupons(id);const c=snapC();const me=id&&id===LS.get('rave.card')?cardEstGet(id):null;let bw=false;try{const inf=JSON.parse(LS.get('rave.cardinfo')||'{}');bw=isBirthWeek({birth:inf.birth});}catch(e){}
+   return((c&&c.coupons)||[]).filter(cp=>cpOk(cp)&&((cp.aud||'todos')==='todos'||(cp.aud==='club'&&me&&me.socio)||(cp.aud==='cumple'&&me&&me.socio&&bw))).map(cp=>({code:cp.code,desc:cp.note||(cp.type==='pct'?cp.value+' % de descuento':money(cp.value)+' de descuento'),cond:(cp.min?'Compra mínima '+money(cp.min)+' · ':'')+(cp.aud==='club'?'Sólo socios del Club · ':cp.aud==='cumple'?'Semana del cumpleaños · ':'')+'Excluye tabaco'}));},
   couponInfo:pick(local.couponInfo,(code,total)=>{code=String(code||'').trim().toUpperCase();const c=snapC();const cp=((c&&c.coupons)||[]).find(x=>x.code===code);
    if(!cp)return{ok:false,msg:'Ese cupón no existe o no está activo.',msgEn:'That coupon does not exist or is not active.'};
    if(!cpOk(cp))return{ok:false,msg:'El cupón no está vigente.',msgEn:'The coupon is not valid today.'};

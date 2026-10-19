@@ -7,7 +7,7 @@ function legalBase(){const T=S.tenant;const nm=T.legal||T.name;const ad=T.addres
 ${nm}, ${ad}. Contacto: WhatsApp ${wa}. [Completar con razón social y CUIT del titular de la base de datos].
 
 **¿Para qué usamos tus datos?**
-Nombre, apellido, WhatsApp y fecha de cumpleaños se usan para gestionar tu participación en el Club RAVE (tarjeta de sellos, cupones y membresías), y —sólo si lo aceptás en una casilla aparte— para enviarte promociones por WhatsApp. Cada finalidad tiene su propio consentimiento y podés retirarlo cuando quieras.
+Nombre, apellido, WhatsApp y fecha de cumpleaños —y tu DNI, que es opcional y sólo sirve para identificarte en el mostrador y sumarte los sellos— se usan para gestionar tu participación en el Club RAVE (tarjeta de sellos, cupones y membresías), y —sólo si lo aceptás en una casilla aparte— para enviarte promociones por WhatsApp. Cada finalidad tiene su propio consentimiento y podés retirarlo cuando quieras.
 
 **Base legal y minimización**
 Tratamos tus datos con tu consentimiento expreso (Ley 25.326 de Protección de Datos Personales) [VERIFICAR con asesor legal]. Pedimos sólo lo necesario: no se solicitan DNI, dirección ni correo. El Club es sólo para mayores de 18 años: no se registran datos de menores.

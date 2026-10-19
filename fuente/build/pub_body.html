@@ -544,6 +544,12 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
         <input id="club-cumple" type="date" required autocomplete="off">
         <div class="club-err">Elegí una fecha válida.</div>
       </div>
+      <div class="club-field" id="field-dni">
+        <label for="club-dni">DNI (opcional)</label>
+        <input id="club-dni" type="text" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="Ej: 30123456">
+        <div class="club-err">El DNI debe tener 7 u 8 números (o dejalo vacío).</div>
+        <small class="club-hint" id="club-dni-hint">Con tu DNI podemos sumarte los sellos en el mostrador aunque no tengas el celular a mano.</small>
+      </div>
       <label class="club-consent">
         <input type="checkbox" id="club-consent" required>
         <span>Acepto que RAVE guarde estos datos, únicamente con el fin de contactarme por sorteos, ofertas y saludos de cumpleaños, conforme a la Ley 25.326 de Protección de Datos Personales. Mis datos no se comparten con terceros ni se usan para otro fin. Ver <a href="#legal-rave" style="color:#8a6d1f;">Términos y Política de Privacidad</a>.</span>
@@ -1149,16 +1155,19 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
     var whatsDigits = whats.replace(/\D/g, '');
     var whatsOk = whatsDigits.length >= 8;
     var cumpleOk = !!cumple;
+    var dniEl = document.getElementById('club-dni'); var dniDigits = dniEl ? dniEl.value.replace(/\D/g,'') : '';
+    var dniOk = !dniEl || !dniEl.value.trim() || (dniDigits.length >= 7 && dniDigits.length <= 8);
 
     setInvalid('field-nombre', !nombreOk);
     setInvalid('field-whatsapp', !whatsOk);
     setInvalid('field-cumple', !cumpleOk);
+    setInvalid('field-dni', !dniOk);
 
-    if(!nombreOk || !whatsOk || !cumpleOk || !fConsent.checked) return;
+    if(!nombreOk || !whatsOk || !cumpleOk || !dniOk || !fConsent.checked) return;
 
     var API = null; try{ API = window.parent.RAVE_API; }catch(e){}
     var comm = !!(document.getElementById('club-comm') && document.getElementById('club-comm').checked);
-    var r = API ? API.clubJoin({ nombre:nombre, whatsapp:whatsDigits, cumple:cumple, comm:comm }) : { ok:false };
+    var r = API ? API.clubJoin({ nombre:nombre, whatsapp:whatsDigits, cumple:cumple, comm:comm, dni:dniDigits }) : { ok:false };
     var e2 = document.getElementById('club-error2');
     if(!r || !r.ok){
       if(e2){ e2.textContent = (r && r.msg) || ''; e2.style.display = (r && r.msg) ? 'block' : 'none'; }
@@ -1173,6 +1182,8 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
     setInvalid('field-nombre', false);
     setInvalid('field-whatsapp', false);
     setInvalid('field-cumple', false);
+    setInvalid('field-dni', false);
+    try{ var lbk=document.getElementById('loyalty-block'); if(lbk && lbk.scrollIntoView) lbk.scrollIntoView({ behavior:(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)?'auto':'smooth', block:'start' }); }catch(e){}
     setTimeout(function(){ okMsg.style.display = 'none'; }, 5000);
   });
 
@@ -1222,6 +1233,10 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
     ['#club-whatsapp','e.g. 387 4567890','ph'],
     ['#field-whatsapp .club-err','Enter a valid WhatsApp number (at least 8 digits).'],
     ['label[for="club-cumple"]','Birthday'],
+    ['label[for="club-dni"]','ID number (optional)'],
+    ['#club-dni','e.g. 30123456','ph'],
+    ['#field-dni .club-err','The ID number must have 7 or 8 digits (or leave it empty).'],
+    ['#club-dni-hint','With your ID number we can add your stamps at the counter even if you do not have your phone at hand.'],
     ['#field-cumple .club-err','Pick a valid date.'],
     ['.club-consent span','I agree that RAVE stores this data solely to contact me about giveaways, offers and birthday greetings, in accordance with Argentine Law 25.326 on Personal Data Protection. My data is not shared with third parties.'],
     ['#arco-btn','Want to access, correct or delete your data? Exercise your ARCO rights'],

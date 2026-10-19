@@ -56,7 +56,7 @@ function commitSale(method,arca,channel,lines,opts){
  method=pays.length>1?'mixto':pays[0].m;
  if(pc.fiadoAmt>0){const lim=cust.limit||0;const deuda=debtOf(cust.id);
   if(!(lim>0))return{err:'El cliente no tiene límite de crédito asignado.'};if(deuda+pc.fiadoAmt>lim)return{err:'Supera el límite de crédito: debe '+money(deuda)+' de '+money(lim)+' y esta venta suma '+money(pc.fiadoAmt)+'.'};}
- let stampRes=null;if(opts.stampCode){if(!cust)return{err:'El código de sello necesita un cliente.'};stampRes=verifyStampCode(opts.stampCode,cust.id);if(!stampRes.ok)return{err:'Sello: '+stampRes.msg};}
+ let stampRes=null;if(opts.stampCode){if(!cust)return{err:'El código de sello necesita un cliente.'};stampRes=resolveStamp(opts.stampCode,cust.id);if(!stampRes.ok)return{err:'Sello: '+stampRes.msg};}
  const c=S.tenant.caja;S.seq[c]=(S.seq[c]||0)+1;const digital=method==='qr'||method==='modo';
  pays.forEach(p=>{p.fee=(digital||p.m==='fiado')?0:Math.round(p.a*((S.cfg.fee[p.m]||0))/100);});
  const fiadoAmt=pc.fiadoAmt;
@@ -138,7 +138,7 @@ function cobroView(){
  const needCust=m==='fiado'||(pos.mix&&pos.pays.some(p=>p.m==='fiado'));
  const chips=POS_METHODS.map((k,i)=>`<button type="button" class="btn sm ${m===k?'on':''}" data-act="cbmet" data-m="${k}">${esc(MET[k]||k)}${i<4?` (F${i+1})`:''}</button>`).join('')+`<button type="button" class="btn sm ${pos.mix?'on':''}" data-act="cbmix" aria-pressed="${pos.mix?'true':'false'}">Dividir el pago (mixto)</button>`;
  const custBox=cust?`<div class="okbox row"><span class="sp"><b>${esc(cust.name+' '+cust.last)}</b> · socio ${esc(pad4(cust.num))}${memberActive(cust)?' · ⭐ '+esc(memberActive(cust).name):''}${needCust?` · debe ${money(debtOf(cust.id))} de ${money(cust.limit||0)}`:''}</span><button class="btn sm" data-act="cbcust" data-id="">Quitar</button></div>`
-  :`<label for="cb-q">Cliente ${needCust?'(obligatorio para cuenta corriente)':'(opcional: sellos, cupones, membresía)'}</label><input id="cb-q" placeholder="Buscar por nombre o WhatsApp" autocomplete="off"><div id="cb-res"></div>`;
+  :`<label for="cb-q">Cliente ${needCust?'(obligatorio para cuenta corriente)':'(opcional: sellos, cupones, membresía)'}</label><input id="cb-q" placeholder="Buscar por nombre, WhatsApp o DNI" autocomplete="off"><div id="cb-res"></div>`;
  const benTxt=(ben.disc?`<div class="okbox">${esc(ben.label)}: − ${money(ben.disc)}${ben.note?'<br><span class="sm">'+esc(ben.note)+'</span>':''}</div>`:'')+(pos.coupon&&ben.couponErr?`<div class="errbox">Cupón: ${esc(ben.couponErr)}</div>`:'')+(!ben.disc&&ben.note?`<div class="warnbox sm">${esc(ben.note)}</div>`:'');
  const mixHtml=pos.mix?`<div class="card" id="mixbox" style="margin:.5rem 0"><h3 style="margin-top:0">Pagos del cliente</h3><p class="sm mut">Repartí el total entre los medios. La suma debe dar exactamente el total. El efectivo que entrega el cliente va en “Recibe en mano”; si es más que el importe, se calcula el vuelto.</p>
   ${pos.pays.map((p,i)=>`<div class="mixrow" data-row="${i}"><div><label for="mx-m${i}">Medio</label><select id="mx-m${i}" data-pi="${i}" data-pf="m">${PAY_MIX.map(k=>`<option value="${k}" ${p.m===k?'selected':''}>${esc(MET[k])}</option>`).join('')}</select></div>
@@ -154,7 +154,7 @@ function cobroView(){
  ${mixHtml}
  ${typeof arcaRcpHtml==='function'?arcaRcpHtml():''}
  <div class="grid g2"><div><label for="cb-cup">Cupón</label><div class="row"><input id="cb-cup" class="sp" maxlength="24" placeholder="CÓDIGO" autocomplete="off" value="${esc(pos.coupon)}"><button class="btn sm" data-act="cbcup">Aplicar</button></div></div>
- <div><label for="cb-code">Código de sello del cliente</label><input id="cb-code" inputmode="numeric" placeholder="Ej.: 0007 4821" autocomplete="off" value="${esc(pos.stamp)}"></div></div>
+ <div><label for="cb-code">Sello del Club: DNI, código o QR del cliente</label><input id="cb-code" inputmode="text" placeholder="DNI, 0007 4821 o lector de QR" autocomplete="off" value="${esc(pos.stamp)}"><div class="row" style="margin-top:.3rem"><button class="btn sm" type="button" data-act="cbQr">📷 QR</button><button class="btn sm" type="button" data-act="cbNfc">📡 NFC</button></div></div></div>
  ${benTxt}
  ${m==='fiado'&&!cust?'<div class="warnbox">Elegí el cliente para dejar la venta en cuenta corriente.</div>':''}
  ${m==='efectivo'?`<label for="rcv">Recibido ($) — opcional</label>${numIn('rcv',0,'0')}<div id="vuelto" class="sm mut" aria-live="assertive"></div>`:''}
@@ -163,9 +163,10 @@ function cobroView(){
 function vueltoHTML(r,tot){if(isNaN(r)||!r)return '';if(r>tot)return `<div class="vuelto" role="alert"><span>VUELTO A ENTREGAR</span><b>${money(r-tot)}</b><small>Recibido ${money(r)} − total ${money(tot)}</small></div>`;if(r===tot)return '<div class="okbox sm">Efectivo justo: sin vuelto.</div>';return `<div class="errbox sm"><b>Falta ${money(tot-r)}</b> para completar el efectivo.</div>`;}
 A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin permiso',1);if(!openSess()){toast('Abrí la caja para vender.',1);return;}
  if(cobroW())return;
+ if(typeof stampPrep==='function')stampPrep();
  const w=modal('Confirmar cobro',cobroView(),{wide:true,okText:'Cobrar (F12)',onOk:()=>{cobroSync();
   const rc=pos.recv?cents(pos.recv):0;
-  if(pos.stamp&&!pos.cust){const vr=verifyStampCode(pos.stamp,'');if(vr.ok)pos.cust=vr.cust.id;}
+  if(pos.stamp&&!pos.cust){const vr=resolveStamp(pos.stamp,'');if(vr.ok)pos.cust=vr.cust.id;}
   if(pos.arca&&typeof arcaRcpCheck==='function'){const er=arcaRcpCheck();if(er){toast(er,1);return false;}}
   let pays=null,recv=isNaN(rc)?0:rc;
   if(pos.mix){const L=mixParsed();if(L.some(p=>isNaN(p.a)||isNaN(p.r))){toast('Revisá los importes: hay un número inválido.',1);return false;}
@@ -179,7 +180,7 @@ A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin perm
   if(t.id==='rcv'){const v=$('#vuelto',w);if(v)v.innerHTML=vueltoHTML(cents(t.value),posTotal());}
   if(t.dataset&&t.dataset.pi!==undefined&&t.dataset.pf!=='m'){pos.pays[+t.dataset.pi][t.dataset.pf]=t.value;const sm=$('#mx-sum',w);if(sm)sm.innerHTML=mixSummaryHTML(posTotal());}
   if(t.id==='cb-q'){const q=t.value.trim().toLowerCase();const res=$('#cb-res',w);if(!q){res.innerHTML='';return;}
-   const L=S.customers.filter(c=>(c.name+' '+c.last).toLowerCase().includes(q)||c.wa.replace(/\D/g,'').includes(q.replace(/\D/g,'')||'zz')||pad4(c.num)===q).slice(0,6);
+   const L=S.customers.filter(c=>c.status!=='baja'&&((c.name+' '+c.last).toLowerCase().includes(q)||c.wa.replace(/\D/g,'').includes(q.replace(/\D/g,'')||'zz')||pad4(c.num)===q||(c.dni&&normDni(q).length>=6&&normDni(c.dni)===normDni(q)))).slice(0,6);
    res.innerHTML=L.map(c=>`<button class="btn sm" style="margin:.2rem .2rem 0 0" data-act="cbcust" data-id="${c.id}">${esc(c.name+' '+c.last)} · ${esc(pad4(c.num))}</button>`).join('')||'<span class="sm mut">Sin resultados</span>';}});
  w.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.pi!==undefined&&t.dataset.pf==='m'){const row=pos.pays[+t.dataset.pi];row.m=t.value;if(row.m!=='efectivo')row.r='';cobroRender();}});};
 A.cbmix=()=>{cobroSync();pos.mix=!pos.mix;if(pos.mix){const first=(PAY_MIX.includes(pos.method)&&pos.method!=='fiado')?pos.method:'efectivo';pos.pays=[{m:first,a:'',r:''},{m:'fiado',a:'',r:''}];}else{pos.pays=[];}cobroRender();};
@@ -189,6 +190,9 @@ A.cbrest=el=>{const L=mixParsed();const i=+el.dataset.i;const others=L.reduce((a
 A.cbmet=el=>{pos.method=el.dataset.m;pos.mix=false;pos.pays=[];cobroRender();posCart();};
 A.cbcust=el=>{pos.cust=el.dataset.id||'';cobroRender();};
 A.cbcup=()=>{cobroRender();};
+const cbSetStamp=t=>{const i=document.getElementById('cb-code');if(i)i.value=t;pos.stamp=t;cobroRender();};
+A.cbQr=()=>qrScan(cbSetStamp);
+A.cbNfc=()=>nfcScan(cbSetStamp);
 function saleOkHTML(sale){
  const L=salePays(sale);const f=saleFiadoAmt(sale);
  let h=`<div class="okbox"><b>Total ${money(sale.total)}</b> · ${esc(salePayLabel(sale))}${f>0?' · '+esc(PSTATE_TXT[salePayState(sale)]):''}</div>`;
