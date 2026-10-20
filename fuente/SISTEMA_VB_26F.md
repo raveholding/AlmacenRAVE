@@ -1706,7 +1706,7 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 6. Un único administrador puede autorizar su propio traspaso sólo si `xfer.selfAuth` está encendido (decisión explícita y auditada).
 7. Hardware, NFC, impresoras y balanzas reales siguen sin probarse. Cobros reales por Mercado Pago/MODO no están integrados.
 
-**G.4 Estado de publicación (completar al publicar).** Ver el informe de entrega de la sesión: repositorios `AlmacenRAVE` y `raveV2`, y migración 11 en producción.
+**G.4 Estado de publicación (2026-10-20).** Publicados: cliente `AlmacenRAVE` (commit `2badff3`) y demo `raveV2`. **Migración 11 en producción: PENDIENTE de aplicar** (el navegador del dueño no estaba conectado a la sesión); está en el repositorio y pasa 476/476 en Postgres local. Hasta aplicarla, el cliente con nube funciona como antes, pero traspasos, detalle de cobros y auditoría del servidor no se sincronizan (el servidor rechazaría esas colecciones). Para aplicarla: pegar el **contenido** de `supabase/11-traspasos-cobros-auditoria.sql` en el SQL Editor y ejecutar una vez; verificar con `select to_regclass('public.traspasos'), to_regclass('public.cobro_detalles'), to_regclass('public.auditoria_eventos');` (las tres deben devolver nombre, no null).
 
 **G.5 Lección nueva (obligatoria).** Un chip o botón con `data-m` dentro del **cuerpo** de un modal confirmaba el modal (cobraba la venta al elegir el medio de pago). Corregido en el núcleo: sólo los botones del pie (`.mf [data-m]`) confirman o cierran; en el cuerpo se usa `data-pm`. Y: todo texto de créditos sale de `VB` (una sola fuente); `v8` falla si aparece un crédito viejo, incluso dentro de un `<script>`.
 
