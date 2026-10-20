@@ -1,6 +1,6 @@
 # SISTEMA VB 26F (`SISTEMA_VB_26F`) — PROMPT MAESTRO INTEGRAL FINAL (ERP/POS CONVERSACIONAL Y MODULAR)
 
-Versión 26F · revisión V26.6 (integra V26.1 pagos mixtos, V26.2 proveedores y compras, V26.3 Club/tarjeta/DNI/NFC y la **especificación del módulo Mayorista/Minorista 4.22**) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
+Versión 26F · revisión V26.7 (integra V26.1 pagos mixtos, V26.2 proveedores y compras, V26.3 Club/tarjeta/DNI/NFC, la **especificación del módulo Mayorista/Minorista 4.22** y la **especificación corregida de traspasos de fondos, detalle de cobros digitales y expediente digital 4.23**) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
 
 **Objetivo de V26:** construir el sistema desde el inicio con una arquitectura extensible y un asistente conversacional transversal por voz y texto, integrado al catálogo de acciones de negocio. Incorporar además cajas operativas y principales configurables, gestión multisucursal, borrado protegido de artículos, ordenamiento reutilizable de todas las tablas y un checkout e-commerce opcional que convive con el flujo actual de pedidos por WhatsApp, tarjetas de fidelización guardables en Apple Wallet/Google Wallet y avisos automáticos multicanal con consentimiento y control de frecuencia. Este prompt define requisitos y criterios de aceptación; ninguna función se considera implementada hasta demostrarla con archivos, migraciones y pruebas reales.
 
@@ -11,6 +11,7 @@ Versión 26F · revisión V26.6 (integra V26.1 pagos mixtos, V26.2 proveedores y
 | Módulo **Mayorista / Minorista** con listas de precios, bultos, crédito, documentos vinculados, lotes/FEFO, cobranzas, cierre ciego, reportes y contabilidad opcional (a partir del documento `mayorista_integracion`). Absorbe 5.2 | **4.22** (fases F1–F7) | **F1 implementada y publicada** (canal, listas L1–L5, escalones, acuerdos, bultos, crédito con plazo y excepción); F2–F7 especificadas, no implementadas |
 | **Correcciones del Club V26.3** consolidadas con su checklist de aceptación: tarjeta en el celular al escanear el QR del menú, importación sin pérdida de altas, sellos por QR / código / DNI / NFC, cupones por audiencia | 4.6, prueba 36, anexo B/C/D | **Hecho y probado** (límites en el anexo C) |
 | Se corrige lo que decía 4.2: el selector **Remito / Presupuesto** no está en el código (sólo Ticket interno o Factura electrónica) | 4.2, 4.22.0 | **Pendiente** (fase F2) |
+| **Traspasos de fondos controlados** (permiso explícito `transfer_funds`, cajas cerradas con fondo en tránsito, comprobante de 8 campos), **detalle de cobros digitales** (transferencia / tarjeta / QR), **Expediente digital** de cada transacción y **tablas de auditoría sólo-agregar** en el servidor (a partir del documento de ajuste «Cajas, Sucursales, Transferencia de Fondos y Trazabilidad Transaccional») | **4.23** (pasos G1–G3, migración 11) | **ESPECIFICACIÓN corregida y estructurada; nada implementado todavía.** Existe la base: traspasos entre cajas abiertas, auditoría encadenada y `pays` sin detalle (matriz 4.23.0) |
 | **Punto de reanudación** para seguir trabajando: repositorios, comandos, estado de la nube, pendientes, preguntas y prompt de arranque | **Anexo E** | — |
 
 ---
@@ -176,6 +177,7 @@ ERP/SaaS multicomercio para negocios de `[PAÍS]`, en tres piezas con el mismo c
 - Pantalla "Cajas cerradas": lista y calendario, filtros, alertas de días sin cierre, ficha imprimible (A4) con verificación de integridad, CSV.
 - Importes en centavos enteros o `DECIMAL(14,2)`, nunca float. Fechas en UTC y visualización en `[ZONA_HORARIA]`.
 - Modelo flexible de cajas (una caja/una persona, varias personas, varias cajas, por sucursal/turno/responsable/socio). Se aplica la especificación jerárquica de **4.14**: caja simple, cajas operativas y caja principal/consolidada se configuran sin obligar a todos los clientes a usar la estructura completa. Reparto entre socios, sueldos y reporte de cierre para WhatsApp son un **módulo opcional apagado por defecto** (sección 5.9); sin socios configurados el reporte no muestra secciones vacías ni "()" huérfanos.
+- **Traspasos entre cajas y sucursales (también con cajas cerradas), comprobante interno, permiso `transfer_funds` y registro con filtros:** especificados en **4.23.1–4.23.3 y 4.23.7**; el cierre sellado no cambia (4.23.2).
 - **Cierre ciego, caja por canal, cheques/eCheq y retenciones sufridas:** especificados en **4.22.6** (`cash.blind` apagada por defecto). La foto sellada del cierre no cambia de forma: el formato ampliado se lee con valores por defecto en cierres anteriores.
 
 ### 4.6 Clientes, Club y fidelización
@@ -813,7 +815,7 @@ accounts ──< journal_lines >── journal_entries >── sales_docs | rece
 audit_log (extender, sólo-agregar)            cash_closings (snapshot ampliado, formato versionado)
 ```
 
-**Migraciones propuestas** (aditivas, numeradas, idempotentes; **no existen todavía**: se crean y se prueban en el repositorio **antes** de mencionárselas al dueño; se agregan a `INSTALAR-TODO.sql` en orden): `10-mayorista-precios.sql` (F1) · `11-documentos-venta.sql` (F2) · `12-lotes-kits-matriz.sql` (F3/F4) · `13-cobranzas-valores.sql` (F5) · `14-contable.sql` (F7). Cada colección nueva exige actualizar la lista cerrada de `sincronizar()`, su política de lectura, exportación, importación y respaldo. Los **importes derivados** (totales, deuda, estado) los calcula el servidor. Los estados persistidos de la versión anterior deben cargar sin errores (campos nuevos con valores por defecto).
+**Migraciones propuestas** (aditivas, numeradas, idempotentes; **no existen todavía**: se crean y se prueban en el repositorio **antes** de mencionárselas al dueño; se agregan a `INSTALAR-TODO.sql` en orden): `10-mayorista-precios.sql` (F1) · `11-traspasos-cobros-auditoria.sql` (**4.23**, G1–G3) · `12-documentos-venta.sql` (F2) · `13-lotes-kits-matriz.sql` (F3/F4) · `14-cobranzas-valores.sql` (F5) · `15-contable.sql` (F7). Cada colección nueva exige actualizar la lista cerrada de `sincronizar()`, su política de lectura, exportación, importación y respaldo. Los **importes derivados** (totales, deuda, estado) los calcula el servidor. Los estados persistidos de la versión anterior deben cargar sin errores (campos nuevos con valores por defecto).
 
 ### 4.22.10 Flujogramas
 
@@ -852,12 +854,12 @@ Todos con tabla accesible, CSV/XLSX con fórmulas neutralizadas, permisos de cos
 | Fase | Contenido | SQL | Aplica a un almacén/licorería |
 |---|---|---|---|
 | F1 | Canal, listas, escalones, acuerdos, presentaciones/bultos, `priceResolve`, crédito con plazo y excepción | 10 | **Sí** |
-| F2 | Pedidos de venta, picking, remito (con constancia), presupuesto, factura desde remitos, recibo, trazabilidad | 11 | Opcional |
-| F3 | Lotes/FEFO, kits, pesables con doble unidad | 12 | Lotes sí (si hay vencimientos); pesables y kits según catálogo |
-| F4 | Matriz talle/color/estampa | 12 | No (indumentaria) |
-| F5 | Cobranzas, cheques/eCheq, retenciones, caja por canal, **cierre ciego** | 13 | **Sí** (cierre ciego); valores opcional |
+| F2 | Pedidos de venta, picking, remito (con constancia), presupuesto, factura desde remitos, recibo, trazabilidad | 12 | Opcional |
+| F3 | Lotes/FEFO, kits, pesables con doble unidad | 13 | Lotes sí (si hay vencimientos); pesables y kits según catálogo |
+| F4 | Matriz talle/color/estampa | 13 | No (indumentaria) |
+| F5 | Cobranzas, cheques/eCheq, retenciones, caja por canal, **cierre ciego** | 14 | **Sí** (cierre ciego); valores opcional |
 | F6 | Reportes por canal/vendedor/zona/lote, KPIs y los 3 informes | — | **Sí** |
-| F7 | Contabilidad, PPP/FIFO, IVA por alícuota, percepciones, Libro IVA | 14 | Sólo con contador |
+| F7 | Contabilidad, PPP/FIFO, IVA por alícuota, percepciones, Libro IVA | 15 | Sólo con contador |
 
 Antes de empezar cada fase: inspeccionar (sección 12), listar supuestos, escribir las pruebas junto con el código. **La decisión de qué fases se construyen es del dueño**; el orden recomendado es el de la tabla.
 
@@ -898,6 +900,265 @@ Antes de empezar cada fase: inspeccionar (sección 12), listar supuestos, escrib
 - Una fase se da por terminada sólo cuando: migración aplicada y probada dos veces sobre base nueva y sobre la base con datos; pruebas de 4.22.14 de esa fase verdes; **regresión completa verde** con la bandera apagada y encendida; revisión independiente de seguridad para F1 (precios y crédito), F5 (cajas y valores) y F7 (asientos); documentación y publicación. Nada se declara "100 % funcional".
 - **Dependen de terceros:** contador (plan de cuentas, percepciones, formatos), certificado y servicios de ARCA (FCE MiPyME, comprobantes), bancos (eCheq, depósitos), padrones provinciales, autoridad sanitaria (carnes y frescos), balanza y lector reales (**pendiente de prueba física** hasta tener marca y modelo).
 - **Fuera de alcance de 4.22:** integración bancaria, padrones automáticos de percepciones, FCE MiPyME, remito electrónico oficial, logística de transporte, liquidación de comisiones (5.8) y la multisucursal en servidor (queda como en el anexo).
+
+---
+
+## 4.23 TRASPASOS DE FONDOS CONTROLADOS, DETALLE DE COBROS DIGITALES Y EXPEDIENTE DIGITAL DE LA TRANSACCIÓN (V26.7)
+
+**Estado: ESPECIFICACIÓN CORREGIDA Y ESTRUCTURADA. Nada de lo nuevo de 4.23 está implementado al 2026-10-19** (matriz 4.23.0). Nace del documento de ajuste «Cajas, Sucursales, Transferencia de Fondos y Trazabilidad Transaccional». Es **aditivo**: extiende 4.5, 4.14, 4.20, 4.22.5 y 6.10 sin reemplazarlos. Con sus banderas apagadas el comportamiento es **exactamente** el de hoy. Es la **prioridad de entrega** del sistema del cliente (4.23.14).
+
+**Objetivo.** (1) Que sólo quien tenga permiso explícito pueda mover fondos entre cajas y sucursales, también con cajas **cerradas**, sin alterar nunca un cierre sellado. (2) Que cada cobro digital (transferencia, tarjeta, QR/billetera) guarde su **detalle de comprobante** para conciliar con el banco o el proveedor. (3) Que cualquier venta, cobro o movimiento se pueda abrir en un **Expediente digital** con todo su recorrido. (4) Que los comprobantes de traspaso y los detalles de cobro queden en tablas **sólo-agregar** en el servidor.
+
+**Principios (no se negocian).**
+1. **Una sola fuente de verdad:** se **extiende** el registro de traspasos que ya existe (`S.transfers`, colección `ctransf`); no se crea un segundo libro de traspasos ni una segunda pantalla.
+2. **El cierre sellado no se toca.** Lo que ocurre después de cerrar se registra en registros aparte, vinculados al cierre (lección de la sección 14: «no meter datos nuevos dentro de un cierre sellado»).
+3. **La venta ya hecha no se edita.** Los detalles de cobro viajan en un registro propio y versionado, vinculado a la venta; las correcciones son versiones nuevas, nunca un `UPDATE`.
+4. **Nada se inventa:** estado «acreditada», comisión, retención, número de asiento o IP sólo se muestran si hay una fuente fiable; si no, «sin dato» o «no activado». Sin conexión no se afirma ninguna confirmación de un tercero.
+5. **Dinero en centavos enteros** (`bigint`/`numeric(14,2)`), fechas en UTC con visualización en `[ZONA_HORARIA]`, el servidor es la fuente de la hora oficial.
+6. **Datos personales y de pago con mínimo necesario:** nunca número completo de tarjeta, vencimiento, CVV, PIN ni banda; titular ordenante cifrado y enmascarado; todo con RLS, `tenant_id` y prueba cruzada A/B.
+7. **Lo que el adjunto pide y choca con lo ya decidido o con la realidad técnica** se resuelve en 4.23.13; no se implementa en silencio ninguna de las dos versiones.
+
+### 4.23.0 Matriz de detección (inspección del código real, 2026-10-19)
+
+Antes de construir se vuelve a inspeccionar el repositorio: esta tabla es el punto de partida, no un sustituto.
+
+| Requisito del adjunto | Estado hoy | Qué hacer |
+|---|---|---|
+| Traspaso de fondos entre cajas / sucursales | **Existe** (`xferCreate`, `A.xfer`, `A.xferRev`, `transfersFor`, vista `cajasx`): sólo entre cajas **abiertas**, con módulo de caja principal activo, rubro obligatorio (6.10), motivo ≥ 3 caracteres, idempotente por id, reversa sólo del administrador, auditado | **Completar:** permiso propio, cajas cerradas, autorizante, comprobante, estados, registro con filtros |
+| Permiso `PERMISO_TRANSFERIR_FONDOS_INTERNOS` | **No existe.** Hoy basta `close_cash` (arqueo y cierre) | **Agregar** `transfer_funds` en `PERMS` (4.23.1); migración de roles con aviso |
+| Traspaso con caja origen o destino **cerrada** | **No existe:** `xferCreate` exige las dos cajas abiertas | **Agregar** (4.23.2) sin tocar el cierre sellado |
+| Comprobante interno de traspaso con 8 campos | **No existe.** El traspaso guarda `{id, ts, from, to, fromSess, toSess, amount, rubro, rubroName, motivo, user, rev}`: faltan autorizante, sucursales, estado de las cajas, moneda, número consecutivo e impresión | **Agregar** (4.23.3) |
+| Detalle del cobro digital | **No existe.** `pays[] = {m, a, fee}`: sólo medio, importe y comisión. Medios hoy: efectivo, fiado, mixto, débito, crédito, transferencia, qr, modo, pedidosya | **Agregar** registro `cobro_detalles` (4.23.4); `fee` se reutiliza para la comisión |
+| Validadores en la pantalla de cobro | **Parcial:** `payCheck` valida importes, cliente y límite; **no** pide datos de comprobante | **Completar** `payCheck` (un solo punto de validación; lección de 4.20) |
+| Captura de datos por API del proveedor | **No existe** integración que devuelva datos de pago al sistema | Sólo carga manual declarada; verificada únicamente con la integración de 4.18 / O.2 cuando exista |
+| Expediente digital (drill-down) | **No existe.** Hay lista de ventas, ticket y auditoría general, sin vista de desglose por operación | **Agregar** (4.23.6) reutilizando ticket, líneas (`lr`, `ll`, `lb`), `pays` y auditoría |
+| Número de asiento contable | **No existe contabilidad** (4.22.8, `accounting.on`, F7) | Mostrar «Contabilidad no activada»; el número aparece recién con F7 |
+| Audit log inmutable | **Parcial:** `audit()` encadena hash en el equipo (`id, ts, user, action, detail, prev, hash`) y sincroniza como colección `audit` de una sola escritura; el servidor **no** tiene trigger que impida modificarla. Ya existe el patrón `rave_solo_agregar()` (libro de proveedores, ingresos de mercadería) y `arca_comprobantes_inmutable` | **Completar** con tablas sólo-agregar (4.23.8) y reutilizar la misma tabla de auditoría estructurada de 4.22.5 |
+| Pestaña «Registro de traspasos» con filtros | **Parcial:** tarjeta «Traspasos entre cajas» dentro de *Cajas y sucursales* (lista sin filtros) | **Completar** como pestaña con filtros, estados y comprobante (4.23.7) |
+| Moneda del traspaso | **No existe** el campo (todo es ARS) | Campo `currency` con `ARS` por defecto; multimoneda **no** está en alcance |
+
+### 4.23.1 Permiso de traspaso de fondos (`transfer_funds`)
+
+- **Clave nueva** `transfer_funds` («Traspasar fondos entre cajas y sucursales») en `PERMS`; en el adjunto aparece como `PERMISO_TRANSFERIR_FONDOS_INTERNOS`: es el mismo permiso, con la clave técnica en inglés del resto de la matriz. Se agrega a la pantalla *Usuarios y permisos* y a la matriz de roles.
+- **Bloqueado por defecto.** Sólo el administrador lo tiene siempre. Supervisor, mostrador, operador y cualquier rol personalizado **no** lo reciben salvo que el administrador lo tilde (por rol o, si el sistema ya admite permisos individuales, por usuario). Otorgarlo o quitarlo queda auditado (`PERMISO_OTORGADO` / `PERMISO_QUITADO`, usuario, rol y quién lo hizo).
+- **Bandera `xfer.strict`.** Con la bandera encendida, `xferCreate`, `A.xfer` y la recepción exigen `transfer_funds` en lugar de `close_cash`. **Migración de datos existentes (no rompe lo anterior):** el primer ingreso del administrador tras actualizar muestra qué roles tenían hasta ahora la capacidad (los que tienen `close_cash`) y ofrece, con un botón explícito y auditado, «Otorgar a los roles que ya traspasaban». Nada se otorga en silencio. En el sistema del cliente se enciende al entregar, después de ese aviso; en la demo nace encendida con roles de ejemplo.
+- **Validación en el servidor:** `sincronizar()` rechaza la colección `ctransf` (y los eventos de traspaso) cuando el usuario no tiene `transfer_funds`, igual que hoy rechaza otras colecciones por rol (`rave_puede_escribir`). El permiso se lee de la configuración de roles ya sincronizada; si el servidor aún no la tiene disponible por usuario, se agrega una función `rave_tiene_permiso(tenant, usuario, permiso)` en la migración 11. Ocultar el botón no es un control.
+- **Autorizante.** El emisor necesita `transfer_funds`. Además se exige un **usuario autorizante** distinto del emisor, con rol administrador, cuando se cumple cualquiera de estas condiciones (todas configurables, por defecto encendidas): (a) alguna de las dos cajas está **cerrada**; (b) el importe supera `xfer.approvalOver` (centavos; vacío = nunca por importe); (c) la operación es entre **sucursales** distintas; (d) se trata de una reversa. El autorizante se identifica con su PIN o clave en el momento (se reutiliza el mecanismo de PIN de supervisor del kiosco/ingreso, sin crear otro) y queda registrado con el **método** (`permiso_propio`, `pin_admin`, `clave_admin`). Si el emisor es administrador y ninguna condición exige un segundo usuario, el autorizante es él mismo y el método `permiso_propio`.
+- **Límite declarado:** la comprobación del PIN del autorizante ocurre en el equipo; el servidor verifica que el autorizante exista, sea administrador activo del comercio y distinto del emisor cuando corresponda, pero no puede probar que se tipeó el PIN.
+
+### 4.23.2 Traspaso con cajas cerradas: fondo en tránsito y saldo inicial sugerido
+
+**Regla de oro:** el cierre sellado, su arqueo y su hash **jamás** se modifican. Un traspaso posterior se guarda como registro propio, vinculado al cierre (`from_closure_id` / `to_closure_id`) y aparece en la ficha del cierre en una sección separada, **«Movimientos posteriores al cierre»**, fuera de la foto sellada.
+
+**Estados del traspaso** (la máquina de estados vive en eventos sólo-agregar, 4.23.8; el comprobante no cambia):
+
+| Estado | Cuándo | Efecto sobre el efectivo esperado |
+|---|---|---|
+| `completado` | Origen y destino **abiertas** (comportamiento de hoy) | Resta en origen y suma en destino en el acto |
+| `en_transito` | Destino **cerrada** (u origen cerrada y destino abierta con recepción pendiente) | Sale del origen; **no** suma al destino hasta ser recibido; se muestra como «Fondos en tránsito» |
+| `recibido` | El destino confirma la recepción con el importe | Suma al esperado del turno abierto del destino |
+| `recibido_con_diferencia` | El importe recibido difiere del enviado | Suma lo recibido; la diferencia queda registrada y auditada (nunca se absorbe en silencio) |
+| `devuelto` | El destino rechaza o no corresponde | Vuelve al origen mediante un traspaso inverso vinculado |
+| `revertido` | El administrador corrige | Contraasiento: un comprobante nuevo de reversa vinculado al original (`rev_of`); el original no se edita |
+
+**Casos:**
+1. **Origen abierta, destino abierta:** `completado` (hoy). Se agrega comprobante, autorizante y estado de cajas.
+2. **Destino cerrada** (origen abierta): `en_transito`. Modo configurable `xfer.closedMode`:
+   - `transito` (**por defecto**): el fondo queda pendiente hasta que quien abra el próximo turno de esa caja lo **reciba** explícitamente (confirmando importe). Antes de recibir no cuenta en su esperado.
+   - `saldo_inicial`: al abrir el próximo turno, el importe se integra **automáticamente** al *saldo inicial sugerido* y la apertura lo muestra como «incluye traspaso N.º …». Requiere autorizante.
+3. **Origen cerrada** (el efectivo ya fue declarado en el cierre): se trata como un **retiro posterior al cierre** del fondo retenido de esa caja. Requiere autorizante. No cambia el cierre; reduce el **saldo inicial sugerido** del próximo turno de esa caja y se muestra en «Movimientos posteriores al cierre».
+4. **Ambas cerradas:** permitido con autorizante obligatorio; el origen se trata como en 3 y el destino como en 2.
+5. **Entre sucursales:** se conserva la regla actual (se resuelve a través de la caja principal); el comprobante guarda las dos sucursales.
+
+**Saldo inicial sugerido del próximo turno.** `sugerido = efectivo declarado en el último cierre de esa caja − retiros posteriores al cierre + traspasos recibidos (según closedMode)`. Si el cajero abre con otro importe, la apertura lo permite pero registra la **diferencia de apertura** con motivo y la audita (hoy la apertura es un importe libre sin referencia).
+
+**Invariante contable (prueba de propiedad):** para todo traspaso, `importe enviado = importe recibido + en tránsito + diferencias registradas + devuelto`. El dinero no aparece ni desaparece. Los «fondos en tránsito» tienen alerta de antigüedad (`xfer.transitAlertH`, horas; sin valor por defecto inventado: lo define el dueño) y se listan en el Resumen y en la lista de pendientes de la apertura.
+
+**No es ingreso ni gasto:** el traspaso es un movimiento interno; no suma a ventas, gastos ni ganancia. Conserva el rubro obligatorio de 6.10 (clasificación financiera), y los reportes de rubro lo muestran como «Traspasos internos», aparte.
+
+### 4.23.3 Comprobante interno de traspaso («Boleta de Movimiento de Fondos»)
+
+Se genera automáticamente al crear el traspaso. Campos obligatorios (los 8 del adjunto, con su resolución técnica):
+
+| # | Campo | Detalle |
+|---|---|---|
+| 1 | **ID del movimiento** | `id` único e idempotente (uid) + **número visible por caja de origen** `T-<caja>-<n>` (consecutivo sin saltos dentro de esa caja, como los tickets «2-15»); el servidor impone `unique(tenant_id, caja_origen, n)` y marca huecos. Ver 4.23.13 (consecutivo global vs. sin conexión) |
+| 2 | **Fecha y hora exactas** | `ts_equipo` (UTC) **y** `ts_servidor` (UTC, la oficial); si difieren más de un umbral, se marca «hora de equipo desfasada» |
+| 3 | **Usuario emisor** | id y nombre al momento (instantánea) |
+| 4 | **Usuario autorizante** | id, nombre y `método` (`permiso_propio` / `pin_admin` / `clave_admin`); obligatorio según 4.23.1 |
+| 5 | **Caja y sucursal de origen / de destino** | ids y nombres al momento (instantánea) |
+| 6 | **Monto y moneda** | centavos enteros `> 0` + `currency` (`ARS` por defecto) |
+| 7 | **Estado de las cajas al traspasar** | `abierta` / `cerrada` de origen y de destino, más id de turno abierto o id del último cierre |
+| 8 | **Concepto / observación** | obligatorio, mínimo 3 caracteres, saneado (anti-XSS); más el **rubro financiero** (id e instantánea del nombre) |
+
+- **Hash de integridad:** SHA-256 de los campos canónicos + hash del comprobante anterior del comercio (cadena). El comprobante **no se edita ni se borra**; el estado cambia sólo por eventos nuevos y la corrección es una reversa vinculada.
+- **Impresión:** ticket de 80/58 mm y A4, con leyenda «DOCUMENTO INTERNO — NO VÁLIDO COMO FACTURA», dos líneas de firma (entrega / recibe), QR o código corto de verificación y los créditos de Rave Holding (sección 2). Se reimprime como «copia» sin generar un número nuevo.
+- Cada creación, recepción, diferencia, devolución y reversa genera un evento de auditoría con valor anterior y nuevo (4.22.5).
+
+### 4.23.4 Detalle de cobros digitales (transferencia, tarjeta, QR/billetera)
+
+**Dónde se guarda.** En una entidad propia `cobro_detalles` (vinculada por `sale_id` + índice del pago dentro de `pays[]`), **versionada y sólo-agregar**. La venta y su `pays` no cambian de forma. Cada pago de una venta de pagos mixtos (4.20) tiene su propio detalle: «$ 10.000 efectivo + $ 15.000 QR + $ 50.000 transferencia» produce dos detalles (el efectivo no lleva).
+
+**Campos por medio** (se rotulan en pantalla con su nombre claro; los que el adjunto llama «obligatorios» son los de la columna «Defecto»):
+
+| Medio | Campo | Defecto | Validación |
+|---|---|---|---|
+| **Transferencia / CBU / CVU** | Banco o entidad de origen (o alias/CBU de origen) | Obligatorio | Texto 2–60 caracteres, saneado |
+| | Cuenta de destino (a qué cuenta del comercio ingresó) | Obligatorio | Se elige de las cuentas cargadas en *Medios de pago*; si no hay, texto libre y aviso |
+| | N.º de comprobante / operación / transacción | Obligatorio, **no relajable** | 6–40 caracteres alfanuméricos; **único** por (comercio, medio, entidad, número) |
+| | Fecha y hora de la transferencia | Obligatorio | No futura; no anterior a `pay.maxAgeH` (configurable) |
+| | Titular ordenante (nombre y CUIT/DNI) | Recomendado; obligatorio sobre `pay.ordOver` | CUIT con dígito verificador (`rave_cuit_ok`) o DNI de 7–8 dígitos; **cifrado** |
+| **Tarjeta crédito / débito** | Marca (Visa, Mastercard, American Express, otras) | Obligatorio | Lista cerrada editable |
+| | Tipo (débito / crédito) y **cuotas** | Obligatorio | Coherente con el medio elegido; cuotas enteras ≥ 1 y dentro del plan de N.3 |
+| | N.º de cupón / lote / terminal | Obligatorio | Alfanumérico 1–20 |
+| | **Código de autorización** | Obligatorio, **no relajable** | Patrón configurable por adquirente, por defecto `^[A-Za-z0-9]{4,12}$` (el adjunto habla de 6 dígitos: no es universal, `[VERIFICAR con el adquirente]`) |
+| | **Últimos 4 dígitos** | Obligatorio | Exactamente 4 dígitos |
+| **QR / pasarela** (Mercado Pago, MODO, BNA+, otras) | Proveedor / agregador | Obligatorio | Lista cerrada editable |
+| | ID de transacción del proveedor (`payment_id`, `merchant_order_id`) | Obligatorio, **no relajable** | Alfanumérico 4–60; único por proveedor |
+| | Estado | Ver abajo | `declarado` (cargado a mano) / `en_proceso` / `aprobado` / `acreditado` / `rechazado` / `reembolsado` |
+| | Comisión aplicada y retenciones | Opcional | Sólo desde configuración fiable o dato del proveedor; nunca inventadas |
+
+**Reglas de seguridad y verdad:**
+1. **Nunca** se guarda número completo de tarjeta, vencimiento, CVV/CVC, PIN ni banda. Un detector rechaza lo tipeado en cualquier campo de texto que parezca un PAN (13–19 dígitos que pasan Luhn) con un mensaje claro y **sin guardarlo ni dejarlo en logs ni en auditoría**. Los últimos 4 dígitos y el código de autorización son lo máximo permitido; alcance PCI-DSS y marco del adquirente `[VERIFICAR]`.
+2. **Estado del QR / pasarela:** hoy el sistema **no consulta** a ningún proveedor, así que todo lo cargado a mano queda `declarado` y se rotula «declarado por el cajero — sin verificar». Los estados `aprobado` / `acreditado` los escribe **sólo** el webhook verificado de la integración (O.2, 4.18); una captura de pantalla, la vuelta del navegador o un mensaje del cliente nunca acreditan. Sin conexión: «pendiente de verificación».
+3. **Duplicados:** el mismo N.º de operación o ID de transacción no se acepta dos veces; el cajero ve «ya usado en la venta N.º …» (sin revelar datos de otro comercio). Sólo un supervisor puede autorizar un duplicado, con motivo, y queda en auditoría.
+4. **Importe:** se pide el importe acreditado en el comprobante cuando difiere del cobrado; la diferencia se marca (no se redondea en silencio).
+5. **Datos personales:** nombre y documento del ordenante, y toda clave sensible, se cifran **antes de salir del equipo** con la misma mecánica que los datos de clientes (`pii` de `COLS`); el servidor no los ve en claro; la API pública nunca los expone; en pantalla se enmascaran (`***1234`) y revelarlos requiere permiso y queda auditado. Finalidad, plazo de conservación y deber de informar `[VERIFICAR con asesor legal — Ley 25.326 y normativa vigente]`.
+6. **Los controles de `payCheck` siguen siendo un único punto:** se amplía esa función (no se escribe un validador paralelo) y el servidor revalida estructura, unicidad y permisos al sincronizar.
+
+**Excepción controlada («cobro sin comprobante»).** Si el comprobante no está disponible en el momento (se cayó la red del banco, falta el ticket del posnet), un supervisor puede autorizar cobrar con los campos relajables vacíos, con **motivo** obligatorio. La venta queda marcada `det_pendiente` y aparece en una lista **«Cobros a conciliar»**; completar el detalle agrega una **versión nueva** (no edita la venta). Los campos «no relajables» no admiten excepción. El cierre de caja muestra cuántos cobros digitales quedaron sin detalle.
+
+**Matriz configurable (`pay.detail.on`, apagada por defecto).** En *Medios de pago y financiación* el administrador ve y ajusta, por medio, cada campo como `obligatorio` / `recomendado` / `oculto` (cada cambio con motivo y auditado), salvo los no relajables. En el sistema del cliente se enciende al entregar; los valores por defecto son los de la tabla. Con la bandera apagada, el cobro funciona como hoy.
+
+**Captura por API:** cuando exista integración con un proveedor, los campos que éste devuelva se **precargan y se marcan «verificado»** (bloqueados para edición); los que no devuelva se cargan a mano como `declarado`. No se promete captura automática sin integración real.
+
+### 4.23.5 Pantalla de cobro: comportamiento
+
+- Al elegir Transferencia, Débito, Crédito o QR, el cobro abre un bloque **«Datos del comprobante»** con los campos del medio, validación en vivo, mensajes en castellano claro y botón de cobrar **bloqueado** hasta cumplir los obligatorios (o hasta la excepción de un supervisor). Teclado numérico en pantalla y áreas táctiles de 48 px; ningún campo numérico precarga «0».
+- En pago mixto, cada medio digital tiene su propio bloque; el total debe seguir cerrando al centavo (regla de 4.20).
+- Atajos: F2/F3 (débito/crédito) y el resto de F1–F12 de 4.2 **no cambian**; el foco pasa al primer campo del comprobante.
+- Sin conexión se puede cobrar y guardar el detalle en el equipo; la unicidad se revalida al sincronizar y un conflicto queda visible para resolverlo, no se declara sincronizado.
+- El **ticket** muestra, para cobros digitales, medio, últimos 4 dígitos y autorización o N.º de operación (nunca el titular ordenante ni datos internos).
+
+### 4.23.6 Expediente digital de la transacción (drill-down)
+
+**Acceso.** Desde cualquier venta, cobro, movimiento de caja, movimiento de stock, traspaso, nota de crédito, compra o cierre, un botón **«Ver expediente»** abre una vista (modal en celular, panel en escritorio) con enlace compartible interno `#expediente/<tipo>/<id>`. Permiso `audit_read` (administrador y supervisor por defecto) para el expediente completo; el cajero ve el de **sus** ventas sin costos, sin datos de otros usuarios y sin IP. Cada apertura de un expediente con datos sensibles queda auditada (`EXPEDIENTE_VISTO`).
+
+**Contenido** (una sección plegable por bloque; todo lo que no exista aún se rotula «no aplica» o «no activado», nunca vacío ni inventado):
+1. **Encabezado:** N.º de comprobante (`2-15`, `T-2-7`…), tipo (ticket interno / factura / NC / traspaso…), **canal** Mayorista / Minorista (`wch`), sucursal, caja, turno, vendedor y cajero (4.22.1), cliente con nombre, CUIT/DNI y condición fiscal (los datos que la ficha ya tiene; sin dato → «sin dato»), documento fiscal o interno y CAE si lo hay.
+2. **Ítems:** código / SKU, descripción, **lote y vencimiento** (cuando exista F3; hasta entonces «sin lote»), **talle-color** (cuando exista F4), cantidad y unidad (U, kg, bulto, presentación), **precio de lista**, **regla de precio aplicada** (`lr`: `L1`, `P-<presentación>`, `ACU`, `MAN`; `ll` nombre de presentación; `lb` precio base), descuentos individuales y globales, cupón/beneficio, subtotal y total por línea. El costo y el margen se muestran sólo con `view_cost`.
+3. **Formas de pago:** cada pago con su medio e importe y, para los digitales, **todos los campos de 4.23.4** (ordenante enmascarado), estado `declarado` / `verificado`, versión del detalle, si quedó `det_pendiente` y los vínculos al ticket y al movimiento de caja resultante. Vuelto y parte fiada separados (4.20).
+4. **Impacto contable:** asiento(s) generados y su N.º **sólo con `accounting.on` (F7)**; sin eso, la sección dice «Contabilidad no activada» y muestra el impacto de **gestión** que sí existe: movimiento de caja, de stock, de cuenta corriente y rubro.
+5. **Auditoría:** línea de tiempo con todos los eventos de esa operación (alta, cambios de precio, descuentos, anulación, nota de crédito, reimpresión, cambios de detalle de cobro, traspasos vinculados): fecha y hora, usuario, rol, **dispositivo** (id propio del equipo) y acción, con valor anterior y nuevo. La **IP** sólo la agrega el servidor y sólo se muestra a administradores (criterio de retención `[VERIFICAR con asesor legal]`). Verificación de la cadena de hash de esos eventos.
+6. **Documentos vinculados:** venta ↔ nota de crédito ↔ factura ↔ (F2) pedido / remito / presupuesto ↔ cierre de caja que la incluye ↔ traspasos relacionados.
+
+**Salidas:** impresión A4, PDF por impresión del navegador y CSV con fórmulas neutralizadas; columnas según permiso. Accesible por teclado, con texto alternativo y sin depender sólo del color. Rendimiento: carga el expediente de **una** operación, nunca baja todos los registros al navegador (en la nube, consulta paginada en servidor).
+
+### 4.23.7 Registro de traspasos (pestaña administrativa)
+
+- **Dónde:** *Cajas y sucursales → pestaña «Traspasos»* (reemplaza la tarjeta simple actual; no se duplica). Visible con `transfer_funds` o `audit_read`; el administrador ve todo; un usuario con el permiso ve los traspasos de las cajas y sucursales que su rol alcanza.
+- **Filtros:** rango de fechas, sucursal de origen y de destino, caja, **usuario emisor**, **usuario autorizante**, estado (`completado`, `en_transito`, `recibido`, `con diferencia`, `devuelto`, `revertido`), estado de las cajas al traspasar (abierta / cerrada), rango de importe y rubro. Ordenamiento universal (4.15).
+- **Indicadores:** total movido en el período, **fondos en tránsito** (importe y antigüedad), cantidad con diferencia, traspasos con caja cerrada. Cada KPI con su fórmula y período.
+- **Fila → comprobante:** abre el comprobante (4.23.3) y su expediente (4.23.6); acciones según permiso: recibir, devolver, revertir (sólo administrador), reimprimir, exportar.
+- **Exportación** CSV (`;`, UTF-8 con BOM, fórmulas neutralizadas) y A4 imprimible. Tabla accesible; en 360 px se transforma en tarjetas sin desborde.
+- **Alertas:** en tránsito sobre `xfer.transitAlertH`, traspasos con diferencia, hora de equipo desfasada y huecos de numeración.
+
+### 4.23.8 Pistas de auditoría inmutables (servidor)
+
+**Tablas nuevas** de la migración `11-traspasos-cobros-auditoria.sql` (aditivas, idempotentes; patrón `rave_solo_agregar()` ya existente):
+- `traspasos` — el comprobante. `unique(tenant_id, id)`, `unique(tenant_id, caja_origen, n)`, `amount_cents bigint check (> 0)`, `currency char(3)`, hash y hash previo.
+- `traspaso_eventos` — máquina de estados sólo-agregar (`emitido`, `en_transito`, `recibido`, `recibido_con_diferencia`, `devuelto`, `revertido`, `anotado`), con usuario, hora de servidor, importe recibido y nota.
+- `cobro_detalles` — detalle versionado (`sale_id`, `pay_idx`, `version`), campos sensibles cifrados, estado de verificación, hash; índice único parcial para N.º de operación y ID de transacción (duplicados).
+- `auditoria_eventos` — la **misma tabla estructurada de 4.22.5/4.22.9** (`module, action, entity, entity_id, old_value, new_value, reason, user, role, device_id, ip, hash, hash_prev`). Si ya existe cuando se construya esta migración, se **extiende**; no se crea otra (regla de detección).
+
+**Inmutabilidad en la base:**
+- `BEFORE UPDATE OR DELETE` con `rave_solo_agregar()` en las cuatro tablas, y `REVOKE UPDATE, DELETE, TRUNCATE` para `authenticated`. Se escribe sólo mediante `sincronizar()` / funciones `SECURITY DEFINER` con `search_path` fijo; **la hora (`ts_servidor`) y la IP las pone el servidor**, no el cliente.
+- Cadena de hash por comercio calculada por trigger al insertar, y función `rave_verificar_cadena(tenant)` que devuelve el primer eslabón roto. Pantalla de auditoría con botón «Verificar integridad».
+- Una colección nueva exige actualizar `sincronizar()`, su política de lectura, exportación, importación y respaldo (regla de 6.1). Un registro rechazado no traba al resto del lote.
+- **RLS en todas** (lectura sólo de miembros del comercio; escritura sólo por funciones), claves foráneas compuestas `(id, tenant_id)`, y prueba cruzada A/B.
+
+**Límite declarado (no escribir «inalterable» sin esto):** la base impide modificar o borrar a los usuarios de la aplicación, pero un superusuario del proyecto o el rol de servicio podrían alterar la base: la defensa adicional son las copias de seguridad automáticas del proveedor `[VERIFICAR plan]`, el hash encadenado que **detecta** cambios y, opcionalmente, anclar el último hash fuera de la base (etapa futura). En el equipo, el encadenado detecta manipulación pero no la impide.
+
+### 4.23.9 Banderas, permisos y configuración
+
+| Elemento | Detalle | Defecto |
+|---|---|---|
+| `xfer.strict` | Exige `transfer_funds` (4.23.1) | Cliente: encendida al entregar, con el aviso de migración; demo: encendida |
+| `xfer.closedMode` | `transito` / `saldo_inicial` (4.23.2) | `transito` |
+| `xfer.approvalOver` | Importe (centavos) desde el cual exige autorizante | Vacío |
+| `xfer.transitAlertH` | Horas para alertar un fondo en tránsito | Lo define el dueño |
+| `pay.detail.on` | Detalle de cobros digitales y validadores (4.23.4) | Cliente: encendida al entregar; demo: encendida |
+| `pay.maxAgeH`, `pay.ordOver` | Antigüedad máxima de una transferencia y monto desde el cual el ordenante es obligatorio | Los define el dueño |
+| `audit.server` | Auditoría estructurada en servidor (4.23.8) | Encendida con la nube |
+| Permisos nuevos | `transfer_funds` · `audit_read` (compartido con 4.22.12) · `pay_detail_edit` (completar detalles pendientes: administrador, supervisor y quien cobró) | Administrador siempre; el resto según 4.23.1 |
+
+### 4.23.10 Modelo de datos y flujo
+
+```
+sales (pays[]) ──1:n── cobro_detalles (versión n)          sin editar la venta
+cash_sessions ──< transfers (traspasos) ──< traspaso_eventos   sin editar el comprobante
+cash_closings (sellado) <── from_closure_id / to_closure_id      sin editar el cierre
+auditoria_eventos (entity, entity_id) ──> expediente de cualquier operación
+```
+
+Flujo de un traspaso con destino cerrado: `permiso (transfer_funds)` → `autorizante (PIN admin)` → comprobante `T-1-7` (estado cajas: origen abierta / destino cerrada) → evento `en_transito` → *(al abrir el destino)* recepción con importe → evento `recibido` o `recibido_con_diferencia` → cierre del turno del destino lo incluye en su esperado. Cada paso con auditoría, idempotente por id y reintentable sin duplicar.
+
+### 4.23.11 Pruebas obligatorias (números conocidos, calculados de forma independiente)
+
+1. **Permiso:** cajero, mostrador, operador y supervisor **sin** el permiso no ven ni ejecutan el traspaso (interfaz **y** servidor: `sincronizar` rechaza `ctransf`); con el permiso otorgado, sí; quitarlo lo bloquea; cada cambio queda auditado; el aviso de migración lista a los roles que tenían `close_cash` y no otorga nada solo.
+2. **Cajas abiertas:** traspaso de $ 10.000 entre dos cajas abiertas → origen −10.000, destino +10.000, comprobante con los 8 campos, hash válido.
+3. **Destino cerrada:** destino cerrada con cierre sellado; traspaso de $ 10.000 → `en_transito`, el **cierre sellado y su hash no cambian**, el esperado del destino no cambia hasta recibir; al abrir el turno y recibir $ 10.000 → esperado = apertura + 10.000; recibiendo $ 9.500 → `recibido_con_diferencia` de −$ 500, auditado.
+4. **Origen cerrada:** caja con efectivo declarado $ 50.000 al cierre; retiro posterior de $ 10.000 con autorizante → sugerido de apertura **$ 40.000**; abrir con $ 39.000 registra diferencia de apertura −$ 1.000 con motivo; la sección «Movimientos posteriores al cierre» lo muestra y el cierre sigue idéntico.
+5. **Ambas cerradas** y **entre sucursales:** autorizante obligatorio; el comprobante guarda ambas sucursales y los estados.
+6. **Invariante:** con traspasos aleatorios en todos los estados, `enviado = recibido + en tránsito + diferencias + devuelto` siempre.
+7. **Idempotencia y sin conexión:** doble clic y reenvío del mismo lote no duplican el comprobante; dos equipos creando traspasos de la misma caja no repiten número; huecos de numeración se detectan y se informan.
+8. **Inmutabilidad:** `UPDATE` y `DELETE` sobre `traspasos`, `traspaso_eventos`, `cobro_detalles` y `auditoria_eventos` son **rechazados por el servidor**, también con la sesión de un administrador y desde PostgREST; la cadena de hash es válida; alterar un eslabón se detecta con `rave_verificar_cadena`.
+9. **Detalle de cobro:** transferencia con todos los campos → válida; sin N.º de operación → bloquea; N.º repetido → rechazado y sólo un supervisor lo autoriza con motivo; fecha futura y fecha vieja rechazadas; CUIT con dígito inválido rechazado; tarjeta: últimos 4 dígitos de 3 o 5 cifras rechazados; **un PAN de 16 dígitos con Luhn válido tipeado en cualquier campo se rechaza y no aparece en datos, logs, auditoría ni exportaciones**; autorización fuera del patrón rechazada; QR manual queda `declarado` y **nunca** `acreditado`.
+10. **Pago mixto:** venta de $ 75.000 = $ 10.000 efectivo + $ 15.000 QR + $ 50.000 transferencia → el expediente lista los 3 medios, con detalle del QR y de la transferencia; el efectivo esperado de la caja suma **sólo** $ 10.000; el total cierra al centavo.
+11. **Excepción:** cobro sin comprobante con supervisor y motivo → venta `det_pendiente`, aparece en «Cobros a conciliar»; completar el detalle crea la **versión 2** y la venta no cambia; los campos no relajables no admiten excepción.
+12. **Expediente:** una venta con descuento, regla `P-fardo`, vendedor distinto del cajero, pago mixto y nota de crédito muestra encabezado, ítems, pagos, auditoría y vínculos correctos; sin `accounting.on` dice «Contabilidad no activada» (no inventa asiento); el cajero no ve costos ni IP; abrirlo queda auditado; CSV con fórmulas neutralizadas.
+13. **Registro de traspasos:** cada filtro (fecha, sucursal, caja, emisor, autorizante, estado, importe, rubro) devuelve el conjunto esperado sobre un conjunto de datos conocido; KPIs y exportación coinciden con el cálculo independiente; 360 px sin desbordes.
+14. **Seguridad y aislamiento:** RLS A/B en todas las tablas nuevas, RPC y exportaciones; `tenant_id` manipulado; XSS en motivo, banco, titular y observaciones; ordenante cifrado (no aparece en claro en la base, la API pública ni el menú); IDOR sobre `#expediente/…`; límites de intentos de PIN.
+15. **Regresión y forma:** con las banderas **apagadas** el comportamiento y las suites previas no cambian; encendidas y apagadas en la misma base (el estado anterior carga sin errores, los traspasos viejos se leen con valores por defecto); cierres sellados anteriores intactos y verificables; sincronización idempotente; 320/360/768/1024/1440 sin desbordes y con áreas táctiles medidas con números (≥ 44/48 px); consola sin errores; `file://` y `https`.
+
+### 4.23.12 Criterios de aceptación
+
+- Migración `11` aplicada y probada **dos veces**: sobre base nueva y sobre la base con datos, con respaldo previo y restauración verificada; pruebas de 4.23.11 verdes; **regresión completa verde** con banderas apagadas y encendidas; revisión independiente de seguridad (permisos, PAN, cifrado del ordenante, inmutabilidad); documentación y publicación en el cliente (`AlmacenRAVE`) y en la demo (`raveV2`). Nada se declara «100 % funcional».
+- **Dependen de terceros:** adquirentes y procesadoras (formato del código de autorización, N.º de cupón, terminal), bancos y billeteras (formato de comprobantes), integración con Mercado Pago / MODO / BNA+ para verificar estados (O.2, 4.18), asesor legal (datos personales, conservación, PCI-DSS), contador (asientos de F7).
+- **Fuera de alcance:** conciliación bancaria automática (importar extractos), multimoneda, verificación del comprobante contra el banco, captura automática sin integración, anclaje externo del hash, pantalla del cliente con estos datos.
+
+### 4.23.13 Contradicciones o puntos técnicos del adjunto y decisión tomada (regla 2 de la sección 2)
+
+| El adjunto pide | Choca con | Decisión por defecto (configurable) |
+|---|---|---|
+| `ID_Movimiento` único **y consecutivo** | El sistema funciona sin conexión con varios equipos: un consecutivo global sin huecos requiere servidor | `id` único idempotente + número consecutivo **por caja de origen** (como los tickets); el servidor impone unicidad y detecta huecos (4.23.3) |
+| Traspaso permitido con cajas cerradas | El cierre sellado es inmutable (4.5) | El cierre no se toca: «fondo en tránsito» o saldo inicial sugerido, en registros aparte (4.23.2) |
+| Sólo con permiso explícito del administrador | Hoy basta `close_cash` | `transfer_funds` + `xfer.strict` + aviso de migración; nada se otorga en silencio (4.23.1) |
+| Autorizante «por token/clave de un administrador» | La verificación del PIN ocurre en el equipo | Se registra método y administrador; el servidor valida existencia, rol y que sea distinto del emisor; límite declarado |
+| Datos de cobro **obligatorios** | Velocidad del mostrador, red caída, comprobantes que no existen aún | Matriz configurable; «cobro sin comprobante» con supervisor y motivo; campos no relajables (N.º de operación, autorización, ID del proveedor) |
+| «Captura por API» | No hay integración que devuelva datos de pago | Carga manual `declarado`; `verificado` sólo con integración real |
+| «Estado en tiempo real: Aprobada / Acreditada» | Sin conexión y sin consulta al proveedor no se puede saber | No se afirma; solo el webhook verificado acredita (O.2) |
+| «Comisión y retenciones teóricas» | No inventar tasas (N.3) | Sólo con datos fiables de configuración o del proveedor; si no, vacío |
+| «Código de autorización de 6 dígitos» | Varía según adquirente | Patrón configurable (`[VERIFICAR con el adquirente]`) |
+| «Últimos 4 dígitos» | PCI-DSS | Sólo últimos 4 + detector de PAN que rechaza y no guarda |
+| Titular ordenante (nombre y CUIT/DNI) | Datos personales (Ley 25.326) | Cifrado en el equipo, enmascarado, acceso auditado, conservación `[VERIFICAR]` |
+| «Número de asiento contable generado automáticamente» | No existe contabilidad (4.22.8) | Se muestra con `accounting.on` (F7); antes, «Contabilidad no activada» |
+| «IP / Dispositivo» en la auditoría | Datos personales; el navegador no conoce su IP pública | Dispositivo = id propio del equipo; IP sólo agregada por el servidor (4.22.13) |
+| Tabla «inmutable» | Superusuarios del proyecto | Triggers sólo-agregar + `REVOKE` + hash encadenado; límite declarado (4.23.8) |
+| «Pestaña de registro de traspasos» | Ya hay una tarjeta con lista | Se extiende como pestaña con filtros, no se duplica |
+| Moneda del traspaso | El sistema es monomoneda (ARS) | Campo `currency = 'ARS'`; multimoneda fuera de alcance |
+
+### 4.23.14 Orden de construcción (prioridad de entrega)
+
+La decisión de qué se construye es del dueño; el orden recomendado, cada paso con **regresión completa verde y publicación** (ninguno deja el sistema a medias) y todos en la **migración 11**:
+
+| Paso | Contenido | Depende de |
+|---|---|---|
+| G1 | Permiso `transfer_funds` + `xfer.strict` + aviso de migración; comprobante con 8 campos e impresión; estados y cajas cerradas (tránsito / saldo sugerido); pestaña «Traspasos» con filtros | — |
+| G2 | Detalle de cobros digitales: registro versionado, validadores en `payCheck`, matriz configurable, excepción y «Cobros a conciliar», detector de PAN, cifrado del ordenante | G1 no; puede ir en paralelo |
+| G3 | Expediente digital + auditoría estructurada del servidor (`auditoria_eventos`, `rave_verificar_cadena`) + tablas sólo-agregar | G1 y G2 (usa sus datos) |
+
+Antes de cada paso: inspeccionar (sección 12), listar supuestos, escribir las pruebas junto con el código. **Preguntas que se hacen una sola vez y juntas** (se suman a E.6): ¿modo de caja cerrada `transito` o `saldo_inicial`? · ¿importe desde el cual se pide autorizante? · ¿horas de alerta de fondo en tránsito? · ¿qué campos de cada medio digital son obligatorios en el mostrador? · ¿antigüedad máxima aceptada para una transferencia? · ¿quién puede ver el expediente completo y los datos del ordenante? · ¿qué cuentas bancarias y proveedores de QR usa el comercio?
 
 ---
 
@@ -1116,6 +1377,8 @@ Pruebas **automáticas con navegador real** (flujos con datos reales, `file://` 
 36. **Club V26.3 (4.6):** celular nuevo → tarjeta en el acto → importación por un equipo con sesión (admin y mostrador) → el celular pasa de «en trámite» a «Socio N.º 0001»; sellos por QR, código de 8 cifras, DNI y NFC (simulado, con reloj ajustable en todos los dispositivos); segundo sello el mismo día rechazado; código repetido rechazado; premio y reversión por anulación; segundo celular del mismo cliente (mismo WhatsApp **y** mismo cumpleaños) con tarjeta propia y con otro cumpleaños rechazado; altas viejas y altas que el equipo no puede abrir **no se descartan**; DNI repetido (pide elegir), inválido y borrado en la baja; el DNI nunca en claro en la nube; `club_estado` sin datos personales y con aislamiento A/B; meta y premio publicados; cupones de todos y de socios, con límite por cliente y uso sincronizado. NFC y cámara con hardware real: **pendiente de prueba física**.
 37. **Mayorista/minorista (4.22):** las pruebas de **4.22.14**, fase por fase; con las banderas apagadas la regresión de las suites anteriores no cambia, y con ellas encendidas y apagadas sobre la misma base el estado previo carga sin errores.
 
+38. **Traspasos, detalle de cobros y expediente (4.23):** las pruebas de **4.23.11**, paso por paso (permiso en interfaz y servidor, cajas cerradas con cierre sellado intacto, comprobante de 8 campos, invariante enviado = recibido + tránsito + diferencias, tablas sólo-agregar con `UPDATE`/`DELETE` rechazados, detector de PAN, pago mixto $ 10.000 + $ 15.000 + $ 50.000, expediente); con las banderas apagadas la regresión de las suites anteriores no cambia.
+
 Matriz de trazabilidad: requisito → archivos/tablas/funciones → pruebas → resultado. Nada se declara "aprobado" sin evidencia reproducible.
 
 ---
@@ -1203,6 +1466,7 @@ Matriz de trazabilidad: requisito → archivos/tablas/funciones → pruebas → 
 - Un enlace de Apple/Google Wallet enviado no demuestra que el cliente guardó la tarjeta; mostrar sólo el estado que el proveedor permite verificar. Mantener la tarjeta web como alternativa y no crear saldos paralelos.
 - Las notificaciones se generan desde eventos de servidor confirmados y salen por una cola/worker; no depender de que un navegador permanezca abierto ni llamar “entregado” a un mensaje sólo aceptado por el proveedor.
 - La recepción de una tarjeta del Club no implica consentimiento comercial. Mantener finalidades y canales separados; las bajas, límites de frecuencia y preferencias deben respetarse en todos los canales integrados.
+- **Un permiso nuevo que reemplaza a otro (traspasos: de `close_cash` a `transfer_funds`) se migra con aviso y botón explícito, nunca en silencio**: quien lo tenía y lo pierde tiene que enterarse, y quien no lo tenía no lo recibe solo. Un cierre sellado no se toca para registrar lo que pasa después: va en un registro aparte vinculado. «Inalterable» se escribe siempre con su límite (4.23.8).
 
 ## Anexo histórico de lecciones del prompt base (contenido preservado)
 
@@ -1279,22 +1543,23 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 
 **E.2 Construcción y pruebas.** Las partes `p1-head.html`, `p2-core.js` … `p9b-arca.js`, `assemble.py`, `build/pub_body.html` y `pub/*` (menú público en iframe) se ensamblan con `python3 build.py demo|cliente`; el cliente lleva la URL real y la clave publicable. Pruebas con navegador real: `bash t/run_c.sh <script>.py` (nube, contra un servidor de prueba equivalente) y `t/*.py` (demo); regresión completa: `bash t/regress.sh`; SQL: `bash supabase/tests/run.sh` (Postgres 16, PostgREST y Deno locales). Si el entorno de trabajo no conserva esas herramientas, recrearlas desde `fuente/` y `supabase/` antes de tocar nada, y volver a correr la regresión como línea base.
 
-**E.3 Nube.** Proyecto de Supabase en plan Pro; scripts `01`–`09` aplicados en producción (`INSTALAR-TODO.sql` = 01–10); **`10-mayorista-precios.sql` está en el repositorio pero hay que verificar en el proyecto si ya se corrió antes de activar `wholesale.on`**; Edge Function `api` desplegada con "Verify JWT" apagado (valida la sesión adentro). **La próxima migración nueva es la `11`.** La referencia del proyecto y la clave publicable viven en el repositorio del cliente; ningún secreto está en el HTML.
+**E.3 Nube.** Proyecto de Supabase en plan Pro; scripts `01`–`10` **aplicados y verificados en producción** (`INSTALAR-TODO.sql` = 01–10; el `10-mayorista-precios.sql` se corrió el 2026-10-19 con permiso expreso del dueño y se comprobó por consulta); Edge Function `api` desplegada con "Verify JWT" apagado (valida la sesión adentro). **La próxima migración nueva es la `11-traspasos-cobros-auditoria.sql` (4.23): todavía NO existe; se crea, se prueba dos veces y recién entonces se le pide al dueño que la ejecute.** La referencia del proyecto y la clave publicable viven en el repositorio del cliente; ningún secreto está en el HTML.
 
-**E.4 Estado funcional (2026-10-19).** V26.3 publicada: Club con tarjeta en el celular, importación sin pérdida de altas, sellos por QR/código/DNI/NFC y cupones por audiencia; SQL 307/307; regresión de demo y nube sin fallas (anexo B). 4.22 **F1 construida** (V26.6, anexo F); F2–F7 no.
+**E.4 Estado funcional (2026-10-19).** V26.3 publicada: Club con tarjeta en el celular, importación sin pérdida de altas, sellos por QR/código/DNI/NFC y cupones por audiencia; SQL 307/307; regresión de demo y nube sin fallas (anexo B). 4.22 **F1 construida** (V26.6, anexo F); F2–F7 no. **4.23 (traspasos, detalle de cobros, expediente digital, auditoría sólo-agregar) está especificada y corregida en V26.7 pero NO construida.**
 
 **E.5 Pendientes conocidos (por prioridad).**
 1. *Dueño:* entrar una vez como administrador con la versión nueva para que el menú se republique (meta, premio y cupones del Club); repetir el alta de prueba con un celular real (el alta de prueba anterior quedó rechazada a propósito).
 2. *Club:* reserva atómica del último uso de un cupón en el servidor (hoy dos cajas pueden gastarlo a la vez); recuperación de la tarjeta si el cliente borra los datos del celular (reutilizando la verificación WhatsApp + cumpleaños y el alias de tarjeta); prueba con NFC y cámara reales; Wallet (necesita cuentas y certificados).
-3. *4.2:* selector de documento Remito/Presupuesto (hoy sólo Ticket interno o Factura electrónica); se completa en 4.22 F2.
-4. *4.22:* F1 hecha. Siguen, según decida el dueño, F5 (cierre ciego; recomendada para un almacén/licorería) y F6 (reportes por canal); F2–F4 y F7 sólo si el negocio las necesita.
-5. *Otros:* multisucursal con RLS por sucursal en el servidor, ARCA en producción, hardware real, Checkout online, Wallet/avisos, voz en la nube.
+3. *4.23 (prioridad de entrega pedida por el dueño):* construir G1 (permiso `transfer_funds`, comprobante, cajas cerradas, pestaña «Traspasos»), G2 (detalle de cobros digitales) y G3 (expediente digital + auditoría del servidor) con la migración 11; responder antes las preguntas de 4.23.14.
+4. *4.2:* selector de documento Remito/Presupuesto (hoy sólo Ticket interno o Factura electrónica); se completa en 4.22 F2.
+5. *4.22:* F1 hecha. Siguen, según decida el dueño, F5 (cierre ciego; recomendada para un almacén/licorería) y F6 (reportes por canal); F2–F4 y F7 sólo si el negocio las necesita.
+6. *Otros:* multisucursal con RLS por sucursal en el servidor, ARCA en producción, hardware real, Checkout online, Wallet/avisos, voz en la nube.
 
-**E.6 Preguntas que se hacen UNA sola vez y juntas antes de empezar 4.22.** ¿Qué fases se construyen? · ¿Nombres de las listas L1–L5 y a qué clientes aplica cada una? · ¿Se vende por bulto/pack y de qué tamaño? · ¿Plazo máximo de crédito y tolerancia de mora? · ¿Algún rubro con lote y vencimiento? · ¿Cierre ciego sí/no y para qué roles? · ¿Cajas separadas por canal? · ¿Se cobra con cheque/eCheq o con retenciones? · ¿Habrá contabilidad con contador (nombre, método PPP/FIFO)?
+**E.6 Preguntas que se hacen UNA sola vez y juntas antes de empezar 4.22.** ¿Qué fases se construyen? · ¿Nombres de las listas L1–L5 y a qué clientes aplica cada una? · ¿Se vende por bulto/pack y de qué tamaño? · ¿Plazo máximo de crédito y tolerancia de mora? · ¿Algún rubro con lote y vencimiento? · ¿Cierre ciego sí/no y para qué roles? · ¿Cajas separadas por canal? · ¿Se cobra con cheque/eCheq o con retenciones? · ¿Habrá contabilidad con contador (nombre, método PPP/FIFO)? · **Para 4.23:** las siete preguntas de 4.23.14 (modo de caja cerrada, importe que pide autorizante, alerta de fondo en tránsito, campos obligatorios por medio digital, antigüedad máxima de transferencia, quién ve el expediente completo y el ordenante, cuentas bancarias y proveedores de QR).
 
 **E.7 Prompt de arranque (pegar al abrir una sesión nueva).**
 
-> Leé `SISTEMA_VB_26F.md` completo y el Anexo E (y el anexo F). Inspeccioná los repositorios `AlmacenRAVE` y `raveV2` (sección 12) y corré la regresión como línea base. La fase F1 de 4.22 ya está construida; continuá con la fase que yo indique (recomendadas F5 cierre ciego y F6 reportes por canal): listá los supuestos; si falta algún dato de E.6, preguntalo una sola vez y junto; creá la migración `11-…sql` aditiva e idempotente con RLS y pruebas A/B y agregala a `INSTALAR-TODO.sql`; implementala detrás de su bandera (apagada en el cliente, con datos "ejemplo" en la demo); escribí las pruebas junto con el código; corré la regresión con la bandera apagada y encendida; publicá demo y cliente; y entregame el informe honesto (qué quedó, qué debo hacer yo, qué no se pudo probar). No rompas nada de lo existente ni afirmes "100 % funcional" sin evidencia.
+> Leé `SISTEMA_VB_26F.md` completo y el Anexo E (y el anexo F). Inspeccioná los repositorios `AlmacenRAVE` y `raveV2` (sección 12) y corré la regresión como línea base. La fase F1 de 4.22 ya está construida y **4.23 está especificada pero no construida**: empezá por 4.23 (G1 → G2 → G3, prioridad de entrega) y después continuá con la fase de 4.22 que yo indique (recomendadas F5 cierre ciego y F6 reportes por canal): listá los supuestos; si falta algún dato de E.6, preguntalo una sola vez y junto; creá la migración `11-traspasos-cobros-auditoria.sql` (4.23) y, más adelante, las siguientes (`12`…`15`, según 4.22.9), cada una aditiva e idempotente con RLS y pruebas A/B y agregala a `INSTALAR-TODO.sql`; implementala detrás de su bandera (apagada en el cliente, con datos "ejemplo" en la demo); escribí las pruebas junto con el código; corré la regresión con la bandera apagada y encendida; publicá demo y cliente; y entregame el informe honesto (qué quedó, qué debo hacer yo, qué no se pudo probar). No rompas nada de lo existente ni afirmes "100 % funcional" sin evidencia.
 
 
 ## ANEXO F — AS-BUILT DE LA FASE F1 DE 4.22 (V26.6, 2026-10-19; evidencia reproducible)
@@ -1320,4 +1585,4 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 
 ---
 
-FIN DE SISTEMA VB 26F (revisión V26.6)
+FIN DE SISTEMA VB 26F (revisión V26.7)
