@@ -230,6 +230,7 @@ let curScreen='inicio';
 function reg(id,t,icon,perm,render,after,sec){SCREENS[id]={t,icon,perm,render,after,sec};}
 function go(id){location.hash='#panel/'+id;}
 function route(){const h=location.hash||'#menu';
+ if(h.startsWith('#tarjeta')&&typeof cardImportFromHash==='function'){const ok=cardImportFromHash();if(ok)toast('Tu tarjeta del Club quedó guardada en este celular.');route();return;}
  if(h.startsWith('#expediente/')&&typeof expRoute==='function'){expRoute(h);return;}
  $('#pub').hidden=true;$('#login').hidden=true;$('#panel').hidden=true;
  if(h.startsWith('#panel')){if(!user){location.hash='#acceso';return;}showPanel(h.split('/')[1]||'inicio');}

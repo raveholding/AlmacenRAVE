@@ -808,6 +808,7 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
         }
         var row = document.createElement('div');
         row.className = 'cp-item';
+        row.setAttribute('data-pid', String(id));
         row.innerHTML = '<div class="cp-name">' + String(it.name == null ? '' : it.name).replace(/[&<>"']/g, function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch]; }) + '</div>' +
                          '<div class="cp-qty">x' + it.qty + '</div>' +
                          '<div class="cp-line">' + lineTxt + '</div>';
@@ -1029,6 +1030,7 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
     lines.push('');
     lines.push('Subtotal estimado: ' + fmt(total));
     if(window.RAVE_COUPON_LINES) window.RAVE_COUPON_LINES(lines, total);
+    if(window.RAVE_SHIP_LINES) window.RAVE_SHIP_LINES(lines, total);
     lines.push('');
     lines.push('Espero su confirmación, gracias!');
     var msg = lines.join('\n');

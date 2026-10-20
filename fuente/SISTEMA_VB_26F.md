@@ -1,6 +1,6 @@
 # SISTEMA VB 26F (`SISTEMA_VB_26F`) — PROMPT MAESTRO INTEGRAL FINAL (ERP/POS CONVERSACIONAL Y MODULAR)
 
-Versión 26F · revisión V26.9 (integra V26.1 pagos mixtos, V26.2 proveedores y compras, V26.3 Club/tarjeta/DNI/NFC, la **especificación del módulo Mayorista/Minorista 4.22** la **especificación corregida de traspasos de fondos, detalle de cobros digitales y expediente digital 4.23** y los **ajustes 4.24: detalle de las ventas de la caja, cajas sin límite de operaciones y administración de los clientes del Club**) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
+Versión 26F · revisión V26.10 (integra la **tarjeta del Club portátil 4.25** y el **menú público «local / tienda con envíos» 4.26**; incluye V26.1 pagos mixtos, V26.2 proveedores y compras, V26.3 Club/tarjeta/DNI/NFC, la **especificación del módulo Mayorista/Minorista 4.22** la **especificación corregida de traspasos de fondos, detalle de cobros digitales y expediente digital 4.23** y los **ajustes 4.24: detalle de las ventas de la caja, cajas sin límite de operaciones y administración de los clientes del Club**) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
 
 **Objetivo de V26:** construir el sistema desde el inicio con una arquitectura extensible y un asistente conversacional transversal por voz y texto, integrado al catálogo de acciones de negocio. Incorporar además cajas operativas y principales configurables, gestión multisucursal, borrado protegido de artículos, ordenamiento reutilizable de todas las tablas y un checkout e-commerce opcional que convive con el flujo actual de pedidos por WhatsApp, tarjetas de fidelización guardables en Apple Wallet/Google Wallet y avisos automáticos multicanal con consentimiento y control de frecuencia. Este prompt define requisitos y criterios de aceptación; ninguna función se considera implementada hasta demostrarla con archivos, migraciones y pruebas reales.
 
@@ -1261,6 +1261,54 @@ Un paso se da por terminado sólo con sus pruebas de 4.24.5 verdes, **regresión
 
 ---
 
+## 4.25 TARJETA DEL CLUB PORTÁTIL: GUARDARLA, VOLVER A VERLA Y RECUPERARLA (V26.10)
+
+**Estado: IMPLEMENTADO en V26.10** (partes `p6d-cardportable.js`, `pub/post.js`, `pub/blocks.html`, `p6-loyalty.js`, `p2-core.js`, `p9-cloud.js`; prueba `k1.py`). Corrige un error real: el cliente **no podía guardar su tarjeta ni volver a verla** (si se borraba el almacenamiento del navegador o cambiaba de celular, la perdía). Es **aditivo**: no cambia el cálculo de sellos, el antifraude ni los cupones.
+
+**4.25.1 Requisitos**
+1. **Guardar en el celular:** botón «Guardar mi tarjeta» que (a) descarga la tarjeta como **imagen PNG con su QR**, (b) ofrece compartirla (Web Share con archivo; si no existe, descarga) y (c) pide al navegador **almacenamiento persistente** (`navigator.storage.persist`). Además la tarjeta se **replica** en IndexedDB (espejo) para sobrevivir a la limpieza de `localStorage`.
+2. **Volver a verla:** al abrir el menú, si falta la tarjeta en `localStorage` pero existe el espejo, se restaura sola. Sin ninguna de las dos, el menú ofrece «Recuperar mi tarjeta».
+3. **Enlace personal de la tarjeta (`#tarjeta=…`):** el administrador lo genera desde la ficha del cliente («Enlace de la tarjeta»), con copiar y envío por WhatsApp (`wa.me`). Al abrirlo en otro celular, la tarjeta se importa y queda guardada. **Es una llave:** quien lo tenga puede sellar con esa tarjeta; se advierte «no lo compartas». **Regenerar/anular un enlace ya entregado NO está implementado** (mejora pendiente: rotar el secreto de la tarjeta).
+4. **Pedido por WhatsApp:** el cliente sin tarjeta puede pedirla al local con un mensaje prearmado; el local responde con el enlace del punto 3. No se otorgan sellos por pedirla.
+5. **Wallet (Apple/Google):** sigue **pendiente de certificados y cuentas del comercio** (ver 4.19). El PNG con QR es el sustituto honesto mientras tanto; nunca se afirma que la tarjeta está en la Wallet.
+6. **Nube:** el alta del Club en nube replica el espejo tras unirse; la recuperación en nube usa `pubCloudCard`/`pubCloudCode` sin exponer el secreto de otros clientes.
+
+**4.25.2 Seguridad y privacidad**
+- El secreto de la tarjeta **nunca** va a logs ni a la auditoría: el evento `TARJETA_ENLACE` registra quién y cuándo, **sin el secreto**.
+- El enlace usa el fragmento `#` (no viaja al servidor ni a registros de acceso) y se borra de la barra de direcciones al importarse.
+- El sello sigue validándose en el mostrador y en el servidor (código con ventana temporal, 1 sello por día por cliente, nonce). Tener la imagen de la tarjeta no permite sellar por sí sola sin el código vigente.
+- A un cliente dado de baja no se le puede generar enlace ni importar su tarjeta (`pubCardPortable` devuelve nulo).
+
+**4.25.3 Pruebas obligatorias (`k1.py`, 29 verificaciones):** guardar PNG, espejo en IndexedDB, restauración tras borrar `localStorage`, importación por enlace, secreto ausente de auditoría y de logs, cliente dado de baja sin enlace, pedido por WhatsApp, 320/360 px, textos ES/EN.
+
+**4.25.4 Límites declarados:** recuperación en nube de extremo a extremo **sin probar contra un Supabase real**; Wallet real sin implementar; si el cliente borra todo y nadie le reenvía el enlace, el local debe emitir uno nuevo (por diseño: sin identidad verificada no se entrega la tarjeta).
+
+---
+
+## 4.26 MENÚ PÚBLICO: «MENÚ LOCAL» O «TIENDA CON ENVÍOS» (OPCIONAL POR COMERCIO) (V26.10)
+
+**Estado: IMPLEMENTADO en V26.10** (partes `p5b-store.js`, `p5-menu-boot.js`, `pub/post.js`, `build/pub_body.html`, `pub/extra.css`; prueba `k2.py`). Pedido del dueño: que el menú público pueda funcionar **como una tienda online (estilo Tienda Nube)** para el comercio que quiera vender a otras provincias (ejemplo: un almacén que vendió vasos a Buenos Aires), **sin obligar** a los demás. Es **opcional por comercio** y **aditivo**: por defecto queda en «Menú local» y el comportamiento anterior no cambia.
+
+**4.26.1 Modos (Administración → Menú público → «Tipo de menú público»)**
+- **Menú local (por defecto):** carta/catálogo y pedido por WhatsApp, retiro o entrega local, como hasta ahora.
+- **Tienda con envíos:** suma al pedido por WhatsApp: **datos de entrega** (nombre, provincia, localidad, dirección, indicaciones), **costo de envío estimado por provincia**, **envío gratis desde un monto**, plazo estimado, transportista informativo, **compra mínima**, y regla para **resto del país** (cotización a convenir o tarifa fija).
+- Opciones del modo tienda: retiro en el local, entrega local, tabla de zonas por provincia (24 jurisdicciones), alcohol «no se envía» / «se envía» (por defecto **no**: el alcohol no sale de la entrega local salvo decisión expresa y verificada [VERIFICAR normativa provincial y de transporte]).
+
+**4.26.2 Reglas**
+1. El pedido sigue siendo una **solicitud por WhatsApp**, no una venta ni un cobro: el envío mostrado es **estimado** y el POS recalcula precios al cobrar (decisión de arquitectura vigente). Cobro online y cotización de transportistas por API quedan **pendientes de proveedor** (4.18).
+2. Montos del envío en **centavos enteros** en la configuración y publicados en pesos; nunca costo, margen ni stock en la API pública.
+3. Validación al armar el pedido: provincia obligatoria, dirección completa, mínimo de compra, productos con alcohol bloqueados si el modo lo prohíbe; mensajes claros sin perder el carrito.
+4. El mensaje de WhatsApp agrega: ENTREGA, Recibe, Dirección, Indicaciones, Envío y **Total con envío estimado**.
+5. Los datos de entrega del comprador **no se guardan en el servidor** por esta función (viajan sólo en el mensaje que el cliente envía); no se listan en el menú.
+6. Configuración con borrador/publicación y versión como el resto del menú (P.11); el cambio de modo se audita (`MENU_TIPO`) y sólo lo hace el administrador o rol autorizado.
+7. Si el comercio no completa zonas, el modo tienda muestra «a convenir», nunca tarifas inventadas.
+
+**4.26.3 Pruebas obligatorias (`k2.py`, 37 verificaciones):** modo local sin cambios, modo tienda con provincia dentro/fuera de zonas, envío gratis por monto, mínimo, alcohol bloqueado, resto del país, mensaje de WhatsApp, permiso de mostrador denegado, borrador vs. publicado, auditoría `MENU_TIPO`, 320/360 px, ES/EN.
+
+**4.26.4 Límites declarados:** sin pasarela de pago, sin cotización en vivo de Correo Argentino/Andreani/etc., sin etiquetas de envío ni seguimiento; tarifas cargadas a mano por el dueño; normativa de envío de alcohol y de ventas a distancia (botón de arrepentimiento, defensa del consumidor) a verificar con asesor [VERIFICAR].
+
+---
+
 ## 5. MÓDULOS OPCIONALES (aditivos, auditables, apagados por defecto si dependen de terceros)
 
 Reglas comunes: banderas por comercio/sucursal/rol/dispositivo; migraciones SQL aditivas, versionadas e idempotentes probadas sobre copia; `tenant_id`, RLS y pruebas cruzadas A/B en toda entidad; servidor valida y recalcula; idempotencia; límites de uso; auditoría; dinero en centavos enteros; sin proveedor/credencial/dispositivo → estado "Pendiente de configuración" y el resto sigue funcionando; ninguna integración se declara terminada por tener una pantalla simulada.
@@ -1712,4 +1760,13 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 
 ---
 
-FIN DE SISTEMA VB 26F (revisión V26.9)
+## ANEXO H — AS-BUILT DE 4.25 Y 4.26 (V26.10, 2026-10-20)
+
+**H.1 Qué se construyó:** tarjeta del Club portátil (PNG con QR, espejo IndexedDB, enlace `#tarjeta=`, pedido por WhatsApp, enlace de administrador) y menú público opcional «Tienda con envíos» con zonas por provincia. Partes nuevas `p6d-cardportable.js` y `p5b-store.js` (registradas en `build.py`), ajustes en `p2-core.js`, `p5-menu-boot.js`, `p6-loyalty.js`, `p9-cloud.js`, `pub/*`, `build/pub_body.html`. **Sin migraciones SQL nuevas.**
+**H.2 Pruebas (demo):** `k1` 29/29, `k2` 37/37; regresión completa verde: `v1`–`v8`, `d1`, `p1` 47, `ws1` 73, `h1` 35, `g1` 89, `g2` 98, `g3` 45, `h3` 43, `resp4` 36.
+**H.3 Límites:** los de 4.25.4 y 4.26.4. Wallet real, pagos y transportistas no están integrados; la nube de extremo a extremo sigue sin probarse (G.3.1).
+**H.4 Qué debe hacer el dueño:** (1) en *Menú público → Tipo de menú público* elegir modo, cargar zonas, **Guardar borrador y Publicar**; (2) a los clientes con tarjeta perdida, enviarles el enlace desde su ficha; (3) los clientes nuevos ven «Guardar mi tarjeta» al asociarse.
+
+---
+
+FIN DE SISTEMA VB 26F (revisión V26.10)

@@ -43,7 +43,7 @@
    ['#loy-sub','Collect a stamp on every purchase and redeem them for Club RAVE rewards.'],
    ['#loy-nocard-txt','Your card is created when you join the Club (form above). If you are already a member on another device, recover it with your WhatsApp and birthday.'],
    ['label[for="loy-wa"]','WhatsApp'],['label[for="loy-bd"]','Birthday'],
-   ['#loy-err','We could not find a card with those details.'],['#loy-recover','See my card'],
+   ['#loy-ask','Ask for my card on WhatsApp'],['#loy-err','We could not find a card with those details.'],['#loy-recover','See my card'],
    ['#plans-h','Memberships'],['#plans-sub','Permanent perks for members. Activated at the counter.'],
    ['#legal-block h2','Legal information'],['#legal-sub','Everything you need to know about your purchase and your data.'],
    ['#arrep-btn','↩️ Withdrawal button'],

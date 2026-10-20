@@ -408,7 +408,7 @@ async function cloudClubJoin(f){const en=()=>window.RAVE_LANG&&window.RAVE_LANG(
   const r=await rpc('club_alta',{p_slug:CLOUD.slug,p_huella:sha256(uid()+uid()+uid()+t),p_cifrado:enc},{auth:false});
   if(!r||!r.ok)return bad((r&&r.error)||'No pudimos registrarte, probá de nuevo.','We could not sign you up, please try again.');
  }catch(e){return bad('No pudimos registrarte (¿hay internet?). Probá de nuevo.','We could not sign you up (is there internet?). Please try again.');}
- LS.set('rave.card',cid);LS.set('rave.cardsec',secret);LS.set('rave.cardinfo',JSON.stringify({name:(nm+' '+ls).trim(),birth:iso}));LS.del('rave.cardest');delete cardEst[cid];
+ LS.set('rave.card',cid);LS.set('rave.cardsec',secret);LS.set('rave.cardinfo',JSON.stringify({name:(nm+' '+ls).trim(),birth:iso}));LS.del('rave.cardest');delete cardEst[cid];try{cardMirrorSave();}catch(e){}
  setTimeout(cardPoll,2500);setTimeout(cardPoll,9000);
  return{ok:true,cardId:cid,msg:en()?'Welcome to the Club! Your card is below. The shop activates it in a few seconds.':'¡Bienvenido/a al Club RAVE! Tu tarjeta ya está abajo. El negocio la activa en unos segundos.'};}
 /* ---------- tarjeta del Club en el celular del cliente (nube): la clave de la tarjeta nace y vive en ese celular ---------- */
@@ -436,7 +436,7 @@ function cloudApiWrap(local){if(!CLOUD.on)return local;
   site:pick(local.site,()=>{const c=snapC();return c?c.site:{title:'',sub:{es:'',en:''},pitch:{es:'',en:''},promo:{on:false,es:'',en:''},address:'',social:[],icons:{},footer:{es:'',en:''},wa:'',alcFrom:7,alcTo:24,hideTeamBtn:false,clubOn:false,wifi:{on:false}};}),
   catalog:pick(local.catalog,()=>{const c=snapC();return c?c.catalog:{secciones:[],productos:[]};}),
   clubJoin:pick(local.clubJoin,cloudClubJoin),
-  card:id=>pub()?pubCloudCard(id):(local.card(id)||pubCloudCard(id)),cardCode:id=>pub()?pubCloudCode(id):(local.cardCode(id)||pubCloudCode(id)),cardLogin:pick(local.cardLogin,()=>null),canRecover:()=>!pub(),
+  card:id=>pub()?pubCloudCard(id):(local.card(id)||pubCloudCard(id)),cardCode:id=>pub()?pubCloudCode(id):(local.cardCode(id)||pubCloudCode(id)),cardLogin:pick(local.cardLogin,()=>null),cardPortable:id=>local.cardPortable(id),canRecover:()=>!pub(),
   coupons:(id)=>{if(!pub())return local.coupons(id);const c=snapC();const me=id&&id===LS.get('rave.card')?cardEstGet(id):null;let bw=false;try{const inf=JSON.parse(LS.get('rave.cardinfo')||'{}');bw=isBirthWeek({birth:inf.birth});}catch(e){}
    return((c&&c.coupons)||[]).filter(cp=>cpOk(cp)&&((cp.aud||'todos')==='todos'||(cp.aud==='club'&&me&&me.socio)||(cp.aud==='cumple'&&me&&me.socio&&bw))).map(cp=>({code:cp.code,desc:cp.note||(cp.type==='pct'?cp.value+' % de descuento':money(cp.value)+' de descuento'),cond:(cp.min?'Compra mínima '+money(cp.min)+' · ':'')+(cp.aud==='club'?'Sólo socios del Club · ':cp.aud==='cumple'?'Semana del cumpleaños · ':'')+'Excluye tabaco'}));},
   couponInfo:pick(local.couponInfo,(code,total)=>{code=String(code||'').trim().toUpperCase();const c=snapC();const cp=((c&&c.coupons)||[]).find(x=>x.code===code);
