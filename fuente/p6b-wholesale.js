@@ -144,7 +144,7 @@ A.wsChan=()=>{const c=custById(pos.cust),cur=wsChan(),to=cur==='mayorista'?'mino
 const wsReview=cid=>S.sales.filter(s=>s.credit_review&&(!cid||s.cust===cid));
 const wsCrw={sin_limite:'cliente sin límite',supera_limite:'superó el límite'};
 /* ---- ficha del cliente: bloque mayorista ---- */
-function wsCustCard(c){if(!wsOn()||!c)return'';const ed=can('price_lists')?'':'disabled';
+function wsCustCard(c){if(!wsOn()||!c)return'';const ed=custAdm()?'':'disabled';
  const ag=wsAging(c.id);const od=wsOverdue(c.id);
  return`<div class="card" style="margin:.6rem 0"><h3 style="margin-top:0">Mayorista y crédito</h3>
  <div class="grid g2"><div><label for="wc-ch">Canal habitual</label><select id="wc-ch" ${ed}><option value="minorista" ${!wsIsWh(c)?'selected':''}>Minorista</option><option value="mayorista" ${wsIsWh(c)?'selected':''}>Mayorista</option></select></div>

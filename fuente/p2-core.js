@@ -53,7 +53,7 @@ const dowOfKey=k=>new Date(k+'T12:00:00Z').getUTCDay();
 const addDays=(k,n)=>{const d=new Date(k+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
 
 /* ---------- Estado + persistencia (IndexedDB; demo sin cifrado) ---------- */
-const PERMS={sell:'Vender',cash_mov:'Ingresos/egresos de caja',close_cash:'Arqueo y cierre de caja',view_cost:'Ver costos y ganancias',edit_products:'Editar inventario',void:'Anular ventas',impex:'Importar / exportar',staff:'Personal y fichaje (admin)',tasks:'Tareas del personal',integrations:'Integraciones',audit:'Ver auditoría',roles:'Usuarios y permisos',menu_admin:'Administrar menú público',config:'Configuración',customers:'Clientes, fidelización y cupones',devices:'Periféricos y ticket',purchases:'Proveedores y compras',price_lists:'Listas de precio, escalones y acuerdos',credit_ov:'Autorizar excepciones de crédito'};
+const PERMS={sell:'Vender',cash_mov:'Ingresos/egresos de caja',close_cash:'Arqueo y cierre de caja',view_cost:'Ver costos y ganancias',edit_products:'Editar inventario',void:'Anular ventas',impex:'Importar / exportar',staff:'Personal y fichaje (admin)',tasks:'Tareas del personal',integrations:'Integraciones',audit:'Ver auditoría',roles:'Usuarios y permisos',menu_admin:'Administrar menú público',config:'Configuración',customers:'Clientes, fidelización y cupones',devices:'Periféricos y ticket',purchases:'Proveedores y compras',price_lists:'Listas de precio, escalones y acuerdos',credit_ov:'Autorizar excepciones de crédito',transfer_funds:'Traspasar fondos entre cajas y sucursales',audit_read:'Expediente digital de la transacción',pay_detail_edit:'Corregir el detalle de cobros digitales',customers_admin:'Clientes: datos sensibles, baja y eliminación'};
 const SEED_RUBROS=[
  {id:'promo',name:'Combos y promos',owner:'',reparte:false,alcohol:true,kind:'rubro',color:'#c9963e',mNom:'Promos',mTitle:'Menú de Promos de Bebidas',mHint:'',layout:'grid'},
  {id:'vino',name:'Vinos',owner:'',reparte:false,alcohol:true,kind:'rubro',color:'#7b2d3b',mNom:'Vinos',mTitle:'Vinos',mHint:'Por bodega y variedad',layout:'bodegas'},
@@ -92,8 +92,8 @@ function clientClean(d){d.products=d.products.filter(p=>!/granel-1/.test(p.id)).
  d.cfg.ticket.msg='¡Gracias por tu compra!';return d;}
 const DEF0=()=>({v:3,
  tenant:{name:'RAVE',legal:'Almacén y Licorería RAVE',slogan:'Almacén y Licorería · Salta',wa:'5493874574892',address:'Urquiza 1052, Salta, Argentina',phone:'(387) 4 57 48 92',cuit:'',iva:'',caja:1,ig:'RAVE_LICORERIA',fb:'LICORERIA_RAVE'},
- rubros:SEED_RUBROS.map(r=>({...r})),branches:[],registers:[],transfers:[],
- cfg:{cashProfile:'simple',negStock:true,tax:{promo:3000000,vino:3000000},fee:{qr:0,modo:0,debito:0,credito:0,pedidosya:0},movAffectProfit:true,payFromCash:true,scaleMode:'peso',ticket:{w:80,msg:'¡Gracias por tu compra! Seguinos en Instagram @rave_licoreria',showLogo:true,legal:true}},
+ rubros:SEED_RUBROS.map(r=>({...r})),branches:[],registers:[],transfers:[],transferEvents:[],payDetails:[],
+ cfg:{permNotice:{ack:true},xfer:{strict:true,closedMode:'transito',approvalOver:0,transitAlertH:0,selfAuth:false},cashProfile:'simple',negStock:true,tax:{promo:3000000,vino:3000000},fee:{qr:0,modo:0,debito:0,credito:0,pedidosya:0},movAffectProfit:true,payFromCash:true,scaleMode:'peso',ticket:{w:80,msg:'¡Gracias por tu compra! Seguinos en Instagram @rave_licoreria',showLogo:true,legal:true}},
  products:seedProducts(),
  sales:[],sessions:[],movs:[],closures:[],seq:{},
  suppliers:[],pOrders:[],receipts:[],supLedger:[],
@@ -108,7 +108,7 @@ const DEF0=()=>({v:3,
   {id:'t5',title:'Limpieza profunda de freezer',puestoId:'pu_dep',freq:'monthly',dom:1,active:true}],
  taskLogs:[],
  users:[{id:'u1',name:'ADMIN',role:'admin',pin:'1234'},{id:'u2',name:'Supervisor',role:'supervisor',pin:'1111'},{id:'u3',name:'Mostrador',role:'mostrador',pin:'0000'}],
- roles:{admin:Object.keys(PERMS),supervisor:['sell','cash_mov','close_cash','view_cost','edit_products','void','impex','tasks','audit','customers','devices','purchases','price_lists','credit_ov'],mostrador:['sell','cash_mov','tasks','customers'],operador:['sell']},
+ roles:{admin:Object.keys(PERMS),supervisor:['sell','cash_mov','close_cash','view_cost','edit_products','void','impex','tasks','audit','customers','devices','purchases','price_lists','credit_ov','audit_read','pay_detail_edit'].concat(IS_CLIENT?[]:['transfer_funds']),mostrador:['sell','cash_mov','tasks','customers'],operador:['sell']},
  audit:[],arqDraft:{},batches:[],
  pya:[],events:[],seenEvents:{},simOffline:false,
  arcaRcp:{},
@@ -144,12 +144,16 @@ function idb(){return new Promise((res,rej)=>{if(typeof indexedDB==='undefined')
 async function loadState(){try{const db=await idb();return await new Promise(res=>{const q=db.transaction('kv').objectStore('kv').get('state');q.onsuccess=()=>res(q.result);q.onerror=()=>res(null);});}catch(e){return null;}}
 let saveT;function save(){if(CLOUD_HOOK){CLOUD_HOOK.persist();return;}clearTimeout(saveT);saveT=setTimeout(async()=>{try{const db=await idb();db.transaction('kv','readwrite').objectStore('kv').put(JSON.parse(JSON.stringify(S)),'state');}catch(e){}},300);}
 /* "Proveedores y compras" es un permiso nuevo: si ningún rol lo tiene todavía (datos anteriores), lo reciben administrador y supervisor; si ya existe, se respeta lo que el dueño decidió */
-function rolesMigrate(r){if(!r)return r;for(const perm of['purchases','price_lists','credit_ov']){const any=Object.values(r).some(a=>Array.isArray(a)&&a.includes(perm));if(!any){if(Array.isArray(r.supervisor))r.supervisor.push(perm);if(Array.isArray(r.admin))r.admin.push(perm);}}return r;}
-function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);if(!IS_CLIENT&&st.cfg&&st.cfg.wholesale===undefined)wsDemoSeed(st);wsMigrate(st);return st;}
+function rolesMigrate(r){if(!r)return r;if(Array.isArray(r.admin))for(const p of['transfer_funds','customers_admin'])if(!r.admin.includes(p))r.admin.push(p); /* transfer_funds y customers_admin NUNCA se otorgan en silencio a otros roles (4.23.1 / 4.24.3) */
+ for(const perm of['purchases','price_lists','credit_ov','audit_read','pay_detail_edit']){const any=Object.values(r).some(a=>Array.isArray(a)&&a.includes(perm));if(!any){if(Array.isArray(r.supervisor))r.supervisor.push(perm);if(Array.isArray(r.admin))r.admin.push(perm);}}return r;}
+function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);if(st.cfg&&st.cfg.permNotice===undefined)st.cfg.permNotice={ack:false};if(!IS_CLIENT&&st.cfg&&st.cfg.wholesale===undefined)wsDemoSeed(st);wsMigrate(st);return st;}
 
 /* ---------- Permisos, auditoría ---------- */
 const can=p=>!!user&&(user.role==='admin'||(S.roles[user.role]||[]).includes(p));
-function audit(action,detail){const prev=S.audit.length?S.audit[S.audit.length-1].hash:'GENESIS';const e={id:uid(),ts:now(),user:user?user.name:'sistema',action,detail:String(detail||'').slice(0,400),prev};e.hash=sha256(prev+'|'+e.ts+'|'+e.user+'|'+action+'|'+e.detail);S.audit.push(e);save();}
+function audit(action,detail,meta){const prev=S.audit.length?S.audit[S.audit.length-1].hash:'GENESIS';const e={id:uid(),ts:now(),user:user?user.name:'sistema',action,detail:String(detail||'').slice(0,400),prev};
+ /* V26.9 · 4.23.6/4.23.8: datos estructurados opcionales (entidad, id, valor anterior/nuevo, motivo) y rol; no entran al hash (el encadenado de siempre sigue verificando) */
+ if(user&&user.role)e.role=user.role;if(meta){if(meta.ent)e.ent=String(meta.ent).slice(0,40);if(meta.eid)e.eid=String(meta.eid).slice(0,80);if(meta.old!=null)e.old=String(meta.old).slice(0,300);if(meta.nw!=null)e.nw=String(meta.nw).slice(0,300);if(meta.reason)e.reason=String(meta.reason).slice(0,300);}
+ e.hash=sha256(prev+'|'+e.ts+'|'+e.user+'|'+action+'|'+e.detail);S.audit.push(e);save();}
 const allAudit=()=>S.auditX&&S.auditX.length?S.audit.concat(S.auditX).sort((a,b)=>a.ts-b.ts):S.audit;
 function verifyAudit(){let prev='GENESIS';for(let i=0;i<S.audit.length;i++){const e=S.audit[i];if(e.prev!==prev||e.hash!==sha256(prev+'|'+e.ts+'|'+e.user+'|'+e.action+'|'+e.detail))return i+1;prev=e.hash;}return 0;}
 
@@ -158,7 +162,8 @@ function toast(msg,err){const t=document.createElement('div');t.textContent=msg;
 function modal(title,body,opt={}){const root=$('#modal-root');const w=document.createElement('div');w.className='ov';
  w.innerHTML=`<div class="dlg ${opt.wide?'wide':''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><h3>${esc(title)}</h3><div class="mb">${body}</div><div class="merr" role="alert"></div><div class="mf">${opt.noCancel?'':`<button class="btn ghost" data-m="x">${esc(opt.cancelText||'Cancelar')}</button>`}${opt.ok===false?'':`<button class="btn gold" data-m="ok">${esc(opt.okText||'Aceptar')}</button>`}</div></div>`;
  root.appendChild(w);const close=()=>w.remove();
- w.addEventListener('click',async e=>{const b=e.target.closest('[data-m]');if(!b)return;if(b.dataset.m==='x'){close();return;}
+ w.addEventListener('click',async e=>{const b=e.target.closest('.mf [data-m]');if(!b)return;   /* sólo los botones del pie: un chip con data-m dentro del cuerpo (p. ej. el medio de pago) no confirma el modal */
+  if(b.dataset.m==='x'){close();return;}
   const r=opt.onOk?await opt.onOk(w):true;if(r!==false)close();});
  w._err=m=>{w.querySelector('.merr').textContent=m||'';};
  setTimeout(()=>{const f=w.querySelector('input,select,textarea,button');f&&f.focus();},30);
@@ -225,6 +230,7 @@ let curScreen='inicio';
 function reg(id,t,icon,perm,render,after,sec){SCREENS[id]={t,icon,perm,render,after,sec};}
 function go(id){location.hash='#panel/'+id;}
 function route(){const h=location.hash||'#menu';
+ if(h.startsWith('#expediente/')&&typeof expRoute==='function'){expRoute(h);return;}
  $('#pub').hidden=true;$('#login').hidden=true;$('#panel').hidden=true;
  if(h.startsWith('#panel')){if(!user){location.hash='#acceso';return;}showPanel(h.split('/')[1]||'inicio');}
  else if(h==='#acceso'){showLogin();}
@@ -241,7 +247,7 @@ function showPanel(id){if(!SCREENS[id]||(SCREENS[id].perm&&!can(SCREENS[id].perm
  $('#side').innerHTML=`<div class="brand"><img src="${LOGO_MENU}" alt="RAVE" style="width:48px;height:27px;object-fit:cover;border-radius:6px"><span>Sistema RAVE</span></div>`+nav.map(([k,s])=>{const sc=secOf[k]||'Otros';const h=(sc!==sec)?(sec=sc,`<div class="sec">${esc(sc)}</div>`):'';return h+`<a data-act="nav" data-id="${k}" class="${k===id?'on':''}" tabindex="0" role="link">${ico(s.icon)}<span>${esc(s.t)}</span></a>`;}).join('')+`<div class="sec">Desarrollado por</div><div class="sm" style="padding:0 .7rem;color:#a99f8f"><b style="color:#eee">${VB.name}</b><br><i>“${VB.lema}”</i><br><a style="color:#c9963e" href="${vbWa()}" target="_blank" rel="noopener noreferrer">Único celular ${VB.phone}</a><br><a style="color:#c9963e" href="mailto:${VB.mail}">${VB.mail}</a></div>`;
  const s=openSess();
  $('#top').innerHTML=`<button class="btn sm" id="burger" data-act="burger" aria-label="Abrir menú">☰</button><b style="font-family:Georgia,serif">${esc(S.tenant.name)}</b>${(window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente')?'':'<span class="demo-b">DEMO DE EVALUACIÓN</span>'}<span id="cloudtag" class="tag"></span><span class="tag ${s?'ok':'warn'}">${s?'Caja '+S.tenant.caja+' abierta':'Caja cerrada'}</span><span class="tag ${S.simOffline?'bad':'ok'}">${S.simOffline?'APIs externas caídas (simulado)':'Operativo'}</span><span id="devtag" class="tag"></span><span class="sp"></span><span class="sm mut">${esc(user.name)} · ${esc(user.role)}</span>${typeof asBtn==='function'?asBtn():''}<a class="btn sm" href="#menu">Ver menú público</a><button class="btn sm" data-act="logout">Salir</button>`;
- const sc=SCREENS[id];$('#view').innerHTML=sc.render();sc.after&&sc.after();$('#side').classList.remove('open');window.scrollTo(0,0);try{document.documentElement.style.setProperty('--topH',($('#top').offsetHeight||56)+'px');}catch(e){}if(typeof devTag==='function')devTag();if(typeof cloudBadge==='function')cloudBadge();if(typeof asPaint==='function')asPaint();}
+ const sc=SCREENS[id];$('#view').innerHTML=sc.render();sc.after&&sc.after();$('#side').classList.remove('open');window.scrollTo(0,0);try{document.documentElement.style.setProperty('--topH',($('#top').offsetHeight||56)+'px');}catch(e){}if(typeof devTag==='function')devTag();if(typeof cloudBadge==='function')cloudBadge();if(typeof asPaint==='function')asPaint();if(typeof xfPermNotice==='function')xfPermNotice();if(typeof expPending==='function')expPending();}
 A.nav=el=>go(el.dataset.id);A.burger=()=>$('#side').classList.toggle('open');
 A.logout=()=>{audit('LOGOUT','');if(typeof asReset==='function')asReset();user=null;location.hash='#menu';};
 const rerender=()=>{if(!$('#panel').hidden)showPanel(curScreen);};

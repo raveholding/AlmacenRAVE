@@ -76,7 +76,9 @@ with sync_playwright() as p:
     chk(tot['tin']==tot['tout']==50000 or (tot['tin']==50000 and tot['tout']==50000),'traspasos: recibidos = enviados (neto 0): %s'%tot)
     chk(tot['ing']==0 and tot['egr']==0,'ingresos/egresos del consolidado no incluyen el traspaso')
     # reversa
-    pg.click('[data-act=xferRev]');pg.wait_for_timeout(300)
+    pg.click('[data-act=cxTab][data-tab=tr]');pg.wait_for_timeout(250)
+    pg.click('[data-act=xferRev]');pg.wait_for_timeout(500)
+    pg.fill('#xf-ap','1234');pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(600);pg.keyboard.press('Escape');pg.wait_for_timeout(150)
     chk(ev("S.transfers.length")==2 and ev("S.transfers[1].rev")=='t1','reversa registrada, vinculada, sin tocar el original')
     chk(ev("S.transfers[0].amount")==50000,'el traspaso original no se modificó')
     exp1b=ev("arqueoCalc(S.sessions.find(s=>s.regId==='%s'&&!s.closedAt),{emp:null,hours:0,rate:0,merienda:0,gastosManual:0,declared:NaN,taxes:{},payFromCash:false,detailAll:false,mono:true,notes:''}).expectedCash"%c1)

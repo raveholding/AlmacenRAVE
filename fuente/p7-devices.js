@@ -49,7 +49,8 @@ function ticketModel(sale,W){const T=S.tenant,cfg=S.cfg.ticket;const B=[];const 
   if(pl.length>1||fi>0){add('t',{s:'Medios de pago:',b:1});pl.forEach(pp=>add('l',{l:'  '+(MET[pp.m]||pp.m)+(pp.m==='fiado'?' (a cta. cte.)':''),r:money(pp.a)}));add('l',{l:'Cobrado',r:money(sale.total-fi)});}
   else add('t',{s:'Medio de pago: '+(MET[sale.method]||sale.method)});
   if(sale.recv>0&&(sale.vuelto>0||(sale.method==='efectivo'&&sale.recv>=sale.total))){add('l',{l:'Recibido',r:money(sale.recv)});add('l',{l:'Vuelto',r:money(sale.vuelto!=null&&sale.pays?sale.vuelto:sale.recv-sale.total)});}
-  if(fi>0&&sale.cust){add('t',{s:'Estado: '+(salePayState(sale)==='parcial'?'PAGO PARCIAL':'PENDIENTE DE COBRO')+' · saldo de esta venta '+money(fi)});add('t',{s:'Saldo adeudado en cuenta corriente: '+money(debtOf(sale.cust))});}}
+  if(fi>0&&sale.cust){add('t',{s:'Estado: '+(salePayState(sale)==='parcial'?'PAGO PARCIAL':'PENDIENTE DE COBRO')+' · saldo de esta venta '+money(fi)});add('t',{s:'Saldo adeudado en cuenta corriente: '+money(debtOf(sale.cust))});}
+  if(typeof pdTicketLines==='function')pdTicketLines(sale).forEach(x=>add(x.t,{s:x.s}));}
  if(sale.cust){const c=custById(sale.cust);if(c){add('sep');add('c',{s:'Socio N.º '+pad4(c.num)+' · Club RAVE',b:1});const st=stampsOf(c.id);add('c',{s:'Sellos: '+Math.min(st,S.loyalty.goal)+'/'+S.loyalty.goal+(st>=S.loyalty.goal?' — ¡premio para canjear!':'')});}}
  add('sep');
  if(cb){add('c',{s:'CAE: '+cb.cae,b:1});add('c',{s:'Vto. CAE: '+String(cb.vto||'').split('-').reverse().join('/')});if(cb.qr){let ok=true;try{ok=!!QR.encode(cb.qr);}catch(e){ok=false;}if(ok)add('qr',{data:cb.qr});}}

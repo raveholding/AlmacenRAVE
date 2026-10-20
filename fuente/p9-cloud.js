@@ -87,6 +87,8 @@ const COLS=[
  {c:'sucs',key:'branches'},
  {c:'cajas',key:'registers'},
  {c:'ctransf',key:'transfers',once:1},
+ {c:'ctev',key:'transferEvents',once:1},
+ {c:'cdet',key:'payDetails',once:1,pii:['ordName','ordDoc']},
  {c:'acuer',key:'agreements',del:1},
  {c:'cexc',key:'creditOv'},
  {c:'cexcu',key:'creditUse',once:1}];
@@ -106,7 +108,7 @@ function cfgWire(id){switch(id){
  case'legal':return JSON.parse(JSON.stringify(S.legal));}return null;}
 /* todo lo que hoy existe en este equipo, en el formato que viaja */
 function collectAll(){const out=[];
- for(const col of COLS){const arr=S[col.key]||[];for(const it of arr){if(!it)continue;const id=col.synth?col.synth(it):it.id;if(!id||String(id).length>80)continue;out.push({c:col.c,id:String(id),w:stripOf(col,it),col});}}
+ for(const col of COLS){const arr=S[col.key]||[];for(const it of arr){if(!it)continue;const id=col.synth?col.synth(it):it.id;if(!id||String(id).length>80)continue;const w=stripOf(col,it);if(col.c==='clientes')w.pfp=custPfp(it);out.push({c:col.c,id:String(id),w,col});}}
  for(const e of S.audit)out.push({c:'audit',id:e.id,w:Object.assign({dev:cl.dev},e)});
  for(const e of S.loyalty.ledger)out.push({c:'sellos',id:e.id,w:e});
  for(const [k,ts] of Object.entries(S.loyalty.usedOtp||{}))if(k.length<=80)out.push({c:'otp',id:k,w:{ts}});
@@ -128,7 +130,7 @@ function queueStock(){for(const p of S.products){if(!p||!p.id)continue;const b=c
 async function pushAll(){queueStock();const all=collectAll();const seen=new Set(),ch=[];
  for(const it of all){const key=it.c+'|'+it.id;seen.add(key);const h=cyrb(canon(it.w));if(cl.fp[key]!==h)ch.push({it,key,h});}
  for(const key of Object.keys(cl.fp)){if(seen.has(key))continue;const c=key.split('|')[0];if(DELC.has(c))ch.push({key,del:1,c,id:key.slice(c.length+1)});else delete cl.fp[key];}
- const rk=x=>{const c=x.it?x.it.c:x.c;return c==='prod'?0:(c==='ctransf'?2:1);};ch.sort((a,b)=>rk(a)-rk(b));
+ const rk=x=>{const c=x.it?x.it.c:x.c;return c==='prod'?0:(c==='ctransf'?2:(c==='ctev'?3:(c==='cdet'?4:1)));};ch.sort((a,b)=>rk(a)-rk(b));
  let sent=0;
  for(let i=0;i<ch.length;i+=150){const part=ch.slice(i,i+150),body=[];
   for(const x of part){if(x.del){body.push({c:x.c,id:x.id,d:{},x:true});continue;}
@@ -359,6 +361,7 @@ async function importAltas(){if(!cl.ready||!cl.clubPriv||!cl.clubPriv.jwk||!cl.o
   const iso=b.y+'-'+String(b.mo).padStart(2,'0')+'-'+String(b.d).padStart(2,'0');
   const cid=cardIdOk(p.cid)?p.cid:'',sec=(typeof p.secret==='string'&&p.secret.length>=16&&p.secret.length<=80)?p.secret:'';
   if((cid&&custByCard(cid))||(!cid&&S.customers.some(c=>c.id==='alta'+r.id))){ok.push(r.id);continue;} // ya estaba importada
+  if(clubBlocked(w,cid)){bad.push(r.id);continue;} // el administrador eliminó o dio de baja a ese cliente: no reaparece
   const dupC=S.customers.find(c=>c.status!=='baja'&&normWA(c.wa)===w);
   if(dupC){
    if(cid&&sec&&dupC.birth===iso){dupC.cards=Array.isArray(dupC.cards)?dupC.cards:[];dupC.cardSecrets=dupC.cardSecrets||{};if(!dupC.cards.includes(cid)){dupC.cards.push(cid);dupC.cardSecrets[cid]=sec;}alias++;audit('CLUB_TARJETA_NUEVA','socio '+pad4(dupC.num)+' · segunda tarjeta (otro celular)');ok.push(r.id);}

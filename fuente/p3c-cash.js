@@ -18,9 +18,6 @@ const brOn=()=>cashProfile()==='branches';
 const regOf=id=>(S.registers||[]).find(r=>r.id===id);
 const brOf=id=>(S.branches||[]).find(b=>b.id===id);
 const regName=id=>{const r=regOf(id);return r?r.name:'(caja eliminada)';};
-function transfersFor(sess){const o={tin:0,tout:0,list:[]};if(!sess||!S.transfers)return o;
- S.transfers.forEach(t=>{if(t.toSess===sess.id){o.tin+=t.amount;o.list.push({ts:t.ts,dir:'in',other:regName(t.from),amount:t.amount,motivo:t.motivo,rubro:t.rubroName||''});}
-  if(t.fromSess===sess.id){o.tout+=t.amount;o.list.push({ts:t.ts,dir:'out',other:regName(t.to),amount:t.amount,motivo:t.motivo,rubro:t.rubroName||''});}});return o;}
 /* --- apertura de sesión con caja asignada --- */
 function cashOpenPick(){if(!cashOn())return'';const rs=(S.registers||[]).filter(r=>r.active!==false);
  if(!rs.length)return`<p class="errtxt">No hay cajas definidas. ${can('config')?'Creá una en <a href="#panel/cajasx">Cajas y sucursales</a>.':'Pedile al administrador que defina las cajas.'}</p>`;
@@ -75,31 +72,6 @@ A.brToggle=el=>{if(!can('config'))return toast('Sólo el administrador',1);const
 A.devReg=()=>{if(!can('config'))return;const id=val('dv-reg');if(id&&!regOf(id))return;if(id&&S.sessions.some(s=>!s.closedAt&&s.caja===S.tenant.caja&&s.regId&&s.regId!==id))return toast('Cerrá la caja abierta de este equipo antes de cambiarla.',1);S.tenant.regId=id;audit('CAJA_EQUIPO',regName(id));save();rerender();toast('Listo');};
 /* --- traspaso de fondos entre cajas --- */
 function openOf(regId){return S.sessions.find(s=>!s.closedAt&&s.regId===regId);}
-function xferCreate(o){ /* lógica pura (la usa el modal y las pruebas) */
- if(!mainOn())return'El módulo de caja principal no está habilitado.';if(!can('close_cash'))return'Sin permiso para traspasar fondos.';
- if((S.transfers||[]).some(t=>t.id===o.id))return'';  /* idempotente: el mismo id no se repite */
- if(!o.from||!o.to||o.from===o.to)return'Elegí dos cajas distintas.';const fr=regOf(o.from),to=regOf(o.to);if(!fr||!to||fr.active===false||to.active===false)return'Caja inexistente o inactiva.';
- const ss=openOf(o.from),ts=openOf(o.to);if(!ss||!ts)return'Las dos cajas tienen que estar abiertas para traspasar.';
- if(brOn()&&(fr.branchId||'')!==(to.branchId||'')&&fr.type!=='main'&&to.type!=='main')return'Entre sucursales distintas sólo se traspasa desde o hacia una caja principal.';
- if(!Number.isInteger(o.amount)||!(o.amount>0))return'El importe debe ser mayor a cero.';
- const e=validRubro(o.rubro,'ingreso')||validRubro(o.rubro,'egreso');if(e)return e;
- if(!o.motivo||o.motivo.trim().length<3)return'Escribí el motivo (mínimo 3 letras).';
- const a=arqueoCalc(ss,arqInputs(ss));if(o.amount>a.expectedCash&&!o.force)return'La caja de origen no tiene efectivo suficiente (esperado '+money(a.expectedCash)+').';
- const t={id:o.id,ts:now(),from:o.from,to:o.to,fromSess:ss.id,toSess:ts.id,amount:o.amount,rubro:o.rubro,rubroName:rubName(o.rubro),motivo:o.motivo.trim().slice(0,120),user:user.name};if(o.rev)t.rev=o.rev;
- S.transfers=S.transfers||[];S.transfers.push(t);audit(o.rev?'TRASPASO_REVERSA':'TRASPASO_CAJAS',regName(o.from)+' → '+regName(o.to)+' · '+money(o.amount)+' · '+rubName(o.rubro)+' · '+t.motivo);emit('cash.transfer',{from:o.from,to:o.to,amount:o.amount});save();return'';}
-A.xfer=el=>{if(!mainOn()||!can('close_cash'))return toast('Sin permiso o módulo apagado',1);
- const op=(S.registers||[]).filter(r=>r.active!==false&&openOf(r.id));if(op.length<2)return toast('Hacen falta dos cajas abiertas para traspasar.',1);
- const id=uid(),rb=S.rubros.filter(r=>r.kind==='rubro');const myReg=S.tenant.regId;
- modal('Traspasar fondos entre cajas',`<label for="xf-f">Desde</label><select id="xf-f">${op.map(r=>`<option value="${r.id}" ${r.id===myReg?'selected':''}>${esc(r.name)}</option>`).join('')}</select>
- <label for="xf-t">Hacia</label><select id="xf-t">${op.map(r=>`<option value="${r.id}" ${r.type==='main'?'selected':''}>${esc(r.name)}</option>`).join('')}</select>
- <label for="xf-a">Importe ($)</label>${numIn('xf-a',0,'0')}
- <label for="xf-r">Rubro (obligatorio)</label><select id="xf-r"><option value="">— Elegí un rubro —</option>${rb.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('')}</select>
- <label for="xf-m">Motivo</label><input id="xf-m" maxlength="120" placeholder="Ej.: retiro de excedente a caja principal" autocomplete="off">
- <p class="sm mut">Es un movimiento interno: sale del efectivo esperado de una caja y entra en el de la otra. No suma como venta, ingreso ni egreso.</p>`,
- {okText:'Traspasar',onOk:w=>{const e=xferCreate({id,from:val('xf-f'),to:val('xf-t'),amount:cents(val('xf-a')),rubro:val('xf-r'),motivo:val('xf-m')});if(e){w._err(e);return false;}toast('Traspaso registrado');rerender();}});};
-A.xferRev=el=>{if(!can('config'))return toast('Sólo el administrador corrige traspasos',1);const t=(S.transfers||[]).find(x=>x.id===el.dataset.id);if(!t)return;
- if(S.transfers.some(x=>x.rev===t.id))return toast('Ya fue revertido',1);
- const e=xferCreate({id:uid(),from:t.to,to:t.from,amount:t.amount,rubro:t.rubro,motivo:'Reversa: '+t.motivo,rev:t.id,force:true});if(e)return toast(e,1);toast('Reversa registrada');rerender();};
 /* --- consolidado de lectura --- */
 function cashRows(day,brFilter){
  const inDay=s=>dkey(s.openedAt)===day||!s.closedAt||(s.closedAt&&dkey(s.closedAt)===day);
@@ -109,7 +81,7 @@ function cashRows(day,brFilter){
   rows.push({r,ss,n:ss.length,sales:ss.reduce((x,c)=>x+c.a.total,0),cash:ss.reduce((x,c)=>x+c.a.cashSales,0),ing:ss.reduce((x,c)=>x+c.a.ing,0),egr:ss.reduce((x,c)=>x+c.a.egr,0),
    tin:ss.reduce((x,c)=>x+c.a.tin,0),tout:ss.reduce((x,c)=>x+c.a.tout,0),exp:ss.filter(c=>!c.s.closedAt).reduce((x,c)=>x+c.a.expectedCash,0),open:ss.some(c=>!c.s.closedAt)});});
  return rows;}
-reg('cajasx','Cajas y sucursales','cash','close_cash',()=>{
+function cajasMainHTML(){
  const day=cxF.day||dkey(now());const brs=(S.branches||[]).filter(b=>b.active!==false);const f=brOn()?cxF.br:'';
  const rows=cashRows(day,f);const adm=can('config');const T=k=>rows.reduce((x,r)=>x+r[k],0);
  const legacy=S.sessions.filter(s=>!s.regId&&(dkey(s.openedAt)===day||!s.closedAt)).map(s=>arqueoCalc(s,arqInputs(s)));
@@ -117,8 +89,7 @@ reg('cajasx','Cajas y sucursales','cash','close_cash',()=>{
  const tbl=`<div class="tw"><table id="cx-res"><thead><tr><th>Caja</th>${brOn()?'<th>Sucursal</th>':''}<th>Estado</th><th class="r">Ventas</th><th class="r">Ingresos</th><th class="r">Egresos</th><th class="r">Traspasos recibidos</th><th class="r">Traspasos enviados</th><th class="r">Efectivo esperado (abiertas)</th></tr></thead><tbody>${rows.map(rowHtml).join('')||`<tr><td colspan="${brOn()?9:8}" class="mut">No hay cajas definidas.</td></tr>`}</tbody>
   <tfoot><tr><th>TOTAL consolidado</th>${brOn()?'<th></th>':''}<th></th><th class="r">${money(T('sales'))}</th><th class="r">${money(T('ing'))}</th><th class="r">${money(T('egr'))}</th><th class="r">${money(T('tin'))}</th><th class="r">${money(T('tout'))}</th><th class="r">${money(T('exp'))}</th></tr></tfoot></table></div>`;
  const tr=(S.transfers||[]).slice().reverse();const regsAll=(S.registers||[]).slice();
- return`<div class="row"><h1 class="sp">Cajas y sucursales</h1>${mainOn()&&can('close_cash')?'<button class="btn gold" data-act="xfer">Traspasar fondos</button>':''}</div>
- <p class="sm mut">Perfil: <b>${esc(CASH_PROFILES[cashProfile()])}</b>. Consolidado de <b>lectura</b>: no mueve efectivo ni toca cierres. Los traspasos entre cajas se muestran aparte y no se suman como ingreso ni egreso.</p>
+ return`<p class="sm mut">Perfil: <b>${esc(CASH_PROFILES[cashProfile()])}</b>. Consolidado de <b>lectura</b>: no mueve efectivo ni toca cierres. Los traspasos entre cajas se muestran aparte y no se suman como ingreso ni egreso.</p>
  <div class="card"><div class="row"><h3 class="sp">Consolidado del día</h3><label class="sm" for="cx-day">Día</label><input type="date" id="cx-day" value="${day}" style="max-width:170px">${brOn()?`<label class="sm" for="cx-br">Sucursal</label><select id="cx-br" style="max-width:220px"><option value="">Todas</option>${brs.map(b=>`<option value="${b.id}" ${cxF.br===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select>`:''}</div>${tbl}
  ${legacy.length?`<p class="sm mut">Hay ${legacy.length} sesión(es) de antes del cambio de perfil, sin caja asignada: no están en esta tabla (siguen en «Cajas cerradas»).</p>`:''}
  <p class="sm mut">Fórmula: efectivo esperado = apertura + ventas en efectivo + ingresos − egresos − pagos de caja + traspasos recibidos − traspasos enviados. Zona horaria del comercio. Actualizado ${fmtDT(now())}.</p></div>
@@ -126,7 +97,14 @@ reg('cajasx','Cajas y sucursales','cash','close_cash',()=>{
  <div class="tw"><table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th>${brOn()?'<th>Sucursal</th>':''}<th>Depende de</th><th>Estado</th><th></th></tr></thead><tbody>${regsAll.map(r=>`<tr><td>${esc(r.code)}</td><td>${esc(r.name)}</td><td>${r.type==='main'?'principal':'operativa'}</td>${brOn()?`<td>${esc((brOf(r.branchId)||{}).name||'—')}</td>`:''}<td>${esc(r.parentId?regName(r.parentId):'—')}</td><td>${r.active===false?'<span class="tag bad">inactiva</span>':'<span class="tag ok">activa</span>'}</td><td class="r">${adm?`<button class="btn sm" data-act="regEdit" data-id="${r.id}">Editar</button> <button class="btn sm" data-act="regToggle" data-id="${r.id}">${r.active===false?'Activar':'Desactivar'}</button>`:''}</td></tr>`).join('')||`<tr><td colspan="7" class="mut">Sin cajas.</td></tr>`}</tbody></table></div>
  ${adm?`<div class="row" style="margin-top:.7rem"><label for="dv-reg" class="sm">Este equipo opera la caja</label><select id="dv-reg" style="max-width:260px"><option value="">— Elegir al abrir —</option>${regsAll.filter(r=>r.active!==false).map(r=>`<option value="${r.id}" ${S.tenant.regId===r.id?'selected':''}>${esc(r.name)}</option>`).join('')}</select><button class="btn sm" data-act="devReg">Guardar</button></div>`:''}</div>
  ${brOn()?`<div class="card" style="margin-top:1rem"><div class="row"><h3 class="sp">Sucursales</h3>${adm?'<button class="btn sm" data-act="brEdit" data-id="">+ Sucursal</button>':''}</div><div class="tw"><table><thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th></th></tr></thead><tbody>${(S.branches||[]).map(b=>`<tr><td>${esc(b.code)}</td><td>${esc(b.name)}</td><td>${b.active===false?'<span class="tag bad">inactiva</span>':'<span class="tag ok">activa</span>'}</td><td class="r">${adm?`<button class="btn sm" data-act="brEdit" data-id="${b.id}">Editar</button> <button class="btn sm" data-act="brToggle" data-id="${b.id}">${b.active===false?'Activar':'Desactivar'}</button>`:''}</td></tr>`).join('')||'<tr><td colspan="4" class="mut">Sin sucursales.</td></tr>'}</tbody></table></div></div>`:''}
- ${mainOn()?`<div class="card" style="margin-top:1rem"><h3>Traspasos entre cajas</h3><div class="tw"><table><thead><tr><th>Fecha</th><th>Desde</th><th>Hacia</th><th class="r">Importe</th><th>Rubro</th><th>Motivo</th><th>Usuario</th><th>Estado</th><th></th></tr></thead><tbody>${tr.map(t=>{const rv=(S.transfers||[]).some(x=>x.rev===t.id);return`<tr><td data-sv="${t.ts}">${fmtDT(t.ts)}</td><td>${esc(regName(t.from))}</td><td>${esc(regName(t.to))}</td><td class="r">${money(t.amount)}</td><td>${esc(t.rubroName||'')}</td><td>${esc(t.motivo)}</td><td>${esc(t.user)}</td><td>${t.rev?'<span class="tag warn">reversa</span>':(rv?'<span class="tag bad">revertido</span>':'<span class="tag ok">ok</span>')}</td><td class="r">${adm&&!t.rev&&!rv?`<button class="btn sm" data-act="xferRev" data-id="${t.id}">Revertir</button>`:''}</td></tr>`;}).join('')||'<tr><td colspan="9" class="mut">Sin traspasos.</td></tr>'}</tbody></table></div></div>`:''}`;},
+ ${mainOn()?xfCfgCard():''}`;}
+reg('cajasx','Cajas y sucursales','cash','close_cash',()=>{const tab=mainOn()&&cxF.tab==='tr'?'tr':'cajas';
+ return`<div class="row"><h1 class="sp">Cajas y sucursales</h1>${mainOn()&&xfCan()?'<button class="btn gold" data-act="xfer">Traspasar fondos</button>':''}</div>${xferPendingHome()}
+ ${mainOn()?`<div class="row noprint" role="tablist"><button class="btn sm ${tab==='cajas'?'gold':''}" role="tab" aria-selected="${tab==='cajas'}" data-act="cxTab" data-tab="cajas">Cajas y consolidado</button><button class="btn sm ${tab==='tr'?'gold':''}" role="tab" aria-selected="${tab==='tr'}" data-act="cxTab" data-tab="tr">Traspasos${(S.transfers||[]).length?' ('+(S.transfers||[]).length+')':''}</button></div>`:''}
+ ${tab==='tr'?`<div id="xf-reg">${xfRegistryHTML()}</div>`:cajasMainHTML()}`;},
  ()=>{const d=$('#cx-day');d&&d.addEventListener('change',e=>{cxF.day=e.target.value;rerender();});const b=$('#cx-br');b&&b.addEventListener('change',e=>{cxF.br=e.target.value;rerender();});},'Operación');
-const cxF={day:'',br:''};
+const cxF={day:'',br:'',tab:'cajas'};
+A.cxTab=el=>{cxF.tab=el.dataset.tab==='tr'?'tr':'cajas';rerender();};
+/* aviso de fondos en tránsito para las cajas abiertas de este equipo (arriba de Cajas y sucursales) */
+function xferPendingHome(){const s=openSess();return s?xferPendingCard(s):'';}
 SCREENS.cajasx.show=cashOn;

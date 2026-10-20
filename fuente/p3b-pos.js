@@ -35,6 +35,7 @@ function payCheck(pays,total,cust,recv){
  if(sum!==total)return{err:'La suma de los pagos ('+money(sum)+') no coincide con el total ('+money(total)+'): '+(sum<total?'faltan ':'sobran ')+money(Math.abs(total-sum))+'.',diff:total-sum};
  const fi=pays.find(p=>p.m==='fiado');
  if(fi&&!cust)return{err:'La cuenta corriente exige identificar al cliente (no puede ser consumidor final).'};
+ if(fi&&cust&&cust.status==='suspendido')return{err:'El cliente está suspendido: no puede comprar a cuenta corriente.'};
  const ef=pays.find(p=>p.m==='efectivo');let vuelto=0;
  if(recv>0){if(!ef)return{err:'Indicaste efectivo recibido pero no hay una línea de efectivo.'};if(recv<ef.a)return{err:'El efectivo recibido ('+money(recv)+') es menor al importe en efectivo ('+money(ef.a)+').'};vuelto=recv-ef.a;}
  return{ok:1,vuelto,fiadoAmt:fi?fi.a:0,cash:ef?ef.a:0};}
@@ -54,6 +55,7 @@ function commitSale(method,arca,channel,lines,opts){
  /* pagos: una sola línea (venta simple) o varias (mixta). Todo se valida ANTES de tocar stock, caja o cuenta corriente. */
  const pays=(opts.pays&&opts.pays.length?opts.pays:[{m:method,a:total}]).map(p=>({m:p.m,a:p.a}));
  const pc=payCheck(pays,total,cust,opts.recv||0);if(pc.err)return{err:pc.err};
+ {const pe=typeof pdPre==='function'?pdPre(pays,opts):'';if(pe)return{err:pe};}
  method=pays.length>1?'mixto':pays[0].m;
  let cr={ok:1};if(pc.fiadoAmt>0){cr=wsCreditCheck(cust,pc.fiadoAmt);if(cr.err)return cr;}
  let stampRes=null;if(opts.stampCode){if(!cust)return{err:'El código de sello necesita un cliente.'};stampRes=resolveStamp(opts.stampCode,cust.id);if(!stampRes.ok)return{err:'Sello: '+stampRes.msg};}
@@ -68,6 +70,7 @@ function commitSale(method,arca,channel,lines,opts){
  if(W)sale.wch=W.chan;if(cr.ov)sale.cov=cr.ov;if(fiadoAmt>0&&wsOn()&&cust&&cust.term>0){sale.term=cust.term;sale.due=sale.ts+cust.term*WS_DAY;}
  const neg=[];for(const pid in need){const p=prod(pid);p.stock=Math.round((p.stock-need[pid])*1000)/1000;if(p.stock<0)neg.push(p.name+' → '+p.stock);}if(neg.length)audit('VENTA_SIN_STOCK',neg.join(' · '));
  S.sales.push(sale);S.lastSale=sale.id;
+ if(typeof pdCommitAll==='function')pdCommitAll(sale,opts.det);
  if(cr.ov){(S.creditUse=S.creditUse||[]).push({id:uid(),ov:cr.ov,sale:sale.id,amt:fiadoAmt,ts:now(),user:user?user.name:'sistema'});audit('EXCEPCION_CREDITO_USO',sale.n+' · '+custFull(cust)+' · '+money(fiadoAmt)+' (supera '+cr.probs.join(' ').slice(0,120)+')');}
  if(ben.kind==='coupon'&&ben.couponId){const cp=S.coupons.find(x=>x.id===ben.couponId);if(cp)cp.uses.push({ts:now(),sale:sale.id,cust:cust?cust.id:''});}
  if(opts.receptor&&arca&&typeof arcaRcpStore==='function')arcaRcpStore(sale.id,opts.receptor);
@@ -121,8 +124,8 @@ A.ncgo=el=>{$$('#modal-root .ov').forEach(o=>o.remove());A.voidsale(el);};
 
 /* ---- cobro ---- */
 function cobroW(){const d=$('#modal-root .dlg[aria-label="Confirmar cobro"]');return d?d.closest('.ov'):null;}
-function cobroSync(){const w=cobroW();if(!w)return;const g=id=>w.querySelector('#'+id);if(g('cb-cup'))pos.coupon=g('cb-cup').value.trim().toUpperCase();if(g('cb-code'))pos.stamp=g('cb-code').value.trim();if(g('rcv'))pos.recv=g('rcv').value;if(typeof arcaRcpSync==='function')arcaRcpSync(w);}
-function cobroRender(){const w=cobroW();if(!w)return;cobroSync();w.querySelector('.mb').innerHTML=cobroView();}
+function cobroSync(){const w=cobroW();if(!w)return;const g=id=>w.querySelector('#'+id);if(g('cb-cup'))pos.coupon=g('cb-cup').value.trim().toUpperCase();if(g('cb-code'))pos.stamp=g('cb-code').value.trim();if(g('rcv'))pos.recv=g('rcv').value;if(typeof arcaRcpSync==='function')arcaRcpSync(w);if(typeof pdCobroSync==='function')pdCobroSync(w);}
+function cobroRender(){const w=cobroW();if(!w)return;cobroSync();w.querySelector('.mb').innerHTML=cobroView();if(typeof pdAfterRender==='function')pdAfterRender(w);}
 function mixParsed(){ /* pagos tal como están cargados en pantalla (centavos); NaN = número inválido */
  return pos.pays.map(p=>({m:p.m,a:p.a===''?0:cents(p.a),r:p.r===''?0:cents(p.r)}));}
 function mixSummaryHTML(tot){
@@ -155,6 +158,7 @@ function cobroView(){
  <p class="sm"><b>Documento:</b> ${pos.arca?'Factura electrónica (CAE al cobrar)':'Ticket interno — DOCUMENTO NO VÁLIDO COMO FACTURA'} <button class="btn sm" data-act="parca">${pos.arca?'CON ARCA':'SIN ARCA'} (F8)</button></p>
  ${custBox}
  ${mixHtml}
+ ${typeof pdHostHTML==='function'?pdHostHTML():''}
  ${typeof arcaRcpHtml==='function'?arcaRcpHtml():''}
  ${typeof wsNoClub==='function'&&wsNoClub()?wsClubOff():''}
  <div class="grid g2" style="${typeof wsNoClub==='function'&&wsNoClub()?'display:none':''}"><div><label for="cb-cup">Cupón</label><div class="row"><input id="cb-cup" class="sp" maxlength="24" placeholder="CÓDIGO" autocomplete="off" value="${esc(pos.coupon)}"><button class="btn sm" data-act="cbcup">Aplicar</button></div></div>
@@ -167,22 +171,25 @@ function cobroView(){
 function vueltoHTML(r,tot){if(isNaN(r)||!r)return '';if(r>tot)return `<div class="vuelto" role="alert"><span>VUELTO A ENTREGAR</span><b>${money(r-tot)}</b><small>Recibido ${money(r)} − total ${money(tot)}</small></div>`;if(r===tot)return '<div class="okbox sm">Efectivo justo: sin vuelto.</div>';return `<div class="errbox sm"><b>Falta ${money(tot-r)}</b> para completar el efectivo.</div>`;}
 A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin permiso',1);if(!openSess()){toast('Abrí la caja para vender.',1);return;}
  if(cobroW())return;
+ pos.pdet={};
  if(typeof stampPrep==='function')stampPrep();
  const w=modal('Confirmar cobro',cobroView(),{wide:true,okText:'Cobrar (F12)',onOk:()=>{cobroSync();
   const rc=pos.recv?cents(pos.recv):0;
   if(pos.stamp&&!pos.cust){const vr=resolveStamp(pos.stamp,'');if(vr.ok)pos.cust=vr.cust.id;}
   if(pos.arca&&typeof arcaRcpCheck==='function'){const er=arcaRcpCheck();if(er){toast(er,1);return false;}}
+  const pg=typeof pdGateCobro==='function'?pdGateCobro():{det:null};if(pg.err){toast(pg.err,1);return false;}
   let pays=null,recv=isNaN(rc)?0:rc;
   if(pos.mix){const L=mixParsed();if(L.some(p=>isNaN(p.a)||isNaN(p.r))){toast('Revisá los importes: hay un número inválido.',1);return false;}
    pays=L.filter(p=>p.a>0).map(p=>({m:p.m,a:p.a}));const ef=L.find(p=>p.m==='efectivo');recv=ef?ef.r:0;}
-  const r=commitSale(pos.mix?'mixto':pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv,pays,ws:wsOn()?{chan:wsChan()}:null,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null});
+  const r=commitSale(pos.mix?'mixto':pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv,pays,det:pg.det,ws:wsOn()?{chan:wsChan()}:null,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null});
   if(r.err){wsCommitErr(r);return false;}
-  const sale=r.sale;pos.lines=[];pos.sel=-1;pos.cust='';pos.chanSet=null;pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];posCart();posGrid();
+  const sale=r.sale;pos.lines=[];pos.sel=-1;pos.cust='';pos.chanSet=null;pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];pos.pdet={};posCart();posGrid();
   toast('Venta '+sale.n+' registrada'+(r.stamp?' · sello sumado':''));
   setTimeout(()=>{if(sale.status==='pendiente')payModal(sale);else if(sale.doc!=='ticket_interno'&&typeof arcaPostSale==='function')arcaPostSale(sale,r.stamp);else receiptModal(sale,r.stamp);},50);}});
+ if(typeof pdBind==='function')pdBind(w);
  w.addEventListener('input',e=>{const t=e.target;
   if(t.id==='rcv'){const v=$('#vuelto',w);if(v)v.innerHTML=vueltoHTML(cents(t.value),posTotal());}
-  if(t.dataset&&t.dataset.pi!==undefined&&t.dataset.pf!=='m'){pos.pays[+t.dataset.pi][t.dataset.pf]=t.value;const sm=$('#mx-sum',w);if(sm)sm.innerHTML=mixSummaryHTML(posTotal());}
+  if(t.dataset&&t.dataset.pi!==undefined&&t.dataset.pf!=='m'){pos.pays[+t.dataset.pi][t.dataset.pf]=t.value;const sm=$('#mx-sum',w);if(sm)sm.innerHTML=mixSummaryHTML(posTotal());if(typeof pdRecheck==='function')pdRecheck(w);}
   if(t.id==='cb-q'){const q=t.value.trim().toLowerCase();const res=$('#cb-res',w);if(!q){res.innerHTML='';return;}
    const L=S.customers.filter(c=>c.status!=='baja'&&((c.name+' '+c.last).toLowerCase().includes(q)||c.wa.replace(/\D/g,'').includes(q.replace(/\D/g,'')||'zz')||pad4(c.num)===q||(c.dni&&normDni(q).length>=6&&normDni(c.dni)===normDni(q)))).slice(0,6);
    res.innerHTML=L.map(c=>`<button class="btn sm" style="margin:.2rem .2rem 0 0" data-act="cbcust" data-id="${c.id}">${esc(c.name+' '+c.last)} · ${esc(pad4(c.num))}</button>`).join('')||'<span class="sm mut">Sin resultados</span>';}});
@@ -208,8 +215,12 @@ function saleOkHTML(sale){
 function receiptModal(sale,stamp){
  modal('Venta '+sale.n+' registrada',`${saleOkHTML(sale)}${stamp?`<div class="okbox">⭐ Sello sumado a ${esc(stamp.custName)}: ${stamp.stamps}/${S.loyalty.goal}${stamp.reward?' · ¡premio disponible!':''}</div>`:''}<p class="sm mut">¿Querés imprimir el ticket? Si hay impresora térmica conectada se imprime directo; si no, se abre la impresión del navegador.</p>`,
   {okText:'Imprimir ticket',cancelText:'Nueva venta',onOk:()=>{printSale(sale.id);}});}
-function payModal(s){modal('Cobro '+MET[s.method]+' · '+s.n,`<div class="card" style="text-align:center"><div style="font:700 3rem Georgia">▦</div><p>QR <span class="tag sim">SIMULADO</span> por ${money(s.total)}</p><p class="sm mut">En producción: el servidor crea la orden y el proveedor confirma por webhook firmado. Volver del checkout o mostrar una captura <b>nunca</b> acredita el cobro.</p></div>`,
- {okText:'Simular pago aprobado',cancelText:'Dejar pendiente',onOk:()=>{const r=webhook(s.id,s.method+'_'+s.id+'_approved','approved');toast(r==='ok'?'Pago confirmado por webhook (simulado)':r==='offline'?'API caída (simulada): el cobro sigue pendiente':'Evento '+r,r==='ok'?0:1);rerender();}});}
+function payModal(s){const pdb=typeof pdPayBlock==='function'?pdPayBlock(s):'';
+ const w=modal('Cobro '+MET[s.method]+' · '+s.n,`<div class="card" style="text-align:center"><div style="font:700 3rem Georgia">▦</div><p>QR <span class="tag sim">SIMULADO</span> por ${money(s.total)}</p><p class="sm mut">En producción: el servidor crea la orden y el proveedor confirma por webhook firmado. Volver del checkout o mostrar una captura <b>nunca</b> acredita el cobro.</p></div>${pdb}`,
+ {okText:'Simular pago aprobado',cancelText:'Dejar pendiente',wide:!!pdb,onOk:()=>{
+  if(pdb&&typeof pdPayCommit==='function'){const e=pdPayCommit(s);if(e){toast(e,1);return false;}}
+  const r=webhook(s.id,s.method+'_'+s.id+'_approved','approved');toast(r==='ok'?'Pago confirmado por webhook (simulado)':r==='offline'?'API caída (simulada): el cobro sigue pendiente':'Evento '+r,r==='ok'?0:1);rerender();}});
+ if(pdb&&typeof pdBind==='function')pdBind(w);}
 A.paysale=el=>{const s=S.sales.find(x=>x.id===el.dataset.id);if(s)payModal(s);};
 
 reg('vender','Vender','cart','sell',()=>`<div class="fbar" id="fbar" role="toolbar" aria-label="Teclas de función"></div><div class="pos"><section><div class="card"><div class="row" style="flex-wrap:wrap"><input id="psearch" class="sp" style="min-width:12rem;flex:1 1 12rem" placeholder="Buscar producto o código de barras (F11)" autocomplete="off" aria-label="Buscar producto"><span id="devchips" class="row"></span></div>
@@ -239,7 +250,7 @@ document.addEventListener('keydown',e=>{if(curScreen!=='vender'||$('#panel').hid
 
 /* ---- teclas F (sólo dentro de Vender y del cobro; el navegador no las pisa) ---- */
 document.addEventListener('keydown',e=>{if(curScreen!=='vender'||$('#panel').hidden)return;const ov=$('#modal-root .ov');const m=/^F(\d{1,2})$/.exec(e.key);if(!m)return;const n=+m[1];if(n<1||n>12)return;
- if(ov){if(!cobroW())return;e.preventDefault();
+ if(ov){if(!cobroW()||$$('#modal-root .ov').length>1)return;e.preventDefault();
   if(n===12){ov.querySelector('[data-m=ok]').click();return;}
   const mm={1:'efectivo',2:'debito',3:'credito',4:'fiado'}[n];if(mm){pos.method=mm;pos.mix=false;pos.pays=[];cobroRender();posCart();}else if(n===8)A.parca();
   return;}

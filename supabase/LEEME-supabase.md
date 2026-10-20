@@ -1,4 +1,4 @@
-> **Proyecto nuevo:** el proyecto Supabase anterior ya no existe. Para uno nuevo alcanza con pegar **el contenido** de `INSTALAR-TODO.sql` (= 01 a 10, sin el 00) en el SQL Editor y ejecutarlo una vez. Después: `select public.rave_invitar_comercio('correo','Almacén RAVE','CODIGO');`, desactivar «Confirm email» y desplegar la función `arca`.
+> **Proyecto nuevo:** el proyecto Supabase anterior ya no existe. Para uno nuevo alcanza con pegar **el contenido** de `INSTALAR-TODO.sql` (= 01 a 11, sin el 00) en el SQL Editor y ejecutarlo una vez. Después: `select public.rave_invitar_comercio('correo','Almacén RAVE','CODIGO');`, desactivar «Confirm email» y desplegar la función `arca`.
 
 # Supabase · proyecto raveholding · Sistema RAVE
 
@@ -20,6 +20,7 @@ Todo se hace con el **dueño del proyecto** (Vincular Business). Nada de esto va
 | `06-v26.sql` | V26: borrado protegido y archivo de artículos (sólo administrador), cajas/sucursales/traspasos (colecciones `sucs`, `cajas`, `ctransf`). Aditivo e idempotente: si ya tenías 01 a 05, pegá sólo este. |
 | `08-proveedores-compras.sql` | **Proveedores y compras (V26.2):** tablas `proveedores`, `ordenes_compra`(+detalles), `ingresos_mercaderia`(+detalles) y `cuenta_corriente_proveedores` (libro sólo-agregar), con RLS por comercio, y las funciones `procesar_recepcion` (stock + costo + deuda/caja en una sola transacción), pagos, notas de crédito y `compras_snapshot`. Aditivo e idempotente. **Requiere 06 y 07 ya aplicados.** |
 | `10-mayorista-precios.sql` | **Mayorista/Minorista (V26.6, fase F1):** función interna `rave_deuda_cliente`, permisos de las colecciones nuevas `acuer` (acuerdos de precio), `cexc` (excepciones de crédito) y `cexcu` (consumo, sólo-agregar), validación del canal de venta y marca `credit_review` cuando una venta a cuenta corriente supera el límite sin excepción válida. Aditivo e idempotente. **Requiere 06, 07 y 09 ya aplicados. Correrlo ANTES de activar «Canal mayorista» en Configuración.** |
+| `11-traspasos-cobros-auditoria.sql` | **Traspasos entre cajas, detalle de cobros digitales y auditoría sólo-agregar (V26.8):** tablas `traspasos`, `traspaso_eventos`, `cobro_detalles`, `auditoria_eventos` (cadena de hashes verificable con `rave_verificar_cadena`), detector de números de tarjeta completos (`rave_parece_pan`), reglas del detalle del cobro configurables por comercio y espejo de la auditoría del panel. Aditivo e idempotente. **Requiere 01 a 10 ya aplicados.** |
 | `90-reiniciar-pruebas.sql` | **SÓLO PRUEBAS. Borra lo subido por todos los comercios.** No correr con el sistema en uso real. |
 
 Todos (menos 90) se pueden repetir sin romper nada.
