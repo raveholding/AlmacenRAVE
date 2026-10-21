@@ -287,19 +287,33 @@ A.cmpRemitoGo=()=>{if(!crS||crS.busy)return;if(!can('purchases'))return toast('S
 
 /* ---------- pagos y notas de crédito ---------- */
 A.cmpPay=el=>{if(!can('purchases'))return toast('Sin permiso',1);const s=cmpProv(el.dataset.id);if(!s)return;if(!(s.saldo>0)){toast('Este proveedor no tiene deuda',1);return;}
- const key=cmpKey();const rubs=S.rubros.filter(r=>r.kind!=='cobr'&&!r.sys);const sess=openSess();
+ const key=cmpKey();const noR=typeof xfCfg==='function'&&xfCfg().noRubro;const rubs=S.rubros.filter(r=>r.kind!=='cobr'&&!r.sys);const sess=openSess();
+ const abiertas=(S.sessions||[]).filter(x=>!x.closedAt);const multi=abiertas.length>1;
+ const exp=ss=>{try{return arqueoCalc(ss,arqInputs(ss)).expectedCash;}catch(e){return 0;}};
+ const cajaN=ss=>esc(ss.regName||('Caja '+ss.caja));
  modal('Pago a '+s.razon,`<div class="cmp"><p>Deuda actual: <b class="neg">${money(s.saldo)}</b></p>
   <label for="pg-m">Importe ($)</label>${numIn('pg-m',0,'Ej.: 15.000','class="cmp-in"')}
   <label for="pg-med">Medio de pago</label><select id="pg-med" class="cmp-in">${Object.entries(CMP_MEDIOS).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select>
-  <label for="pg-r">Rubro del egreso (obligatorio)</label><select id="pg-r" class="cmp-in"><option value="">— Elegí un rubro —</option>${rubs.map(r=>`<option value="${esc(r.id)}">${esc(r.name)}</option>`).join('')}</select>
+  ${noR?'':`<label for="pg-r">Rubro del egreso (obligatorio)</label><select id="pg-r" class="cmp-in"><option value="">— Elegí un rubro —</option>${rubs.map(r=>`<option value="${esc(r.id)}">${esc(r.name)}</option>`).join('')}</select>`}
   <label for="pg-ref">Referencia (recibo, cheque, transferencia)</label><input id="pg-ref" class="cmp-in" maxlength="80" autocomplete="off">
+  ${multi?`<div id="pg-box"><label class="chk"><input type="checkbox" id="pg-rep"> Repartir el efectivo entre varias cajas</label>
+   <div id="pg-reps" hidden>${abiertas.map(ss=>`<div class="row"><span class="sp">${cajaN(ss)} <small class="mut">efectivo esperado ${money(exp(ss))}</small></span>${numIn('pgc-'+ss.id,0,'0','class="cmp-in" style="max-width:130px"')}</div>`).join('')}<p class="sm" id="pg-sum" role="status"></p></div></div>`:''}
   <p class="sm mut">${sess?'Si pagás en efectivo, sale de la caja '+esc(S.tenant.caja)+' (abierta).':'No hay caja abierta: el pago en efectivo no se puede registrar hasta abrirla.'}</p></div>`,
   {okText:'Registrar pago',onOk:async w=>{const m=parseNum(val('pg-m'));if(!(m>0)){w._err('Cargá un importe mayor a cero.');return false;}
    if(Math.round(m*100)>s.saldo){w._err('El pago no puede superar la deuda ('+money(s.saldo)+').');return false;}
-   const p={idempotency_key:key,proveedor_id:s.id,monto:m,medio_pago:val('pg-med'),rubro_id:val('pg-r'),referencia:val('pg-ref')};
+   const rid=noR?sysRubro('sys-pago-proveedor','Pago a proveedores'):val('pg-r');
+   const p={idempotency_key:key,proveedor_id:s.id,monto:m,medio_pago:val('pg-med'),rubro_id:rid,referencia:val('pg-ref')};
    if(!p.rubro_id){w._err('Elegí el rubro del egreso: es obligatorio.');return false;}
-   if(p.medio_pago==='efectivo'){if(!sess){w._err('No hay caja abierta. Abrila en Caja o elegí otro medio.');return false;}p.turno_id=sess.id;}
-   try{const r=await CMP.pagar(p);toast(r.repetido?'Ese pago ya estaba registrado':'Pago registrado');cmpAfterOp();}catch(e){w._err(e.message);return false;}}});};
+   const rep=multi&&$('#pg-rep',w)&&$('#pg-rep',w).checked;
+   if(p.medio_pago==='efectivo'&&rep){const A_=[];let suma=0;for(const ss of abiertas){const raw=val('pgc-'+ss.id).trim();if(raw==='')continue;const c=cents(raw);if(isNaN(c)||c<0){w._err('Importe inválido en '+(ss.regName||'una caja')+'.');return false;}if(c===0)continue;
+     if(c>exp(ss)){w._err((ss.regName||'La caja')+' no tiene tanto efectivo (esperado '+money(exp(ss))+').');return false;}A_.push({turno_id:ss.id,monto:c/100});suma+=c;}
+    if(!A_.length){w._err('Cargá cuánto sale de cada caja.');return false;}
+    if(suma!==Math.round(m*100)){w._err('El reparto suma '+money(suma)+' y el pago es '+money(Math.round(m*100))+'.');return false;}p.asignaciones=A_;}
+   else if(p.medio_pago==='efectivo'){if(!sess){w._err('No hay caja abierta. Abrila en Caja o elegí otro medio.');return false;}p.turno_id=sess.id;}
+   try{const r=await CMP.pagar(p);toast(r.repetido?'Ese pago ya estaba registrado':'Pago registrado');cmpAfterOp();}catch(e){w._err(e.message);return false;}}});
+ const root=$('#modal-root');const sync=()=>{const on=$('#pg-rep')&&$('#pg-rep').checked&&val('pg-med')==='efectivo';const bx=$('#pg-reps');if(bx)bx.hidden=!on;
+  if(on){let sm=0;abiertas.forEach(ss=>{const c=cents(val('pgc-'+ss.id)||'0');if(!isNaN(c))sm+=c;});const tot=Math.round((parseNum(val('pg-m'))||0)*100);const d=tot-sm;const o=$('#pg-sum');if(o)o.textContent=d===0&&tot>0?'✔ El reparto cubre el pago.':(d>0?'Faltan '+money(d)+' por repartir.':'Sobran '+money(-d)+'.');}};
+ if(root)root.addEventListener('input',sync);if(root)root.addEventListener('change',sync);};
 A.cmpNc=el=>{if(!can('purchases'))return toast('Sin permiso',1);const s=cmpProv(el.dataset.id);if(!s)return;const key=cmpKey();
  modal('Nota de crédito de '+s.razon,`<div class="cmp"><p>Saldo actual: ${cmpSaldoTag(s.saldo)}</p>
   <label for="nc-m">Importe ($)</label>${numIn('nc-m',0,'Ej.: 4.500','class="cmp-in"')}

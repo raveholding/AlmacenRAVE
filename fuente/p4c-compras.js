@@ -157,10 +157,18 @@ const LOCAL={
   const medio=cmpTxt(p.medio_pago),rubro=cmpTxt(p.rubro_id),turno=cmpTxt(p.turno_id),ref=(cmpTxt(p.referencia)||'').slice(0,80);
   if(!medio||!CMP_MEDIOS[medio])cmpFail('indicá el medio de pago (efectivo, transferencia, cheque o tarjeta)');
   cmpRubroEgreso(rubro,true);
-  let mov=null;if(medio==='efectivo'){cmpTurnoAbierto(turno);mov=cmpMovCaja(turno,rubro,'Pago a proveedor '+prov.razon+(ref?' · '+ref:''),mc,'pago');}
-  prov.saldo-=mc;const e=cmpLedger(prov.id,'Pago',mc,prov.saldo,{ref,medio,rubro,movId:mov,key});
-  audit('PROVEEDOR_PAGO',prov.razon+' · '+money(mc)+' · '+medio);if(mov)emit('cash.movement',{type:'egreso',rubro,amount:mc});save();
-  return{ok:true,repetido:false,movimiento_id:e.id,monto,saldo_proveedor:c2p(prov.saldo),movimiento_caja_id:mov};});},
+  let mov=null,asig=null;
+  if(Array.isArray(p.asignaciones)&&p.asignaciones.length){ /* pago repartido entre cajas: un solo Pago, un egreso por caja, suma exacta; todo o nada (cmpAtomic revierte) */
+   if(medio!=='efectivo')cmpFail('el reparto entre cajas sólo corresponde a pagos en efectivo');
+   const seen=new Set();let suma=0;asig=p.asignaciones.map(a=>{const t=cmpTxt(a.turno_id),c=p2c(cmpNum(a.monto));
+    if(!t||!(c>0))cmpFail('cada caja del reparto necesita turno e importe mayor a cero');if(seen.has(t))cmpFail('una misma caja no puede repetirse en el reparto');seen.add(t);cmpTurnoAbierto(t);suma+=c;return{t,c};});
+   if(suma!==mc)cmpFail('el reparto entre cajas ('+c2p(suma)+') no suma el pago ('+monto+')');
+   asig.forEach(a=>{a.mov=cmpMovCaja(a.t,rubro,'Pago a proveedor '+prov.razon+(ref?' · '+ref:''),a.c,'pago');});
+  }else if(medio==='efectivo'){cmpTurnoAbierto(turno);mov=cmpMovCaja(turno,rubro,'Pago a proveedor '+prov.razon+(ref?' · '+ref:''),mc,'pago');}
+  prov.saldo-=mc;const e=cmpLedger(prov.id,'Pago',mc,prov.saldo,{ref,medio,rubro,movId:mov,key,asig:asig?asig.map(a=>({turno_id:a.t,monto:a.c,movId:a.mov})):undefined});
+  audit('PROVEEDOR_PAGO',prov.razon+' · '+money(mc)+' · '+medio+(asig?' · repartido en '+asig.length+' cajas':''));
+  if(mov)emit('cash.movement',{type:'egreso',rubro,amount:mc});if(asig)asig.forEach(a=>emit('cash.movement',{type:'egreso',rubro,amount:a.c}));save();
+  return{ok:true,repetido:false,movimiento_id:e.id,monto,saldo_proveedor:c2p(prov.saldo),movimiento_caja_id:mov,asignaciones:asig?asig.map(a=>({turno_id:a.t,monto:c2p(a.c),movimiento_caja_id:a.mov})):[]};});},
  async nc(p){cmpAcceso();return cmpAtomic(()=>{
   const key=cmpKeyOk(cmpTxt(p.idempotency_key));
   const prov=cmpProv(p.proveedor_id);if(!prov)cmpFail('el proveedor no existe en este comercio');

@@ -78,7 +78,8 @@ function xfAuthHTML(){return`<div class="warnbox" id="xf-ab" hidden><b>Necesita 
  <label for="xf-ap">${xfCloud()?'Clave del administrador':'PIN del administrador'}</label><input id="xf-ap" type="password" autocomplete="off" ${xfCloud()?'':'inputmode="numeric"'}></div>`;}
 /* ---------- crear un traspaso (lógica pura: la usan el modal y las pruebas) ---------- */
 /* perfil sin rubros (mayorista de un solo dueño): el traspaso usa un concepto interno fijo y oculto; no toca los rubros del negocio */
-function xfSysRubro(){let r=S.rubros.find(x=>x.id==='sys-traspaso');if(!r){r={id:'sys-traspaso',name:'Traspaso interno',kind:'shared',color:'#6b7280',sys:true,reparte:false,owner:'',active:true};S.rubros.push(r);}return r.id;}
+function sysRubro(id,name){let r=S.rubros.find(x=>x.id===id);if(!r){r={id,name,kind:'shared',color:'#6b7280',sys:true,reparte:false,owner:'',active:true};S.rubros.push(r);}return r.id;}
+function xfSysRubro(){return sysRubro('sys-traspaso','Traspaso interno');}
 function xferCreate(o){
  if(!mainOn())return'El módulo de caja principal no está habilitado.';
  if(!xfCan())return'Sin permiso para traspasar fondos.';
