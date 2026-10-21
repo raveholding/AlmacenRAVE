@@ -286,9 +286,13 @@ A.cmpRemitoGo=()=>{if(!crS||crS.busy)return;if(!can('purchases'))return toast('S
    catch(e){c.busy=false;w._err(e.message);return false;}}});};
 
 /* ---------- pagos y notas de crédito ---------- */
-A.cmpPay=el=>{if(!can('purchases'))return toast('Sin permiso',1);const s=cmpProv(el.dataset.id);if(!s)return;if(!(s.saldo>0)){toast('Este proveedor no tiene deuda',1);return;}
+/* En la nube, repartir un pago entre cajas exige la migración 12 en el servidor: se detecta (la tabla existe) y, si falta, la opción no se ofrece. */
+const CMP12={ok:null};
+async function cmp12Probe(){try{await sel('pagos_proveedor_asignaciones?select=id&limit=1');CMP12.ok=true;}catch(e){CMP12.ok=(e&&(e.net||(e.status&&e.status!==404&&e.status!==400)))?null:false;}}
+A.cmpPay=async el=>{if(!can('purchases'))return toast('Sin permiso',1);const s=cmpProv(el.dataset.id);if(!s)return;if(!(s.saldo>0)){toast('Este proveedor no tiene deuda',1);return;}
+ if(typeof cmpCloud==='function'&&cmpCloud()&&CMP12.ok===null)await cmp12Probe();
  const key=cmpKey();const noR=typeof xfCfg==='function'&&xfCfg().noRubro;const rubs=S.rubros.filter(r=>r.kind!=='cobr'&&!r.sys);const sess=openSess();
- const abiertas=(S.sessions||[]).filter(x=>!x.closedAt);const multi=abiertas.length>1;
+ const abiertas=(S.sessions||[]).filter(x=>!x.closedAt);const multi=abiertas.length>1&&(!(typeof cmpCloud==='function'&&cmpCloud())||CMP12.ok===true);
  const exp=ss=>{try{return arqueoCalc(ss,arqInputs(ss)).expectedCash;}catch(e){return 0;}};
  const cajaN=ss=>esc(ss.regName||('Caja '+ss.caja));
  modal('Pago a '+s.razon,`<div class="cmp"><p>Deuda actual: <b class="neg">${money(s.saldo)}</b></p>
