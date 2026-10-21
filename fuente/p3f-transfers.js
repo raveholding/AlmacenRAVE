@@ -5,7 +5,7 @@
    · Estados por eventos sólo-agregar (S.transferEvents, colección ctev): completado · en_transito · recibido · recibido_con_diferencia · devuelto · revertido
    · Comprobante interno «Boleta de Movimiento de Fondos» con número T-<caja>-<n>, cadena de hash e impresión 80/58 mm y A4
    · El servidor (migración 11) vuelve a validar permiso, autorizante, estado de las cajas, importe y rubro. Ocultar un botón no es un control. */
-const XF_DEF={strict:false,closedMode:'transito',approvalOver:0,transitAlertH:0,selfAuth:false};
+const XF_DEF={strict:false,closedMode:'transito',approvalOver:0,transitAlertH:0,selfAuth:false,noRubro:false};
 const xfCfg=()=>Object.assign({},XF_DEF,(S.cfg&&S.cfg.xfer)||{});
 const xfStrict=()=>!!xfCfg().strict;
 /* quién puede emitir y recibir: con la bandera, sólo `transfer_funds`; sin ella, como hasta ahora (arqueo y cierre) o `transfer_funds` */
@@ -77,6 +77,8 @@ function xfAuthHTML(){return`<div class="warnbox" id="xf-ab" hidden><b>Necesita 
  <label for="xf-au">Administrador que autoriza</label><select id="xf-au"></select>
  <label for="xf-ap">${xfCloud()?'Clave del administrador':'PIN del administrador'}</label><input id="xf-ap" type="password" autocomplete="off" ${xfCloud()?'':'inputmode="numeric"'}></div>`;}
 /* ---------- crear un traspaso (lógica pura: la usan el modal y las pruebas) ---------- */
+/* perfil sin rubros (mayorista de un solo dueño): el traspaso usa un concepto interno fijo y oculto; no toca los rubros del negocio */
+function xfSysRubro(){let r=S.rubros.find(x=>x.id==='sys-traspaso');if(!r){r={id:'sys-traspaso',name:'Traspaso interno',kind:'shared',color:'#6b7280',sys:true,reparte:false,owner:'',active:true};S.rubros.push(r);}return r.id;}
 function xferCreate(o){
  if(!mainOn())return'El módulo de caja principal no está habilitado.';
  if(!xfCan())return'Sin permiso para traspasar fondos.';
@@ -88,7 +90,8 @@ function xferCreate(o){
  const fs=xfRegState(o.from),ts=xfRegState(o.to);
  if((fs.st==='cerrada'||ts.st==='cerrada')&&!xfStrict())return'Las dos cajas tienen que estar abiertas para traspasar. Para mover fondos con una caja cerrada hace falta el permiso de traspasos (Usuarios y permisos).';
  if(brOn()&&(fr.branchId||'')!==(to.branchId||'')&&fr.type!=='main'&&to.type!=='main')return'Entre sucursales distintas sólo se traspasa desde o hacia una caja principal.';
- const e=validRubro(o.rubro,'ingreso')||validRubro(o.rubro,'egreso');if(e)return e;
+ if(xfCfg().noRubro&&!o.rubro)o.rubro=xfSysRubro();
+ const e=o.rubro==='sys-traspaso'?'':(validRubro(o.rubro,'ingreso')||validRubro(o.rubro,'egreso'));if(e)return e;
  if(!o.motivo||o.motivo.trim().length<3)return'Escribí el motivo (mínimo 3 letras).';
  let avail;if(fs.st==='abierta'){const ss=openOf(o.from);avail=arqueoCalc(ss,arqInputs(ss)).expectedCash;}else avail=xfSuggested(o.from).amount;
  if(o.amount>avail&&!o.force)return fs.st==='abierta'?'La caja de origen no tiene efectivo suficiente (esperado '+money(avail)+').':'La caja de origen está cerrada y su fondo retenido es '+money(avail)+': no alcanza.';
@@ -154,7 +157,7 @@ async function xfOpenModal(o){ /* o: {rev?:transfer, title} */
  <label for="xf-f">Desde</label><select id="xf-f" ${rv?'disabled':''}>${regs.map(opt).join('')}</select>
  <label for="xf-t">Hacia</label><select id="xf-t" ${rv?'disabled':''}>${regs.map(opt).join('')}</select>
  <label for="xf-a">Importe ($)</label>${numIn('xf-a',rv?rv.amount:0,'0')}
- <label for="xf-r">Rubro (obligatorio)</label><select id="xf-r"><option value="">— Elegí un rubro —</option>${xfRubOpts()}</select>
+ ${xfCfg().noRubro?'':`<label for="xf-r">Rubro (obligatorio)</label><select id="xf-r"><option value="">— Elegí un rubro —</option>${xfRubOpts()}</select>`}
  <label for="xf-m">Motivo / concepto</label><input id="xf-m" maxlength="200" placeholder="Ej.: retiro de excedente a caja principal" autocomplete="off" value="${rv?esc('Reversa: '+rv.motivo):''}">
  <p class="sm mut" id="xf-ds"></p>
  ${xfAuthHTML()}
@@ -162,11 +165,11 @@ async function xfOpenModal(o){ /* o: {rev?:transfer, title} */
  {okText:rv?'Revertir':'Traspasar',onOk:async w2=>{
   const f=val('xf-f'),t=val('xf-t'),amt=cents(val('xf-a'));const why=xfReasons(f,t,isNaN(amt)?0:amt,rv?rv.id:'');let auth=null;
   if(why.length){const res=await xfAuthResolve(adms,val('xf-au'),val('xf-ap'));if(res.err){w2._err(res.err);return false;}auth=res.auth;}
-  const e=xferCreate({id,from:f,to:t,amount:amt,rubro:val('xf-r'),motivo:val('xf-m'),auth,rev:rv?rv.id:undefined,force:!!rv});
+  const e=xferCreate({id,from:f,to:t,amount:amt,rubro:(w2.querySelector('#xf-r')?val('xf-r'):''),motivo:val('xf-m'),auth,rev:rv?rv.id:undefined,force:!!rv});
   if(e){w2._err(e);return false;}
   toast('Traspaso registrado');rerender();const tt=xfTr(id);if(tt)setTimeout(()=>A.xferView({dataset:{id:tt.id}}),60);}});
  w.dataset.rev=rv?rv.id:'';
- const set=(id2,v)=>{const el=w.querySelector('#'+id2);if(el&&v)el.value=v;};set('xf-f',fromId);set('xf-t',toId);if(rv)set('xf-r',rv.rubro);
+ const set=(id2,v)=>{const el=w.querySelector('#'+id2);if(el&&v)el.value=v;};set('xf-f',fromId);set('xf-t',toId);if(rv&&!xfCfg().noRubro)set('xf-r',rv.rubro);
  const au=w.querySelector('#xf-au');if(au)au.innerHTML=cand.length?cand.map(a=>`<option value="${esc(a.id)}">${esc(a.name)}${a.id===xfMe()?' (yo)':''}</option>`).join(''):'<option value="">No hay otro administrador que pueda autorizar</option>';
  ['input','change'].forEach(ev=>w.addEventListener(ev,()=>xfModalSync(w)));xfModalSync(w);}
 A.xfer=()=>xfOpenModal({});
@@ -326,7 +329,8 @@ function xfCfgCard(){const c=xfCfg();if(!can('config'))return'';
  <label for="xc-o">Pedir autorización de un administrador si el importe supera ($, vacío = nunca)</label>${numIn('xc-o',c.approvalOver,'Sin límite')}
  <label for="xc-h">Alerta de fondos en tránsito después de (horas, vacío = sin alerta)</label><input id="xc-h" inputmode="numeric" placeholder="Sin alerta" value="${c.transitAlertH?c.transitAlertH:''}" autocomplete="off">
  <label class="chk"><input type="checkbox" id="xc-a" ${c.selfAuth?'checked':''}> Con más de un administrador, permitir que uno se autorice a sí mismo</label>
+ <label class="chk"><input type="checkbox" id="xc-n" ${c.noRubro?'checked':''}> Perfil sin rubros (un solo dueño): los traspasos no piden rubro y quedan como «Traspaso interno»</label>
  <div class="row"><button class="btn gold" data-act="xfCfgSave">Guardar reglas</button></div></div>`;}
 A.xfCfgSave=()=>{if(!can('config'))return toast('Sólo el administrador',1);const o=cents(val('xc-o')),h=parseInt(val('xc-h'),10);
- const n={strict:$('#xc-s').checked,closedMode:val('xc-m')==='saldo_inicial'?'saldo_inicial':'transito',approvalOver:isNaN(o)||o<0?0:o,transitAlertH:isNaN(h)||h<0?0:h,selfAuth:$('#xc-a').checked};
+ const n={strict:$('#xc-s').checked,closedMode:val('xc-m')==='saldo_inicial'?'saldo_inicial':'transito',approvalOver:isNaN(o)||o<0?0:o,transitAlertH:isNaN(h)||h<0?0:h,selfAuth:$('#xc-a').checked,noRubro:$('#xc-n').checked};
  const old=xfCfg();S.cfg.xfer=n;audit('TRASPASO_REGLAS','estricto '+old.strict+'→'+n.strict+' · cerradas '+old.closedMode+'→'+n.closedMode+' · supera '+money(old.approvalOver)+'→'+money(n.approvalOver)+' · alerta '+old.transitAlertH+'→'+n.transitAlertH+' h · autoautorización '+old.selfAuth+'→'+n.selfAuth);save();rerender();toast('Reglas guardadas');};

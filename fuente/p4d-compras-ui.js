@@ -158,7 +158,7 @@ function cmpRemitoTab(){if(!crS)cmpNewRemito('');return `<div id="cr-box">${cmpR
 function cmpRemitoInner(){const c=crS;
  if(c.res)return cmpRemitoResult(c.res);
  const prov=cmpProv(c.prov);const ocs=prov?cmpArr('pOrders').filter(o=>o.provId===prov.id&&o.estado==='Solicitada').sort((a,b)=>b.num-a.num):[];
- const sess=openSess();const rubs=S.rubros.filter(r=>r.kind!=='cobr');
+ const sess=openSess();const rubs=S.rubros.filter(r=>r.kind!=='cobr'&&!r.sys);
  const contado=c.cond==='contado';
  return `<div class="cmp-form" id="cr-form" role="group" aria-label="Carga de remito">
   <fieldset class="cmp-card"><legend>1 · Proveedor y orden de compra</legend>
@@ -287,7 +287,7 @@ A.cmpRemitoGo=()=>{if(!crS||crS.busy)return;if(!can('purchases'))return toast('S
 
 /* ---------- pagos y notas de crédito ---------- */
 A.cmpPay=el=>{if(!can('purchases'))return toast('Sin permiso',1);const s=cmpProv(el.dataset.id);if(!s)return;if(!(s.saldo>0)){toast('Este proveedor no tiene deuda',1);return;}
- const key=cmpKey();const rubs=S.rubros.filter(r=>r.kind!=='cobr');const sess=openSess();
+ const key=cmpKey();const rubs=S.rubros.filter(r=>r.kind!=='cobr'&&!r.sys);const sess=openSess();
  modal('Pago a '+s.razon,`<div class="cmp"><p>Deuda actual: <b class="neg">${money(s.saldo)}</b></p>
   <label for="pg-m">Importe ($)</label>${numIn('pg-m',0,'Ej.: 15.000','class="cmp-in"')}
   <label for="pg-med">Medio de pago</label><select id="pg-med" class="cmp-in">${Object.entries(CMP_MEDIOS).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select>
