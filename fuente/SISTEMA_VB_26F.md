@@ -1,6 +1,6 @@
 # SISTEMA VB 26F (`SISTEMA_VB_26F`) — PROMPT MAESTRO INTEGRAL FINAL (ERP/POS CONVERSACIONAL Y MODULAR)
 
-Versión 26F · revisión V26.10 (integra la **tarjeta del Club portátil 4.25** y el **menú público «local / tienda con envíos» 4.26**; incluye V26.1 pagos mixtos, V26.2 proveedores y compras, V26.3 Club/tarjeta/DNI/NFC, la **especificación del módulo Mayorista/Minorista 4.22** la **especificación corregida de traspasos de fondos, detalle de cobros digitales y expediente digital 4.23** y los **ajustes 4.24: detalle de las ventas de la caja, cajas sin límite de operaciones y administración de los clientes del Club**) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
+Versión 26F · revisión V26.11 (integra el **cierre de caja por rubro 4.27**; la **tarjeta del Club portátil 4.25** y el **menú público «local / tienda con envíos» 4.26**; incluye V26.1 pagos mixtos, V26.2 proveedores y compras, V26.3 Club/tarjeta/DNI/NFC, la **especificación del módulo Mayorista/Minorista 4.22** la **especificación corregida de traspasos de fondos, detalle de cobros digitales y expediente digital 4.23** y los **ajustes 4.24: detalle de las ventas de la caja, cajas sin límite de operaciones y administración de los clientes del Club**) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
 
 **Objetivo de V26:** construir el sistema desde el inicio con una arquitectura extensible y un asistente conversacional transversal por voz y texto, integrado al catálogo de acciones de negocio. Incorporar además cajas operativas y principales configurables, gestión multisucursal, borrado protegido de artículos, ordenamiento reutilizable de todas las tablas y un checkout e-commerce opcional que convive con el flujo actual de pedidos por WhatsApp, tarjetas de fidelización guardables en Apple Wallet/Google Wallet y avisos automáticos multicanal con consentimiento y control de frecuencia. Este prompt define requisitos y criterios de aceptación; ninguna función se considera implementada hasta demostrarla con archivos, migraciones y pruebas reales.
 
@@ -1309,6 +1309,24 @@ Un paso se da por terminado sólo con sus pruebas de 4.24.5 verdes, **regresión
 
 ---
 
+## 4.27 CIERRE DE CAJA POR RUBRO (CADA RUBRO ES UNA PERSONA) E INGRESO/EGRESO A LA CAJA DEL RUBRO (V26.11)
+
+**Estado: IMPLEMENTADO en V26.11** (partes `p3-ops.js` —`arqueoCalc`, `buildReport`, Arqueo, Cajas cerradas—, `p3i-rubcash.js`; prueba `k3.py`). Pedido del dueño de Almacén RAVE: el cierre no se entendía. Aditivo: no cambia ventas, stock ni el sello del cierre; sólo agrega datos y reordena la lectura.
+
+**4.27.1 Reglas**
+1. **Cada rubro es una persona** (responsable). En *Arqueo y cierre*, en *Caja* y en el detalle de *Cajas cerradas* se muestra, **por rubro**: **vendió**, **ganancia de ventas**, **movimientos** (ingresos y egresos de ese rubro) y **caja física del rubro** (efectivo que cobró + ingresos − egresos − su parte del sueldo y de los gastos si se pagaron de la caja), con el desglose de lo cobrado en efectivo, digital y a cuenta corriente.
+2. **Cierra con el cajón:** suma de cajas por rubro + fondo de apertura y traspasos = efectivo esperado. Cualquier diferencia sin rubro se muestra como «diferencia sin rubro».
+3. **Liquidación (orden fijo):** ganancia de sus ventas (con sus movimientos) → **sueldo del empleado a medias** entre los rubros que reparten → gastos a medias → **impuesto que se separa** (por defecto **$ 30.000 para cada uno**, editable por persona y por día; si nunca se configuró, se usa ese valor) → **ganancia propia**. Con la opción «se suma y se divide a partes iguales» (**por defecto**) se suman las ganancias propias y a cada uno le corresponde la mitad; con «cada uno la suya» (`cfg.profitMode='each'`) cada uno se queda con la propia. Lo elige el administrador en el Arqueo.
+4. **Merienda eliminada:** su costo ya está incluido en las horas pagadas. Se quitó el campo, el cálculo y la línea del informe (los cierres viejos conservan su texto).
+5. **Ingreso y egreso van a la caja del rubro elegido** (rubro obligatorio, O.10): el ingreso suma a esa caja y el egreso la resta; el modal lo explica. Ejemplo: Juan le debe $ 1.000 a Nico → Nico cobra un producto suyo y se registra un **egreso de $ 1.000 del rubro de Juan**: Nico suma por la venta, Juan resta y el cajón queda igual (es como si Juan le hubiera pagado a Nico).
+6. El cierre sellado guarda estos datos (`data.reparte[].fis`, `final`, etc.); el sello SHA-256 y el congelado no cambian.
+
+**4.27.2 Pruebas (`k3.py`, 26 verificaciones):** ventas por rubro, ingreso/egreso por rubro, sueldo 8 hs a medias, impuesto 30.000 por defecto y editable, ganancia a partes iguales y modo «cada uno la suya», cierre del cajón sin diferencia, sin merienda, tablas en Arqueo y Caja, 390 px sin desborde.
+
+**4.27.3 Límites declarados:** el egreso entre socios reduce también la **ganancia propia** del rubro que paga si `movAffectProfit` está activo (valor por defecto); sin pagos mixtos por rubro dentro del POS (el ejemplo de la deuda se resuelve con la venta + el egreso del rubro); el reparto asume 2 o más rubros que reparten, a partes iguales; probado sólo en la demo, **no con los datos reales del cliente**.
+
+---
+
 ## 5. MÓDULOS OPCIONALES (aditivos, auditables, apagados por defecto si dependen de terceros)
 
 Reglas comunes: banderas por comercio/sucursal/rol/dispositivo; migraciones SQL aditivas, versionadas e idempotentes probadas sobre copia; `tenant_id`, RLS y pruebas cruzadas A/B en toda entidad; servidor valida y recalcula; idempotencia; límites de uso; auditoría; dinero en centavos enteros; sin proveedor/credencial/dispositivo → estado "Pendiente de configuración" y el resto sigue funcionando; ninguna integración se declara terminada por tener una pantalla simulada.
@@ -1769,4 +1787,10 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 
 ---
 
-FIN DE SISTEMA VB 26F (revisión V26.10)
+## ANEXO I — AS-BUILT DE 4.27 (V26.11, 2026-10-21)
+
+**I.1** Parte nueva `p3i-rubcash.js` (en `build.py`); cambios en `p3-ops.js`. Sin migraciones SQL. **I.2 Pruebas (demo):** `k3` 26/26; regresión `v1`–`v8`, `d1`, `p1`, `ws1`, `h1`, `g1`–`g3`, `h3`, `k1`, `k2`, `resp4` verde. **Lección:** `k2` falla de noche porque el alcohol se oculta fuera de horario: las pruebas con alcohol usan reloj fijo (`page.clock`).
+
+---
+
+FIN DE SISTEMA VB 26F (revisión V26.11)

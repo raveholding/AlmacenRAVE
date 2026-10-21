@@ -14,7 +14,7 @@ with sync_playwright() as p:
         fr=pg.frame_locator('#pubframe')
         if fr.locator('#age-gate.open').count(): fr.locator('#ag-yes').click();pg.wait_for_timeout(300)
         return fr
-    pg.goto('file:///tmp/rave/index.html#acceso');pg.wait_for_timeout(600)
+    pg.clock.install(time=__import__('datetime').datetime(2026,10,21,15,0));pg.goto('file:///tmp/rave/index.html#acceso');pg.wait_for_timeout(600)
     pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(400)
     ev("location.hash='#panel/caja'");pg.wait_for_timeout(300)
     if pg.locator('#ap').count():
