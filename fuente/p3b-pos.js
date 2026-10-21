@@ -3,7 +3,7 @@ const pos={lines:[],method:'efectivo',arca:false,rcp:null,sel:-1,q:'',rub:'',cus
 const prod=id=>S.products.find(p=>p.id===id);
 const pfull=p=>p.name+(p.sub?' ('+p.sub+')':'');
 const qtyIn=pid=>pos.lines.filter(l=>l.pid===pid).reduce((a,l)=>a+l.qty,0);
-const posGross=()=>pos.lines.reduce((a,l)=>a+Math.round(l.qty*l.price),0);
+const posGross=()=>pos.lines.reduce((a,l)=>a+(typeof lnAmt==='function'?lnAmt(l):Math.round(l.qty*l.price)),0);
 const posBen=()=>(typeof wsNoClub==='function'&&wsNoClub())?{disc:0,kind:'',label:'',code:'',couponId:'',couponErr:'',base:0}:applyBenefit(pos.lines,pos.cust,pos.coupon);
 const posTotal=()=>posGross()-posBen().disc;
 const POS_METHODS=['efectivo','debito','credito','fiado','transferencia','qr','modo'];
@@ -49,6 +49,7 @@ function commitSale(method,arca,channel,lines,opts){
  /* beneficio: se recalcula acá (en la versión con servidor, en el servidor) */
  const cust=opts.custId?custById(opts.custId):null;
  const W=(opts.ws&&wsOn())?wsGate(lines,cust,opts):null;if(W&&W.err)return W;
+ if(W)lines=wsSplit(lines);
  const ben=(W&&W.chan==='mayorista'&&!W.club)?{disc:0,kind:'',label:'',code:'',couponId:'',couponErr:'',base:0}:(typeof applyBenefit==='function')?applyBenefit(lines,cust?cust.id:'',opts.coupon||''):{disc:0,kind:''};
  if(opts.coupon&&ben.kind!=='coupon'&&ben.couponErr)return{err:'Cupón: '+ben.couponErr};
  const gross=lines.reduce((a,l)=>a+Math.round(l.qty*l.price),0);const total=gross-ben.disc;const alloc=allocDisc(lines,ben.disc);

@@ -198,7 +198,7 @@ const stockTxt=p=>(p.stock<0?'−'+Math.abs(p.stock):String(p.stock).replace('.'
 const empName=id=>(S.employees.find(e=>e.id===id)||{name:'—'}).name;
 const openSess=()=>S.sessions.find(s=>!s.closedAt&&(s.caja===undefined||s.caja===S.tenant.caja)); /* la sesión abierta de ESTE equipo (otros equipos tienen la suya) */
 const saleOk=s=>s.status==='ok';
-const lineTotal=it=>Math.round(it.qty*it.price)-(it.disc||0);
+const lineTotal=it=>(it.tr&&it.amt>0?it.amt:Math.round(it.qty*it.price))-(it.disc||0);
 const lineCost=it=>Math.round(it.qty*it.cost);
 const initial=n=>(String(n||'?').trim()[0]||'?').toUpperCase();
 

@@ -31,17 +31,23 @@ function priceResolve(p,qty,ctx){
  if(ag){R.price=ag.price>0?ag.price:Math.round(p.price*(1-ag.pct/100));R.rule='ACU';R.list='ACU';R.agr=ag.id;R.why='Acuerdo especial'+(ag.pid?'':' (rubro)')+' · '+(ag.price>0?money(ag.price):ag.pct+' % off');return fin();}
  if(chan!=='mayorista')return fin();
  R.why='Unidad (precio de venta)';
- let hit=null,nx=null;
- for(const k of wsPres(p)){if(qty>=k.qty-1e-9)hit=k;else if(!nx)nx=k;}
- if(hit&&hit.unit<R.price){R.price=hit.unit;R.rule='P-'+hit.lv;R.list=wsLvName(hit.lv);R.pres=hit;R.why=R.list+' (desde '+numAR(hit.qty,3)+' u): '+money(hit.unit)+' por unidad';}
- if(nx&&nx.unit<R.price)R.missing='Faltan '+numAR(nx.qty-qty,3)+' u para el precio '+wsLvName(nx.lv)+' ('+money(nx.unit)+' por unidad)';
+ /* cobro POR TRAMOS: cada presentación completa va a su precio por unidad y el resto suelto al precio de venta (nunca se cobra todo al precio de la presentación) */
+ const P=wsPres(p).filter(k=>k.unit<p.price).reverse();let rem=qty,nx=null;const tr=[];
+ for(const k of P){const n=Math.floor(rem/k.qty+1e-9);if(n>0){tr.push({qty:Math.round(n*k.qty*1000)/1000,price:k.unit,rule:'P-'+k.lv,lst:wsLvName(k.lv)});rem=Math.round((rem-n*k.qty)*1000)/1000;}}
+ for(const k of wsPres(p)){if(k.unit<p.price&&qty<k.qty-1e-9){nx=k;break;}}
+ if(tr.length){if(rem>1e-9)tr.push({qty:rem,price:p.price,rule:'L1',lst:'Unidad'});
+  R.amt=tr.reduce((a,t)=>a+Math.round(t.qty*t.price),0);R.tr=tr;R.price=Math.round(R.amt/qty);
+  R.rule=tr.length===1?tr[0].rule:'MIX';R.list=tr.length===1?tr[0].lst:'Mixto';
+  R.why=tr.map(t=>numAR(t.qty,3)+' u '+t.lst+' a '+money(t.price)).join(' + ');}
+ if(nx)R.missing='Faltan '+numAR(nx.qty-qty,3)+' u para el precio '+wsLvName(nx.lv)+' ('+money(nx.unit)+' por unidad)';
  return fin();}
 /* recalcula las líneas del ticket en curso (las que no tienen precio puesto a mano) */
 function wsRecalc(){if(!wsOn()||typeof pos==='undefined')return;
  const cust=custById(pos.cust),chan=wsChan();const agg={};pos.lines.forEach(l=>agg[l.pid]=(agg[l.pid]||0)+l.qty);
  pos.lines.forEach(l=>{const p=prod(l.pid);if(!p)return;
-  if(l.man){l.rule='MAN';l.lst='';l.why='Precio puesto a mano (queda auditado)';l.miss='';return;}
-  const r=priceResolve(p,agg[l.pid],{cust,chan});
+  if(l.man){l.rule='MAN';l.lst='';l.why='Precio puesto a mano (queda auditado)';l.miss='';delete l.tr;delete l.amt;return;}
+  const dup=pos.lines.filter(x=>x.pid===l.pid).length>1;
+  const r=priceResolve(p,dup?l.qty:agg[l.pid],{cust,chan});l.tr=r.tr;l.amt=r.amt;
   if(l.price!==r.price){delete l.flrOk;}
   l.price=r.price;l.list=r.price;l.rule=r.rule;l.lst=r.list;l.base=r.base;l.why=r.why;l.miss=r.missing;});}
 /* validaciones y precios finales al cobrar (el mismo cálculo que la pantalla) */
@@ -53,10 +59,13 @@ function wsGate(lines,cust,opts){
   if(!conf.allowClub){if(opts.coupon)return{err:'Los cupones del Club no se aplican a ventas mayoristas.'};if(opts.stampCode)return{err:'Los sellos del Club no se otorgan en ventas mayoristas.'};}}
   const agg={};lines.forEach(l=>agg[l.pid]=(agg[l.pid]||0)+l.qty);
  for(const l of lines){const p=prod(l.pid);if(!p)continue;
-  if(l.man){l.rule='MAN';l.lst='';}
-  else{const r=priceResolve(p,agg[l.pid],{cust,chan});if(l.price!==r.price)delete l.flrOk;l.price=r.price;l.rule=r.rule;l.lst=r.list;l.base=r.base;l.why=r.why;}
-  if(p.floor>0&&l.price<p.floor&&!l.flrOk)return{err:'El precio de '+p.name+' ('+money(l.price)+') está por debajo del piso ('+money(p.floor)+'): lo tiene que autorizar un supervisor con motivo.'};}
+  if(l.man){l.rule='MAN';l.lst='';delete l.tr;delete l.amt;}
+  else{const dup=lines.filter(x=>x.pid===l.pid).length>1;const r=priceResolve(p,dup?l.qty:agg[l.pid],{cust,chan});l.tr=r.tr;l.amt=r.amt;if(l.price!==r.price)delete l.flrOk;l.price=r.price;l.rule=r.rule;l.lst=r.list;l.base=r.base;l.why=r.why;}
+  if(p.floor>0&&Math.min(l.price,...((l.tr||[]).map(t=>t.price)))<p.floor&&!l.flrOk)return{err:'El precio de '+p.name+' ('+money(l.price)+') está por debajo del piso ('+money(p.floor)+'): lo tiene que autorizar un supervisor con motivo.'};}
  return{chan,club:conf.allowClub};}
+/* importe exacto de una línea (con tramos) y desglose en renglones para guardar la venta: cada renglón cumple cantidad × precio */
+const lnAmt=l=>l.amt>0&&l.tr?l.amt:Math.round(l.qty*l.price);
+function wsSplit(lines){const out=[];lines.forEach(l=>{if(l.tr&&l.tr.length>1){l.tr.forEach(t=>out.push(Object.assign({},l,{qty:t.qty,price:t.price,rule:t.rule,lst:t.lst,list:t.price,tr:undefined,amt:undefined})));}else out.push(l.tr&&l.tr.length===1?Object.assign({},l,{rule:l.tr[0].rule,lst:l.tr[0].lst,tr:undefined,amt:undefined}):l);});return out;}
 const wsNoClub=()=>wsOn()&&wsChan()==='mayorista'&&!wsConf().allowClub;
 
 /* ---- crédito: límite + plazo + mora + excepción autorizada (4.22.2) ---- */
