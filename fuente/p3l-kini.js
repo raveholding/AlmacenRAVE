@@ -7,6 +7,11 @@ function isKiniBuild(){return!!(typeof window!=='undefined'&&window.RAVE_BUILD&&
 function kiniBase(d){
  d.tenant=Object.assign({},d.tenant,{name:'Kini Distribuidora',legal:'Kini Distribuidora (demo de ejemplo)',slogan:'Distribuidora mayorista · demo',address:'(dirección de ejemplo)',phone:'',wa:'',ig:'',fb:'',caja:1,regId:'r1'});
  d.cfg.biz='owner';d.cfg.cashProfile='main';d.cfg.xfer=Object.assign({},d.cfg.xfer||{},{strict:false,selfAuth:true,ownerV:1});
+ d.menu=Object.assign({},d.menu,{title:'KINI DISTRIBUIDORA',sub:{es:'Distribuidora mayorista · demo',en:'Wholesale distributor · demo'},
+  pitch:{es:'Hacé tu pedido mayorista desde el celular: elegí los productos y la presentación (**unidad, display, fardo o pallet**) y te **confirmamos stock y entrega por WhatsApp**.',en:'Place your wholesale order from your phone: pick the products and the pack (**unit, display, case or pallet**) and we **confirm stock and delivery by WhatsApp**.'},
+  promo:{on:true,es:'Precios **mayoristas por volumen**: cuanto más comprás, mejor precio por unidad (ejemplo).',en:'**Volume wholesale prices**: the more you buy, the better the unit price (example).'},
+  footer:{es:'Kini Distribuidora · demo de evaluación',en:'Kini Distribuidora · evaluation demo'},
+  mapQuery:'',mapUrl:'',reviewUrl:'',wifi:{on:false,ssid:'',pass:'',example:false},social:[],clubOn:false});
  d.cfg.tax={};d.cfg.ticket=Object.assign({},d.cfg.ticket,{msg:'¡Gracias por su compra!'});
  if(!d.rubros.some(r=>r.id==='sys-gen'))d.rubros.push({id:'sys-gen',name:'Caja del negocio',kind:'sysgen',color:'#6b7280',sys:true,reparte:false,owner:'',active:true});
  d.rubros.forEach(r=>{r.owner='';r.reparte=false;});

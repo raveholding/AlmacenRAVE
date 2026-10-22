@@ -44,6 +44,16 @@ def kini_brand(h):
     h=h.replace('style="width:48px;height:27px;object-fit:cover;border-radius:6px"','style="width:40px;height:40px;object-fit:contain;border-radius:50%"')
     h=h.replace('Sistema RAVE','Sistema Kini').replace('alt="RAVE"','alt="Kini Distribuidora"')
     h=re.sub(r'<title>[^<]*</title>','<title>Kini Distribuidora · Demo</title>',h,count=1)
+    # menú público (documento del iframe): logo, textos fijos y título
+    h=re.sub(r'(class=\\"logo\\" src=\\")data:image/[a-z]+;base64,[A-Za-z0-9+/=]+',lambda m:m.group(1)+uri,h,count=1)
+    for o,n in [('Almacén y Licorería RAVE, Urquiza 1052, Salta, Argentina. Contacto: WhatsApp 387 4574892.','Kini Distribuidora (demo de evaluación, datos de ejemplo).'),
+                ('Almacén y Licorería · Urquiza 1052 · Salta, Argentina','Kini Distribuidora · demo'),
+                ('Mirá el menú de Almacén y Licorería RAVE (Urquiza 1052, Salta): vinos, bebidas, cigarrillos y combos. Pedí por WhatsApp 👇','Mirá el catálogo mayorista de Kini Distribuidora. Pedí por WhatsApp 👇'),
+                ('Check out the menu of Almacén y Licorería RAVE (Urquiza 1052, Salta): wines, drinks, cigarettes and combos. Order via WhatsApp 👇','Check out the Kini Distribuidora wholesale catalog. Order via WhatsApp 👇'),
+                ('Almacén y Licorería RAVE','Kini Distribuidora'),('Almacén y Licorería · Salta','Distribuidora mayorista'),('RAVE DIGITAL','KINI DISTRIBUIDORA'),('Club RAVE','Club Kini'),('class=\\"foot-brand\\">RAVE<','class=\\"foot-brand\\">KINI<'),('alt=\\"RAVE','alt=\\"Kini'),('que RAVE guarde','que Kini Distribuidora guarde'),('RAVE Club','Kini Club'),('<title>RAVE','<title>Kini')]:
+        h=h.replace(o,n)
+    h=h.replace('--gold:#c9963e','--gold:%s'%c2)
+
     return h
 vbj='const VB_BANNER="data:image/webp;base64,'+base64.b64encode(open('assets/vb-banner.webp','rb').read()).decode()+'";\n'
 html=head+'\n'+vbj+B('build/p0-data.js')+B('build/p0-pub.js')+"const SOCIAL_ICONS_OK=1;\n"+B('build/qr.js')+'\n'+'\n'.join(B(p) for p in parts)+'\n</script>\n</body></html>\n'
