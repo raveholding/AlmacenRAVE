@@ -1,6 +1,6 @@
 # SISTEMA VB 26F (`SISTEMA_VB_26F`) — PROMPT MAESTRO INTEGRAL FINAL (ERP/POS CONVERSACIONAL Y MODULAR)
 
-Versión 26F · revisión V26.13 (integra la **integración con Tiendanube y los pasos de conexión de todas las integraciones 4.28**, las **correcciones V26.12** —cobro mayorista por tramos, traspasos sin rubros, pago a proveedor repartido entre cajas, anexo J— y el **cierre de caja por rubro 4.27**; la **tarjeta del Club portátil 4.25** y el **menú público «local / tienda con envíos» 4.26**; incluye V26.1 pagos mixtos, V26.2 proveedores y compras, V26.3 Club/tarjeta/DNI/NFC, la **especificación del módulo Mayorista/Minorista 4.22** la **especificación corregida de traspasos de fondos, detalle de cobros digitales y expediente digital 4.23** y los **ajustes 4.24: detalle de las ventas de la caja, cajas sin límite de operaciones y administración de los clientes del Club**) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
+Versión 26F · revisión V26.14 (integra el **tipo de negocio —almacén con rubros o mayorista de un solo dueño—, permisos sólo del administrador, traspasos del dueño con cajas cerradas y combos que descuentan cada artículo 4.29**, la **integración con Tiendanube y los pasos de conexión de todas las integraciones 4.28**, las **correcciones V26.12** —cobro mayorista por tramos, traspasos sin rubros, pago a proveedor repartido entre cajas, anexo J— y el **cierre de caja por rubro 4.27**; la **tarjeta del Club portátil 4.25** y el **menú público «local / tienda con envíos» 4.26**; incluye V26.1 pagos mixtos, V26.2 proveedores y compras, V26.3 Club/tarjeta/DNI/NFC, la **especificación del módulo Mayorista/Minorista 4.22** la **especificación corregida de traspasos de fondos, detalle de cobros digitales y expediente digital 4.23** y los **ajustes 4.24: detalle de las ventas de la caja, cajas sin límite de operaciones y administración de los clientes del Club**) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
 
 **Objetivo de V26:** construir el sistema desde el inicio con una arquitectura extensible y un asistente conversacional transversal por voz y texto, integrado al catálogo de acciones de negocio. Incorporar además cajas operativas y principales configurables, gestión multisucursal, borrado protegido de artículos, ordenamiento reutilizable de todas las tablas y un checkout e-commerce opcional que convive con el flujo actual de pedidos por WhatsApp, tarjetas de fidelización guardables en Apple Wallet/Google Wallet y avisos automáticos multicanal con consentimiento y control de frecuencia. Este prompt define requisitos y criterios de aceptación; ninguna función se considera implementada hasta demostrarla con archivos, migraciones y pruebas reales.
 
@@ -1369,6 +1369,35 @@ Sólo corrió contra un Tiendanube **falso**; falta homologar con la app y la ti
 
 ---
 
+## 4.29 TIPO DE NEGOCIO (ALMACÉN CON RUBROS / MAYORISTA DE UN SOLO DUEÑO), PERMISOS SÓLO DEL ADMINISTRADOR, TRASPASOS DEL DUEÑO Y COMBOS (V26.14)
+
+**Estado: IMPLEMENTADO en V26.14** (partes `p3j-combos.js`, `p3k-owner.js`; ajustes en `p2-core.js`, `p3-ops.js`, `p3b-pos.js`, `p3f-transfers.js`, `p3i-rubcash.js`, `p4-mods.js`, `p4d-compras-ui.js`, `p5-menu-boot.js`, `p7a-dash.js`, `p9-cloud.js`; prueba `y1.py`). **Sin migraciones SQL nuevas.** Corrige cuatro pedidos del dueño: «un mayorista de un solo dueño no es lo mismo que Almacén RAVE».
+
+**4.29.1 Tipo de negocio (`cfg.biz`, Configuración → Tipo de negocio, sólo administrador)**
+- **`rubros` (por defecto; Almacén RAVE):** como siempre — cada rubro es una persona (responsable), caja por rubro, sueldo del empleado a medias, impuesto que se separa y reparto (4.27).
+- **`owner` (mayorista / un solo dueño):** el dinero es todo del dueño. **No hay rubros por persona**: los productos se agrupan en **categorías** (sólo ordenan inventario, Vender, menú y reportes). Ningún ingreso, egreso, reintegro, pago a proveedor, compra al contado ni traspaso **pide rubro**; por debajo se usa el concepto interno oculto **«Caja del negocio»** (`sys-gen`, `sys:true`, no es categoría) porque el servidor exige un rubro en todo movimiento (6.10). Configuración no muestra «Rubros, responsables y reparto», «sueldo y gastos se pagan de la caja» ni «afectan la ganancia del rubro»; Caja no muestra «caja de cada rubro» ni la columna Rubro; el **arqueo** es el de un solo dueño: ventas por canal (minorista / mayorista), por medio de pago, efectivo esperado (apertura + ventas en efectivo + ingresos − egresos ± traspasos) vs. contado, ventas por categoría (informativo). **Sin sueldo, merienda, impuestos por persona ni reparto.** El cierre se sella con `data.owner=true` y su detalle muestra esas tablas.
+- Cambiar el tipo exige caja cerrada, no borra ni mueve datos y queda auditado (`TIPO_NEGOCIO`). El viejo «perfil sin rubros» de traspasos (`xfer.noRubro`) migra solo a `owner`.
+- La demo muestra en el Resumen qué tipo de negocio se está viendo y un botón para cambiarlo.
+
+**4.29.2 Permisos: sólo el administrador.** Dar o quitar permisos, crear o cambiar usuarios y el aviso de permisos nuevos son **sólo del rol administrador** (no es un permiso delegable: aunque un rol tenga «Usuarios y permisos», ve la tabla deshabilitada). En la nube el servidor ya lo exigía (`rave_puede_escribir`: sólo `admin` escribe `cfg/roles`; invitar, quitar y cambiar rol son funciones de administrador).
+
+**4.29.3 Traspasos del dueño.** El **administrador (dueño)** mueve fondos entre cualquier caja —abierta o cerrada, incluida la principal— con **su propia autorización** (`auth={id:él, método pin_admin/clave_admin, self:true}`), sin pedir la clave de otro. La configuración `xfer.selfAuth` queda en `true` (es lo que el servidor de la migración 11 exige cuando hay más de un administrador). Los demás usuarios siguen las reglas de 4.23.1 (con caja cerrada necesitan la autorización de un administrador). Se conservan comprobante, estado de las cajas, tránsito, recepción y auditoría.
+
+**4.29.4 Combos que descuentan cada artículo (Almacén RAVE y demo)**
+- Un combo es un producto con su precio, **sin stock propio**: `p.kit=[{pid,qty}]` (artículos del inventario y cantidad por combo; no puede contener otro combo ni a sí mismo; sin repetidos; unidades enteras para artículos por unidad). Se arma en Inventario → producto → «Es un combo».
+- Vender 1 combo «Fernet Branca 750 + Coca-Cola 3 lt + Hielo» **resta 1 Fernet 750, 1 Coca-Cola 3 lt y 1 hielo**; el combo no se descuenta. Con varios combos y artículos sueltos en la misma venta se suma todo por artículo.
+- El stock mostrado del combo = cuántos se pueden armar (mínimo de stock ÷ cantidad). «Exigir stock» de cualquier artículo bloquea el combo si falta; si no, el artículo queda en negativo (4.2). No se ajusta stock de un combo (se ajusta cada artículo).
+- La línea vendida guarda la composición usada (`it.kit`) y el costo = suma de los artículos; **anular o nota de crédito devuelve exactamente esa composición** aunque después cambie la receta.
+- Nube: sin cambios de servidor; el stock viaja como movimientos de cada artículo.
+
+**4.29.5 Datos de ejemplo sólo en la demo.** La demo (`raveV2`) trae «Bebidas y hielo (ejemplo)» (Fernet Branca 750, Coca-Cola 3 lt, Hielo) y el combo de ejemplo; el sistema del cliente nace sin ejemplos (comprobado en la compilación «cliente»: 0 productos de ejemplo, 0 combos, sin datos mayoristas de ejemplo, sin clientes, usuarios ni cupones).
+
+**4.29.6 Pruebas (`y1.py`, 52 verificaciones):** combo (descuento por artículo, mezcla con sueltos, anulación con la composición guardada, exigir stock, negativo, editor y validaciones, ajuste bloqueado); permisos (supervisor con la pantalla no puede cambiar nada ni crear usuarios; el administrador sí); traspasos del dueño (a la principal cerrada, con las dos cerradas, supervisor bloqueado, pantalla sin pedir clave de otro); un solo dueño (configuración, inventario «Categoría», egreso sin rubro, arqueo sin sueldo/impuestos/reparto, texto y cierre sellado, compras sin rubro, vuelta a almacén intacta, 360 px).
+
+**4.29.7 Límites declarados:** Tiendanube no conoce los combos (si se vincula un combo, se empuja stock 0); importar/exportar no lleva la composición de los combos; la nube de extremo a extremo con dos equipos **no se volvió a correr** (el banco de pruebas de nube no está disponible en este entorno): los cambios son del navegador y usan las reglas del servidor ya aplicadas (migración 11).
+
+---
+
 ## 5. MÓDULOS OPCIONALES (aditivos, auditables, apagados por defecto si dependen de terceros)
 
 Reglas comunes: banderas por comercio/sucursal/rol/dispositivo; migraciones SQL aditivas, versionadas e idempotentes probadas sobre copia; `tenant_id`, RLS y pruebas cruzadas A/B en toda entidad; servidor valida y recalcula; idempotencia; límites de uso; auditoría; dinero en centavos enteros; sin proveedor/credencial/dispositivo → estado "Pendiente de configuración" y el resto sigue funcionando; ninguna integración se declara terminada por tener una pantalla simulada.
@@ -1863,4 +1892,4 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 5. Sin cambios respecto de los límites del anexo C, G.3 y H (hardware, NFC, Wallet, ARCA en producción, multisucursal en servidor).
 
 
-FIN DE SISTEMA VB 26F (revisión V26.13)
+FIN DE SISTEMA VB 26F (revisión V26.14)
