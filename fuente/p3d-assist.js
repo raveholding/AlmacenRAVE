@@ -64,7 +64,7 @@ function asStockMsg(pr){const neg=pr.stock<0;return{state:'ejecutado',msg:pfull(
 
 assistRegister({id:'inventory.stock.low',desc:'Ver qué stock está bajo',example:'qué stock está bajo',perm:'sell',risk:'read',confirm:'none',offline:true,idempotent:true,
  match:t=>/^(?:que )?(?:stock bajo|poco stock|se esta(?:n)? acabando|por acabarse|que falta|que reponer|que hay que reponer|stock minimo)$/.test(t)||/^que (?:stock )?(?:esta|hay) bajo$/.test(t)?{}:null,
- run:()=>{const l=S.products.filter(p=>!p.archived&&p.active!==false&&p.stock<=5).sort((a,b)=>a.stock-b.stock);if(!l.length)return{state:'ejecutado',msg:'No hay productos con stock bajo (5 o menos).'};
+ run:()=>{const l=S.products.filter(p=>!p.archived&&p.active!==false&&!isKit(p)&&p.stock<=5).sort((a,b)=>a.stock-b.stock);if(!l.length)return{state:'ejecutado',msg:'No hay productos con stock bajo (5 o menos).'};
   return{state:'ejecutado',msg:l.length+' producto(s) con stock bajo:\n'+l.slice(0,10).map(p=>'• '+pfull(p)+': '+stockTxt(p)).join('\n')+(l.length>10?'\n… y '+(l.length-10)+' más (Inventario → «Stock bajo»).':'')};}});
 
 assistRegister({id:'reports.sales.read',desc:'Ver las ventas de hoy o de ayer',example:'cuánto vendimos hoy',perm:'sell',risk:'read',confirm:'none',offline:true,idempotent:true,service:'S.sales (lectura)',

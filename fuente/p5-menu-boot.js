@@ -5,7 +5,7 @@
 const mCfg=()=>S.menu.published||S.menu;
 function pubCatalog(){const secs=S.rubros.filter(r=>r.kind==='rubro'&&r.layout&&r.menuOn!==false).map(r=>({cat:r.id,nom:r.mNom||r.name,titulo:r.mTitle||r.name,hint:r.mHint||'',layout:r.layout,alc:!!r.alcohol,menu:true}));
  const ids=new Set(secs.map(s=>s.cat));
- const productos=S.products.filter(p=>p.menu&&p.active&&ids.has(p.rubro)).map(p=>({id:p.id,cat:p.rubro,grupo:p.grupo||'',nom:p.name,sub:p.sub||'',precio:p.price/100,img:IMGS[p.id]||p.img||'',destacado:!!p.featured,desc:p.desc||'',unidad:p.unit!=='u'?p.unit:'',agotado:p.stock<=0}));
+ const productos=S.products.filter(p=>p.menu&&p.active&&ids.has(p.rubro)).map(p=>({id:p.id,cat:p.rubro,grupo:p.grupo||'',nom:p.name,sub:p.sub||'',precio:p.price/100,img:IMGS[p.id]||p.img||'',destacado:!!p.featured,desc:p.desc||'',unidad:p.unit!=='u'?p.unit:'',agotado:stockOf(p)<=0}));
  return{secciones:secs,productos};}
 function pubSite(){const c=mCfg();
  return{title:c.title||'RAVE DIGITAL',sub:c.sub,pitch:c.pitch,promo:c.promo,address:S.tenant.address,mapQuery:c.mapQuery,mapUrl:c.mapUrl,reviewUrl:c.reviewUrl,wifi:c.wifi,social:(c.social||[]).filter(x=>x.on!==false&&x.url&&safeUrl(x.url)).map(x=>({k:x.k,label:x.label,handle:x.handle,url:x.url})),icons:Object.assign({},EXTRA_ICONS,SOCIAL_ICONS),footer:c.footer,wa:S.tenant.wa,alcFrom:c.alcFrom,alcTo:c.alcTo,hideTeamBtn:!!c.hideTeamBtn,clubOn:c.clubOn!==false,ship:(typeof shipPublic==='function'?shipPublic(c):null)};}

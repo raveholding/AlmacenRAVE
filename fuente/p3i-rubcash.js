@@ -19,7 +19,7 @@ function rcLiqHTML(a){if(!(a.reparte||[]).length)return'<p class="mut">Marcá en
  ${a.pool?`<tr><td><b>5 · Ganancia total a dividir</b> (suma de las dos)</td><td class="r" colspan="${rp.length}"><b>${money(a.netSum)}</b></td></tr>
  ${row('<b>6 · Le corresponde a cada uno (partes iguales)</b>',r=>`<b class="${r.final<0?'neg':''}">${money(r.final)}</b>`,'tot')}`:''}
  </tbody></table></div>`;}
-function arqTablesHTML(a){return `<h3>Por rubro</h3>${rcTableHTML(a)}<h3 style="margin-top:1rem">Liquidación</h3>${rcLiqHTML(a)}`;}
+function arqTablesHTML(a){if(a&&a.owner&&typeof ownerTablesHTML==='function')return ownerTablesHTML(a);return `<h3>Por rubro</h3>${rcTableHTML(a)}<h3 style="margin-top:1rem">Liquidación</h3>${rcLiqHTML(a)}`;}
 /* tarjeta viva en Caja: cuánto tiene físicamente cada rubro ahora */
 function rubCashCard(s){if(!s)return'';let a;try{a=arqueoCalc(s,arqInputs(s));}catch(e){return'';}
  return `<div class="card"><h3>Caja de cada rubro (ahora)</h3>${rcTableHTML(a)}<p class="sm mut">Un <b>ingreso</b> suma a la caja del rubro que elijas; un <b>egreso</b> le resta. Ejemplo: si Juan le debe $1.000 a Nico, Nico cobra un producto suyo y se hace un <b>egreso de $1.000 del rubro de Juan</b>: Nico suma por la venta, Juan resta, y el cajón queda igual.</p></div>`;}

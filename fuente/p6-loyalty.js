@@ -91,7 +91,7 @@ function couponCheck(cp,cust,base){const today=dkey(now());
  if(cp.perCust>0&&cust&&cp.uses.filter(u=>u.cust===cust.id).length>=cp.perCust)return'El cliente ya usó este cupón.';
  if(base<(cp.min||0))return'Compra mínima de '+money(cp.min)+' en productos con promoción.';return'';}
 const cpDisc=(cp,base)=>cp.type==='pct'?Math.round(base*cp.value/100):Math.min(cp.value,base);
-function applyBenefit(lines,custId,code){const cust=custById(custId);let base=0;lines.forEach(l=>{if(!noPromo(l))base+=Math.round(l.qty*l.price);});
+function applyBenefit(lines,custId,code){const cust=custById(custId);let base=0;lines.forEach(l=>{if(!noPromo(l))base+=(typeof lnAmt==="function"?lnAmt(l):Math.round(l.qty*l.price));});
  const out={disc:0,kind:'',label:'',code:'',couponId:'',couponErr:'',base};
  let cand=null;
  code=String(code||'').trim().toUpperCase();
@@ -102,7 +102,7 @@ function applyBenefit(lines,custId,code){const cust=custById(custId);let base=0;
  if(base===0&&(code||mb)&&!out.couponErr)out.note='Los productos de tabaco no participan de promociones ni descuentos.';
  return out;}
 /* reparte el descuento entre las líneas elegibles (resto al mayor decimal) */
-function allocDisc(lines,disc){const idx=[],bases=[];lines.forEach((l,i)=>{if(!noPromo(l)){idx.push(i);bases.push(Math.round(l.qty*l.price));}});const out=lines.map(()=>0);const B=bases.reduce((a,b)=>a+b,0);if(!disc||!B)return out;
+function allocDisc(lines,disc){const idx=[],bases=[];lines.forEach((l,i)=>{if(!noPromo(l)){idx.push(i);bases.push((typeof lnAmt==="function"?lnAmt(l):Math.round(l.qty*l.price)));}});const out=lines.map(()=>0);const B=bases.reduce((a,b)=>a+b,0);if(!disc||!B)return out;
  const ex=bases.map(b=>disc*b/B);const fl=ex.map(Math.floor);let rest=disc-fl.reduce((a,b)=>a+b,0);const ord=ex.map((e,i)=>[e-fl[i],i]).sort((a,b)=>b[0]-a[0]);for(let k=0;k<rest;k++)fl[ord[k%ord.length][1]]++;
  idx.forEach((li,k)=>{out[li]=Math.min(fl[k],bases[k]);});return out;}
 

@@ -130,7 +130,7 @@ function queueStock(){for(const p of S.products){if(!p||!p.id)continue;const b=c
 async function pushAll(){queueStock();const all=collectAll();const seen=new Set(),ch=[];
  for(const it of all){const key=it.c+'|'+it.id;seen.add(key);const h=cyrb(canon(it.w));if(cl.fp[key]!==h)ch.push({it,key,h});}
  for(const key of Object.keys(cl.fp)){if(seen.has(key))continue;const c=key.split('|')[0];if(DELC.has(c))ch.push({key,del:1,c,id:key.slice(c.length+1)});else delete cl.fp[key];}
- const rk=x=>{const c=x.it?x.it.c:x.c;return c==='prod'?0:(c==='ctransf'?2:(c==='ctev'?3:(c==='cdet'?4:1)));};ch.sort((a,b)=>rk(a)-rk(b));
+ const rk=x=>{const c=x.it?x.it.c:x.c;return (c==='prod'||c==='rubros')?0:(c==='ctransf'?2:(c==='ctev'?3:(c==='cdet'?4:1)));};ch.sort((a,b)=>rk(a)-rk(b));
  let sent=0;
  for(let i=0;i<ch.length;i+=150){const part=ch.slice(i,i+150),body=[];
   for(const x of part){if(x.del){body.push({c:x.c,id:x.id,d:{},x:true});continue;}

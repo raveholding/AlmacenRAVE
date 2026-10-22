@@ -5,9 +5,15 @@
    · Estados por eventos sólo-agregar (S.transferEvents, colección ctev): completado · en_transito · recibido · recibido_con_diferencia · devuelto · revertido
    · Comprobante interno «Boleta de Movimiento de Fondos» con número T-<caja>-<n>, cadena de hash e impresión 80/58 mm y A4
    · El servidor (migración 11) vuelve a validar permiso, autorizante, estado de las cajas, importe y rubro. Ocultar un botón no es un control. */
-const XF_DEF={strict:false,closedMode:'transito',approvalOver:0,transitAlertH:0,selfAuth:false};
+const XF_DEF={strict:false,closedMode:'transito',approvalOver:0,transitAlertH:0,selfAuth:false,noRubro:false};
 const xfCfg=()=>Object.assign({},XF_DEF,(S.cfg&&S.cfg.xfer)||{});
 const xfStrict=()=>!!xfCfg().strict;
+/* V26.14: sin rubros por persona (tipo de negocio «un solo dueño» o el viejo perfil) */
+const xfNoRub=()=>ownerMode()||!!xfCfg().noRubro;
+/* V26.14: el dueño (administrador) mueve fondos entre cajas abiertas o cerradas con su propia autorización; queda registrado igual */
+const xfIsOwner=()=>!!user&&user.role==='admin';
+function xfOwnerAuth(){if(!xfIsOwner())return null;S.cfg.xfer=S.cfg.xfer||{};if(S.cfg.xfer.selfAuth!==true){S.cfg.xfer.selfAuth=true;audit('CONFIG_TRASPASOS','el administrador autoriza sus propios traspasos');}
+ return{id:xfMe(),name:user.name,method:xfCloud()?'clave_admin':'pin_admin',self:true};}
 /* quién puede emitir y recibir: con la bandera, sólo `transfer_funds`; sin ella, como hasta ahora (arqueo y cierre) o `transfer_funds` */
 const xfCan=()=>!!user&&(can('config')||(xfStrict()?can('transfer_funds'):(can('close_cash')||can('transfer_funds'))));
 const xfCloud=()=>{try{return typeof CLOUD!=='undefined'&&!!CLOUD.on&&!!cl&&!!cl.ready;}catch(e){return false;}};
@@ -77,6 +83,9 @@ function xfAuthHTML(){return`<div class="warnbox" id="xf-ab" hidden><b>Necesita 
  <label for="xf-au">Administrador que autoriza</label><select id="xf-au"></select>
  <label for="xf-ap">${xfCloud()?'Clave del administrador':'PIN del administrador'}</label><input id="xf-ap" type="password" autocomplete="off" ${xfCloud()?'':'inputmode="numeric"'}></div>`;}
 /* ---------- crear un traspaso (lógica pura: la usan el modal y las pruebas) ---------- */
+/* perfil sin rubros (mayorista de un solo dueño): el traspaso usa un concepto interno fijo y oculto; no toca los rubros del negocio */
+function sysRubro(id,name){let r=S.rubros.find(x=>x.id===id);if(!r){r={id,name,kind:'shared',color:'#6b7280',sys:true,reparte:false,owner:'',active:true};S.rubros.push(r);}return r.id;}
+function xfSysRubro(){return sysRubro('sys-traspaso','Traspaso interno');}
 function xferCreate(o){
  if(!mainOn())return'El módulo de caja principal no está habilitado.';
  if(!xfCan())return'Sin permiso para traspasar fondos.';
@@ -86,14 +95,16 @@ function xferCreate(o){
  if(!Number.isInteger(o.amount)||!(o.amount>0))return'El importe debe ser mayor a cero.';
  if(o.amount>100000000000)return'El importe es demasiado grande.';
  const fs=xfRegState(o.from),ts=xfRegState(o.to);
- if((fs.st==='cerrada'||ts.st==='cerrada')&&!xfStrict())return'Las dos cajas tienen que estar abiertas para traspasar. Para mover fondos con una caja cerrada hace falta el permiso de traspasos (Usuarios y permisos).';
+ if((fs.st==='cerrada'||ts.st==='cerrada')&&!xfStrict()&&!xfIsOwner())return'Las dos cajas tienen que estar abiertas para traspasar. Para mover fondos con una caja cerrada hace falta el permiso de traspasos (Usuarios y permisos).';
  if(brOn()&&(fr.branchId||'')!==(to.branchId||'')&&fr.type!=='main'&&to.type!=='main')return'Entre sucursales distintas sólo se traspasa desde o hacia una caja principal.';
- const e=validRubro(o.rubro,'ingreso')||validRubro(o.rubro,'egreso');if(e)return e;
+ if(xfNoRub()&&!o.rubro)o.rubro=xfSysRubro();
+ const e=o.rubro==='sys-traspaso'?'':(validRubro(o.rubro,'ingreso')||validRubro(o.rubro,'egreso'));if(e)return e;
  if(!o.motivo||o.motivo.trim().length<3)return'Escribí el motivo (mínimo 3 letras).';
  let avail;if(fs.st==='abierta'){const ss=openOf(o.from);avail=arqueoCalc(ss,arqInputs(ss)).expectedCash;}else avail=xfSuggested(o.from).amount;
  if(o.amount>avail&&!o.force)return fs.st==='abierta'?'La caja de origen no tiene efectivo suficiente (esperado '+money(avail)+').':'La caja de origen está cerrada y su fondo retenido es '+money(avail)+': no alcanza.';
  const why=xfReasons(o.from,o.to,o.amount,o.rev);let auth=o.auth||null;
  if(why.length){
+  if((!auth||!auth.id)&&xfIsOwner())auth=xfOwnerAuth();
   if(!auth||!auth.id||!['pin_admin','clave_admin'].includes(auth.method))return'Esta operación necesita la autorización de un administrador ('+why.join('; ')+').';
   if(auth.id===xfMe()&&!auth.self)return'El autorizante tiene que ser un administrador distinto de quien emite.';
  }else if(!auth||!auth.id)auth={id:xfMe(),name:user.name,method:'permiso_propio'};
@@ -137,7 +148,8 @@ function xfBalance(t){const ev=xfEvs(t);const rc=ev.find(e=>e.kind==='recibido'|
 /* ================= interfaz ================= */
 function xfRubOpts(){return S.rubros.filter(r=>r.kind==='rubro').map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');}
 async function xfModalSync(w){const f=val('xf-f'),t=val('xf-t'),a=cents(val('xf-a'));const rv=w.dataset.rev||'';
- const why=xfReasons(f,t,isNaN(a)?0:a,rv);const ab=w.querySelector('#xf-ab');if(!ab)return;ab.hidden=!why.length;
+ const why=xfReasons(f,t,isNaN(a)?0:a,rv);const ab=w.querySelector('#xf-ab');if(!ab)return;ab.hidden=!why.length||xfIsOwner();
+ const ob=w.querySelector('#xf-own');if(ob)ob.hidden=!(why.length&&xfIsOwner());if(ob&&!ob.hidden)ob.textContent='Como dueño (administrador) lo autorizás vos: '+why.join('; ')+'. Queda registrado con tu nombre.';
  const r=w.querySelector('#xf-ar');if(r)r.textContent='Motivo: '+why.join('; ')+'.';
  const dst=w.querySelector('#xf-ds');if(dst){const fs=xfRegState(f),ts=xfRegState(t);const cl2=[];
   cl2.push('Origen: '+(fs.st==='abierta'?'caja abierta':'caja CERRADA (se descuenta del fondo retenido: sugerido '+money(xfSuggested(f).amount)+')'));
@@ -154,19 +166,21 @@ async function xfOpenModal(o){ /* o: {rev?:transfer, title} */
  <label for="xf-f">Desde</label><select id="xf-f" ${rv?'disabled':''}>${regs.map(opt).join('')}</select>
  <label for="xf-t">Hacia</label><select id="xf-t" ${rv?'disabled':''}>${regs.map(opt).join('')}</select>
  <label for="xf-a">Importe ($)</label>${numIn('xf-a',rv?rv.amount:0,'0')}
- <label for="xf-r">Rubro (obligatorio)</label><select id="xf-r"><option value="">— Elegí un rubro —</option>${xfRubOpts()}</select>
+ ${xfNoRub()?'':`<label for="xf-r">Rubro (obligatorio)</label><select id="xf-r"><option value="">— Elegí un rubro —</option>${xfRubOpts()}</select>`}
  <label for="xf-m">Motivo / concepto</label><input id="xf-m" maxlength="200" placeholder="Ej.: retiro de excedente a caja principal" autocomplete="off" value="${rv?esc('Reversa: '+rv.motivo):''}">
  <p class="sm mut" id="xf-ds"></p>
+ <p class="sm okbox" id="xf-own" hidden></p>
  ${xfAuthHTML()}
  <p class="sm mut">Es un movimiento interno: sale del efectivo de una caja y entra en el de la otra. No suma como venta, ingreso ni egreso.</p>`,
  {okText:rv?'Revertir':'Traspasar',onOk:async w2=>{
   const f=val('xf-f'),t=val('xf-t'),amt=cents(val('xf-a'));const why=xfReasons(f,t,isNaN(amt)?0:amt,rv?rv.id:'');let auth=null;
-  if(why.length){const res=await xfAuthResolve(adms,val('xf-au'),val('xf-ap'));if(res.err){w2._err(res.err);return false;}auth=res.auth;}
-  const e=xferCreate({id,from:f,to:t,amount:amt,rubro:val('xf-r'),motivo:val('xf-m'),auth,rev:rv?rv.id:undefined,force:!!rv});
+  if(why.length&&xfIsOwner())auth=xfOwnerAuth();
+  else if(why.length){const res=await xfAuthResolve(adms,val('xf-au'),val('xf-ap'));if(res.err){w2._err(res.err);return false;}auth=res.auth;}
+  const e=xferCreate({id,from:f,to:t,amount:amt,rubro:(w2.querySelector('#xf-r')?val('xf-r'):''),motivo:val('xf-m'),auth,rev:rv?rv.id:undefined,force:!!rv});
   if(e){w2._err(e);return false;}
   toast('Traspaso registrado');rerender();const tt=xfTr(id);if(tt)setTimeout(()=>A.xferView({dataset:{id:tt.id}}),60);}});
  w.dataset.rev=rv?rv.id:'';
- const set=(id2,v)=>{const el=w.querySelector('#'+id2);if(el&&v)el.value=v;};set('xf-f',fromId);set('xf-t',toId);if(rv)set('xf-r',rv.rubro);
+ const set=(id2,v)=>{const el=w.querySelector('#'+id2);if(el&&v)el.value=v;};set('xf-f',fromId);set('xf-t',toId);if(rv&&!xfNoRub())set('xf-r',rv.rubro);
  const au=w.querySelector('#xf-au');if(au)au.innerHTML=cand.length?cand.map(a=>`<option value="${esc(a.id)}">${esc(a.name)}${a.id===xfMe()?' (yo)':''}</option>`).join(''):'<option value="">No hay otro administrador que pueda autorizar</option>';
  ['input','change'].forEach(ev=>w.addEventListener(ev,()=>xfModalSync(w)));xfModalSync(w);}
 A.xfer=()=>xfOpenModal({});
@@ -307,7 +321,7 @@ EXPORTS.traspasos={t:'Traspasos de fondos entre cajas',perm:'close_cash',h:()=>[
  rows:()=>(S.transfers||[]).map(t=>{const rc=xfRecvEv(t);return[t.num||'',fmtDT(t.ts),t.fromName||regName(t.from),t.fromState||'abierta',t.toName||regName(t.to),t.toState||'abierta',t.amount/100,t.cur||'ARS',t.rubroName||'',t.motivo,t.user,(t.auth||{}).name||'',(t.auth||{}).method||'',XF_ST[xferState(t)],rc?rc.amt/100:'',rc?(t.amount-rc.amt)/100:''];})};
 /* ---------- aviso de permisos (primer ingreso del administrador tras actualizar) ---------- */
 let xfNoticeShown=false;
-function xfPermNotice(){if(xfNoticeShown||!user||!can('config'))return;const pn=S.cfg&&S.cfg.permNotice;if(!pn||pn.ack)return;xfNoticeShown=true;
+function xfPermNotice(){if(xfNoticeShown||!user||user.role!=='admin')return;const pn=S.cfg&&S.cfg.permNotice;if(!pn||pn.ack)return;xfNoticeShown=true;
  const roles=Object.entries(S.roles).filter(([r,a])=>r!=='admin'&&Array.isArray(a)&&a.includes('close_cash')&&!a.includes('transfer_funds')).map(([r])=>r);
  modal('Nuevos permisos de seguridad',`<p>Esta versión agrega permisos que antes no existían: <b>${esc(PERMS.transfer_funds)}</b> y <b>${esc(PERMS.customers_admin)}</b>. <b>Nada se otorgó automáticamente.</b></p>
  <p>Hasta ahora, quien tenía «Arqueo y cierre de caja» podía traspasar fondos. ${roles.length?`Los roles que lo tenían son: <b>${roles.map(esc).join(', ')}</b>.`:'Ningún otro rol lo tenía.'}</p>
@@ -321,12 +335,13 @@ function xfPermNotice(){if(xfNoticeShown||!user||!can('config'))return;const pn=
 /* ---------- configuración (tarjeta en Cajas y sucursales, sólo administrador) ---------- */
 function xfCfgCard(){const c=xfCfg();if(!can('config'))return'';
  return`<div class="card" style="margin-top:1rem"><h3>Traspasos de fondos · reglas</h3>
- <label class="chk"><input type="checkbox" id="xc-s" ${c.strict?'checked':''}> Exigir el permiso «${esc(PERMS.transfer_funds)}» (si está apagado, basta con «Arqueo y cierre de caja» y sólo se traspasa entre cajas abiertas)</label>
+ <label class="chk"><input type="checkbox" id="xc-s" ${c.strict?'checked':''}> Exigir el permiso «${esc(PERMS.transfer_funds)}» (si está apagado, basta con «Arqueo y cierre de caja» y los demás usuarios sólo traspasan entre cajas abiertas)</label>
+ <p class="sm okbox">El <b>administrador (dueño)</b> mueve fondos entre cualquier caja —abierta o cerrada, incluida la caja principal— con su propia autorización. Cada traspaso queda con comprobante, estado de las cajas y auditoría.</p>
  <label for="xc-m">Si la caja destino está cerrada</label><select id="xc-m"><option value="transito" ${c.closedMode==='transito'?'selected':''}>Dejar el fondo «en tránsito» hasta que se reciba (recomendado)</option><option value="saldo_inicial" ${c.closedMode==='saldo_inicial'?'selected':''}>Incluirlo en el saldo inicial sugerido del próximo turno</option></select>
  <label for="xc-o">Pedir autorización de un administrador si el importe supera ($, vacío = nunca)</label>${numIn('xc-o',c.approvalOver,'Sin límite')}
  <label for="xc-h">Alerta de fondos en tránsito después de (horas, vacío = sin alerta)</label><input id="xc-h" inputmode="numeric" placeholder="Sin alerta" value="${c.transitAlertH?c.transitAlertH:''}" autocomplete="off">
- <label class="chk"><input type="checkbox" id="xc-a" ${c.selfAuth?'checked':''}> Con más de un administrador, permitir que uno se autorice a sí mismo</label>
+ <p class="sm mut">Rubro de los traspasos: ${xfNoRub()?'no se pide (negocio de un solo dueño: quedan como «Traspaso interno»)':'se pide (negocio con rubros por responsable)'}. Se cambia en Configuración → Tipo de negocio.</p>
  <div class="row"><button class="btn gold" data-act="xfCfgSave">Guardar reglas</button></div></div>`;}
 A.xfCfgSave=()=>{if(!can('config'))return toast('Sólo el administrador',1);const o=cents(val('xc-o')),h=parseInt(val('xc-h'),10);
- const n={strict:$('#xc-s').checked,closedMode:val('xc-m')==='saldo_inicial'?'saldo_inicial':'transito',approvalOver:isNaN(o)||o<0?0:o,transitAlertH:isNaN(h)||h<0?0:h,selfAuth:$('#xc-a').checked};
+ const n={strict:$('#xc-s').checked,closedMode:val('xc-m')==='saldo_inicial'?'saldo_inicial':'transito',approvalOver:isNaN(o)||o<0?0:o,transitAlertH:isNaN(h)||h<0?0:h,selfAuth:true,ownerV:1,noRubro:!!xfCfg().noRubro};
  const old=xfCfg();S.cfg.xfer=n;audit('TRASPASO_REGLAS','estricto '+old.strict+'→'+n.strict+' · cerradas '+old.closedMode+'→'+n.closedMode+' · supera '+money(old.approvalOver)+'→'+money(n.approvalOver)+' · alerta '+old.transitAlertH+'→'+n.transitAlertH+' h · autoautorización '+old.selfAuth+'→'+n.selfAuth);save();rerender();toast('Reglas guardadas');};

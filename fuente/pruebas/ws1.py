@@ -31,8 +31,13 @@ with sync_playwright() as p:
       S.customers.push({id:'cmin',num:912,name:'Min',last:'Orista',wa:'+5493875550913',consent:{club:true},status:'activo',limit:2000000,secret:'z'.repeat(20),channel:'minorista',taxid:'',term:0});})()""")
     PR=lambda pid,q,c,ch='mayorista':ev("priceResolve(prod('%s'),%s,{cust:custById('%s'),chan:'%s'})"%(pid,q,c,ch))
     # ---- 1) precio por volumen: Unidad 1–5 $100 · Display 6–23 $90 · Fardo 24–479 $80 · Pallet 480+ $70 ----
-    got=[PR('wt1',q,'cwh1')['price'] for q in (1,5,6,23,24,479,480,1500)]
-    chk(got==[10000,10000,9000,9000,8000,8000,7000,7000],'Unidad $100 · Display ×6 $90 · Fardo ×24 $80 · Pallet ×480 $70 por volumen: %s'%got)
+    def exp(q):
+        t=0
+        for n,u in ((480,7000),(24,8000),(6,9000)):
+            k=q//n;t+=k*n*u;q-=k*n
+        return t+q*10000
+    got=[(PR('wt1',q,'cwh1').get('amt') or PR('wt1',q,'cwh1')['price']*q) for q in (1,5,6,23,24,479,480,1500,13)]
+    chk(got==[exp(q) for q in (1,5,6,23,24,479,480,1500,13)] and exp(23)==212000,'COBRO POR TRAMOS (Unidad $100 · Display ×6 $90 · Fardo ×24 $80 · Pallet ×480 $70): %s'%got)
     r=PR('wt1',5,'cwh1')
     chk('Faltan 1 u' in r['missing'] and 'Display' in r['missing'],'avisa qué falta para la presentación siguiente: '+r['missing'])
     r=PR('wt1',24,'cwh1')
@@ -87,8 +92,8 @@ with sync_playwright() as p:
     pg.click('#pgrid [data-act=wsAddPres][data-id=wt1][data-lv=f]');pg.wait_for_timeout(250)
     chk(ev("pos.lines.length")==1 and ev("pos.lines[0].qty")==24 and ev("pos.lines[0].price")==8000 and ev("posTotal()")==192000,'un toque en «+ Fardo» agrega 24 u a $80 = $1.920')
     pg.click('#pcart [data-act=wsPack][data-k=p]');pg.wait_for_timeout(250)
-    chk(ev("pos.lines[0].qty")==504 and ev("pos.lines[0].price")==7000,'«+ Pallet» en la línea suma 480 u y el precio baja a $70 por volumen')
-    chk('Pallet' in pg.inner_text('#pcart') and 'por unidad' in pg.inner_text('#pcart'),'la línea explica la presentación aplicada')
+    chk(ev("pos.lines[0].qty")==504 and ev("pos.lines[0].amt")==3552000,'«+ Pallet» en la línea suma 480 u: 480 a $70 + 24 a $80 = $35.520 (por tramos)')
+    chk('Pallet' in pg.inner_text('#pcart') and 'Fardo' in pg.inner_text('#pcart'),'la línea explica la presentación aplicada')
     ev("lineEdit(0,'qty','5')");pg.wait_for_timeout(200)
     chk(ev("pos.lines[0].price")==10000,'bajar la cantidad vuelve al precio de la unidad')
     ev("lineEdit(0,'qty','6')");pg.wait_for_timeout(200)
@@ -126,10 +131,10 @@ with sync_playwright() as p:
     ev("pos.lines=[];pos.cust='cwh1';A.padd({dataset:{id:'wt1'}});lineEdit(0,'qty','10')")
     ev("user={name:'Mostrador',role:'mostrador'}")
     chk(ev("can('credit_ov')")==False,'el mostrador no tiene permiso de excepción de crédito')
-    n0=ev("S.creditOv.length");ev("A.wsCredOv({dataset:{id:'cwh1',need:'90000'}})");pg.wait_for_timeout(200)
+    n0=ev("S.creditOv.length");ev("A.wsCredOv({dataset:{id:'cwh1',need:'94000'}})");pg.wait_for_timeout(200)
     chk(ev("S.creditOv.length")==n0 and pg.locator('#modal-root .dlg').count()==0,'sin permiso no se abre ni se crea la excepción')
     ev("user={name:'ADMIN',role:'admin'}")
-    ev("A.wsCredOv({dataset:{id:'cwh1',need:'90000'}})");pg.wait_for_timeout(250)
+    ev("A.wsCredOv({dataset:{id:'cwh1',need:'94000'}})");pg.wait_for_timeout(250)
     pg.fill('#co-w','Cliente histórico, paga el viernes');pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(300)
     chk(ev("S.creditOv.length")==n0+1 and ev("S.creditOv.slice(-1)[0].reason").startswith('Cliente histórico'),'excepción creada con motivo, monto y vigencia')
     chk(ev("S.audit.some(e=>e.action==='EXCEPCION_CREDITO')"),'la excepción queda en auditoría')
@@ -218,6 +223,17 @@ with sync_playwright() as p:
     # ---- 17) migración del modelo anterior ----
     ev("(()=>{S.cfg.wholesale.lists=[{id:'L2'}];const q=S.products.find(p=>p.id==='wt3');q.prices={L2:1};q.tiers=[{}];q.packs=[{}];wsMigrate(S);})()")
     chk(ev("S.cfg.wholesale.lists===undefined && prod('wt3').prices===undefined && prod('wt3').tiers===undefined && prod('wt3').packs===undefined"),'datos del modelo anterior (listas, escalones, bultos) se limpian al cargar')
+    # ---- 18) venta mixta por tramos de punta a punta: 13 u de wt1 (Display ×6 $90) = 12 a $90 + 1 a $100 = $1.180 ----
+    ev("location.hash='#panel/vender'");pg.wait_for_timeout(400)
+    ev("pos.lines=[];pos.cust='cwh1';pos.chanSet=null;A.padd({dataset:{id:'wt1'}});lineEdit(0,'qty','13')");pg.wait_for_timeout(150)
+    chk(ev("posTotal()")==118000 and ev("pos.lines[0].amt")==118000,'ticket: 13 u mayorista = $1.180 por tramos (12 a $90 + 1 a $100)')
+    st0=ev("prod('wt1').stock")
+    r=ev("(()=>{const r=commitSale('efectivo',false,'local',pos.lines,{custId:'cwh1',ws:{chan:'mayorista'}});return r.err?{err:r.err}:{t:r.sale.total,it:r.sale.items.map(i=>[i.qty,i.price,i.lr])}})()")
+    chk(r.get('t')==118000 and r['it']==[[12,9000,'P-d'],[1,10000,'L1']] ,'la venta guarda renglones exactos qty×precio: %s'%r)
+    chk(ev("prod('wt1').stock")==st0-13,'el stock baja 13 u (suma de los tramos)')
+    chk(ev("S.sales.slice(-1)[0].items.every(i=>Math.round(i.qty*i.price)===lineTotal(i))"),'cada renglón guardado cumple cantidad × precio = importe')
+    ev("pos.lines=[];pos.cust='';A.padd({dataset:{id:'wt1'}});lineEdit(0,'qty','13')");pg.wait_for_timeout(100)
+    chk(ev("posTotal()")==130000,'minorista: 13 u siguen a $100 = $1.300 (sin cambios)')
     chk(not errs,'sin errores de consola: '+str(errs[:3]))
     print('%d OK / %d FALLAN de %d'%(sum(res),len(res)-sum(res),len(res)))
     b.close()

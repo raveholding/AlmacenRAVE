@@ -65,7 +65,7 @@ function seedProducts(){return SEED_PRODS.map((p,i)=>({id:p.id,name:p.nom,sub:p.
  .concat([{id:'granel-1',name:'Maní con cáscara a granel',sub:'ejemplo para probar la balanza',grupo:'',rubro:'promo',price:850000,cost:610000,stock:12.5,unit:'kg',barcode:'',plu:'12',menu:false,active:true,desc:'',demo:true}]);}
 const BUILD_VER=(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.ver)||'sin dato';
 const IS_CLIENT=!!(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente');
-const DEF=()=>{const d=DEF0();return IS_CLIENT?clientClean(d):wsDemoSeed(d);};
+const DEF=()=>{const d=DEF0();if(IS_CLIENT)return clientClean(d);const r=wsDemoSeed(d);if(typeof comboDemoSeed==='function')comboDemoSeed(r);return r;};
 /* DEMO: canal mayorista encendido con datos rotulados «ejemplo» (el sistema del cliente nace apagado y sin esto) */
 function wsDemoSeed(d){d.cfg=d.cfg||{};if(!d.cfg.wholesale)d.cfg.wholesale={on:true,example:true,allowClub:false,grace:0,levels:[{id:'d',name:'Display'},{id:'f',name:'Fardo'},{id:'p',name:'Pallet'}]};
  wsDemoPres(d.products);d.cfg.wholesale.seeded=1;return wsDemoCust(d);}
@@ -93,7 +93,7 @@ function clientClean(d){d.products=d.products.filter(p=>!/granel-1/.test(p.id)).
 const DEF0=()=>({v:3,
  tenant:{name:'RAVE',legal:'Almacén y Licorería RAVE',slogan:'Almacén y Licorería · Salta',wa:'5493874574892',address:'Urquiza 1052, Salta, Argentina',phone:'(387) 4 57 48 92',cuit:'',iva:'',caja:1,ig:'RAVE_LICORERIA',fb:'LICORERIA_RAVE'},
  rubros:SEED_RUBROS.map(r=>({...r})),branches:[],registers:[],transfers:[],transferEvents:[],payDetails:[],
- cfg:{permNotice:{ack:true},xfer:{strict:true,closedMode:'transito',approvalOver:0,transitAlertH:0,selfAuth:false},cashProfile:'simple',negStock:true,tax:{promo:3000000,vino:3000000},fee:{qr:0,modo:0,debito:0,credito:0,pedidosya:0},movAffectProfit:true,payFromCash:true,scaleMode:'peso',ticket:{w:80,msg:'¡Gracias por tu compra! Seguinos en Instagram @rave_licoreria',showLogo:true,legal:true}},
+ cfg:{biz:'rubros',permNotice:{ack:true},xfer:{strict:true,closedMode:'transito',approvalOver:0,transitAlertH:0,selfAuth:true,ownerV:1},cashProfile:'simple',negStock:true,tax:{promo:3000000,vino:3000000},fee:{qr:0,modo:0,debito:0,credito:0,pedidosya:0},movAffectProfit:true,payFromCash:true,scaleMode:'peso',ticket:{w:80,msg:'¡Gracias por tu compra! Seguinos en Instagram @rave_licoreria',showLogo:true,legal:true}},
  products:seedProducts(),
  sales:[],sessions:[],movs:[],closures:[],seq:{},
  suppliers:[],pOrders:[],receipts:[],supLedger:[],
@@ -146,10 +146,15 @@ let saveT;function save(){if(CLOUD_HOOK){CLOUD_HOOK.persist();return;}clearTimeo
 /* "Proveedores y compras" es un permiso nuevo: si ningún rol lo tiene todavía (datos anteriores), lo reciben administrador y supervisor; si ya existe, se respeta lo que el dueño decidió */
 function rolesMigrate(r){if(!r)return r;if(Array.isArray(r.admin))for(const p of['transfer_funds','customers_admin'])if(!r.admin.includes(p))r.admin.push(p); /* transfer_funds y customers_admin NUNCA se otorgan en silencio a otros roles (4.23.1 / 4.24.3) */
  for(const perm of['purchases','price_lists','credit_ov','audit_read','pay_detail_edit']){const any=Object.values(r).some(a=>Array.isArray(a)&&a.includes(perm));if(!any){if(Array.isArray(r.supervisor))r.supervisor.push(perm);if(Array.isArray(r.admin))r.admin.push(perm);}}return r;}
-function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);if(st.cfg&&st.cfg.permNotice===undefined)st.cfg.permNotice={ack:false};if(!IS_CLIENT&&st.cfg&&st.cfg.wholesale===undefined)wsDemoSeed(st);wsMigrate(st);return st;}
+function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);if(st.cfg&&st.cfg.permNotice===undefined)st.cfg.permNotice={ack:false};if(!IS_CLIENT&&st.cfg&&st.cfg.wholesale===undefined)wsDemoSeed(st);wsMigrate(st);bizMigrate(st);if(!IS_CLIENT&&typeof comboDemoSeed==='function')comboDemoSeed(st);return st;}
+/* V26.14: el viejo «perfil sin rubros» de traspasos pasa a ser el tipo de negocio; el dueño (administrador) mueve fondos con su propia autorización */
+function bizMigrate(st){if(!st.cfg)return;if(!st.cfg.biz)st.cfg.biz=(st.cfg.xfer&&st.cfg.xfer.noRubro)?'owner':'rubros';
+ st.cfg.xfer=st.cfg.xfer||{};if(!st.cfg.xfer.ownerV){st.cfg.xfer.selfAuth=true;st.cfg.xfer.ownerV=1;}}
 
 /* ---------- Permisos, auditoría ---------- */
 const can=p=>!!user&&(user.role==='admin'||(S.roles[user.role]||[]).includes(p));
+/* V26.14: dar o quitar permisos y crear usuarios es SÓLO del administrador (no es un permiso delegable) */
+const isAdm=()=>!!user&&user.role==='admin';
 function audit(action,detail,meta){const prev=S.audit.length?S.audit[S.audit.length-1].hash:'GENESIS';const e={id:uid(),ts:now(),user:user?user.name:'sistema',action,detail:String(detail||'').slice(0,400),prev};
  /* V26.9 · 4.23.6/4.23.8: datos estructurados opcionales (entidad, id, valor anterior/nuevo, motivo) y rol; no entran al hash (el encadenado de siempre sigue verificando) */
  if(user&&user.role)e.role=user.role;if(meta){if(meta.ent)e.ent=String(meta.ent).slice(0,40);if(meta.eid)e.eid=String(meta.eid).slice(0,80);if(meta.old!=null)e.old=String(meta.old).slice(0,300);if(meta.nw!=null)e.nw=String(meta.nw).slice(0,300);if(meta.reason)e.reason=String(meta.reason).slice(0,300);}
@@ -193,12 +198,24 @@ const rubName=id=>(S.rubros.find(r=>r.id===id)||{name:'(sin rubro)'}).name;
 const rub=id=>S.rubros.find(r=>r.id===id);
 const UNITS={u:'und',kg:'kg',l:'lt'};const unitLbl=u=>UNITS[u]||u;
 const negOK=()=>S.cfg.negStock!==false;
-const canOver=p=>negOK()&&!(p&&p.needStock);
-const stockTxt=p=>(p.stock<0?'−'+Math.abs(p.stock):String(p.stock).replace('.',','))+' '+unitLbl(p.unit);
+/* ===== V26.14 · Tipo de negocio =====
+   · 'rubros' (por defecto, Almacén RAVE): cada rubro es una persona; reparto, sueldo, impuesto y caja por rubro.
+   · 'owner'  (mayorista / un solo dueño): NO hay rubros por persona. Los productos se agrupan en «categorías» (sólo para ordenar
+     inventario y menú); el dinero es todo del dueño: ningún movimiento pide rubro (se usa un concepto interno oculto, «Caja del negocio»,
+     porque el servidor exige rubro en todo movimiento) y el arqueo es el de un solo dueño (sin sueldo, merienda, impuestos ni reparto). */
+const BIZ_TYPES={rubros:'Almacén con rubros por responsable (cada rubro es una persona)',owner:'Mayorista / un solo dueño (sin rubros por persona)'};
+const ownerMode=()=>!!(typeof S!=='undefined'&&S&&S.cfg&&S.cfg.biz==='owner');
+const RW=cap=>ownerMode()?(cap?'Categoría':'categoría'):(cap?'Rubro':'rubro');
+const RWs=cap=>ownerMode()?(cap?'Categorías':'categorías'):(cap?'Rubros':'rubros');
+function ensureRubro(id,name,kind){let r=S.rubros.find(x=>x.id===id);if(!r){r={id,name,kind:kind||'sysgen',color:'#6b7280',sys:true,reparte:false,owner:'',active:true};S.rubros.push(r);}return r.id;}
+/* concepto interno de todo el dinero del dueño (ingresos, egresos, pagos): sirve para ingreso y egreso */
+const ownerRubro=()=>ensureRubro('sys-gen','Caja del negocio','sysgen');
+const canOver=p=>negOK()&&!(p&&p.needStock)&&!(typeof isKit==='function'&&isKit(p)&&p.kit.some(k=>{const c=prod(k.pid);return c&&c.needStock;}));
+const stockTxt=p=>{const v=(typeof isKit==='function'&&isKit(p))?kitStock(p):p.stock;return(v<0?'−'+Math.abs(v):String(v).replace('.',','))+' '+unitLbl(p.unit)+(typeof isKit==='function'&&isKit(p)?' (combo)':'');};
 const empName=id=>(S.employees.find(e=>e.id===id)||{name:'—'}).name;
 const openSess=()=>S.sessions.find(s=>!s.closedAt&&(s.caja===undefined||s.caja===S.tenant.caja)); /* la sesión abierta de ESTE equipo (otros equipos tienen la suya) */
 const saleOk=s=>s.status==='ok';
-const lineTotal=it=>Math.round(it.qty*it.price)-(it.disc||0);
+const lineTotal=it=>(it.tr&&it.amt>0?it.amt:Math.round(it.qty*it.price))-(it.disc||0);
 const lineCost=it=>Math.round(it.qty*it.cost);
 const initial=n=>(String(n||'?').trim()[0]||'?').toUpperCase();
 
