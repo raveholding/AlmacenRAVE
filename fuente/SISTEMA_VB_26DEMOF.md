@@ -1397,6 +1397,8 @@ Sólo corrió contra un Tiendanube **falso**; falta homologar con la app y la ti
 
 **4.29.3-bis El dueño elige de qué caja sale el dinero.** Al pagar al contado en efectivo un ingreso de mercadería o un pago a proveedor, el **administrador (dueño)** elige la caja abierta de la que sale el efectivo (cualquier caja abierta, de cualquier equipo, con su efectivo esperado a la vista); también puede repartir un pago entre varias cajas (migración 12). Una caja cerrada no se toca (su cierre está sellado): se avisa que primero se traspase el dinero o se abra. Los demás usuarios pagan desde su propia caja. Prueba `y2.py` (7 verificaciones).
 
+**4.29.3-ter Demo «Kini Distribuidora».** Compilación `python3 build.py kini` (repositorio `KiniDistribuidoraDemo`): arranca como mayorista de un solo dueño, con Caja 1, Caja 2 y Caja principal abiertas con efectivo de ejemplo, 3 proveedores con deuda y una orden pendiente; logo y colores del cliente (`assets/kini-logo.webp`, negro/verde); base local propia (`rave-kini-demo-v1`). En Configuración → Datos de la demo: «Borrar todo y empezar vacío» y «Volver a los datos de ejemplo» (también en raveV2). Prueba `kn1.py` (17 verificaciones).
+
 **4.29.4 Combos que descuentan cada artículo (Almacén RAVE y demo)**
 - Un combo es un producto con su precio, **sin stock propio**: `p.kit=[{pid,qty}]` (artículos del inventario y cantidad por combo; no puede contener otro combo ni a sí mismo; sin repetidos; unidades enteras para artículos por unidad). Se arma en Inventario → producto → «Es un combo».
 - Vender 1 combo «Fernet Branca 750 + Coca-Cola 3 lt + Hielo» **resta 1 Fernet 750, 1 Coca-Cola 3 lt y 1 hielo**; el combo no se descuenta. Con varios combos y artículos sueltos en la misma venta se suma todo por artículo.
