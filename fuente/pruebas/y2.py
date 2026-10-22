@@ -1,0 +1,45 @@
+# V26.14 · el dueño / administrador elige de qué caja sale el efectivo al pagar (ingreso de mercadería al contado y pago a proveedor)
+from playwright.sync_api import sync_playwright
+errs=[];res=[]
+def chk(c,m):
+    print(('OK   ' if c else 'FALLA ')+m);res.append(bool(c))
+def cuit(pre,n):
+    b='%02d%08d'%(pre,n);w=[5,4,3,2,7,6,5,4,3,2];s=sum(int(b[i])*w[i] for i in range(10));d=11-s%11;d=0 if d==11 else (9 if d==10 else d);return b+str(d)
+with sync_playwright() as p:
+    b=p.chromium.launch(args=['--no-proxy-server']);pg=b.new_page(viewport={'width':1280,'height':900})
+    pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
+    ev=pg.evaluate
+    pg.goto('file:///tmp/rave/index.html#acceso');pg.wait_for_timeout(600)
+    pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(400)
+    ev("S.cfg.biz='owner';ownerRubro();S.sessions.push({id:'sA',caja:S.tenant.caja,openedBy:'ADMIN',openedAt:now(),opening:100000,closedAt:0});S.sessions.push({id:'sB',caja:2,openedBy:'Otro',openedAt:now(),opening:900000,closedAt:0});save()")
+    c=cuit(30,71234567)
+    ev("(async()=>{await LOCAL.supSave({razon_social:'Distribuidora Test',cuit:'%s',condicion_iva:'Responsable Inscripto'})})()"%c);pg.wait_for_timeout(200)
+    prov=ev("S.suppliers.find(s=>s.cuit==='%s').id"%c)
+    ev("go('proveedores')");pg.wait_for_timeout(300)
+    pg.click('.cmp [data-act=cmpTab][data-tab=remito]');pg.wait_for_timeout(300)
+    pg.fill('#cr-qin','distri');pg.select_option('#cr-prov',prov);pg.wait_for_timeout(250)
+    pg.fill('#rc-0-p',ev("cmpProdIndex().labelOf.get('ej-hielo')"));pg.fill('#rc-0-q','10');pg.fill('#rc-0-c','900');pg.wait_for_timeout(150)
+    pg.fill('[data-cr=nro]','R-9');pg.check('input[name=cr-cond][value=contado]');pg.wait_for_timeout(250)
+    opts=ev("[...document.querySelectorAll('#cr-turno option')].map(o=>o.textContent)")
+    chk(len(opts)==2 and 'Caja 2' in opts[1],'el dueño ve las dos cajas abiertas para elegir de dónde sale el efectivo: %s'%opts)
+    pg.select_option('#cr-turno','sB');pg.click('[data-act=cmpRemitoGo]');pg.wait_for_timeout(300)
+    chk('Caja 2' in pg.inner_text('#modal-root'),'la confirmación dice de qué caja sale')
+    pg.locator('#modal-root .ov >> nth=-1').locator('.mf [data-m=ok]').click();pg.wait_for_timeout(500)
+    m=ev("S.movs.filter(x=>x.type==='egreso'&&x.amount===900000)")
+    chk(len(m)==1 and m[0]['sessId']=='sB','el egreso de $ 9.000 salió de la caja 2 (%s)'%[x['sessId'] for x in m])
+    # pago a proveedor
+    ev("(async()=>{await LOCAL.recibir({idempotency_key:'deuda-y2-1',proveedor_id:'%s',tipo_comprobante:'Remito',nro_comprobante:'R-10',condicion_pago:'credito',items:[{producto_id:'ej-hielo',cantidad:5,precio_costo:1000}]})})()"%prov);pg.wait_for_timeout(300)
+    ev("go('proveedores')");pg.wait_for_timeout(300)
+    ev("A.cmpPay({dataset:{id:'%s'}})"%prov);pg.wait_for_timeout(300)
+    chk(pg.locator('#pg-t').count()==1,'el pago también deja elegir la caja')
+    pg.fill('#pg-m','3000');pg.select_option('#pg-t','sB')
+    pg.locator('#modal-root .ov >> nth=-1').locator('.mf [data-m=ok]').click();pg.wait_for_timeout(500)
+    m=ev("S.movs.filter(x=>x.type==='egreso'&&x.amount===300000)")
+    chk(len(m)==1 and m[0]['sessId']=='sB','el pago de $ 3.000 salió de la caja 2')
+    # un mostrador no elige: sale de su caja
+    ev("user=S.users.find(u=>u.role==='supervisor');go('proveedores')");pg.wait_for_timeout(300)
+    ev("A.cmpPay({dataset:{id:'%s'}})"%prov);pg.wait_for_timeout(300)
+    chk(pg.locator('#pg-t').count()==0,'otro usuario no elige: paga desde su propia caja')
+    print('errores:',errs[:3]);chk(not errs,'sin errores')
+    b.close()
+print('%d OK / %d FALLAN de %d'%(sum(res),len(res)-sum(res),len(res)))
