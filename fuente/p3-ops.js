@@ -19,20 +19,24 @@ function arqueoCalc(sess,inp){
  let aCtaCte=0,vueltoTot=0;
  sales.forEach(s=>{const L=salePays(s);L.forEach(pp=>{const m=byMethod[pp.m]||(byMethod[pp.m]={n:0,gross:0,fee:0});m.n++;m.gross+=pp.a;m.fee+=(L.length>1?(pp.fee||0):(s.fee||0));});total+=s.total;aCtaCte+=saleFiadoAmt(s);vueltoTot+=s.vuelto||0;});
  const cobrado=total-aCtaCte;
- const R={};S.rubros.forEach(r=>R[r.id]={sold:0,profit:0,fees:0,mov:0,items:{},cash:0,dig:0,fia:0,ing:0,egr:0});
+ const R={};S.rubros.forEach(r=>R[r.id]={sold:0,profit:0,fees:0,mov:0,items:{},cash:0,dig:0,fia:0,ing:0,egr:0,cing:0,cegr:0,adj:0});
  sales.forEach(s=>{const fees=allocFees(s);s.items.forEach((it,i)=>{const q=R[it.rubro];if(!q)return;const t=lineTotal(it);q.sold+=t;q.profit+=t-lineCost(it);q.fees+=fees[i];const e=q.items[it.name]||(q.items[it.name]={qty:0,total:0});e.qty+=it.qty;e.total+=t;});
   {const tots=s.items.map(lineTotal);const T=tots.reduce((a,b)=>a+b,0);
    if(T>0)salePays(s).forEach(pp=>{const k=pp.m==='efectivo'?'cash':(pp.m==='fiado'?'fia':'dig');let acc=0;s.items.forEach((it,i)=>{const sh=i===tots.length-1?pp.a-acc:Math.round(pp.a*tots[i]/T);acc+=sh;if(R[it.rubro])R[it.rubro][k]+=sh;});});}});
  const movs=S.movs.filter(m=>m.sessId===sess.id);let ing=0,egr=0,gAuto=0;
- movs.forEach(m=>{if(m.type==='ingreso')ing+=m.amount;else egr+=m.amount;const r=rub(m.rubro);if(!r)return;if(r.kind==='rubro'&&R[r.id]){if(m.type==='ingreso')R[r.id].ing+=m.amount;else R[r.id].egr+=m.amount;}
+ movs.forEach(m=>{const r0=rub(m.rubro);
+  /* V26.15 (Almacén RAVE): un ingreso/egreso manual al rubro de una persona SÓLO suma/resta a lo que VENDIÓ ese rubro.
+     No cambia la ganancia de ventas, la caja física del rubro ni el efectivo del cajón (no afecta el arqueo/cierre). */
+  if(rubAdj(m,r0)){if(R[r0.id]){const sg=m.type==='ingreso'?m.amount:-m.amount;R[r0.id].sold+=sg;R[r0.id].adj+=sg;if(m.type==='ingreso')R[r0.id].ing+=m.amount;else R[r0.id].egr+=m.amount;}return;}
+  if(m.type==='ingreso')ing+=m.amount;else egr+=m.amount;const r=r0;if(!r)return;if(r.kind==='rubro'&&R[r.id]){if(m.type==='ingreso'){R[r.id].ing+=m.amount;R[r.id].cing+=m.amount;}else{R[r.id].egr+=m.amount;R[r.id].cegr+=m.amount;}}
   if(r.kind==='shared'){if(m.type==='egreso')gAuto+=m.amount;}else if(S.cfg.movAffectProfit){R[r.id].mov+=(m.type==='ingreso'?m.amount:-m.amount);}});
  const sueldo=Math.round(inp.hours*inp.rate),mer=0,gastos=gAuto+inp.gastosManual;
  const rp=repartRubros(),n=rp.length;const sS=split(sueldo,n),sM=split(mer,n),gaS=split(gAuto,n),gmS=split(inp.gastosManual,n),sG=gaS.map((v,i)=>v+gmS[i]);
  const reparte=rp.map((r,i)=>{const q=R[r.id];const base=q.profit-q.fees+q.mov;const pre=base-sS[i]-sM[i]-sG[i];const tax=inp.taxes[r.id]||0;
-  const cubierto=Math.max(0,Math.min(pre,tax));const fis=q.cash+q.ing-q.egr-gaS[i]-(inp.payFromCash?(sS[i]+gmS[i]):0);
-  return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,sueldo:sS[i],merienda:0,gastos:sG[i],base,pre,tax,cubierto,falta:tax-cubierto,net:pre-tax,cash:q.cash,dig:q.dig,fia:q.fia,ing:q.ing,egr:q.egr,fis};});
+  const cubierto=Math.max(0,Math.min(pre,tax));const fis=q.cash+q.cing-q.cegr-gaS[i]-(inp.payFromCash?(sS[i]+gmS[i]):0);
+  return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,sueldo:sS[i],merienda:0,gastos:sG[i],base,pre,tax,cubierto,falta:tax-cubierto,net:pre-tax,cash:q.cash,dig:q.dig,fia:q.fia,ing:q.ing,egr:q.egr,adj:q.adj,fis};});
  const pool=(S.cfg.profitMode||'pool')==='pool'&&n>0;const netSum=reparte.reduce((a,r)=>a+r.net,0);const fin=split(netSum,n);reparte.forEach((r,i)=>{r.final=pool?fin[i]:r.net;});
- const otros=S.rubros.filter(r=>r.kind==='rubro'&&!r.reparte).map(r=>{const q=R[r.id];return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,net:q.profit-q.fees+q.mov,cash:q.cash,dig:q.dig,fia:q.fia,ing:q.ing,egr:q.egr,fis:q.cash+q.ing-q.egr};});
+ const otros=S.rubros.filter(r=>r.kind==='rubro'&&!r.reparte).map(r=>{const q=R[r.id];return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,net:q.profit-q.fees+q.mov,cash:q.cash,dig:q.dig,fia:q.fia,ing:q.ing,egr:q.egr,adj:q.adj,fis:q.cash+q.cing-q.cegr};});
  const cashSales=(byMethod.efectivo||{}).gross||0;const tr=(typeof transfersFor==='function')?transfersFor(sess):{tin:0,tout:0,list:[]};
  const paid=inp.payFromCash?(sueldo+inp.gastosManual):0;
  const expectedCash=sess.opening+cashSales+ing-egr-paid+tr.tin-tr.tout;
@@ -54,7 +58,7 @@ function buildReport(a,dayKey,who,inp){if(a.owner&&typeof buildReportOwner==='fu
  P('');P('POR RUBRO (cada rubro es una persona) :','h');
  a.reparte.concat(a.otros).forEach(r=>{P('');P((r.owner?r.owner.toUpperCase()+' — ':'')+r.name,'h');
   P('  Vendió : '+money(r.sold));P('  Ganancia de ventas : '+money(r.profit));
-  if(r.ing||r.egr)P('  Movimientos : ingresos '+money(r.ing)+' · egresos '+money(r.egr));
+  if(r.ing||r.egr)P('  Ingresos/egresos al rubro : '+(r.ing?'+ '+money(r.ing):'')+(r.ing&&r.egr?' · ':'')+(r.egr?'- '+money(r.egr):'')+(r.adj!==undefined?' (ya sumados/restados en Vendió)':''));
   P('  Efectivo cobrado : '+money(r.cash||0)+(r.dig?' · digital '+money(r.dig):'')+(r.fia?' · a cuenta corriente '+money(r.fia):''));
   P('  CAJA FÍSICA DEL RUBRO : '+money(r.fis||0),'h');});
  if(a.fondo)P('');if(a.fondo)P('Fondo de apertura y traspasos (no son de ningún rubro) : '+money(a.fondo));
@@ -94,6 +98,8 @@ function webhook(saleId,evId,res){
  save();return'ok';}
 
 /* ===== Movimientos de caja con rubro obligatorio (O.10) ===== */
+/* ¿es un ingreso/egreso manual al rubro de una persona? (no las compras, cobranzas, gastos generales ni el negocio de un solo dueño) */
+function rubAdj(m,r){if(ownerMode()||!m||m.ref)return false;r=r||rub(m.rubro);return!!r&&r.kind==='rubro';}
 function validRubro(id,type){if(!id)return'Elegí un rubro: es obligatorio para todo ingreso o egreso.';const r=rub(id);if(!r)return'El rubro elegido no existe.';if(r.kind==='shared'&&type==='ingreso')return'Ese rubro sólo admite egresos.';if(r.kind==='cobr'&&type==='egreso')return'Ese rubro sólo admite ingresos.';return'';}
 function addMov(type,rubroId,concept,amount){const e=validRubro(rubroId,type);if(e)return e;if(!openSess())return'No hay caja abierta.';
  if(!concept||concept.trim().length<3)return'Escribí el motivo o concepto (mínimo 3 letras).';if(!(amount>0))return'El importe debe ser mayor a cero.';
@@ -102,7 +108,7 @@ function addMov(type,rubroId,concept,amount){const e=validRubro(rubroId,type);if
 function movModal(type,pref){if(!can('cash_mov'))return toast('Sin permiso',1);if(!openSess()){toast('Abrí la caja primero (Caja → Abrir caja)',1);return;}
  if(ownerMode())return movModalOwner(type,pref);
  const opts=S.rubros.filter(r=>!r.sys&&(type==='egreso'?r.kind!=='cobr':r.kind!=='shared'));
- const w=modal(type==='ingreso'?'Ingreso de efectivo':'Egreso de efectivo',`<p class="sm mut">${type==='ingreso'?'Suma efectivo a la caja del rubro que elijas.':'Resta de la caja del rubro que elijas (por ejemplo, un pago entre socios).'}</p><label for="mv-r">Rubro / persona de quien es la caja (obligatorio)</label><select id="mv-r"><option value="">— Elegí un rubro —</option>${opts.map(r=>`<option value="${r.id}">${esc(r.name)}${r.owner?' ('+esc(r.owner)+')':''}</option>`).join('')}</select>
+ const w=modal(type==='ingreso'?'Ingreso de efectivo':'Egreso de efectivo',`<p class="sm mut">${type==='ingreso'?'Suma a lo que VENDIÓ el rubro que elijas. No cambia la caja ni el arqueo/cierre.':'Resta de lo que VENDIÓ el rubro que elijas (por ejemplo, un pago entre hermanos). No cambia la caja ni el arqueo/cierre.'}</p><label for="mv-r">Rubro / persona de quien es la caja (obligatorio)</label><select id="mv-r"><option value="">— Elegí un rubro —</option>${opts.map(r=>`<option value="${r.id}">${esc(r.name)}${r.owner?' ('+esc(r.owner)+')':''}</option>`).join('')}</select>
  <label for="mv-c">Motivo / concepto</label><input id="mv-c" maxlength="120" placeholder="Ej.: pago a proveedor, reintegro, retiro" autocomplete="off" value="${esc(pref||'')}">
  <label for="mv-a">Importe ($)</label>${numIn('mv-a',0,'0')}`,{okText:'Guardar',onOk:w=>{const e=addMov(type,val('mv-r'),val('mv-c'),cents(val('mv-a')));if(e){w._err(e);return false;}toast('Movimiento guardado');rerender();}});}
 A.mov=el=>movModal(el.dataset.type);
