@@ -32,10 +32,15 @@ function arqueoCalc(sess,inp){
   if(r.kind==='shared'){if(m.type==='egreso')gAuto+=m.amount;}});
  const sueldo=Math.round(inp.hours*inp.rate),mer=0,gastos=gAuto+inp.gastosManual;
  const rp=repartRubros(),n=rp.length;const sS=split(sueldo,n),sM=split(mer,n),gaS=split(gAuto,n),gmS=split(inp.gastosManual,n),sG=gaS.map((v,i)=>v+gmS[i]);
- const reparte=rp.map((r,i)=>{const q=R[r.id];const base=q.profit-q.fees+q.mov;const pre=base-sS[i]-sM[i]-sG[i];const tax=inp.taxes[r.id]||0;
-  const cubierto=Math.max(0,Math.min(pre,tax));const fis=q.cash+q.cing-q.cegr-gaS[i]-(inp.payFromCash?(sS[i]+gmS[i]):0);
-  return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,sueldo:sS[i],merienda:0,gastos:sG[i],base,pre,tax,cubierto,falta:tax-cubierto,net:pre-tax,cash:q.cash,dig:q.dig,fia:q.fia,ing:q.ing,egr:q.egr,adj:q.adj,fis};});
- const pool=(S.cfg.profitMode||'pool')==='pool'&&n>0;const netSum=reparte.reduce((a,r)=>a+r.net,0);const fin=split(netSum,n);reparte.forEach((r,i)=>{r.final=pool?fin[i]:r.net;});
+ /* V26.17 (pedido del dueño): TODO a medias entre los que reparten. Los impuestos del día se suman (los de cada uno) y se dividen en partes iguales;
+    la ganancia es la suma de las ganancias de ventas − sueldo − gastos − impuestos, y se divide en partes iguales. */
+ const taxIn=rp.map(r=>inp.taxes[r.id]||0),taxTot=taxIn.reduce((a,b)=>a+b,0),tS=split(taxTot,n);
+ const preTot=rp.reduce((a,r,i)=>{const q=R[r.id];return a+(q.profit-q.fees)-sS[i]-sM[i]-sG[i];},0);
+ const cubTot=Math.max(0,Math.min(preTot,taxTot)),falS=split(taxTot-cubTot,n);
+ const reparte=rp.map((r,i)=>{const q=R[r.id];const base=q.profit-q.fees;const pre=base-sS[i]-sM[i]-sG[i];const tax=tS[i],taxOwn=taxIn[i];
+  const cubierto=tax-falS[i];const fis=q.cash+q.cing-q.cegr-gaS[i]-(inp.payFromCash?(sS[i]+gmS[i]):0);
+  return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,sueldo:sS[i],merienda:0,gastos:sG[i],base,pre,tax,taxOwn,cubierto,falta:falS[i],net:pre-tax,cash:q.cash,dig:q.dig,fia:q.fia,ing:q.ing,egr:q.egr,adj:q.adj,fis};});
+ const pool=n>0;const netSum=reparte.reduce((a,r)=>a+r.net,0);const fin=split(netSum,n);reparte.forEach((r,i)=>{r.final=pool?fin[i]:r.net;});
  const otros=S.rubros.filter(r=>r.kind==='rubro'&&!r.reparte).map(r=>{const q=R[r.id];return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,net:q.profit-q.fees+q.mov,cash:q.cash,dig:q.dig,fia:q.fia,ing:q.ing,egr:q.egr,adj:q.adj,fis:q.cash+q.cing-q.cegr};});
  const cashSales=(byMethod.efectivo||{}).gross||0;const tr=(typeof transfersFor==='function')?transfersFor(sess):{tin:0,tout:0,list:[]};
  const paid=inp.payFromCash?(sueldo+inp.gastosManual):0;
@@ -66,10 +71,11 @@ function buildReport(a,dayKey,who,inp){if(a.owner&&typeof buildReportOwner==='fu
   if(a.sueldo)P((a.empName?a.empName.toUpperCase():'EMPLEADO')+(a.hours?' '+numAR(a.hours)+' hs × '+money(a.rate):'')+' = '+money(a.sueldo)+' · a medias:');
   a.reparte.forEach(r=>{if(a.sueldo)P('  Sueldo '+(r.owner||r.name)+' : - '+money(r.sueldo));});
   if(a.gastos)a.reparte.forEach(r=>P('  Gastos '+(r.owner||r.name)+' : - '+money(r.gastos)+(r===a.reparte[0]&&a.gAuto&&a.gManual?' (caja '+money(a.gAuto)+' + otros '+money(a.gManual)+', a medias)':'')));
-  a.reparte.forEach(r=>P('  Impuesto '+(r.owner||r.name)+' (se separa) : - '+money(r.tax)+(r.falta>0?' · NO CUBIERTO, faltan '+money(r.falta):''),r.falta>0?'w':''));
-  P('');P(a.pool?'GANANCIA (lo que queda; se divide a partes iguales) :':'GANANCIA DE CADA UNO :','h');
-  a.reparte.forEach(r=>P('  Ganancia propia de '+(r.owner||r.name)+' (ventas − sueldo − gastos − impuesto) : '+money(r.net),r.net<0?'w':''));
-  if(a.pool){P('  TOTAL A DIVIDIR : '+money(a.netSum),a.netSum<0?'w':'h');a.reparte.forEach(r=>P('  A '+(r.owner||r.name).toUpperCase()+' LE CORRESPONDE : '+money(r.final),r.final<0?'w':'h'));}
+  {const tt=a.reparte.reduce((s,r)=>s+r.tax,0),ff=a.reparte.reduce((s,r)=>s+r.falta,0);P('  Impuestos del día : '+money(tt)+' ('+a.reparte.map(r=>(r.owner||r.name)+' '+money(r.taxOwn||0)).join(' + ')+') · a medias:',ff>0?'w':'');
+   a.reparte.forEach(r=>P('  Impuesto '+(r.owner||r.name)+' : - '+money(r.tax)));if(ff>0)P('  ⚠ La ganancia no alcanza para los impuestos: faltan '+money(ff),'w');}
+  P('');P('GANANCIA (todo a medias) :','h');
+  P('  Ganancia de ventas : '+a.reparte.map(r=>(r.owner||r.name)+' '+money(r.profit)).join(' + ')+' = '+money(a.reparte.reduce((s,r)=>s+r.profit,0)));
+  P('  GANANCIA TOTAL (ventas − sueldo − gastos − impuestos) : '+money(a.netSum),a.netSum<0?'w':'h');a.reparte.forEach(r=>P('  A '+(r.owner||r.name).toUpperCase()+' LE CORRESPONDE (la mitad) : '+money(r.final),r.final<0?'w':'h'));
   a.otros.forEach(r=>P(r.name+(r.owner?' ('+r.owner+')':'')+' : '+money(r.net),r.net<0?'w':''));}
  if(a.declared!==null){P('');P('EFECTIVO : esperado '+money(a.expectedCash)+' · declarado '+money(a.declared)+' · '+(a.diff===0?'sin diferencia':(a.diff>0?'sobrante ':'faltante ')+money(Math.abs(a.diff))),a.diff<0?'w':'');}
  const det=a.reparte.concat(a.otros).filter(r=>(inp.detailAll||!S.rubros.find(x=>x.id===r.id).reparte)&&r.sold>0);
@@ -289,7 +295,7 @@ reg('arqueo','Arqueo / cierre','list','close_cash',()=>{const s=openSess();if(!s
  <label for="aq-g">Otros gastos del día ($)</label><input id="aq-g" data-aq="gastos" inputmode="decimal" placeholder="0" value="${esc(d.gastos||'')}" autocomplete="off">
  <p class="sm mut">El sueldo (la merienda ya está incluida en las horas) y los gastos se reparten a medias entre: <b>${rp.map(r=>esc(r.owner)).join(' y ')||'(nadie: marcá rubros que reparten en Configuración)'}</b>. Los egresos de caja con rubro "Gastos generales" se suman solos a los gastos.</p>
  <h3 style="margin-top:1rem">2 · Impuestos del día (editable)</h3><div class="grid g2">${rp.map(r=>`<div><label for="aq-t-${r.id}">${esc(r.owner)} (${esc(r.name)}) $</label><input id="aq-t-${r.id}" data-aq="tax" data-rid="${r.id}" inputmode="decimal" placeholder="${esc(pesosStr(S.cfg.tax[r.id]||0)||'0')}" value="${esc((d.taxes&&d.taxes[r.id])||'')}" autocomplete="off"></div>`).join('')}</div>
- <p class="sm mut">Orden: sueldo a medias → gastos → impuesto (editable, por defecto $30.000 cada uno) → lo que sobra es la ganancia. Si no alcanza, se marca en rojo.</p>${can('config')?`<label for="aq-pm">La ganancia final</label><select id="aq-pm"><option value="pool" ${(S.cfg.profitMode||'pool')==='pool'?'selected':''}>se suma y se divide a partes iguales</option><option value="each" ${S.cfg.profitMode==='each'?'selected':''}>cada uno se queda con la suya</option></select>`:''}
+ <p class="sm mut">Todo a medias: se suman las ganancias de ventas, se restan el sueldo, los gastos y los impuestos del día (editables, por defecto $30.000 cada uno; el total se divide a medias) y la ganancia que queda se divide en partes iguales. Si no alcanza, se marca en rojo.</p>
  <h3 style="margin-top:1rem">3 · Efectivo</h3><label for="aq-d">Efectivo contado en caja ($)</label><input id="aq-d" data-aq="declared" inputmode="decimal" placeholder="Escribí el número" value="${esc(d.declared||'')}" autocomplete="off">
  <label class="chk"><input type="checkbox" data-aq="payFromCash" id="aq-pc" ${(d.payFromCash!==undefined?d.payFromCash:S.cfg.payFromCash)?'checked':''}> El sueldo y los gastos manuales se pagaron de la caja</label>
  <label class="chk"><input type="checkbox" data-aq="detailAll" ${d.detailAll?'checked':''}> Incluir detalle de productos de todos los rubros</label>

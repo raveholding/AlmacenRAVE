@@ -1321,6 +1321,7 @@ Un paso se da por terminado sólo con sus pruebas de 4.24.5 verdes, **regresión
 4. **Merienda eliminada:** su costo ya está incluido en las horas pagadas. Se quitó el campo, el cálculo y la línea del informe (los cierres viejos conservan su texto).
 5. **Ingreso y egreso van a la caja del rubro elegido** (rubro obligatorio, O.10): el ingreso suma a esa caja y el egreso la resta; el modal lo explica. Ejemplo: Juan le debe $ 1.000 a Nico → Nico cobra un producto suyo y se registra un **egreso de $ 1.000 del rubro de Juan**: Nico suma por la venta, Juan resta y el cajón queda igual (es como si Juan le hubiera pagado a Nico).
 5-bis. **ENMIENDA V26.16 (pedido del dueño, reemplaza la regla 5 y la enmienda V26.15, que quedó sin efecto):** un ingreso o egreso cargado al rubro de una persona **sólo entra o sale de la caja física de ese rubro** (y del efectivo esperado del cajón, porque es plata física). **No** cambia lo que vendió el rubro, la venta del mostrador ni la ganancia (la opción «los ingresos/egresos afectan la ganancia» se eliminó y se ignora en datos viejos). Los egresos al rubro compartido «Gastos generales» siguen siendo gastos del día. Ejemplo: Juan le paga $ 1.000 a Nico con plata de la caja → egreso de $ 1.000 del rubro de Juan + ingreso de $ 1.000 al rubro de Nico: las cajas físicas cambian, las ventas y ganancias no. Prueba `k3.py` (28 verificaciones).
+5-ter. **ENMIENDA V26.17 (pedido del dueño): todo a medias entre los rubros que reparten (Juan y Nico).** Los impuestos del día de cada uno (editables, por defecto $ 30.000) se **suman y se dividen en partes iguales**; la ganancia es la suma de las ganancias de ventas − sueldo − gastos − impuestos y **siempre** se divide en partes iguales (se quitó la opción «cada uno se queda con la suya»; si quedó guardada se ignora). Si la ganancia no alcanza para los impuestos, la falta también se reparte a medias y se marca en rojo. Prueba `k3.py` (30 verificaciones).
 6. El cierre sellado guarda estos datos (`data.reparte[].fis`, `final`, etc.); el sello SHA-256 y el congelado no cambian.
 
 **4.27.2 Pruebas (`k3.py`, 26 verificaciones):** ventas por rubro, ingreso/egreso por rubro, sueldo 8 hs a medias, impuesto 30.000 por defecto y editable, ganancia a partes iguales y modo «cada uno la suya», cierre del cajón sin diferencia, sin merienda, tablas en Arqueo y Caja, 390 px sin desborde.
@@ -1897,4 +1898,4 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 5. Sin cambios respecto de los límites del anexo C, G.3 y H (hardware, NFC, Wallet, ARCA en producción, multisucursal en servidor).
 
 
-FIN DE SISTEMA VB 26F (revisión V26.16)
+FIN DE SISTEMA VB 26F (revisión V26.17)

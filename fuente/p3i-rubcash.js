@@ -14,10 +14,9 @@ function rcLiqHTML(a){if(!(a.reparte||[]).length)return'<p class="mut">Marcá en
  ${row('1 · Ganancia de sus ventas',r=>money(r.base))}
  ${row('2 · Sueldo'+(a.empName?' de '+esc(a.empName):'')+' (a medias'+(a.hours?' · '+numAR(a.hours)+' hs × '+money(a.rate):'')+')',r=>'- '+money(r.sueldo))}
  ${row('3 · Gastos (a medias)',r=>'- '+money(r.gastos))}
- ${row('4 · Impuesto que se separa',r=>'- '+money(r.tax)+(r.falta>0?'<div class="sm neg">no alcanza: faltan '+money(r.falta)+'</div>':''))}
- ${row('= Ganancia propia',r=>`<b class="${r.net<0?'neg':''}">${money(r.net)}</b>`,'tot')}
- ${a.pool?`<tr><td><b>5 · Ganancia total a dividir</b> (suma de las dos)</td><td class="r" colspan="${rp.length}"><b>${money(a.netSum)}</b></td></tr>
- ${row('<b>6 · Le corresponde a cada uno (partes iguales)</b>',r=>`<b class="${r.final<0?'neg':''}">${money(r.final)}</b>`,'tot')}`:''}
+ ${row('4 · Impuestos del día (total '+money(rp.reduce((s,r)=>s+r.tax,0))+', a medias)',r=>'- '+money(r.tax)+(r.falta>0?'<div class="sm neg">no alcanza: faltan '+money(r.falta)+'</div>':''))}
+ <tr><td><b>5 · Ganancia total a dividir</b> (ventas − sueldo − gastos − impuestos)</td><td class="r" colspan="${rp.length}"><b class="${a.netSum<0?'neg':''}">${money(a.netSum)}</b></td></tr>
+ ${row('<b>6 · Le corresponde a cada uno (la mitad)</b>',r=>`<b class="${r.final<0?'neg':''}">${money(r.final)}</b>`,'tot')}
  </tbody></table></div>`;}
 function arqTablesHTML(a){if(a&&a.owner&&typeof ownerTablesHTML==='function')return ownerTablesHTML(a);return `<h3>Por rubro</h3>${rcTableHTML(a)}<h3 style="margin-top:1rem">Liquidación</h3>${rcLiqHTML(a)}`;}
 /* tarjeta viva en Caja: cuánto tiene físicamente cada rubro ahora */

@@ -45,15 +45,19 @@ with sync_playwright() as p:
     # ganancia: modo por defecto = se divide a partes iguales
     ntot=n['net']+j['net'];chk(a['pool'] is True and a['sum']==ntot,'ganancia total a dividir = suma de las dos')
     chk(abs(n['fin']-j['fin'])<=1 and n['fin']+j['fin']==ntot,'cada uno recibe la mitad (%s / %s)'%(n['fin'],j['fin']))
-    # cada uno la suya
+    # V26.17: aunque quede guardado «cada uno la suya», todo se divide a medias
     ev("S.cfg.profitMode='each'")
-    b2=ev("(()=>{const s=openSess();return arqueoCalc(s,arqInputs(s)).reparte.map(r=>[r.net,r.final])})()")
-    chk(all(x[0]==x[1] for x in b2),'modo «cada uno la suya»: final = propia')
+    b2=ev("(()=>{const s=openSess();return arqueoCalc(s,arqInputs(s)).reparte.map(r=>r.final)})()")
+    chk(abs(b2[0]-b2[1])<=1,'la ganancia SIEMPRE se divide a medias (%s)'%b2)
     ev("S.cfg.profitMode=undefined")
-    # impuesto editable
+    # impuestos editables por persona: se suman y se dividen a medias
     ev("S.arqDraft[openSess().id].taxes={rn:'20000',rj:'10000'}")
-    t=ev("(()=>{const s=openSess();return arqueoCalc(s,arqInputs(s)).reparte.map(r=>r.tax)})()")
-    chk(t==[2000000,1000000],'impuesto editable por persona')
+    t=ev("(()=>{const s=openSess();const a=arqueoCalc(s,arqInputs(s));return {tax:a.reparte.map(r=>r.tax),own:a.reparte.map(r=>r.taxOwn),fin:a.reparte.map(r=>r.final),sum:a.netSum,prof:a.reparte.map(r=>r.profit)}})()")
+    chk(t['own']==[2000000,1000000] and t['tax']==[1500000,1500000],'impuestos del día: 20.000 + 10.000 = 30.000, a medias 15.000 cada uno (%s)'%t['tax'])
+    exp_sum=sum(t['prof'])-800000-3000000
+    chk(t['sum']==exp_sum and t['fin']==[exp_sum//2,exp_sum-exp_sum//2],'ganancia total = ventas − sueldo − impuestos = %s, la mitad para cada uno (%s)'%(exp_sum,t['fin']))
+    rp=ev("(()=>{const s=openSess();const i=arqInputs(s);return reportText(buildReport(arqueoCalc(s,i),dkey(now()),'ADMIN',i),false)})()")
+    chk('Impuestos del día : $ 30.000' in rp and 'LE CORRESPONDE (la mitad)' in rp,'el informe dice impuestos totales a medias y la mitad de la ganancia')
     ev("S.arqDraft[openSess().id].taxes={}")
     # pantallas
     ev("location.hash='#panel/arqueo'");pg.wait_for_timeout(500)
@@ -64,7 +68,7 @@ with sync_playwright() as p:
     prev=pg.inner_text('#arq-prev')
     chk('MERIENDA' not in prev.upper() and 'CAJA FÍSICA DEL RUBRO' in prev,'el texto de WhatsApp no tiene merienda y detalla la caja de cada rubro')
     pg.fill('#aq-t-rn','20000');pg.wait_for_timeout(200)
-    chk('20.000' in pg.inner_text('#arq-tabs'),'cambiar el impuesto actualiza la tabla en vivo')
+    tx=pg.inner_text('#arq-tabs');chk('total $ 50.000' in tx and '25.000' in tx,'cambiar el impuesto actualiza la tabla en vivo: total 50.000, 25.000 cada uno')
     ov=ev("document.documentElement.scrollWidth<=innerWidth+1");chk(ov,'sin desborde horizontal a 390 px')
     ev("location.hash='#panel/caja'");pg.wait_for_timeout(400)
     chk('Caja de cada rubro' in pg.inner_text('#view'),'Caja muestra la caja de cada rubro')
