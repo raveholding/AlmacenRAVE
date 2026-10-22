@@ -25,11 +25,11 @@ function arqueoCalc(sess,inp){
    if(T>0)salePays(s).forEach(pp=>{const k=pp.m==='efectivo'?'cash':(pp.m==='fiado'?'fia':'dig');let acc=0;s.items.forEach((it,i)=>{const sh=i===tots.length-1?pp.a-acc:Math.round(pp.a*tots[i]/T);acc+=sh;if(R[it.rubro])R[it.rubro][k]+=sh;});});}});
  const movs=S.movs.filter(m=>m.sessId===sess.id);let ing=0,egr=0,gAuto=0;
  movs.forEach(m=>{const r0=rub(m.rubro);
-  /* V26.15 (Almacén RAVE): un ingreso/egreso manual al rubro de una persona SÓLO suma/resta a lo que VENDIÓ ese rubro.
-     No cambia la ganancia de ventas, la caja física del rubro ni el efectivo del cajón (no afecta el arqueo/cierre). */
+  /* V26.16 (Almacén RAVE, pedido del dueño): un ingreso/egreso al rubro SÓLO entra o sale de la caja física de ese rubro (y del cajón).
+     NO cambia lo vendido, la venta del mostrador ni la ganancia. */
   if(rubAdj(m,r0)){if(R[r0.id]){const sg=m.type==='ingreso'?m.amount:-m.amount;R[r0.id].sold+=sg;R[r0.id].adj+=sg;if(m.type==='ingreso')R[r0.id].ing+=m.amount;else R[r0.id].egr+=m.amount;}return;}
   if(m.type==='ingreso')ing+=m.amount;else egr+=m.amount;const r=r0;if(!r)return;if(r.kind==='rubro'&&R[r.id]){if(m.type==='ingreso'){R[r.id].ing+=m.amount;R[r.id].cing+=m.amount;}else{R[r.id].egr+=m.amount;R[r.id].cegr+=m.amount;}}
-  if(r.kind==='shared'){if(m.type==='egreso')gAuto+=m.amount;}else if(S.cfg.movAffectProfit){R[r.id].mov+=(m.type==='ingreso'?m.amount:-m.amount);}});
+  if(r.kind==='shared'){if(m.type==='egreso')gAuto+=m.amount;}});
  const sueldo=Math.round(inp.hours*inp.rate),mer=0,gastos=gAuto+inp.gastosManual;
  const rp=repartRubros(),n=rp.length;const sS=split(sueldo,n),sM=split(mer,n),gaS=split(gAuto,n),gmS=split(inp.gastosManual,n),sG=gaS.map((v,i)=>v+gmS[i]);
  const reparte=rp.map((r,i)=>{const q=R[r.id];const base=q.profit-q.fees+q.mov;const pre=base-sS[i]-sM[i]-sG[i];const tax=inp.taxes[r.id]||0;
@@ -58,7 +58,7 @@ function buildReport(a,dayKey,who,inp){if(a.owner&&typeof buildReportOwner==='fu
  P('');P('POR RUBRO (cada rubro es una persona) :','h');
  a.reparte.concat(a.otros).forEach(r=>{P('');P((r.owner?r.owner.toUpperCase()+' — ':'')+r.name,'h');
   P('  Vendió : '+money(r.sold));P('  Ganancia de ventas : '+money(r.profit));
-  if(r.ing||r.egr)P('  Ingresos/egresos al rubro : '+(r.ing?'+ '+money(r.ing):'')+(r.ing&&r.egr?' · ':'')+(r.egr?'- '+money(r.egr):'')+(r.adj!==undefined?' (ya sumados/restados en Vendió)':''));
+  if(r.ing||r.egr)P('  Ingresos/egresos al rubro : '+(r.ing?'+ '+money(r.ing):'')+(r.ing&&r.egr?' · ':'')+(r.egr?'- '+money(r.egr):'')+' (sólo caja física; no cambian la venta ni la ganancia)');
   P('  Efectivo cobrado : '+money(r.cash||0)+(r.dig?' · digital '+money(r.dig):'')+(r.fia?' · a cuenta corriente '+money(r.fia):''));
   P('  CAJA FÍSICA DEL RUBRO : '+money(r.fis||0),'h');});
  if(a.fondo)P('');if(a.fondo)P('Fondo de apertura y traspasos (no son de ningún rubro) : '+money(a.fondo));
@@ -99,7 +99,8 @@ function webhook(saleId,evId,res){
 
 /* ===== Movimientos de caja con rubro obligatorio (O.10) ===== */
 /* ¿es un ingreso/egreso manual al rubro de una persona? (no las compras, cobranzas, gastos generales ni el negocio de un solo dueño) */
-function rubAdj(m,r){if(ownerMode()||!m||m.ref)return false;r=r||rub(m.rubro);return!!r&&r.kind==='rubro';}
+/* V26.16: se deja de usar (el ingreso/egreso al rubro NO toca lo vendido): mueve la caja física del rubro y el efectivo del cajón */
+function rubAdj(m,r){return false;}
 function validRubro(id,type){if(!id)return'Elegí un rubro: es obligatorio para todo ingreso o egreso.';const r=rub(id);if(!r)return'El rubro elegido no existe.';if(r.kind==='shared'&&type==='ingreso')return'Ese rubro sólo admite egresos.';if(r.kind==='cobr'&&type==='egreso')return'Ese rubro sólo admite ingresos.';return'';}
 function addMov(type,rubroId,concept,amount){const e=validRubro(rubroId,type);if(e)return e;if(!openSess())return'No hay caja abierta.';
  if(!concept||concept.trim().length<3)return'Escribí el motivo o concepto (mínimo 3 letras).';if(!(amount>0))return'El importe debe ser mayor a cero.';
@@ -108,7 +109,7 @@ function addMov(type,rubroId,concept,amount){const e=validRubro(rubroId,type);if
 function movModal(type,pref){if(!can('cash_mov'))return toast('Sin permiso',1);if(!openSess()){toast('Abrí la caja primero (Caja → Abrir caja)',1);return;}
  if(ownerMode())return movModalOwner(type,pref);
  const opts=S.rubros.filter(r=>!r.sys&&(type==='egreso'?r.kind!=='cobr':r.kind!=='shared'));
- const w=modal(type==='ingreso'?'Ingreso de efectivo':'Egreso de efectivo',`<p class="sm mut">${type==='ingreso'?'Suma a lo que VENDIÓ el rubro que elijas. No cambia la caja ni el arqueo/cierre.':'Resta de lo que VENDIÓ el rubro que elijas (por ejemplo, un pago entre hermanos). No cambia la caja ni el arqueo/cierre.'}</p><label for="mv-r">Rubro / persona de quien es la caja (obligatorio)</label><select id="mv-r"><option value="">— Elegí un rubro —</option>${opts.map(r=>`<option value="${r.id}">${esc(r.name)}${r.owner?' ('+esc(r.owner)+')':''}</option>`).join('')}</select>
+ const w=modal(type==='ingreso'?'Ingreso de efectivo':'Egreso de efectivo',`<p class="sm mut">${type==='ingreso'?'Entra efectivo a la caja física del rubro que elijas. No cambia las ventas del mostrador ni la ganancia.':'Sale efectivo de la caja física del rubro que elijas (por ejemplo, un pago entre hermanos). No cambia las ventas del mostrador ni la ganancia.'}</p><label for="mv-r">Rubro / persona de quien es la caja (obligatorio)</label><select id="mv-r"><option value="">— Elegí un rubro —</option>${opts.map(r=>`<option value="${r.id}">${esc(r.name)}${r.owner?' ('+esc(r.owner)+')':''}</option>`).join('')}</select>
  <label for="mv-c">Motivo / concepto</label><input id="mv-c" maxlength="120" placeholder="Ej.: pago a proveedor, reintegro, retiro" autocomplete="off" value="${esc(pref||'')}">
  <label for="mv-a">Importe ($)</label>${numIn('mv-a',0,'0')}`,{okText:'Guardar',onOk:w=>{const e=addMov(type,val('mv-r'),val('mv-c'),cents(val('mv-a')));if(e){w._err(e);return false;}toast('Movimiento guardado');rerender();}});}
 A.mov=el=>movModal(el.dataset.type);
