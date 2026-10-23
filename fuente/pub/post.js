@@ -60,6 +60,18 @@
   });
 
   /* --- tarjeta de fidelización --- */
+  /* V26.19: tarjeta de EJEMPLO (como en todos los menús de Sistema VB): muestra cómo se ve la tarjeta, la meta y el premio antes de sumarse */
+  function renderSample(){
+    var box=$('#loy-sample'); if(!box) return; var s={}; try{s=API.site()||{};}catch(e){}
+    var cl=s.club||{}, g=Math.max(2,Math.min(30,+cl.goal||10)), n=Math.min(g-1,Math.max(1,Math.round(g*0.6))), rw=String(cl.reward||'');
+    var dots=''; for(var i=0;i<g;i++){ var on=i<n, pz=(i===g-1); dots+='<i class="'+(on?'on':'')+(pz&&!on?' loy-pz':'')+'">'+(on?'★':(pz?'🎁':(i+1)))+'</i>'; }
+    box.innerHTML='<div class="loy-card loy-sample"><span class="loy-ej">'+L('EJEMPLO','SAMPLE')+'</span><h3>'+L('Así se ve tu tarjeta','This is how your card looks')+'</h3>'
+     +'<div class="loy-sub">'+L('Un sello por cada compra','One stamp per purchase')+'</div>'
+     +'<div class="loy-stamps" style="grid-template-columns:repeat('+Math.min(g,5)+',1fr)">'+dots+'</div>'
+     +'<div class="loy-meta"><span>'+n+' / '+g+' '+L('sellos','stamps')+'</span><span>'+L('Te faltan '+(g-n),(g-n)+' to go')+'</span></div>'
+     +(rw&&!/a definir/i.test(rw)?'<div class="loy-reward">🎁 '+L('Con ','With ')+g+L(' sellos: ',' stamps: ')+esc(rw)+'</div>':'')
+     +'</div>';
+  }
   var tick=null;
   function cardId(){try{return localStorage.getItem('rave.card')||'';}catch(e){return '';}}
   function stopTick(){clearInterval(tick);tick=null;}
@@ -71,7 +83,7 @@
     if(rec) rec.style.display=canRec?'':'none';
     var nt=$('#loy-nocard-txt'); if(nt&&!canRec) nt.textContent=L('Tu tarjeta se crea al sumarte al Club (formulario de arriba) y queda guardada en este celular. Si ya eras socio y no la ves (cambiaste de celular o borraste los datos del navegador), pedila por WhatsApp: el negocio te manda el enlace de tu tarjeta y al abrirlo vuelve a quedar guardada.','Your card is created when you join the Club (form above) and is kept on this phone. If you were already a member and cannot see it (new phone or cleared browser data), ask for it on WhatsApp: the shop sends you your card link and opening it saves it again.');
     var ask=$('#loy-ask'); if(ask){ ask.hidden=canRec; if(!canRec){ var sw=''; try{sw=API.site().wa||'';}catch(e){} sw=String(sw).replace(/\D/g,'')||String(window.RAVE_WA||'').replace(/\D/g,''); ask.onclick=function(){ window.open('https://wa.me/'+sw+'?text='+encodeURIComponent(L('Hola! Ya soy socio del Club pero no veo mi tarjeta en este celular. ¿Me mandan el enlace de mi tarjeta? Mi nombre es: ','Hi! I am already a Club member but I cannot see my card on this phone. Could you send me my card link? My name is: ')),'_blank','noopener'); }; } }
-    if(!c){ no.hidden=false; cd.hidden=true; if(id&&canRec){try{localStorage.removeItem('rave.card');}catch(e){}} renderPlans(null); return; }
+    if(!c){ renderSample(); no.hidden=false; cd.hidden=true; if(id&&canRec){try{localStorage.removeItem('rave.card');}catch(e){}} renderPlans(null); return; }
     no.hidden=true; cd.hidden=false;
     var dots=''; for(var i=0;i<c.goal;i++) dots+='<i class="'+(i<c.stamps?'on':'')+'">'+(i<c.stamps?'★':'')+'</i>';
     var left=Math.max(0,c.goal-c.stamps);
