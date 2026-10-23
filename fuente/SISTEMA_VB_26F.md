@@ -1410,6 +1410,7 @@ Sólo corrió contra un Tiendanube **falso**; falta homologar con la app y la ti
 - **Secciones del menú** (Menú público → «Secciones del menú», permiso `menu_admin`): lista los títulos del menú en orden, con ↑/↓ para ordenarlos (`mOrd`), «se muestra» sí/no, editar y **+ Nueva sección**. Las secciones salen de los rubros/categorías o son **sólo del menú** (`kind:'msec'`: Ofertas, Novedades…): no tienen dinero, caja ni reparto, no aparecen en ingresos/egresos, compras ni arqueo (`validRubro` las rechaza). Eliminar una sección sólo del menú devuelve sus productos a la sección de su rubro.
 - **Sección de cada producto** (Inventario → producto → «Menú público»): «La de su rubro» por defecto o cualquier sección (`p.msec`).
 - **Foto del producto:** se carga desde la computadora o el celular (cámara); se achica en el navegador (máx. 480 px, WebP o JPEG, ≤ ~90 KB) y se guarda con el producto (`p.img`); «Quitar foto» (`p.imgOff`) también oculta la foto que traía el catálogo. Sólo se aceptan `data:image/webp|jpeg|png;base64` (nada de SVG ni enlaces). Antes de publicar se avisa si el menú supera ~2,8 MB (la nube acepta 3 MB).
+- **Tarjeta de ejemplo del Club (V26.19, igual en todos los menús de Sistema VB):** quien todavía no tiene tarjeta ve «Así se ve tu tarjeta» (rótulo EJEMPLO) con la meta real de sellos y el premio configurado (`site.club`); al tener su tarjeta se ve la real. Prueba `m2.py`.
 - **Límite declarado:** las fotos viajan dentro del producto (no hay almacenamiento de archivos aparte); con muchos productos con foto conviene usar fotos livianas.
 
 ---
@@ -1908,4 +1909,4 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 5. Sin cambios respecto de los límites del anexo C, G.3 y H (hardware, NFC, Wallet, ARCA en producción, multisucursal en servidor).
 
 
-FIN DE SISTEMA VB 26F (revisión V26.18)
+FIN DE SISTEMA VB 26F (revisión V26.19)
