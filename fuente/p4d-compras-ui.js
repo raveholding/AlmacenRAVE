@@ -158,7 +158,7 @@ function cmpRemitoTab(){if(!crS)cmpNewRemito('');return `<div id="cr-box">${cmpR
 function cmpRemitoInner(){const c=crS;
  if(c.res)return cmpRemitoResult(c.res);
  const prov=cmpProv(c.prov);const ocs=prov?cmpArr('pOrders').filter(o=>o.provId===prov.id&&o.estado==='Solicitada').sort((a,b)=>b.num-a.num):[];
- const sess=openSess();const rubs=S.rubros.filter(r=>r.kind!=='cobr'&&!r.sys);
+ const sess=openSess();const rubs=S.rubros.filter(r=>r.kind!=='cobr'&&!r.sys&&r.kind!=='msec'&&r.kind!=='archivado');
  const contado=c.cond==='contado';
  return `<div class="cmp-form" id="cr-form" role="group" aria-label="Carga de remito">
   <fieldset class="cmp-card"><legend>1 · Proveedor y orden de compra</legend>
@@ -300,7 +300,7 @@ const CMP12={ok:null};
 async function cmp12Probe(){try{await sel('pagos_proveedor_asignaciones?select=id&limit=1');CMP12.ok=true;}catch(e){CMP12.ok=(e&&(e.net||(e.status&&e.status!==404&&e.status!==400)))?null:false;}}
 A.cmpPay=async el=>{if(!can('purchases'))return toast('Sin permiso',1);const s=cmpProv(el.dataset.id);if(!s)return;if(!(s.saldo>0)){toast('Este proveedor no tiene deuda',1);return;}
  if(typeof cmpCloud==='function'&&cmpCloud()&&CMP12.ok===null)await cmp12Probe();
- const key=cmpKey();const noR=ownerMode()||(typeof xfCfg==='function'&&xfCfg().noRubro);const rubs=S.rubros.filter(r=>r.kind!=='cobr'&&!r.sys);const sess=openSess();
+ const key=cmpKey();const noR=ownerMode()||(typeof xfCfg==='function'&&xfCfg().noRubro);const rubs=S.rubros.filter(r=>r.kind!=='cobr'&&!r.sys&&r.kind!=='msec'&&r.kind!=='archivado');const sess=openSess();
  const abiertas=(S.sessions||[]).filter(x=>!x.closedAt);const multi=abiertas.length>1&&(!(typeof cmpCloud==='function'&&cmpCloud())||CMP12.ok===true);
  const exp=ss=>{try{return arqueoCalc(ss,arqInputs(ss)).expectedCash;}catch(e){return 0;}};
  const cajaN=ss=>esc(ss.regName||('Caja '+ss.caja));

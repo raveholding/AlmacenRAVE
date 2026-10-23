@@ -107,14 +107,14 @@ function webhook(saleId,evId,res){
 /* ¿es un ingreso/egreso manual al rubro de una persona? (no las compras, cobranzas, gastos generales ni el negocio de un solo dueño) */
 /* V26.16: se deja de usar (el ingreso/egreso al rubro NO toca lo vendido): mueve la caja física del rubro y el efectivo del cajón */
 function rubAdj(m,r){return false;}
-function validRubro(id,type){if(!id)return'Elegí un rubro: es obligatorio para todo ingreso o egreso.';const r=rub(id);if(!r)return'El rubro elegido no existe.';if(r.kind==='shared'&&type==='ingreso')return'Ese rubro sólo admite egresos.';if(r.kind==='cobr'&&type==='egreso')return'Ese rubro sólo admite ingresos.';return'';}
+function validRubro(id,type){if(!id)return'Elegí un rubro: es obligatorio para todo ingreso o egreso.';const r=rub(id);if(!r)return'El rubro elegido no existe.';if(r.kind==='msec')return'Una sección del menú no es un rubro de dinero: elegí un rubro.';if(r.kind==='shared'&&type==='ingreso')return'Ese rubro sólo admite egresos.';if(r.kind==='cobr'&&type==='egreso')return'Ese rubro sólo admite ingresos.';return'';}
 function addMov(type,rubroId,concept,amount){const e=validRubro(rubroId,type);if(e)return e;if(!openSess())return'No hay caja abierta.';
  if(!concept||concept.trim().length<3)return'Escribí el motivo o concepto (mínimo 3 letras).';if(!(amount>0))return'El importe debe ser mayor a cero.';
  const m={id:uid(),ts:now(),sessId:openSess().id,type,rubro:rubroId,rubroName:rubName(rubroId),concept:concept.trim().slice(0,120),amount,user:user.name};S.movs.push(m);
  audit(type==='ingreso'?'INGRESO_CAJA':'EGRESO_CAJA',rubName(rubroId)+' · '+m.concept+' · '+money(amount));emit('cash.movement',{type,rubro:rubroId,amount});save();return'';}
 function movModal(type,pref){if(!can('cash_mov'))return toast('Sin permiso',1);if(!openSess()){toast('Abrí la caja primero (Caja → Abrir caja)',1);return;}
  if(ownerMode())return movModalOwner(type,pref);
- const opts=S.rubros.filter(r=>!r.sys&&(type==='egreso'?r.kind!=='cobr':r.kind!=='shared'));
+ const opts=S.rubros.filter(r=>!r.sys&&r.kind!=='msec'&&r.kind!=='archivado'&&(type==='egreso'?r.kind!=='cobr':r.kind!=='shared'));
  const w=modal(type==='ingreso'?'Ingreso de efectivo':'Egreso de efectivo',`<p class="sm mut">${type==='ingreso'?'Entra efectivo a la caja física del rubro que elijas. No cambia las ventas del mostrador ni la ganancia.':'Sale efectivo de la caja física del rubro que elijas (por ejemplo, un pago entre hermanos). No cambia las ventas del mostrador ni la ganancia.'}</p><label for="mv-r">Rubro / persona de quien es la caja (obligatorio)</label><select id="mv-r"><option value="">— Elegí un rubro —</option>${opts.map(r=>`<option value="${r.id}">${esc(r.name)}${r.owner?' ('+esc(r.owner)+')':''}</option>`).join('')}</select>
  <label for="mv-c">Motivo / concepto</label><input id="mv-c" maxlength="120" placeholder="Ej.: pago a proveedor, reintegro, retiro" autocomplete="off" value="${esc(pref||'')}">
  <label for="mv-a">Importe ($)</label>${numIn('mv-a',0,'0')}`,{okText:'Guardar',onOk:w=>{const e=addMov(type,val('mv-r'),val('mv-c'),cents(val('mv-a')));if(e){w._err(e);return false;}toast('Movimiento guardado');rerender();}});}
@@ -181,6 +181,7 @@ A.pedit=el=>{const p=S.products.find(x=>x.id===el.dataset.id)||null;const cv=can
  ${comboBlock(p)}
  <div class="grid g3"><div><label for="pm-sub">Presentación (ej. 750 ml)</label><input id="pm-sub" maxlength="40" value="${esc(p&&p.sub?p.sub:'')}"></div><div><label for="pm-gr">Grupo / bodega (menú)</label><input id="pm-gr" maxlength="40" value="${esc(p&&p.grupo?p.grupo:'')}"></div><div><label for="pm-plu">PLU de balanza (si es por peso)</label><input id="pm-plu" inputmode="numeric" maxlength="5" value="${esc(p&&p.plu?p.plu:'')}"></div></div>
  <label for="pm-d">Descripción (menú)</label><input id="pm-d" value="${esc(p?p.desc:'')}" maxlength="120"><label for="pm-e">Nombre en inglés (opcional)</label><input id="pm-e" value="${esc(p&&p.en?p.en:'')}" maxlength="80">
+ ${menuProdBlock(p)}
  <label class="chk"><input type="checkbox" id="pm-m" ${p&&p.menu?'checked':''}> Publicar en menú digital</label><label class="chk"><input type="checkbox" id="pm-a" ${!p||p.active?'checked':''}> Activo</label><label class="chk"><input type="checkbox" id="pm-ns" ${p&&p.needStock?'checked':''}> Exigir stock (no permitir vender sin stock este producto)</label>`,
  {okText:'Guardar',onOk:w=>{const name=val('pm-n').trim(),rubro=val('pm-r'),pr=cents(val('pm-f')),st=parseNum(val('pm-st')===''?'0':val('pm-st'));let cost=p?p.cost:0;if(cv){const c=cents(val('pm-c')===''?'0':val('pm-c'));if(isNaN(c)||c<0)return w._err('Costo inválido.'),false;cost=c;}
   if(!name)return w._err('Falta el nombre.'),false;if(!rubro||!rub(rubro))return w._err('Elegí '+(ownerMode()?'la categoría':'el rubro')+' del producto.'),false;if(!(pr>0))return w._err('El precio de venta debe ser mayor a cero.'),false;if(isNaN(st)||(st<0&&!(p&&st===p.stock)&&!negOK()))return w._err('Stock inválido (no puede ser negativo).'),false;
@@ -188,17 +189,19 @@ A.pedit=el=>{const p=S.products.find(x=>x.id===el.dataset.id)||null;const cv=can
   const plu=val('pm-plu').trim();if(plu&&!/^\d{1,5}$/.test(plu))return w._err('El PLU son hasta 5 números.'),false;if(plu&&S.products.some(x=>x.plu&&String(+x.plu)===String(+plu)&&(!p||x.id!==p.id)))return w._err('Ese PLU ya lo usa otro producto.'),false;
   const W=wsProdRead(p,pr,bc,cost);if(W&&W.err)return w._err(W.err),false;
   const K=comboRead(w,p);if(K.err)return w._err(K.err),false;
+  const MP=menuProdRead(w);if(MP.err)return w._err(MP.err),false;
   const d={name,sub:val('pm-sub').trim(),grupo:val('pm-gr').trim(),plu,rubro,unit:val('pm-u'),price:pr,cost,stock:st,barcode:bc,desc:val('pm-d').trim(),en:val('pm-e').trim(),menu:$('#pm-m',w).checked,active:$('#pm-a',w).checked,needStock:$('#pm-ns',w).checked};
   if(W){if(JSON.stringify(W.pres)!==JSON.stringify((p&&p.pres)||[])||W.floor!==((p&&p.floor)||0))audit('PRESENTACIONES_PRODUCTO',name+' · '+(W.pres.map(k=>wsLvName(k.lv)+' ×'+k.qty+' '+money(k.unit)+'/u').join(' · ')||'sin presentaciones')+(W.floor?' · piso '+money(W.floor):''));d.pres=W.pres;d.floor=W.floor;if(W.warns.length)setTimeout(()=>toast('Ojo: '+W.warns.join('; ')+'.',1),400);}
   if(K.kit){d.kit=K.kit;d.unit='u';d.stock=p?p.stock:0;if(cv&&!(cost>0))d.cost=kitCost({kit:K.kit});}else if(p&&isKit(p)){d.kit=[];}
   if(K.kit&&JSON.stringify(K.kit)!==JSON.stringify((p&&p.kit)||[]))audit('COMBO_COMPOSICION',name+' = '+kitTxt({kit:K.kit}));else if(!K.kit&&p&&isKit(p))audit('COMBO_QUITADO',name);
   if(p&&p.stock!==d.stock)d.hist=true;
+  d.msec=MP.msec;if(MP.img!==undefined){d.img=MP.img;d.imgOff=MP.imgOff;audit('FOTO_PRODUCTO',name+' · '+(MP.img?'foto nueva':'foto quitada'));}
   if(p){if(p.price!==pr||p.cost!==cost)audit('PRECIO_PRODUCTO',p.name+': precio '+money(p.price)+' → '+money(pr)+(p.cost!==cost?' · costo '+money(p.cost)+' → '+money(cost):''));Object.assign(p,d);audit('EDITAR_PRODUCTO',name);}
   else{S.products.push(Object.assign({id:uid()},d));audit('ALTA_PRODUCTO',name+' · '+rubName(rubro));}save();rerender();toast('Producto guardado');}});
  const upd=()=>{const ul=$('#pm-ul',w);if(ul)ul.textContent=unitLbl(val('pm-u'));if(!cv)return;const c=cents(val('pm-c')),pc=parseNum(val('pm-p')),sg=sugPrice(c,val('pm-t'),pc);const s=$('#pm-s',w);
   if(val('pm-p')==='')s.textContent='Ingresá costo y porcentaje para ver el precio sugerido.';else if(isNaN(sg))s.textContent=val('pm-t')==='margen'?'El margen debe estar entre 0 y menos de 100 %.':'Porcentaje o costo inválido.';else s.innerHTML='Precio sugerido: <b>'+money(sg)+'</b> <button class="btn sm" type="button" id="pm-use">Usar sugerido</button>';
   const f=cents(val('pm-f'));const x=$('#pm-x',w);if(!isNaN(f)&&!isNaN(c)&&c>0){x.textContent='Con ese precio: recargo '+numAR((f-c)/c*100,1)+' % · margen bruto '+numAR((f-c)/f*100,1)+' %';}else x.textContent='';};
- wsProdBind(w,cv);comboBind(w,p);w.addEventListener('input',upd);w.addEventListener('change',upd);w.addEventListener('click',e=>{if(e.target.id==='pm-use'){const sg=sugPrice(cents(val('pm-c')),val('pm-t'),parseNum(val('pm-p')));if(!isNaN(sg)){$('#pm-f',w).value=pesosStr(sg);upd();}}});upd();};
+ wsProdBind(w,cv);comboBind(w,p);menuProdBind(w,p);w.addEventListener('input',upd);w.addEventListener('change',upd);w.addEventListener('click',e=>{if(e.target.id==='pm-use'){const sg=sugPrice(cents(val('pm-c')),val('pm-t'),parseNum(val('pm-p')));if(!isNaN(sg)){$('#pm-f',w).value=pesosStr(sg);upd();}}});upd();};
 /* ===== V26 · 4.16 Eliminación protegida de artículos (sólo Administrador) =====
    · Borrado físico SOLO si no hay ventas, movimientos ni otras referencias; con historial se ARCHIVA (borrado lógico).
    · El servidor vuelve a validar todo (06-v26.sql): ocultar el botón no es seguridad.

@@ -1404,6 +1404,16 @@ Sólo corrió contra un Tiendanube **falso**; falta homologar con la app y la ti
 
 ---
 
+## 4.30 MENÚ PÚBLICO EDITABLE: SECCIONES, SECCIÓN DE CADA PRODUCTO Y FOTO (V26.18)
+
+**Estado: IMPLEMENTADO en V26.18** (parte `p5c-menusec.js`; ajustes en `p3-ops.js`, `p5-menu-boot.js`, `p4d-compras-ui.js`; prueba `m1.py`, 21 verificaciones). Sin migraciones SQL.
+- **Secciones del menú** (Menú público → «Secciones del menú», permiso `menu_admin`): lista los títulos del menú en orden, con ↑/↓ para ordenarlos (`mOrd`), «se muestra» sí/no, editar y **+ Nueva sección**. Las secciones salen de los rubros/categorías o son **sólo del menú** (`kind:'msec'`: Ofertas, Novedades…): no tienen dinero, caja ni reparto, no aparecen en ingresos/egresos, compras ni arqueo (`validRubro` las rechaza). Eliminar una sección sólo del menú devuelve sus productos a la sección de su rubro.
+- **Sección de cada producto** (Inventario → producto → «Menú público»): «La de su rubro» por defecto o cualquier sección (`p.msec`).
+- **Foto del producto:** se carga desde la computadora o el celular (cámara); se achica en el navegador (máx. 480 px, WebP o JPEG, ≤ ~90 KB) y se guarda con el producto (`p.img`); «Quitar foto» (`p.imgOff`) también oculta la foto que traía el catálogo. Sólo se aceptan `data:image/webp|jpeg|png;base64` (nada de SVG ni enlaces). Antes de publicar se avisa si el menú supera ~2,8 MB (la nube acepta 3 MB).
+- **Límite declarado:** las fotos viajan dentro del producto (no hay almacenamiento de archivos aparte); con muchos productos con foto conviene usar fotos livianas.
+
+---
+
 ## 5. MÓDULOS OPCIONALES (aditivos, auditables, apagados por defecto si dependen de terceros)
 
 Reglas comunes: banderas por comercio/sucursal/rol/dispositivo; migraciones SQL aditivas, versionadas e idempotentes probadas sobre copia; `tenant_id`, RLS y pruebas cruzadas A/B en toda entidad; servidor valida y recalcula; idempotencia; límites de uso; auditoría; dinero en centavos enteros; sin proveedor/credencial/dispositivo → estado "Pendiente de configuración" y el resto sigue funcionando; ninguna integración se declara terminada por tener una pantalla simulada.
@@ -1898,4 +1908,4 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 5. Sin cambios respecto de los límites del anexo C, G.3 y H (hardware, NFC, Wallet, ARCA en producción, multisucursal en servidor).
 
 
-FIN DE SISTEMA VB 26F (revisión V26.17)
+FIN DE SISTEMA VB 26F (revisión V26.18)

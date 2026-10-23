@@ -3,9 +3,9 @@
    redes, club). Acá se le conecta el catálogo del inventario, el alta al Club, la tarjeta de fidelización, los cupones y los textos
    legales. El menú sólo recibe datos públicos: nunca costos, stock exacto, proveedores ni clientes de terceros. */
 const mCfg=()=>S.menu.published||S.menu;
-function pubCatalog(){const secs=S.rubros.filter(r=>r.kind==='rubro'&&r.layout&&r.menuOn!==false).map(r=>({cat:r.id,nom:r.mNom||r.name,titulo:r.mTitle||r.name,hint:r.mHint||'',layout:r.layout,alc:!!r.alcohol,menu:true}));
+function pubCatalog(){const secs=menuSecs(false).map(r=>({cat:r.id,nom:r.mNom||r.name,titulo:r.mTitle||r.name,hint:r.mHint||'',layout:r.layout,alc:!!r.alcohol,menu:true}));
  const ids=new Set(secs.map(s=>s.cat));
- const productos=S.products.filter(p=>p.menu&&p.active&&ids.has(p.rubro)).map(p=>({id:p.id,cat:p.rubro,grupo:p.grupo||'',nom:p.name,sub:p.sub||'',precio:p.price/100,img:IMGS[p.id]||p.img||'',destacado:!!p.featured,desc:p.desc||'',unidad:p.unit!=='u'?p.unit:'',agotado:stockOf(p)<=0}));
+ const productos=S.products.filter(p=>p.menu&&p.active&&!p.archived&&ids.has(prodMenuSec(p))).map(p=>({id:p.id,cat:prodMenuSec(p),grupo:p.grupo||'',nom:p.name,sub:p.sub||'',precio:p.price/100,img:prodImg(p),destacado:!!p.featured,desc:p.desc||'',unidad:p.unit!=='u'?p.unit:'',agotado:stockOf(p)<=0}));
  return{secciones:secs,productos};}
 function pubSite(){const c=mCfg();
  return{title:c.title||'RAVE DIGITAL',sub:c.sub,pitch:c.pitch,promo:c.promo,address:S.tenant.address,mapQuery:c.mapQuery,mapUrl:c.mapUrl,reviewUrl:c.reviewUrl,wifi:c.wifi,social:(c.social||[]).filter(x=>x.on!==false&&x.url&&safeUrl(x.url)).map(x=>({k:x.k,label:x.label,handle:x.handle,url:x.url})),icons:Object.assign({},EXTRA_ICONS,SOCIAL_ICONS),footer:c.footer,wa:S.tenant.wa,alcFrom:c.alcFrom,alcTo:c.alcTo,hideTeamBtn:!!c.hideTeamBtn,clubOn:c.clubOn!==false,ship:(typeof shipPublic==='function'?shipPublic(c):null)};}
@@ -45,6 +45,7 @@ reg('menuadmin','Menú público','globe','menu_admin',()=>{const c=S.menu;const 
  const reqs=S.orderReqs.filter(o=>now()-o.ts<7*86400000);
  return `<div class="row"><h1 class="sp">Menú público</h1><span class="tag ${dirty?'warn':'ok'}">${dirty?'Borrador sin publicar':'Publicado v'+c.version}</span><a class="btn" href="#menu" target="_blank">Ver menú</a><button class="btn gold" data-act="mpPublish">Publicar</button></div>
  <p class="sm mut">El catálogo (productos, precios, fotos, sin stock) sale <b>en vivo del Inventario</b>: tildá "Publicar en menú digital" en cada producto. Acá se editan los textos, redes, mapa, Wi-Fi y accesos. Pedidos recibidos por WhatsApp desde el menú (últimos 7 días): <b>${reqs.length}</b> — son solicitudes, no ventas.</p>
+ ${menuSecCard()}
  <div class="grid g2"><div class="card"><h3>Identidad y textos</h3><label for="mp-ti">Título</label><input id="mp-ti" maxlength="40" value="${esc(c.title)}"><div class="grid g2"><div><label for="mp-s1">Subtítulo (ES)</label><input id="mp-s1" maxlength="80" value="${esc(c.sub.es)}"></div><div><label for="mp-s2">Subtitle (EN)</label><input id="mp-s2" maxlength="80" value="${esc(c.sub.en)}"></div></div>
   <label for="mp-p1">Presentación (ES) — **negrita**</label><textarea id="mp-p1" rows="3" maxlength="400">${esc(c.pitch.es)}</textarea><label for="mp-p2">Presentation (EN)</label><textarea id="mp-p2" rows="3" maxlength="400">${esc(c.pitch.en)}</textarea>
   <label class="chk"><input type="checkbox" id="mp-pro" ${c.promo.on?'checked':''}> Mostrar banner de promoción</label><label for="mp-r1">Texto del banner (ES)</label><input id="mp-r1" maxlength="200" value="${esc(c.promo.es)}"><label for="mp-r2">Banner (EN)</label><input id="mp-r2" maxlength="200" value="${esc(c.promo.en)}">
@@ -68,7 +69,7 @@ A.mpSave=()=>{const r=mpRead();if(typeof r==='string')return toast(r,1);const c=
  if(r.wa)S.tenant.wa=r.wa;S.tenant.address=val('mp-ad').trim();c.mapQuery=val('mp-mq').trim();c.mapUrl=val('mp-mu').trim();c.reviewUrl=val('mp-ru').trim();c.alcFrom=r.af;c.alcTo=r.at;c.hideTeamBtn=$('#mp-acc').checked;
  const was=c.wifi.pass;c.wifi={on:$('#mp-wion').checked,ssid:val('mp-ws').trim(),pass:val('mp-wp').trim(),example:$('#mp-wex').checked};if(was!==c.wifi.pass)audit('MENU_WIFI_CLAVE','cambio de clave');c.social=r.so;
  audit('MENU_BORRADOR','guardado');save();toast('Borrador guardado');rerender();};
-A.mpPublish=()=>{const c=S.menu;const snap=menuSnapshot();const h=sha256(JSON.stringify(snap));if(c.published&&h===c.pubHash)return toast('No hay cambios para publicar');
+A.mpPublish=()=>{const c=S.menu;{const kb=menuSizeKB();if(kb>2800)return toast('El menú pesa '+kb+' KB y la nube acepta hasta 3 MB: quitá o cambiá algunas fotos.',1);}const snap=menuSnapshot();const h=sha256(JSON.stringify(snap));if(c.published&&h===c.pubHash)return toast('No hay cambios para publicar');
  c.history=c.history||[];if(c.published)c.history.push({version:c.version,hash:c.pubHash,cfg:c.published});if(c.history.length>10)c.history.shift();c.version++;c.published=snap;c.pubHash=h;audit('MENU_PUBLICADO','v'+c.version+' '+h.slice(0,12));save();pubReload();if(CLOUD.on&&cl.ready)cloudPublishMenu(true).then(()=>toast('Publicado también en la nube')).catch(e=>toast('Nube: '+errTxt(e),1));toast('Menú publicado v'+c.version);rerender();};
 A.mpRevert=()=>{const c=S.menu;if(!c.history||!c.history.length)return;const prev=c.history.pop();const keep=c.history;Object.assign(c,JSON.parse(JSON.stringify(prev.cfg)));c.history=keep;c.published=prev.cfg;c.pubHash=prev.hash;c.version=prev.version;audit('MENU_REVERTIDO','a v'+prev.version);save();pubReload();toast('Vuelto a v'+prev.version);rerender();};
 A.mpQr=()=>{const url=/^https?:/.test(location.protocol)?location.href.split('#')[0]:PUBLIC_URL();
