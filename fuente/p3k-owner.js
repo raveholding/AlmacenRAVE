@@ -64,6 +64,7 @@ function buildReportOwner(a,dayKey,who,inp){const L=[];const P=(t,cls)=>L.push({
  if(a.tin)P('  Traspasos recibidos : '+money(a.tin));if(a.tout)P('  Traspasos enviados : - '+money(a.tout));
  P('  ESPERADO : '+money(a.expectedCash),'h');
  if(a.declared!==null)P('  CONTADO : '+money(a.declared)+' · '+(a.diff===0?'sin diferencia':(a.diff>0?'sobrante ':'faltante ')+money(Math.abs(a.diff))),a.diff<0?'w':'h');
+ if(typeof accReportLines==='function')accReportLines(a.accts,P);
  if(a.movs.length){P('');P('MOVIMIENTOS :','h');a.movs.forEach(m=>P('  '+(m.type==='ingreso'?'+ ':'- ')+money(m.amount)+' · '+m.concept));}
  if(inp.detailAll){ownCats(a).forEach(c=>{P('');P(c.name+' — vendido '+money(c.sold),'h');});}
  return L;}

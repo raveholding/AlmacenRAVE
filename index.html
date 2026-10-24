@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#242220">
 <title>Sistema RAVE · Almacén y Licorería RAVE</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242220'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23c9963e' font-family='Georgia,serif' font-weight='700'%3ER%3C/text%3E%3C/svg%3E">
-<script>window.RAVE_BUILD={"ver": "2026-10-24 12:48 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
+<script>window.RAVE_BUILD={"ver": "2026-10-24 16:47 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
 <style>
 :root{--ink:#242220;--gold:#c9963e;--gold2:#a87a28;--bg:#f6f3ee;--card:#fff;--line:#e6e0d6;--mut:#6d675f;--red:#c0392b;--redbg:#fdecea;--ok:#1e7a46;--okbg:#e6f4ec;--warnbg:#fff4dc;--r:16px}
 *{box-sizing:border-box}
@@ -937,7 +937,7 @@ function arqueoCalc(sess,inp){
  const expectedCash=sess.opening+cashSales+ing-egr-paid+tr.tin-tr.tout;
  const declared=inp.declared;const diff=isNaN(declared)?0:declared-expectedCash;
  const fondo=sess.opening+tr.tin-tr.tout;const fisSum=reparte.concat(otros).reduce((a,r)=>a+r.fis,0);const resto=expectedCash-fondo-fisSum;
- return{owner:ownerMode(),sessId:sess.id,total,cobrado,aCtaCte,vueltoTot,count:sales.length,byMethod,pend:{n:pend.length,total:pend.reduce((a,s)=>a+s.total,0)},rub:R,ing,egr,gAuto,gManual:inp.gastosManual,gastos,sueldo,merienda:mer,
+ return{owner:ownerMode(),sessId:sess.id,accts:(typeof accArq==='function'?accArq(sess):null),total,cobrado,aCtaCte,vueltoTot,count:sales.length,byMethod,pend:{n:pend.length,total:pend.reduce((a,s)=>a+s.total,0)},rub:R,ing,egr,gAuto,gManual:inp.gastosManual,gastos,sueldo,merienda:mer,
   detMissing:typeof pdMissingCount==='function'?pdMissingCount(sess):0,empName:inp.emp?inp.emp.name:'',hours:inp.hours,rate:inp.rate,reparte,otros,pool,netSum,fondo,resto,cashSales,paid,opening:sess.opening,tin:tr.tin,tout:tr.tout,transfers:tr.list,expectedCash,declared:isNaN(declared)?null:declared,diff,
   movs:movs.map(m=>({ts:m.ts,type:m.type,rubro:m.rubroName||rubName(m.rubro),concept:m.concept,amount:m.amount,user:m.user}))};}
 function buildReport(a,dayKey,who,inp){if(a.owner&&typeof buildReportOwner==='function')return buildReportOwner(a,dayKey,who,inp);
@@ -967,6 +967,7 @@ function buildReport(a,dayKey,who,inp){if(a.owner&&typeof buildReportOwner==='fu
   P('  Ganancia de ventas : '+a.reparte.map(r=>(r.owner||r.name)+' '+money(r.profit)).join(' + ')+' = '+money(a.reparte.reduce((s,r)=>s+r.profit,0)));
   P('  GANANCIA TOTAL (ventas − sueldo − gastos − impuestos) : '+money(a.netSum),a.netSum<0?'w':'h');a.reparte.forEach(r=>P('  A '+(r.owner||r.name).toUpperCase()+' LE CORRESPONDE (la mitad) : '+money(r.final),r.final<0?'w':'h'));
   a.otros.forEach(r=>P(r.name+(r.owner?' ('+r.owner+')':'')+' : '+money(r.net),r.net<0?'w':''));}
+ if(typeof accReportLines==='function')accReportLines(a.accts,P);
  if(a.declared!==null){P('');P('EFECTIVO : esperado '+money(a.expectedCash)+' · declarado '+money(a.declared)+' · '+(a.diff===0?'sin diferencia':(a.diff>0?'sobrante ':'faltante ')+money(Math.abs(a.diff))),a.diff<0?'w':'');}
  const det=a.reparte.concat(a.otros).filter(r=>(inp.detailAll||!S.rubros.find(x=>x.id===r.id).reparte)&&r.sold>0);
  det.forEach(r=>{P('');P(r.name+(r.owner?' ('+r.owner+')':'')+' — total vendido '+money(r.sold),'h');Object.keys(a.rub[r.id].items).forEach(k=>{const it=a.rub[r.id].items[k];P('  · '+k+' x'+numAR(it.qty,3)+' — '+money(it.total));});});
@@ -1292,7 +1293,7 @@ function commitSale(method,arca,channel,lines,opts){
  if(opts.extraDisc>0){ben.disc+=opts.extraDisc;if(!ben.kind){ben.kind='tn';ben.label='Descuento de Tiendanube';}}   /* descuento ya aplicado por la tienda online (Tiendanube): no es un cupón del sistema */
  const gross=lines.reduce((a,l)=>a+Math.round(l.qty*l.price),0);const total=gross-ben.disc;const alloc=allocDisc(lines,ben.disc);
  /* pagos: una sola línea (venta simple) o varias (mixta). Todo se valida ANTES de tocar stock, caja o cuenta corriente. */
- const pays=(opts.pays&&opts.pays.length?opts.pays:[{m:method,a:total}]).map(p=>({m:p.m,a:p.a}));
+ const pays=(opts.pays&&opts.pays.length?opts.pays:[{m:method,a:total}]).map(p=>({m:p.m,a:p.a}));if(typeof accStamp==='function')accStamp(pays,opts.acc);
  const pc=payCheck(pays,total,cust,opts.recv||0);if(pc.err)return{err:pc.err};
  {const pe=typeof pdPre==='function'?pdPre(pays,opts):'';if(pe)return{err:pe};}
  method=pays.length>1?'mixto':pays[0].m;
@@ -1398,6 +1399,7 @@ function cobroView(){
  <p class="sm"><b>Documento:</b> ${pos.arca?'Factura electrónica (CAE al cobrar)':'Ticket interno — DOCUMENTO NO VÁLIDO COMO FACTURA'} <button class="btn sm" data-act="parca">${pos.arca?'CON ARCA':'SIN ARCA'} (F8)</button></p>
  ${custBox}
  ${mixHtml}
+ ${typeof accPickHTML==='function'?accPickHTML():''}
  ${typeof pdHostHTML==='function'?pdHostHTML():''}
  ${typeof arcaRcpHtml==='function'?arcaRcpHtml():''}
  ${typeof wsNoClub==='function'&&wsNoClub()?wsClubOff():''}
@@ -1420,10 +1422,12 @@ A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin perm
   const pg=typeof pdGateCobro==='function'?pdGateCobro():{det:null};if(pg.err){toast(pg.err,1);return false;}
   let pays=null,recv=isNaN(rc)?0:rc;
   if(pos.mix){const L=mixParsed();if(L.some(p=>isNaN(p.a)||isNaN(p.r))){toast('Revisá los importes: hay un número inválido.',1);return false;}
-   pays=L.filter(p=>p.a>0).map(p=>({m:p.m,a:p.a}));const ef=L.find(p=>p.m==='efectivo');recv=ef?ef.r:0;}
-  const r=commitSale(pos.mix?'mixto':pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv,pays,det:pg.det,ws:wsOn()?{chan:wsChan()}:null,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null});
+   pays=L.filter(p=>p.a>0).map(p=>({m:p.m,a:p.a}));}
+  const ag=typeof accGate==='function'?accGate():{acc:null};if(ag.err){toast(ag.err,1);return false;}
+  if(pos.mix){const L=mixParsed();const ef=L.find(p=>p.m==='efectivo');recv=ef?ef.r:0;}
+  const r=commitSale(pos.mix?'mixto':pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv,pays,det:pg.det,acc:ag.acc,ws:wsOn()?{chan:wsChan()}:null,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null});
   if(r.err){wsCommitErr(r);return false;}
-  const sale=r.sale;pos.lines=[];pos.sel=-1;pos.cust='';pos.chanSet=null;pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];pos.pdet={};posCart();posGrid();
+  const sale=r.sale;pos.lines=[];pos.sel=-1;pos.cust='';pos.chanSet=null;pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];pos.pdet={};pos.acc={};posCart();posGrid();
   toast('Venta '+sale.n+' registrada'+(r.stamp?' · sello sumado':''));
   setTimeout(()=>{if(sale.status==='pendiente')payModal(sale);else if(sale.doc!=='ticket_interno'&&typeof arcaPostSale==='function')arcaPostSale(sale,r.stamp);else receiptModal(sale,r.stamp);},50);}});
  if(typeof pdBind==='function')pdBind(w);
@@ -2455,7 +2459,7 @@ function rcLiqHTML(a){if(!(a.reparte||[]).length)return'<p class="mut">Marcá en
  <tr><td><b>5 · Ganancia total a dividir</b> (ventas − sueldo − gastos − impuestos)</td><td class="r" colspan="${rp.length}"><b class="${a.netSum<0?'neg':''}">${money(a.netSum)}</b></td></tr>
  ${row('<b>6 · Le corresponde a cada uno (la mitad)</b>',r=>`<b class="${r.final<0?'neg':''}">${money(r.final)}</b>`,'tot')}
  </tbody></table></div>`;}
-function arqTablesHTML(a){if(a&&a.owner&&typeof ownerTablesHTML==='function')return ownerTablesHTML(a);return `<h3>Por rubro</h3>${rcTableHTML(a)}<h3 style="margin-top:1rem">Liquidación</h3>${rcLiqHTML(a)}`;}
+function arqTablesHTML(a){const ac=typeof accArqHTML==='function'?accArqHTML(a&&a.accts):'';if(a&&a.owner&&typeof ownerTablesHTML==='function')return ownerTablesHTML(a)+ac;return ac+ `<h3>Por rubro</h3>${rcTableHTML(a)}<h3 style="margin-top:1rem">Liquidación</h3>${rcLiqHTML(a)}`;}
 /* tarjeta viva en Caja: cuánto tiene físicamente cada rubro ahora */
 function rubCashCard(s){if(!s)return'';let a;try{a=arqueoCalc(s,arqInputs(s));}catch(e){return'';}
  return `<div class="card"><h3>Caja de cada rubro (ahora)</h3>${rcTableHTML(a)}<p class="sm mut">Un <b>ingreso</b> entra a la <b>caja física</b> del rubro que elijas y un <b>egreso</b> sale de ella (y del cajón). <b>No cambian lo vendido, la venta del mostrador ni la ganancia.</b> Ejemplo: si Juan le paga $1.000 a Nico con plata de la caja, se hace un egreso de $1.000 del rubro de Juan y un ingreso de $1.000 al rubro de Nico.</p></div>`;}
@@ -2593,6 +2597,7 @@ function buildReportOwner(a,dayKey,who,inp){const L=[];const P=(t,cls)=>L.push({
  if(a.tin)P('  Traspasos recibidos : '+money(a.tin));if(a.tout)P('  Traspasos enviados : - '+money(a.tout));
  P('  ESPERADO : '+money(a.expectedCash),'h');
  if(a.declared!==null)P('  CONTADO : '+money(a.declared)+' · '+(a.diff===0?'sin diferencia':(a.diff>0?'sobrante ':'faltante ')+money(Math.abs(a.diff))),a.diff<0?'w':'h');
+ if(typeof accReportLines==='function')accReportLines(a.accts,P);
  if(a.movs.length){P('');P('MOVIMIENTOS :','h');a.movs.forEach(m=>P('  '+(m.type==='ingreso'?'+ ':'- ')+money(m.amount)+' · '+m.concept));}
  if(inp.detailAll){ownCats(a).forEach(c=>{P('');P(c.name+' — vendido '+money(c.sold),'h');});}
  return L;}
@@ -2667,6 +2672,74 @@ function emptyState(){const d=DEF();
  if(d.cfg.wholesale){d.cfg.wholesale.example=false;}d.cfg.comboSeeded=1;d.cfg.kiniSeeded=1;d.cfg.emptyStart=1;return d;}
 A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, clientes, proveedores, ventas, cajas y movimientos de esta demo en este navegador. Quedan los usuarios (ADMIN 1234) y las cajas definidas, cerradas. Para volver a los ejemplos usá «Volver a los datos de ejemplo».',
  ()=>{S=emptyState();audit('DEMO_VACIA','se empezó de cero sin ejemplos');save();pos.lines=[];if(typeof pubReload==='function')pubReload();rerender();toast('Demo vacía: cargá tus productos y abrí una caja');},'Borrar todo');
+
+/* ===== V26.23 · Cuentas de cobro: a qué cuenta entró cada transferencia, QR, MODO o posnet =====
+   · Configuración → «Cuentas de cobro»: cada cuenta tiene nombre (alias/CBU parcial), dueño (el rubro de un socio o «del negocio»)
+     y los medios que recibe (transferencia, QR, MODO, débito, crédito). Sólo el administrador las carga.
+   · Al cobrar con uno de esos medios (pago total o parte de un pago mixto) se elige la cuenta; si hay una sola, se elige sola.
+     La venta guarda en el pago {acc, accN, accR}: cuenta, nombre y dueño en ese momento.
+   · Arqueo/cierre: cuánto entró a cada cuenta y la COMPENSACIÓN entre socios: si a la cuenta de Juan entró plata de productos
+     de Nico, «Juan le pasa $X a Nico». No cambia ventas, ganancia, caja física ni efectivo esperado (es plata digital). */
+const ACC_MEDS=['transferencia','qr','modo','debito','credito'];
+const accList=()=>Array.isArray(S.cfg&&S.cfg.payAcc)?S.cfg.payAcc.filter(a=>a&&a.id&&a.active!==false):[];
+const accFor=m=>accList().filter(a=>(a.meds||[]).includes(m));
+const accById=id=>(Array.isArray(S.cfg&&S.cfg.payAcc)?S.cfg.payAcc:[]).find(a=>a.id===id);
+const accOwnerName=a=>{if(!a||!a.rubro)return'Negocio';const r=rub(a.rubro);return r?(r.owner?r.owner+' ('+r.name+')':r.name):'(rubro eliminado)';};
+/* ---------- Configuración ---------- */
+function accCfgCard(){if(!user||user.role!=='admin')return'';const L=Array.isArray(S.cfg.payAcc)?S.cfg.payAcc:[];
+ return`<div class="card" style="margin-top:1rem" id="acc-card"><div class="row" style="flex-wrap:wrap"><h3 class="sp">Cuentas de cobro</h3><button class="btn sm gold" data-act="accEdit" data-id="">+ Cuenta</button></div>
+ <p class="sm mut">Las cuentas a las que entran transferencias, QR, MODO o el posnet. Al cobrar se elige a cuál entró, y el cierre muestra cuánto recibió cada una y ${ownerMode()?'el total por cuenta':'<b>quién le tiene que pasar plata a quién</b> si la cuenta de un socio cobró productos de otro'}.</p>
+ ${L.length?L.map(a=>`<div class="row" style="flex-wrap:wrap;gap:.4rem;border-top:1px solid var(--line);padding:.45rem 0;${a.active===false?'opacity:.6':''}"><span class="sp"><b>${esc(a.name)}</b>${a.active===false?' <span class="tag bad">inactiva</span>':''}<div class="sm mut">De: ${esc(accOwnerName(a))} · ${(a.meds||[]).map(m=>esc(MET[m]||m)).join(', ')||'sin medios'}</div></span><button class="btn sm" data-act="accEdit" data-id="${a.id}">Editar</button></div>`).join(''):'<p class="mut sm">Todavía no hay cuentas: los cobros digitales no piden cuenta.</p>'}</div>`;}
+A.accEdit=el=>{if(!user||user.role!=='admin')return toast('Sólo el administrador',1);S.cfg.payAcc=Array.isArray(S.cfg.payAcc)?S.cfg.payAcc:[];
+ const a=el&&el.dataset.id?accById(el.dataset.id):null;const rubs=S.rubros.filter(r=>r.kind==='rubro');
+ modal(a?'Editar cuenta de cobro':'Nueva cuenta de cobro',`<label for="ac-n">Nombre de la cuenta (alias o CBU parcial)</label><input id="ac-n" maxlength="60" autocomplete="off" value="${esc(a?a.name:'')}" placeholder="Ej.: juan.rave.mp">
+ <label for="ac-r">¿De quién es la plata que entra a esta cuenta?</label><select id="ac-r">${ownerMode()?'':rubs.map(r=>`<option value="${r.id}" ${a&&a.rubro===r.id?'selected':''}>${esc(r.owner?r.owner+' — '+r.name:r.name)}</option>`).join('')}<option value="" ${a&&!a.rubro||ownerMode()?'selected':''}>Del negocio (no es de un socio)</option></select>
+ <label>Medios que entran a esta cuenta</label><div class="row" style="flex-wrap:wrap;gap:.6rem">${ACC_MEDS.map(m=>`<label class="chk" style="margin:0"><input type="checkbox" data-acm="${m}" ${(a?(a.meds||[]):['transferencia']).includes(m)?'checked':''}> ${esc(MET[m]||m)}</label>`).join('')}</div>
+ ${a?`<label class="chk"><input type="checkbox" id="ac-on" ${a.active!==false?'checked':''}> Cuenta activa (desactivala si ya no se usa; los cierres anteriores no cambian)</label>`:''}`,
+ {okText:'Guardar cuenta',onOk:w=>{const n=val('ac-n').trim();if(n.length<2)return w._err('Escribí el nombre de la cuenta.'),false;if(typeof pdPan==='function'&&pdPan(n))return w._err('Eso parece un número de tarjeta: no se guarda.'),false;
+  if(S.cfg.payAcc.some(x=>norm(x.name)===norm(n)&&(!a||x.id!==a.id)))return w._err('Ya hay una cuenta con ese nombre.'),false;
+  const meds=[...w.querySelectorAll('[data-acm]')].filter(x=>x.checked).map(x=>x.dataset.acm);if(!meds.length)return w._err('Elegí al menos un medio.'),false;
+  const d={name:n,rubro:ownerMode()?'':val('ac-r'),meds,active:a?$('#ac-on',w).checked:true};
+  if(a){Object.assign(a,d);audit('CUENTA_COBRO_EDITAR',n+' · de '+accOwnerName(a)+' · '+meds.join(','));}else{const x=Object.assign({id:uid()},d);S.cfg.payAcc.push(x);audit('CUENTA_COBRO_ALTA',n+' · de '+accOwnerName(x)+' · '+meds.join(','));}
+  save();rerender();toast('Cuenta guardada');}});};
+/* ---------- cobro: elegir la cuenta ---------- */
+function accMedsInUse(){const m=pos.mix?pos.pays.map(p=>p.m):[pos.method];return[...new Set(m)].filter(x=>ACC_MEDS.includes(x)&&accFor(x).length);}
+function accPickHTML(){const M=accMedsInUse();if(!M.length)return'';pos.acc=pos.acc||{};
+ return`<div class="card" id="acc-pick" style="margin:.5rem 0"><h3 style="margin-top:0">¿A qué cuenta entró?</h3>${M.map(m=>{const L=accFor(m);if(L.length===1&&!pos.acc[m])pos.acc[m]=L[0].id;
+  return`<label for="acc-${m}">${esc(MET[m]||m)}</label><select id="acc-${m}" data-accm="${m}"><option value="">— Elegí la cuenta —</option>${L.map(a=>`<option value="${a.id}" ${pos.acc[m]===a.id?'selected':''}>${esc(a.name)} · ${esc(accOwnerName(a))}</option>`).join('')}</select>`;}).join('')}
+ <p class="sm mut">Sirve para el cierre: cuánto entró a cada cuenta${ownerMode()?'':' y quién le pasa plata a quién'}.</p></div>`;}
+document.addEventListener('change',e=>{const m=e.target&&e.target.dataset&&e.target.dataset.accm;if(!m)return;pos.acc=pos.acc||{};pos.acc[m]=e.target.value;});
+/* valida y devuelve {m: accId} para commitSale */
+function accGate(){const M=accMedsInUse();const out={};for(const m of M){const id=(pos.acc||{})[m];if(!id||!accById(id))return{err:'Elegí a qué cuenta entró el cobro por '+(MET[m]||m)+'.'};out[m]=id;}return{acc:out};}
+/* agrega la cuenta a cada pago (foto del nombre y el dueño en ese momento) */
+function accStamp(pays,map){if(!map)return;pays.forEach(p=>{const id=map[p.m];const a=id?accById(id):null;if(a){p.acc=a.id;p.accN=a.name;p.accR=a.rubro||'';}});}
+/* ---------- arqueo: por cuenta y compensación entre socios ---------- */
+function accArq(sess){const sales=S.sales.filter(s=>s.sessId===sess.id&&s.status==='ok');const byAcc={},rec={},corr={};let tot=0,sin=0;
+ sales.forEach(s=>{const items=s.items||[];const tots=items.map(lineTotal);const T=tots.reduce((a,b)=>a+b,0);
+  salePays(s).forEach(pp=>{if(!ACC_MEDS.includes(pp.m))return;if(!pp.acc){sin+=pp.a;return;}tot+=pp.a;
+   const k=pp.acc;const b=byAcc[k]||(byAcc[k]={id:k,name:pp.accN||(accById(k)||{}).name||'(cuenta)',owner:pp.accR||'',n:0,total:0});b.n++;b.total+=pp.a;
+   if(pp.accR)rec[pp.accR]=(rec[pp.accR]||0)+pp.a;
+   if(T>0){let acc=0;items.forEach((it,i)=>{const sh=i===items.length-1?pp.a-acc:Math.round(pp.a*tots[i]/T);acc+=sh;const r=rub(it.rubro);const key=(r&&r.kind==='rubro')?it.rubro:'';corr[key]=(corr[key]||0)+sh;});}});});
+ const fp=(S.fiadoPays||[]).filter(f=>f.acc&&f.ts>=sess.openedAt&&(!sess.closedAt||f.ts<=sess.closedAt)).map(f=>({name:f.accN||'',amount:f.amount,cust:f.cust}));
+ const owners=new Set([...Object.keys(rec),...Object.keys(corr).filter(k=>k)]);const comp=[...owners].map(id=>{const r=rub(id);return{id,name:r?(r.owner||r.name):'(rubro)',rubro:r?r.name:'',rec:rec[id]||0,corr:corr[id]||0,saldo:(rec[id]||0)-(corr[id]||0)};});
+ const negocio=corr['']||0;   /* productos sin rubro de socio: no se compensan */
+ /* pases: los que recibieron de más le pasan a los que recibieron de menos */
+ const deb=comp.filter(c=>c.saldo>0).map(c=>({...c,left:c.saldo})),cre=comp.filter(c=>c.saldo<0).map(c=>({...c,left:-c.saldo}));const moves=[];
+ for(const d of deb)for(const c of cre){if(d.left<=0)break;if(c.left<=0)continue;const x=Math.min(d.left,c.left);if(x>0){moves.push({from:d.name,to:c.name,amount:x});d.left-=x;c.left-=x;}}
+ return{byAcc:Object.values(byAcc),total:tot,sinCuenta:sin,comp,moves,negocio,fiado:fp};}
+function accArqHTML(x){if(!x||(!x.byAcc.length&&!x.sinCuenta))return'';
+ return`<h3 style="margin-top:1rem">Cobros digitales por cuenta</h3><div class="tw"><table><thead><tr><th>Cuenta</th><th>De</th><th class="r">Cobros</th><th class="r">Importe</th></tr></thead><tbody>
+ ${x.byAcc.map(b=>`<tr><td>${esc(b.name)}</td><td>${esc(b.owner?((rub(b.owner)||{}).owner||(rub(b.owner)||{}).name||''):'Negocio')}</td><td class="r">${b.n}</td><td class="r">${money(b.total)}</td></tr>`).join('')}
+ ${x.sinCuenta?`<tr><td colspan="3"><span class="tag warn">Sin cuenta elegida</span></td><td class="r">${money(x.sinCuenta)}</td></tr>`:''}</tbody></table></div>
+ ${ownerMode()||!x.comp.length?'':`<h3 style="margin-top:1rem">Compensación entre socios (plata digital)</h3><div class="tw"><table><thead><tr><th>Socio</th><th class="r">Entró a su cuenta</th><th class="r">Le corresponde por sus ventas</th><th class="r">Diferencia</th></tr></thead><tbody>
+ ${x.comp.map(c=>`<tr><td><b>${esc(c.name)}</b><div class="sm mut">${esc(c.rubro)}</div></td><td class="r">${money(c.rec)}</td><td class="r">${money(c.corr)}</td><td class="r ${c.saldo>0?'neg':''}">${c.saldo>0?'tiene '+money(c.saldo)+' de otro':c.saldo<0?'le faltan '+money(-c.saldo):'—'}</td></tr>`).join('')}</tbody></table></div>
+ ${x.moves.length?x.moves.map(m=>`<div class="warnbox"><b>${esc(m.from)} le pasa ${money(m.amount)} a ${esc(m.to)}</b></div>`).join(''):'<div class="okbox">Cada socio recibió en su cuenta lo que le corresponde: no hay que pasarse plata.</div>'}
+ <p class="sm mut">Es plata que entró por transferencia, QR, MODO o posnet a la cuenta de cada uno. No cambia lo vendido, la ganancia, la caja física ni el efectivo del cajón.${x.negocio?' Productos sin rubro de socio cobrados en cuentas de socios: '+money(x.negocio)+'.':''}</p>`}
+ ${x.fiado.length?`<p class="sm mut">Cobros de cuenta corriente a cuentas: ${x.fiado.map(f=>esc(f.name)+' '+money(f.amount)).join(' · ')} (informativo).</p>`:''}`;}
+function accReportLines(x,P){if(!x||(!x.byAcc.length&&!x.sinCuenta))return;P('');P('COBROS DIGITALES POR CUENTA :','h');
+ x.byAcc.forEach(b=>P('  '+b.name+' ('+(b.owner?((rub(b.owner)||{}).owner||(rub(b.owner)||{}).name||''):'negocio')+') : '+money(b.total)+(b.n>1?' ('+b.n+')':'')));
+ if(x.sinCuenta)P('  ⚠ Sin cuenta elegida : '+money(x.sinCuenta),'w');
+ if(!ownerMode()&&x.comp.length){if(x.moves.length)x.moves.forEach(m=>P('  → '+m.from.toUpperCase()+' LE PASA '+money(m.amount)+' A '+m.to.toUpperCase(),'h'));else P('  Cada socio recibió lo suyo: no hay que pasarse plata.');}}
 
 /* =====================================================================
    ASISTENTE CONVERSACIONAL (V26 · 4.13) — texto y voz opcional
@@ -2970,7 +3043,7 @@ function saleDetailHTML(s,o){o=o||{};
  h+=`<h3 style="margin-top:.8rem">Ítems</h3><div class="tw"><table class="cjtbl"><thead><tr><th>Código</th><th>Descripción</th><th class="r">Cantidad</th><th>Presentación</th><th class="r">Lista</th><th class="r">Aplicado</th><th>Regla de precio</th><th class="r">Desc.</th><th class="r">Subtotal</th>${cost?'<th class="r">Costo</th><th class="r">Margen</th>':''}</tr></thead><tbody>`+
   (s.items||[]).map(i=>{const sub=lineTotal(i);return `<tr><td data-l="Código">${esc(saleItemCode(i))}</td><td data-l="Descripción">${esc(i.name)}</td><td class="r" data-l="Cantidad">${numAR(i.qty,3)}</td><td data-l="Presentación">${esc(saleItemPres(i)||'Unidad')}</td><td class="r" data-l="Lista">${money(i.list||i.price)}</td><td class="r" data-l="Aplicado">${money(i.price)}</td><td data-l="Regla"><b>${esc(i.lr||'L1')}</b> <span class="sm mut">${esc(saleRuleTxt(i))}</span></td><td class="r" data-l="Desc.">${i.disc?'- '+money(i.disc):'—'}</td><td class="r" data-l="Subtotal">${money(sub)}</td>${cost?`<td class="r" data-l="Costo">${money(lineCost(i))}</td><td class="r" data-l="Margen">${money(sub-lineCost(i))}</td>`:''}</tr>`;}).join('')+
   `</tbody><tfoot><tr><td colspan="${cost?9:7}" class="r"><b>Descuentos</b></td><td class="r" colspan="${cost?2:1}">${saleDiscTotal(s)?'- '+money(saleDiscTotal(s)):'—'}</td></tr><tr><td colspan="${cost?9:7}" class="r"><b>TOTAL</b></td><td class="r" colspan="${cost?2:1}"><b>${money(s.total)}</b></td></tr></tfoot></table></div>`;
- h+=`<h3 style="margin-top:.8rem">Pagos</h3><div class="tw"><table class="cjtbl"><thead><tr><th>Medio</th><th class="r">Importe</th><th class="r">Comisión</th></tr></thead><tbody>${salePays(s).map(p=>`<tr><td data-l="Medio">${esc(MET[p.m]||p.m)}</td><td class="r" data-l="Importe">${money(p.a)}</td><td class="r" data-l="Comisión">${p.fee?money(p.fee):'—'}</td></tr>`).join('')}</tbody></table></div>`+
+ h+=`<h3 style="margin-top:.8rem">Pagos</h3><div class="tw"><table class="cjtbl"><thead><tr><th>Medio</th><th class="r">Importe</th><th class="r">Comisión</th></tr></thead><tbody>${salePays(s).map(p=>`<tr><td data-l="Medio">${esc(MET[p.m]||p.m)}${p.accN?`<div class="sm mut">a la cuenta ${esc(p.accN)}</div>`:''}</td><td class="r" data-l="Importe">${money(p.a)}</td><td class="r" data-l="Comisión">${p.fee?money(p.fee):'—'}</td></tr>`).join('')}</tbody></table></div>`+
   `<p class="sm">${s.vuelto>0?'Vuelto entregado: <b>'+money(s.vuelto)+'</b>. ':''}${saleFiadoAmt(s)>0?'Parte a cuenta corriente: <b>'+money(saleFiadoAmt(s))+'</b> ('+esc(PSTATE_TXT[s.pstate]||'')+').':''}</p>`;
  h+=`<h3 style="margin-top:.8rem">Movimientos que generó la operación</h3><div class="tw"><table class="cjtbl"><thead><tr><th>Dónde</th><th>Movimiento</th><th class="r">Importe / cantidad</th><th>Detalle</th><th>Usuario</th><th>Fecha</th></tr></thead><tbody>`+
   saleMovs(s).map(m=>`<tr><td data-l="Dónde">${esc(m.g)}</td><td data-l="Movimiento">${esc(m.t)}</td><td class="r" data-l="Importe">${m.unit?(m.sg<0?'− ':'+ ')+numAR(m.a,3)+' u':(m.sg===0?'—':(m.sg<0?'− ':'+ ')+money(m.a))}</td><td data-l="Detalle" class="sm">${esc(m.nota)}</td><td data-l="Usuario">${esc(m.u)}</td><td data-l="Fecha">${fmtDT(m.ts)}</td></tr>`).join('')+`</tbody></table></div>`;
@@ -3125,9 +3198,9 @@ function ccLedger(cid){
  rows.sort((a,b)=>a.ts-b.ts);let bal=0;rows.forEach(r=>{bal+=r.kind==='debito'?r.amount:-r.amount;r.bal=bal;});return rows;}
 function ccLedgerHTML(cid){const L=ccLedger(cid);if(!L.length)return '<p class="sm mut">Sin movimientos de cuenta corriente.</p>';
  return `<div class="tw"><table><caption class="sr">Movimientos de cuenta corriente</caption><thead><tr><th>Fecha</th><th>Detalle</th><th class="r">Débito</th><th class="r">Crédito</th><th class="r">Saldo</th></tr></thead><tbody>${L.slice(-30).reverse().map(r=>`<tr><td>${fmtDT(r.ts)}</td><td>${esc(r.concept)}${r.kind==='debito'?` <span class="tag ${r.state==='parcial'?'warn':'bad'}">${esc(PSTATE_TXT[r.state])}</span>`:''}</td><td class="r">${r.kind==='debito'?money(r.amount):''}</td><td class="r">${r.kind==='credito'?money(r.amount):''}</td><td class="r"><b>${money(r.bal)}</b></td></tr>`).join('')}</tbody></table></div>`;}
-function fiadoPay(cid,amount,method){const c=custById(cid);if(!c)return'Cliente inexistente.';if(!(amount>0))return'El importe debe ser mayor a cero.';if(amount>debtOf(cid))return'Supera la deuda ('+money(debtOf(cid))+').';
+function fiadoPay(cid,amount,method,accId){const c=custById(cid);if(!c)return'Cliente inexistente.';if(!(amount>0))return'El importe debe ser mayor a cero.';if(amount>debtOf(cid))return'Supera la deuda ('+money(debtOf(cid))+').';
  let mov='';if(method==='efectivo'){const e=addMov('ingreso','cobr','Cobro cuenta corriente · '+custFull(c),amount);if(e)return e;mov=S.movs[S.movs.length-1].id;}
- S.fiadoPays.push({id:uid(),cust:cid,ts:now(),amount,method,user:user.name,mov,rubro:'cobr'});audit('COBRO_FIADO',custFull(c)+' · '+money(amount)+' · '+MET[method]);save();return'';}
+ const ac=accId&&typeof accById==='function'?accById(accId):null;S.fiadoPays.push(Object.assign({id:uid(),cust:cid,ts:now(),amount,method,user:user.name,mov,rubro:'cobr'},ac?{acc:ac.id,accN:ac.name,accR:ac.rubro||''}:{}));audit('COBRO_FIADO',custFull(c)+' · '+money(amount)+' · '+MET[method]);save();return'';}
 
 /* ---------- membresías ---------- */
 function memberActive(c){if(!c)return null;const m=S.members.find(x=>x.cust===c.id&&x.status==='activa'&&x.to>now());if(!m)return null;const p=S.plans.find(x=>x.id===m.plan);return p?{name:p.name,pct:p.pct,until:dmy(dkey(m.to)),m}:null;}
@@ -3273,8 +3346,9 @@ A.cuEdit=el=>{const c=el.dataset.id?custById(el.dataset.id):null;const isAdm=can
   else{const n=custCreate({name:nm,last:ls,birth:val('cu-b'),wa:val('cu-w'),comm:$('#cu-c2',w).checked,dni:dn},'mostrador');audit('ALTA_CLIENTE','mostrador · socio '+pad4(n.num));}
   save();pubRefresh();rerender();toast('Cliente guardado');}});};
 A.cuPay=el=>{const c=custById(el.dataset.id);if(!c)return;if(!openSess()&&true)toast('Sin caja abierta sólo se registra el cobro no efectivo.');
- modal('Cobro de cuenta corriente · '+custFull(c),`<p>Deuda: <b>${money(debtOf(c.id))}</b></p><label for="fp-a">Importe ($)</label>${numIn('fp-a',0,'0')}<label for="fp-m">Medio</label><select id="fp-m"><option value="efectivo">Efectivo (entra a la caja)</option><option value="transferencia">Transferencia</option><option value="debito">Débito</option><option value="qr">QR</option></select><p class="sm mut">Se clasifica en el rubro "Cobranza de cuenta corriente" (rubro obligatorio en todo movimiento).</p>`,
- {onOk:w=>{const e=fiadoPay(c.id,cents(val('fp-a')),val('fp-m'));if(e)return w._err(e),false;toast('Cobro registrado');$$('#modal-root .ov').forEach(o=>o!==w&&o.remove());rerender();}});};
+ modal('Cobro de cuenta corriente · '+custFull(c),`<p>Deuda: <b>${money(debtOf(c.id))}</b></p><label for="fp-a">Importe ($)</label>${numIn('fp-a',0,'0')}<label for="fp-m">Medio</label><select id="fp-m"><option value="efectivo">Efectivo (entra a la caja)</option><option value="transferencia">Transferencia</option><option value="debito">Débito</option><option value="qr">QR</option></select><div id="fp-accbox"></div><p class="sm mut">Se clasifica en el rubro "Cobranza de cuenta corriente" (rubro obligatorio en todo movimiento).</p>`,
+ {onOk:w=>{const m=val('fp-m');const L=typeof accFor==='function'?accFor(m):[];const ac=L.length?val('fp-acc'):'';if(L.length&&!ac)return w._err('Elegí a qué cuenta entró el cobro.'),false;const e=fiadoPay(c.id,cents(val('fp-a')),m,ac);if(e)return w._err(e),false;toast('Cobro registrado');$$('#modal-root .ov').forEach(o=>o!==w&&o.remove());rerender();}});
+ const fw=$$('#modal-root .ov').pop();const fsync=()=>{const bx=fw&&fw.querySelector('#fp-accbox');if(!bx)return;const L=typeof accFor==='function'?accFor(val('fp-m')):[];bx.innerHTML=L.length?`<label for="fp-acc">¿A qué cuenta entró?</label><select id="fp-acc">${L.length>1?'<option value="">— Elegí la cuenta —</option>':''}${L.map(a=>`<option value="${a.id}">${esc(a.name)} · ${esc(accOwnerName(a))}</option>`).join('')}</select>`:'';};if(fw){fw.addEventListener('change',e=>{if(e.target.id==='fp-m')fsync();});fsync();}};
 A.cuMember=el=>{const c=custById(el.dataset.id);if(!c)return;const mb=memberActive(c);
  modal('Membresía · '+custFull(c),`${mb?`<div class="okbox">Vigente: <b>${esc(mb.name)}</b> hasta ${esc(mb.until)} (${mb.pct} % de descuento)</div>`:'<p class="mut">Sin membresía vigente.</p>'}
  <label for="mb-p">Plan</label><select id="mb-p">${S.plans.filter(p=>p.active).map(p=>`<option value="${p.id}">${esc(p.name)} · ${money(p.price)} / ${esc(p.period)}</option>`).join('')}</select>
@@ -4026,7 +4100,7 @@ reg('auditoria','Auditoría','shield','audit',()=>{const bad=verifyAudit();retur
 A.audVer=()=>{const b=verifyAudit();toast(b?'Cadena rota en el registro '+b:'Cadena íntegra',!!b);};
 reg('config','Configuración','gear','config',()=>`<h1>Configuración</h1><p class="sm mut">Sistema RAVE · ${IS_CLIENT?'versión del cliente':'demo de evaluación'} · compilada ${esc(BUILD_VER)}</p>${bizCard()}<div class="grid g2"><div class="card"><h3>Comercio</h3><label for="cf-n">Nombre comercial</label><input id="cf-n" value="${esc(S.tenant.name)}" maxlength="60"><label for="cf-c">Número de caja</label><input id="cf-c" inputmode="numeric" value="${S.tenant.caja}">${ownerMode()?'':`<label class="chk"><input type="checkbox" id="cf-p" ${S.cfg.payFromCash?'checked':''}> Sueldo y gastos manuales se pagan de la caja (valor inicial del arqueo)</label>`}<label class="chk"><input type="checkbox" id="cf-ng" ${negOK()?'checked':''}> Permitir vender sin stock (el stock queda en negativo y se marca en rojo; cada producto puede exigir stock)</label><button class="btn gold" style="margin-top:.6rem" data-act="cfgSave">Guardar</button></div>
  ${ownerMode()?catCardOwner():`<div class="card"><h3>Rubros, responsables y reparto</h3><p class="sm mut">"Reparte" = comparte sueldo del empleado, gastos e impuestos con los otros rubros marcados. Los que no reparten sólo informan ventas y ganancia.</p>${S.rubros.filter(r=>r.kind==='rubro').map(r=>`<div class="rubrow"><div class="rubhead"><b class="sp"><i class="rdot" style="background:${safeColor(r.color)}"></i>${esc(r.name)}</b><button class="btn sm" data-act="rubEdit" data-id="${r.id}" aria-label="Editar rubro ${esc(r.name)}">Editar</button><button class="btn sm red" data-act="rubDel" data-id="${r.id}" aria-label="Eliminar rubro ${esc(r.name)}">Eliminar</button></div><div class="rubbody"><label class="rublbl">Responsable<input data-rown="${r.id}" value="${esc(r.owner)}" maxlength="40" aria-label="Responsable de ${esc(r.name)}"></label><label class="chk rubchk"><input type="checkbox" data-rrep="${r.id}" ${r.reparte?'checked':''}> reparte</label>${r.reparte?`<label class="rublbl">Impuesto diario ($)<input inputmode="decimal" data-rtax="${r.id}" placeholder="0" value="${esc(pesosStr(S.cfg.tax[r.id]||0))}" aria-label="Impuesto diario de ${esc(r.name)}"></label>`:''}</div></div>`).join('')}<button class="btn sm" data-act="rubAdd">+ Rubro</button></div>`}</div>
- ${cashCfgCard()}${typeof payCfgCard==='function'?payCfgCard():''}${typeof wsCfgCard==='function'?wsCfgCard():''}${typeof assistCfgCard==='function'?assistCfgCard():''}
+ ${cashCfgCard()}${typeof accCfgCard==='function'?accCfgCard():''}${typeof payCfgCard==='function'?payCfgCard():''}${typeof wsCfgCard==='function'?wsCfgCard():''}${typeof assistCfgCard==='function'?assistCfgCard():''}
  ${IS_CLIENT?`<div class="card" style="margin-top:1rem"><h3>Respaldo</h3><div class="row"><button class="btn" data-act="backupDl">Descargar respaldo</button></div><p class="sm mut">${CLOUD.on?'Tus datos se guardan en la nube y en este equipo (cifrados). El respaldo es una copia de seguridad que podés guardar aparte.':'Con la nube sin configurar, los datos viven sólo en este equipo: descargá un respaldo seguido.'}</p></div>`:`<div class="card" style="margin-top:1rem"><h3>Datos de la demo</h3><div class="row"><button class="btn gold" data-act="loadEx">Cargar jornada de ejemplo (6/10)</button><button class="btn" data-act="backupDl">Descargar respaldo</button><label class="btn" for="rs-f">Restaurar respaldo</label><input type="file" id="rs-f" accept=".json" hidden><button class="btn" data-act="resetDemo">Volver a los datos de ejemplo</button><button class="btn red" data-act="emptyDemo">Borrar todo y empezar vacío</button></div><p class="sm mut">${ownerMode()?'La jornada de ejemplo abre la caja y carga ventas de ejemplo para ver el arqueo y cierre del dueño.':'La jornada de ejemplo abre la caja y carga ventas de ejemplo con el sueldo del empleado (8 hs) y gastos $4.500, para ver el arqueo completo con el reparto entre rubros.'}</p></div>`}`,
  ()=>{const f=$('#rs-f');f&&f.addEventListener('change',async e=>{try{const j=JSON.parse(await e.target.files[0].text());if(!j.state||!j.state.rubros)throw new Error('formato');S=mergeDefaults(j.state);audit('RESTAURAR_RESPALDO','');save();toast('Respaldo restaurado');rerender();}catch(err){toast('Archivo de respaldo inválido',1);}});},'Sistema');
 document.addEventListener('change',e=>{const t=e.target;if(curScreen!=='config'||!t.dataset)return;if(t.dataset.rown){rub(t.dataset.rown).owner=t.value.trim();audit('RUBRO_RESPONSABLE',t.dataset.rown+' '+t.value);save();}

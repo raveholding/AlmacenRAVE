@@ -1418,6 +1418,16 @@ Sólo corrió contra un Tiendanube **falso**; falta homologar con la app y la ti
 
 ---
 
+## 4.31 CUENTAS DE COBRO: A QUÉ CUENTA ENTRÓ CADA COBRO DIGITAL Y COMPENSACIÓN ENTRE SOCIOS (V26.23)
+
+**Estado: IMPLEMENTADO en V26.23** (parte `p3m-payacc.js`; ajustes en `p3b-pos.js`, `p3-ops.js`, `p3i-rubcash.js`, `p3k-owner.js`, `p4-mods.js`, `p6-loyalty.js`, `p3e-saledetail.js`; prueba `y3.py`, 16 verificaciones). Sin migraciones SQL (el servidor acepta campos extra en cada pago).
+- **Configuración → Cuentas de cobro** (sólo administrador): nombre (alias o CBU parcial), dueño (el rubro de un socio o «del negocio») y medios que recibe (transferencia, QR, MODO, débito, crédito). Se pueden desactivar sin tocar cierres anteriores.
+- **Al cobrar** con uno de esos medios —pago total o parte de un pago mixto— se elige «¿A qué cuenta entró?» (si hay una sola, se elige sola; sin elegir no cobra). Cada pago guarda `acc`, `accN` y `accR` (cuenta, nombre y dueño en ese momento). Los cobros de cuenta corriente por esos medios también piden la cuenta. Un mismo medio va a una sola cuenta por venta.
+- **Arqueo/cierre:** tabla «Cobros digitales por cuenta» y, en el almacén con rubros, **compensación entre socios**: lo que entró a la cuenta de cada uno contra lo que le corresponde por sus ventas, y la indicación «Juan le pasa $X a Nico». No cambia lo vendido, la ganancia, la caja física ni el efectivo esperado. En el mayorista de un solo dueño sólo se muestran los totales por cuenta. También en el texto de WhatsApp y en el cierre sellado.
+- **Límite declarado:** los cobros de cuenta corriente a cuentas se informan pero no entran en la compensación; los pagos sin cuenta elegida (anteriores) aparecen como «Sin cuenta elegida».
+
+---
+
 ## 5. MÓDULOS OPCIONALES (aditivos, auditables, apagados por defecto si dependen de terceros)
 
 Reglas comunes: banderas por comercio/sucursal/rol/dispositivo; migraciones SQL aditivas, versionadas e idempotentes probadas sobre copia; `tenant_id`, RLS y pruebas cruzadas A/B en toda entidad; servidor valida y recalcula; idempotencia; límites de uso; auditoría; dinero en centavos enteros; sin proveedor/credencial/dispositivo → estado "Pendiente de configuración" y el resto sigue funcionando; ninguna integración se declara terminada por tener una pantalla simulada.
@@ -1912,4 +1922,4 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 5. Sin cambios respecto de los límites del anexo C, G.3 y H (hardware, NFC, Wallet, ARCA en producción, multisucursal en servidor).
 
 
-FIN DE SISTEMA VB 26F (revisión V26.22)
+FIN DE SISTEMA VB 26F (revisión V26.23)

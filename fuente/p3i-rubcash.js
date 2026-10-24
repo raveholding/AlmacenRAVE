@@ -18,7 +18,7 @@ function rcLiqHTML(a){if(!(a.reparte||[]).length)return'<p class="mut">Marcá en
  <tr><td><b>5 · Ganancia total a dividir</b> (ventas − sueldo − gastos − impuestos)</td><td class="r" colspan="${rp.length}"><b class="${a.netSum<0?'neg':''}">${money(a.netSum)}</b></td></tr>
  ${row('<b>6 · Le corresponde a cada uno (la mitad)</b>',r=>`<b class="${r.final<0?'neg':''}">${money(r.final)}</b>`,'tot')}
  </tbody></table></div>`;}
-function arqTablesHTML(a){if(a&&a.owner&&typeof ownerTablesHTML==='function')return ownerTablesHTML(a);return `<h3>Por rubro</h3>${rcTableHTML(a)}<h3 style="margin-top:1rem">Liquidación</h3>${rcLiqHTML(a)}`;}
+function arqTablesHTML(a){const ac=typeof accArqHTML==='function'?accArqHTML(a&&a.accts):'';if(a&&a.owner&&typeof ownerTablesHTML==='function')return ownerTablesHTML(a)+ac;return ac+ `<h3>Por rubro</h3>${rcTableHTML(a)}<h3 style="margin-top:1rem">Liquidación</h3>${rcLiqHTML(a)}`;}
 /* tarjeta viva en Caja: cuánto tiene físicamente cada rubro ahora */
 function rubCashCard(s){if(!s)return'';let a;try{a=arqueoCalc(s,arqInputs(s));}catch(e){return'';}
  return `<div class="card"><h3>Caja de cada rubro (ahora)</h3>${rcTableHTML(a)}<p class="sm mut">Un <b>ingreso</b> entra a la <b>caja física</b> del rubro que elijas y un <b>egreso</b> sale de ella (y del cajón). <b>No cambian lo vendido, la venta del mostrador ni la ganancia.</b> Ejemplo: si Juan le paga $1.000 a Nico con plata de la caja, se hace un egreso de $1.000 del rubro de Juan y un ingreso de $1.000 al rubro de Nico.</p></div>`;}

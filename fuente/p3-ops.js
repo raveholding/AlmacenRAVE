@@ -47,7 +47,7 @@ function arqueoCalc(sess,inp){
  const expectedCash=sess.opening+cashSales+ing-egr-paid+tr.tin-tr.tout;
  const declared=inp.declared;const diff=isNaN(declared)?0:declared-expectedCash;
  const fondo=sess.opening+tr.tin-tr.tout;const fisSum=reparte.concat(otros).reduce((a,r)=>a+r.fis,0);const resto=expectedCash-fondo-fisSum;
- return{owner:ownerMode(),sessId:sess.id,total,cobrado,aCtaCte,vueltoTot,count:sales.length,byMethod,pend:{n:pend.length,total:pend.reduce((a,s)=>a+s.total,0)},rub:R,ing,egr,gAuto,gManual:inp.gastosManual,gastos,sueldo,merienda:mer,
+ return{owner:ownerMode(),sessId:sess.id,accts:(typeof accArq==='function'?accArq(sess):null),total,cobrado,aCtaCte,vueltoTot,count:sales.length,byMethod,pend:{n:pend.length,total:pend.reduce((a,s)=>a+s.total,0)},rub:R,ing,egr,gAuto,gManual:inp.gastosManual,gastos,sueldo,merienda:mer,
   detMissing:typeof pdMissingCount==='function'?pdMissingCount(sess):0,empName:inp.emp?inp.emp.name:'',hours:inp.hours,rate:inp.rate,reparte,otros,pool,netSum,fondo,resto,cashSales,paid,opening:sess.opening,tin:tr.tin,tout:tr.tout,transfers:tr.list,expectedCash,declared:isNaN(declared)?null:declared,diff,
   movs:movs.map(m=>({ts:m.ts,type:m.type,rubro:m.rubroName||rubName(m.rubro),concept:m.concept,amount:m.amount,user:m.user}))};}
 function buildReport(a,dayKey,who,inp){if(a.owner&&typeof buildReportOwner==='function')return buildReportOwner(a,dayKey,who,inp);
@@ -77,6 +77,7 @@ function buildReport(a,dayKey,who,inp){if(a.owner&&typeof buildReportOwner==='fu
   P('  Ganancia de ventas : '+a.reparte.map(r=>(r.owner||r.name)+' '+money(r.profit)).join(' + ')+' = '+money(a.reparte.reduce((s,r)=>s+r.profit,0)));
   P('  GANANCIA TOTAL (ventas − sueldo − gastos − impuestos) : '+money(a.netSum),a.netSum<0?'w':'h');a.reparte.forEach(r=>P('  A '+(r.owner||r.name).toUpperCase()+' LE CORRESPONDE (la mitad) : '+money(r.final),r.final<0?'w':'h'));
   a.otros.forEach(r=>P(r.name+(r.owner?' ('+r.owner+')':'')+' : '+money(r.net),r.net<0?'w':''));}
+ if(typeof accReportLines==='function')accReportLines(a.accts,P);
  if(a.declared!==null){P('');P('EFECTIVO : esperado '+money(a.expectedCash)+' · declarado '+money(a.declared)+' · '+(a.diff===0?'sin diferencia':(a.diff>0?'sobrante ':'faltante ')+money(Math.abs(a.diff))),a.diff<0?'w':'');}
  const det=a.reparte.concat(a.otros).filter(r=>(inp.detailAll||!S.rubros.find(x=>x.id===r.id).reparte)&&r.sold>0);
  det.forEach(r=>{P('');P(r.name+(r.owner?' ('+r.owner+')':'')+' — total vendido '+money(r.sold),'h');Object.keys(a.rub[r.id].items).forEach(k=>{const it=a.rub[r.id].items[k];P('  · '+k+' x'+numAR(it.qty,3)+' — '+money(it.total));});});
