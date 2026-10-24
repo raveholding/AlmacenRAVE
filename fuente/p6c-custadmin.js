@@ -54,21 +54,31 @@ A.cuBaja=el=>{const c=custById(el.dataset.id);if(!c)return;
   audit('BAJA_CLIENTE','socio '+n+' · motivo: '+mot+(d>0?' · deuda '+money(d)+' → '+dec:''));
   save();pubRefresh();clubRejectPending(w0,cards);$$('#modal-root .ov').forEach(o=>o!==w&&o.remove());rerender();toast('Cliente dado de baja');}});};
 
-/* ---------- eliminación definitiva (sólo sin historial ni deuda) ---------- */
+/* ---------- eliminación definitiva (V26.25: el administrador puede borrar socios aunque tengan historial) ----------
+   Sin historial: se borra el registro. Con historial (sin nube): también se borra; las ventas y comprobantes quedan con el
+   nombre que figuraba en el ticket; se borran tarjeta, sellos pendientes, membresías y acuerdos. La deuda se cobra o se condona antes.
+   Con nube: el servidor (migración 11) todavía sólo admite borrar sin historial; con historial se ofrece la baja. */
+const custDelHistOk=()=>!(typeof CLOUD!=='undefined'&&CLOUD.on);
+function custDelete(c,mot){const n=pad4(c.num),w0=normWA(c.wa||''),cards=[c.id].concat(c.cards||[]);clubBlockAdd(c);
+ S.members=(S.members||[]).filter(m=>m.cust!==c.id);S.agreements=(S.agreements||[]).filter(a=>a.cust!==c.id);
+ S.customers=S.customers.filter(x=>x.id!==c.id);(S.delCust=S.delCust||{})[c.id]=pad4(c.num);
+ audit('CLIENTE_ELIMINADO','socio '+n+' · motivo: '+mot);save();pubRefresh();clubRejectPending(w0,cards);}
 A.cuDel=el=>{const c=custById(el.dataset.id);if(!c)return;
  if(!custDelAdm())return toast('La eliminación de un cliente la hace sólo el administrador.',1);
- const B=custBlockers(c),n=pad4(c.num);
- if(!B.canDelete){return modal('No se puede eliminar',`<p>El socio N.º ${n} <b>tiene historial: sólo se puede dar de baja</b>.</p><ul>${B.hist.map(x=>`<li>${esc(x)}</li>`).join('')}${B.debt>0?`<li>deuda en cuenta corriente: ${money(B.debt)}</li>`:''}</ul><p class="sm mut">La baja anonimiza los datos y conserva ventas, cuenta corriente y comprobantes.</p>`,{ok:false,cancelText:'Cerrar'});}
- modal('Eliminar definitivamente · socio N.º '+n,`<p>Se borra el registro de <b>todos los equipos</b>. No se puede deshacer (sólo desde un respaldo). No tiene ventas, cuenta corriente, cupones, membresías ni sellos.</p>
+ const B=custBlockers(c),n=pad4(c.num),hist=B.hist.length>0;
+ if(hist&&!custDelHistOk()){return modal('No se puede eliminar',`<p>El socio N.º ${n} <b>tiene historial</b> y la nube todavía sólo permite borrar socios sin historial: por ahora se puede dar de baja.</p><ul>${B.hist.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><p class="sm mut">La baja anonimiza los datos y conserva ventas, cuenta corriente y comprobantes.</p>`,{ok:false,cancelText:'Cerrar'});}
+ modal('Eliminar definitivamente · socio N.º '+n,`<p>Se borra <b>${esc(custFull(c))}</b> de la lista de clientes y socios. No se puede deshacer (sólo desde un respaldo).</p>
+ ${hist?`<div class="warnbox sm"><b>Tiene historial:</b> ${esc(B.hist.join(', '))}. Las ventas y los comprobantes <b>se conservan</b> (figuran con el nombre del ticket); se borran su tarjeta, sus sellos, membresías y acuerdos.</div>`:'<p class="sm mut">No tiene ventas, cuenta corriente, cupones, membresías ni sellos.</p>'}
+ ${B.debt>0?`<div class="warnbox"><b>Tiene deuda de ${money(B.debt)}.</b><label class="chk"><input type="radio" name="dl-d" value="cobrar"> Cobrar primero (abre el cobro)</label><label class="chk"><input type="radio" name="dl-d" value="condonar"> Condonar la deuda (movimiento compensatorio con el motivo) y eliminar</label></div>`:''}
  <label for="dl-m">Motivo (obligatorio, sin datos personales)</label><input id="dl-m" maxlength="100" autocomplete="off">
  <label for="dl-n">Para confirmar escribí el N.º de socio: <b>${n}</b></label><input id="dl-n" inputmode="numeric" maxlength="6" autocomplete="off">`,
  {okText:'Eliminar',onOk:w=>{const mot=val('dl-m').trim();if(mot.length<5)return w._err('Escribí el motivo (mínimo 5 letras).'),false;
   if(val('dl-n').trim().replace(/^0+/,'')!==String(c.num))return w._err('El N.º de socio no coincide.'),false;
-  const B2=custBlockers(c);if(!B2.canDelete)return w._err('Ahora tiene historial o deuda: sólo se puede dar de baja.'),false;
-  const w0=normWA(c.wa||''),cards=[c.id].concat(c.cards||[]);clubBlockAdd(c);
-  S.customers=S.customers.filter(x=>x.id!==c.id);
-  audit('CLIENTE_ELIMINADO','socio '+n+' · motivo: '+mot);
-  save();pubRefresh();clubRejectPending(w0,cards);$$('#modal-root .ov').forEach(o=>o!==w&&o.remove());rerender();toast('Cliente eliminado');}});};
+  const d=debtOf(c.id);if(d>0){const r=w.querySelector('input[name=dl-d]:checked');if(!r)return w._err('Elegí qué hacer con la deuda de '+money(d)+'.'),false;
+   if(r.value==='cobrar'){setTimeout(()=>{A.cuPay({dataset:{id:c.id}});},60);return;}
+   S.fiadoPays.push({id:uid(),cust:c.id,ts:now(),amount:d,method:'condonado',user:user.name,mov:'',rubro:'cobr',reason:mot});audit('DEUDA_CONDONADA','socio '+n+' · '+money(d)+' · movimiento compensatorio · '+mot);}
+  if(custBlockers(c).hist.length&&!custDelHistOk())return w._err('Ahora tiene historial: con la nube sólo se puede dar de baja.'),false;
+  custDelete(c,mot);$$('#modal-root .ov').forEach(o=>o!==w&&o.remove());rerender();toast('Socio eliminado');}});};
 
 /* ---------- fusión: el WhatsApp ya es de otro socio ---------- */
 function custMergePreview(src,dst){const st=stampsOf(src.id);return `<div class="grid g2"><div class="card"><b>Se da de baja</b><br>Socio N.º ${pad4(src.num)} · ${esc(custFull(src))}<br><span class="sm">${st} sello(s) · ${(src.cards||[]).length+1} tarjeta(s) · deuda ${money(debtOf(src.id))}</span></div>

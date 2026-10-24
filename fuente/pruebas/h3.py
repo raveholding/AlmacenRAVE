@@ -84,10 +84,10 @@ with sync_playwright() as p:
     # ---------- D) eliminación sólo sin historial ----------
     ev("A.cuDel({dataset:{id:'hc2'}})");pg.wait_for_timeout(300)
     t=pg.locator('#modal-root .dlg').inner_text()
-    chk('No se puede eliminar' in t and 'ventas' in t,'cliente con ventas: no se puede eliminar y dice por qué')
+    chk('Eliminar definitivamente' in t and 'Tiene historial' in t and 'ventas' in t,'V26.25 cliente con ventas: el administrador puede eliminarlo y se le avisa qué se conserva')
     ev("document.querySelectorAll('#modal-root .ov').forEach(o=>o.remove())")
     ev("A.cuDel({dataset:{id:'hc3'}})");pg.wait_for_timeout(300)
-    chk('No se puede eliminar' in pg.locator('#modal-root .dlg').inner_text() and 'deuda' in pg.locator('#modal-root .dlg').inner_text(),'cliente con deuda: no se puede eliminar')
+    chk('Condonar' in pg.locator('#modal-root .dlg').inner_text() and 'deuda' in pg.locator('#modal-root .dlg').inner_text(),'V26.25 cliente con deuda: antes de eliminar hay que cobrar o condonar la deuda')
     ev("document.querySelectorAll('#modal-root .ov').forEach(o=>o.remove())")
     ev("S.customers.push({id:'hc7',num:9107,name:'Borrable',last:'Prueba',birth:'1980-01-01',wa:'+5493875550107',email:'',notes:'',dni:'',status:'activo',origin:'menu',consent:{club:true,comm:false,analytics:false,ts:now()},secret:'q'.repeat(20),cards:[],cardSecrets:{},limit:0,taxid:''})")
     ev("A.cuDel({dataset:{id:'hc7'}})");pg.wait_for_timeout(300)

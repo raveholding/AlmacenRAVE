@@ -95,12 +95,23 @@
      +'<div id="loy-codebox"></div>'
      +'<button type="button" class="loy-btn" id="loy-show">'+L('Mostrar mi código para sumar sello','Show my code to get a stamp')+'</button>'
      +'<p class="loy-tip">'+L('Tip: agregá esta página a la pantalla de inicio de tu celular para tener tu tarjeta siempre a mano. Si la perdés, en el mostrador te pueden sumar los sellos con tu DNI.','Tip: add this page to your phone home screen to keep your card at hand. If you lose it, the counter can add your stamps with your ID number.')+'</p>'
+     +'<div class="loy-wallet"><button type="button" class="wal-btn wal-apple" id="loy-apple">'+L('Agregar a Apple Wallet','Add to Apple Wallet')+'</button><button type="button" class="wal-btn wal-google" id="loy-google">'+L('Guardar en Google Wallet','Save to Google Wallet')+'</button></div><div id="loy-walbox" role="status" hidden></div>'
      +'<button type="button" class="loy-btn loy-alt" id="loy-save">'+L('Guardar mi tarjeta (por si cambio de celular)','Save my card (in case I change phones)')+'</button><div id="loy-savebox" hidden></div>'
      +'<button type="button" class="loy-link" id="loy-out">'+L('No soy yo / quitar tarjeta de este dispositivo','Not me / remove card from this device')+'</button></div>';
     $('#loy-show').addEventListener('click',showCode);
     $('#loy-save').addEventListener('click',toggleSave);
+    $('#loy-apple').addEventListener('click',function(){walletGo('apple');});
+    $('#loy-google').addEventListener('click',function(){walletGo('google');});
     $('#loy-out').addEventListener('click',function(){try{localStorage.removeItem('rave.card');}catch(e){} renderCard(); renderCoupons();});
     renderPlans(c);
+  }
+  /* --- Apple Wallet / Google Wallet: en la demo es una simulación rotulada; sin cuenta del comercio, se explica qué falta --- */
+  function walletGo(kind){
+    var box=$('#loy-walbox'); if(!box) return; var r=null; try{ r=API.wallet?API.wallet(cardId(),kind):null; }catch(e){}
+    var nm=kind==='apple'?'Apple Wallet':'Google Wallet';
+    if(r&&r.mode==='demo'&&r.html){ box.innerHTML=r.html+'<button type="button" class="loy-link" id="wal-close">'+L('Cerrar','Close')+'</button>'; box.hidden=false; var x=$('#wal-close'); if(x) x.addEventListener('click',function(){box.hidden=true;}); return; }
+    if(r&&r.mode==='live'&&r.url&&/^https:\/\//.test(r.url)){ window.open(r.url,'_blank','noopener'); return; }
+    box.innerHTML='<p class="loy-tip">'+L(nm+' todavía no está activado en este comercio. Mientras tanto guardá tu tarjeta con «Guardar mi tarjeta» (enlace e imagen con QR) o agregá esta página a la pantalla de inicio.',nm+' is not enabled by this shop yet. Meanwhile save your card with “Save my card” (link and QR image) or add this page to your home screen.')+'</p>'; box.hidden=false;
   }
   /* --- guardar la tarjeta fuera del navegador: enlace, compartir e imagen con QR --- */
   function toggleSave(){

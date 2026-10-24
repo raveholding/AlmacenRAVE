@@ -11,7 +11,7 @@ function pubSite(){const c=mCfg();
  return{title:c.title||'RAVE DIGITAL',sub:c.sub,pitch:c.pitch,promo:c.promo,address:S.tenant.address,mapQuery:c.mapQuery,mapUrl:c.mapUrl,reviewUrl:c.reviewUrl,wifi:c.wifi,social:(c.social||[]).filter(x=>x.on!==false&&x.url&&safeUrl(x.url)).map(x=>({k:x.k,label:x.label,handle:x.handle,url:x.url})),icons:Object.assign({},EXTRA_ICONS,SOCIAL_ICONS),footer:c.footer,wa:S.tenant.wa,alcFrom:c.alcFrom,alcTo:c.alcTo,hideTeamBtn:!!c.hideTeamBtn,clubOn:c.clubOn!==false,club:{goal:+S.loyalty.goal||10,reward:String(S.loyalty.reward||'').slice(0,100)},ship:(typeof shipPublic==='function'?shipPublic(c):null)};}
 const LOCAL_API={
  site:pubSite,catalog:pubCatalog,clubJoin:f=>clubJoin(f),
- card:id=>pubCard(id),cardPortable:id=>pubCardPortable(id),cardCode:id=>pubCardCode(id),cardLogin:(w,b)=>pubCardLogin(w,b),
+ card:id=>pubCard(id),cardPortable:id=>pubCardPortable(id),wallet:(id,k)=>pubWallet(id,k),cardCode:id=>pubCardCode(id),cardLogin:(w,b)=>pubCardLogin(w,b),
  coupons:id=>pubCoupons(id),couponInfo:(c,t)=>pubCouponInfo(c,t),plans:()=>pubPlans(),
  orderRequest:o=>{S.orderReqs.push({id:uid(),ts:now(),total:Math.round((+o.total||0)*100),n:(o.items||[]).length,coupon:String(o.coupon||'').slice(0,24)});if(S.orderReqs.length>300)S.orderReqs.shift();emit('order.request',{n:(o.items||[]).length});save();},
  legal:()=>legalPublic(),logArrep:()=>{S.arrep.push({id:uid(),ts:now(),status:'abierto por WhatsApp'});audit('ARREPENTIMIENTO','solicitud iniciada desde el menú público');save();},

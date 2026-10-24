@@ -44,11 +44,14 @@ function cardMirrorInit(){try{if(navigator.storage&&navigator.storage.persist)na
 A.cuCardLink=el=>{const c=custById(el.dataset.id);if(!c)return;
  if(!custAdm())return toast('Sólo el administrador entrega el enlace de una tarjeta.',1);
  if(c.status==='baja'||!c.secret)return toast('Este cliente no tiene una tarjeta activa.',1);
- const link=cardLinkFor(c.id,cardSecret(c,c.id),(c.name||''),c.birth||'');if(!link)return toast('No se pudo armar el enlace de la tarjeta.',1);
+ /* id de tarjeta válido: el del cliente o una tarjeta adicional; si no tiene (clientes viejos con id corto), se le crea una */
+ let cid=cardIdOk(c.id)?c.id:(c.cards||[]).find(x=>cardIdOk(x)&&cardSecret(c,x));
+ if(!cid){cid=uid()+uid();c.cards=Array.isArray(c.cards)?c.cards:[];c.cards.push(cid);c.cardSecrets=c.cardSecrets||{};c.cardSecrets[cid]=c.secret;}
+ const link=cardLinkFor(cid,cardSecret(c,cid),(c.name||''),c.birth||'');if(!link)return toast('No se pudo armar el enlace de la tarjeta.',1);
  audit('TARJETA_ENLACE','enlace de tarjeta emitido · socio '+pad4(c.num),{ent:'cliente',eid:c.id});save();
- const wa=normWA(c.wa),msg='Hola '+(c.name||'')+'! Este es el enlace de tu tarjeta del Club. Abrilo desde tu celular y guardá la página en tu pantalla de inicio. No lo compartas con nadie: es tu tarjeta personal.\n'+link;
- const w=modal('Enlace de la tarjeta · '+custFull(c),`<p class="sm">Quien abra este enlace tiene la tarjeta de <b>${esc(c.name||'')}</b> en su celular. Mandáselo sólo al cliente, por un medio que sea suyo. El secreto de la tarjeta viaja en la parte del enlace que no llega a ningún servidor.</p>
+ const wa=normWA(c.wa),msg='Hola '+(c.name||'')+'! Este es el enlace de tu tarjeta del Club. Abrilo desde tu celular y guardá la página en tu pantalla de inicio. No lo compartas con nadie: es tu tarjeta personal.'+(walletMode()!=='pending'?' Desde ese enlace también podés guardarla en Apple Wallet o Google Wallet.':'')+'\n'+link;
+ const w=modal('Enviar tarjeta · '+custFull(c),`<p class="sm">Quien abra este enlace tiene la tarjeta de <b>${esc(c.name||'')}</b> en su celular. Mandáselo sólo al cliente, por un medio que sea suyo. El secreto de la tarjeta viaja en la parte del enlace que no llega a ningún servidor.</p>
   <label for="cl-l">Enlace</label><input id="cl-l" readonly value="${esc(link)}" onfocus="this.select()">
   <div class="row" style="margin-top:.5rem"><button class="btn sm" type="button" id="cl-copy">Copiar enlace</button>${wa?`<a class="btn sm gold" id="cl-wa" target="_blank" rel="noopener noreferrer" href="https://wa.me/${encodeURIComponent(waFull(wa).replace(/\D/g,''))}?text=${encodeURIComponent(msg)}">Abrir WhatsApp con el mensaje</a>`:''}</div>
-  <p class="sm mut">«Abrir WhatsApp» sólo prepara el mensaje: lo envía una persona. No se confirma la entrega.</p>`,{noCancel:true,okText:'Cerrar'});
+  <p class="sm mut">«Abrir WhatsApp» sólo prepara el mensaje: lo envía una persona. No se confirma la entrega.</p>${typeof walletSendHTML==='function'?walletSendHTML(c):''}`,{noCancel:true,okText:'Cerrar',wide:true});
  const b=$('#cl-copy',w);if(b)b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(link);toast('Enlace copiado');}catch(e){const i=$('#cl-l',w);i.select();toast('Seleccionado: copialo con Ctrl+C',0);}});};

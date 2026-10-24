@@ -53,3 +53,10 @@
 .loy-card.loy-sample{position:relative;opacity:.97}
 .loy-ej{position:absolute;top:10px;right:12px;font:700 11px/1 inherit;letter-spacing:.12em;padding:4px 8px;border-radius:999px;background:rgba(201,150,62,.18);color:#c9963e}
 .loy-stamps i.loy-pz{font-style:normal}
+
+.loy-wallet{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.wal-btn{min-height:48px;border-radius:12px;font:700 13px/1.2 Poppins,Arial,sans-serif;cursor:pointer;padding:6px 8px}
+.wal-apple{background:#000;color:#fff;border:1px solid #444}
+.wal-google{background:#fff;color:#202124;border:1px solid #dadce0}
+#loy-walbox{margin-top:10px}
+@media(max-width:340px){.loy-wallet{grid-template-columns:1fr}}
