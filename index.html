@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#242220">
 <title>Sistema RAVE · Almacén y Licorería RAVE</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242220'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23c9963e' font-family='Georgia,serif' font-weight='700'%3ER%3C/text%3E%3C/svg%3E">
-<script>window.RAVE_BUILD={"ver": "2026-10-23 03:11 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
+<script>window.RAVE_BUILD={"ver": "2026-10-24 04:07 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
 <style>
 :root{--ink:#242220;--gold:#c9963e;--gold2:#a87a28;--bg:#f6f3ee;--card:#fff;--line:#e6e0d6;--mut:#6d675f;--red:#c0392b;--redbg:#fdecea;--ok:#1e7a46;--okbg:#e6f4ec;--warnbg:#fff4dc;--r:16px}
 *{box-sizing:border-box}
@@ -1048,7 +1048,7 @@ reg('inventario','Inventario','box','edit_products',()=>{
 A.irub=el=>{invF.rub=el.dataset.id||'';rerender();};
 A.rubEdit=el=>{if(!can('edit_products'))return toast('Sin permiso',1);const r=el&&el.dataset.id?rub(el.dataset.id):null;if(el&&el.dataset.id&&(!r||r.kind!=='rubro'))return;
  const col=safeColor(r?r.color:RUB_COLORS[S.rubros.filter(x=>x.kind==='rubro').length%RUB_COLORS.length]);
- const w=modal((r?'Editar ':'Nuevo'+(ownerMode()?'a ':' '))+RW(),`<label for="rb-n">Nombre de la ${ownerMode()?'categoría':'rubro'}</label><input id="rb-n" maxlength="40" value="${esc(r?r.name:'')}" autocomplete="off">
+ const w=modal((r?'Editar ':'Nuevo'+(ownerMode()?'a ':' '))+RW(),`<label for="rb-n">Nombre ${ownerMode()?'de la categoría':'del rubro'}</label><input id="rb-n" maxlength="40" value="${esc(r?r.name:'')}" autocomplete="off">
  <label>Color (para distinguirlo en inventario, Vender y reportes)</label><div class="row" id="rb-cols">${RUB_COLORS.map(c=>`<button type="button" class="swatch ${c.toLowerCase()===col.toLowerCase()?'on':''}" data-col="${c}" style="background:${c}" aria-label="Color ${c}"></button>`).join('')}</div><input type="hidden" id="rb-c" value="${col}">
  <div class="grid g2">${ownerMode()?'<input type="hidden" id="rb-o" value="">':`<div><label for="rb-o">Responsable (opcional)</label><input id="rb-o" maxlength="40" value="${esc(r?r.owner:'')}"></div>`}<div><label for="rb-l">Diseño en el menú</label><select id="rb-l">${[['grid','Grilla (promos)'],['rows','Filas (lista)'],['bodegas','Por bodega / grupo']].map(([v,t])=>`<option value="${v}" ${(r?r.layout:'grid')===v?'selected':''}>${t}</option>`).join('')}</select></div></div>
  <label for="rb-m">Nombre en el menú digital</label><input id="rb-m" maxlength="30" value="${esc(r?(r.mNom||r.name):'')}">
@@ -3240,7 +3240,7 @@ A.cuEdit=el=>{const c=el.dataset.id?custById(el.dataset.id):null;const isAdm=can
  <label class="chk"><input type="checkbox" id="cu-c1" ${c?(c.consent.club?'checked':''):'checked'} ${sd}> Participa del Club RAVE (tratamiento de datos)</label><label class="chk"><input type="checkbox" id="cu-c2" ${c&&c.consent.comm?'checked':''} ${sd}> Aceptó recibir promociones por WhatsApp</label>
  ${c&&adm?`<label for="cu-proof">Constancia al OTORGAR un consentimiento (cómo y cuándo lo dio el titular; revocar no la necesita)</label><input id="cu-proof" maxlength="140" autocomplete="off" placeholder="Ej.: lo aceptó por escrito en el mostrador el 20/10" value="">${c.consent.proof?`<p class="sm mut">Última constancia: ${esc(c.consent.by||'')} · ${esc(c.consent.proof)}</p>`:''}`:''}
  ${c&&typeof wsCustCard==='function'?wsCustCard(c):''}${c?`<div class="card" style="margin:.6rem 0"><div class="row"><b class="sp">Cuenta corriente</b><span>Debe ${money(debtOf(c.id))}</span></div>${ccLedgerHTML(c.id)}<label for="cu-lim">Límite de crédito ($) — sólo administración</label>${numIn('cu-lim',c.limit||0,'0',can('config')||can('void')?'':'disabled')}<div class="row" style="margin-top:.5rem"><button class="btn sm" data-act="cuPay" data-id="${c.id}">Registrar cobro de deuda</button><button class="btn sm" data-act="cuMember" data-id="${c.id}">Membresía</button><button class="btn sm" data-act="cuRedeem" data-id="${c.id}">Canjear premio (${Math.min(stampsOf(c.id),S.loyalty.goal)}/${S.loyalty.goal})</button></div></div>
- <label for="cu-nt">Notas internas</label><input id="cu-nt" maxlength="120" value="${esc(c.notes||'')}"><div class="row" style="margin-top:.6rem">${adm&&c.status!=='baja'&&c.secret?`<button class="btn sm" data-act="cuCardLink" data-id="${c.id}">Enlace de la tarjeta</button>`:''}${adm&&c.status!=='baja'?`<button class="btn sm red" data-act="cuBaja" data-id="${c.id}">Dar de baja (anonimizar)</button><button class="btn sm red" data-act="cuDel" data-id="${c.id}">${custBlockers(c).canDelete?'Eliminar definitivamente':'Eliminar (no disponible: tiene historial)'}</button>`:''}${!adm&&c.status!=='baja'?'<span class="sm mut">La baja y la eliminación las hace el administrador.</span>':''}</div>`:''}`,
+ <label for="cu-nt">Notas internas</label><input id="cu-nt" maxlength="120" value="${esc(c.notes||'')}"><div class="row" style="margin-top:.6rem">${adm&&c.status!=='baja'&&c.secret?`<button class="btn sm" data-act="cuCardLink" data-id="${c.id}">Enlace de la tarjeta</button>`:''}${custDelAdm()&&c.status!=='baja'?`<button class="btn sm red" data-act="cuBaja" data-id="${c.id}">Dar de baja (anonimizar)</button><button class="btn sm red" data-act="cuDel" data-id="${c.id}">${custBlockers(c).canDelete?'Eliminar definitivamente':'Eliminar (no disponible: tiene historial)'}</button>`:''}${!custDelAdm()&&c.status!=='baja'?'<span class="sm mut">La baja y la eliminación las hace sólo el administrador.</span>':''}</div>`:''}`,
  {wide:true,okText:'Guardar',onOk:w=>{const nm=val('cu-n').trim(),ls=val('cu-l').trim();if(nm.length<2||ls.length<2)return w._err('Nombre y apellido son obligatorios.'),false;
   const wa=normWA(val('cu-w'));if(!wa)return w._err('WhatsApp inválido.'),false;const b=parseBirthISO(val('cu-b'));if(!b)return w._err('Fecha de nacimiento inválida (año de 4 cifras).'),false;if(ageOf(b)<18)return w._err('El Club es sólo para mayores de 18 años.'),false;
   if(!$('#cu-c1',w).checked)return w._err('Hace falta el consentimiento de participación en el Club.'),false;
@@ -3375,6 +3375,8 @@ function pubRefresh(){try{const f=document.getElementById('pubframe');if(f&&f.co
    Un solo registro de clientes (S.customers). La baja anonimiza y conserva lo contable; la eliminación definitiva sólo existe
    para un cliente SIN historial y SIN deuda. El servidor (rave_puede_escribir, migración 11) vuelve a validar todo esto. */
 const custAdm=()=>!!user&&(can('config')||can('customers_admin'));
+/* V26.20: dar de baja o eliminar socios es SÓLO del rol administrador (no se delega con permisos) */
+const custDelAdm=()=>!!user&&user.role==='admin';
 const maskTail=(v,n)=>{v=String(v==null?'':v).replace(/\s/g,'');return v?'…'+v.slice(-(n||3)):'(vacío)';};
 /* huella de los datos sensibles: viaja en claro (no es reversible) para que el servidor detecte que un no administrador los cambió */
 function custPfp(c){return cyrb(canon([normWA(c.wa||''),String(c.email||'').toLowerCase(),String(c.dni||''),String(c.birth||''),String(c.taxid||'')]));}
@@ -3408,7 +3410,7 @@ function custBlockers(c){const h=custHistory(c),d=debtOf(c.id);return{hist:h,deb
 
 /* ---------- baja (anonimizar) ---------- */
 A.cuBaja=el=>{const c=custById(el.dataset.id);if(!c)return;
- if(!custAdm())return toast('La baja de un cliente la hace sólo el administrador.',1);
+ if(!custDelAdm())return toast('La baja de un cliente la hace sólo el administrador.',1);
  const n=pad4(c.num),d=debtOf(c.id);
  modal('Baja del cliente · socio N.º '+n,`<p>Se borran nombre, apellido, WhatsApp, correo, nacimiento y DNI, se revoca la tarjeta (QR, código y NFC dejan de validar) y se lo excluye de campañas. <b>Las ventas, la cuenta corriente y los comprobantes se conservan</b> con su identificador interno.</p>
  ${d>0?`<div class="warnbox"><b>Tiene deuda de ${money(d)}.</b> Elegí qué hacer:<label class="chk"><input type="radio" name="bj-d" value="cobrar"> Cobrar primero (abre el cobro y vuelve a esta baja)</label><label class="chk"><input type="radio" name="bj-d" value="condonar"> Condonar con un movimiento compensatorio y motivo</label><label class="chk"><input type="radio" name="bj-d" value="mantener"> Mantener la deuda asociada al registro anonimizado (queda en «Deudas de clientes dados de baja»)</label></div>`:''}
@@ -3427,7 +3429,7 @@ A.cuBaja=el=>{const c=custById(el.dataset.id);if(!c)return;
 
 /* ---------- eliminación definitiva (sólo sin historial ni deuda) ---------- */
 A.cuDel=el=>{const c=custById(el.dataset.id);if(!c)return;
- if(!custAdm())return toast('La eliminación de un cliente la hace sólo el administrador.',1);
+ if(!custDelAdm())return toast('La eliminación de un cliente la hace sólo el administrador.',1);
  const B=custBlockers(c),n=pad4(c.num);
  if(!B.canDelete){return modal('No se puede eliminar',`<p>El socio N.º ${n} <b>tiene historial: sólo se puede dar de baja</b>.</p><ul>${B.hist.map(x=>`<li>${esc(x)}</li>`).join('')}${B.debt>0?`<li>deuda en cuenta corriente: ${money(B.debt)}</li>`:''}</ul><p class="sm mut">La baja anonimiza los datos y conserva ventas, cuenta corriente y comprobantes.</p>`,{ok:false,cancelText:'Cerrar'});}
  modal('Eliminar definitivamente · socio N.º '+n,`<p>Se borra el registro de <b>todos los equipos</b>. No se puede deshacer (sólo desde un respaldo). No tiene ventas, cuenta corriente, cupones, membresías ni sellos.</p>
@@ -5956,7 +5958,7 @@ function menuSecCard(){const L=menuSecs(true);const cnt=id=>S.products.filter(p=
   <td><i class="rdot" style="background:${safeColor(r.color)}"></i> <b>${esc(r.mNom||r.name)}</b>${r.mTitle&&r.mTitle!==(r.mNom||r.name)?`<div class="sm mut">${esc(r.mTitle)}</div>`:''}</td>
   <td>${r.kind==='msec'?'Sólo del menú':esc(RW(1))+' «'+esc(r.name)+'»'}</td><td class="r">${cnt(r.id)}</td>
   <td>${ed?`<label class="chk" style="margin:0"><input type="checkbox" data-msecon="${r.id}" ${r.menuOn!==false?'checked':''}> sí</label>`:(r.menuOn!==false?'sí':'no')}</td>
-  <td class="r">${ed?`<button class="btn sm" data-act="${r.kind==='msec'?'msecEdit':'rubEdit'}" data-id="${r.id}">Editar</button>${r.kind==='msec'?` <button class="btn sm red" data-act="msecDel" data-id="${r.id}">Eliminar</button>`:''}`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">No hay secciones.</td></tr>'}
+  <td class="r">${ed?`<button class="btn sm" data-act="${r.kind==='msec'?'msecEdit':'rubEdit'}" data-id="${r.id}">Editar</button>${r.kind==='msec'?` <button class="btn sm red" data-act="msecDel" data-id="${r.id}">Eliminar</button>`:(can('edit_products')?` <button class="btn sm red" data-act="msecRubDel" data-id="${r.id}">Eliminar</button>`:'')}`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">No hay secciones.</td></tr>'}
  </tbody></table></div></div>`;}
 document.addEventListener('change',e=>{const id=e.target&&e.target.dataset&&e.target.dataset.msecon;if(!id)return;if(!can('menu_admin')){e.target.checked=!e.target.checked;return toast('Sin permiso',1);}
  const r=rub(id);if(!r)return;r.menuOn=e.target.checked;audit('MENU_SECCION_VISIBLE',(r.mNom||r.name)+' · '+(r.menuOn?'se muestra':'oculta'));save();pubRefreshSafe();rerender();});
@@ -6010,6 +6012,16 @@ function menuProdRead(w){const ms=val('pm-ms');const o={msec:ms&&rub(ms)&&isMenu
  if(w._img!==undefined){if(w._img){if(!safeImg(w._img))return{err:'La foto no es válida.'};o.img=w._img;o.imgOff=false;}else{o.img='';o.imgOff=true;}}return o;}
 /* tamaño estimado del menú publicado (la nube acepta hasta 3 MB) */
 function menuSizeKB(){try{return Math.round(JSON.stringify(pubCatalog()).length/1024);}catch(e){return 0;}}
+
+/* V26.20: una sección que sale de un rubro/categoría: «Eliminar» ofrece quitarla sólo del menú o eliminar el rubro (con sus protecciones) */
+A.msecRubDel=el=>{const r=rub(el.dataset.id);if(!r||r.kind!=='rubro')return;
+ modal('Eliminar «'+(r.mNom||r.name)+'»',`<p>Esta sección sale del ${esc(RW())} «${esc(r.name)}». ¿Qué querés hacer?</p>
+ <label class="chk"><input type="radio" name="mrd" value="menu" checked> <span><b>Sacarla sólo del menú público</b><br><span class="sm mut">El ${esc(RW())} y sus productos siguen igual en el sistema (ventas, caja, reparto). Se puede volver a mostrar cuando quieras.</span></span></label>
+ <label class="chk"><input type="radio" name="mrd" value="rubro"> <span><b>Eliminar el ${esc(RW())}</b><br><span class="sm mut">Sus productos pasan a otro ${esc(RW())}; si tiene ventas o movimientos no se borra: se archiva y el historial queda.</span></span></label>`,
+ {okText:'Continuar',onOk:w=>{const v=(w.querySelector('input[name=mrd]:checked')||{}).value;
+  if(v==='rubro'){if(!can('edit_products')){w._err('Sin permiso para eliminar rubros.');return false;}setTimeout(()=>A.rubDel({dataset:{id:r.id}}),60);return;}
+  if(!can('menu_admin')){w._err('Sin permiso.');return false;}
+  r.menuOn=false;S.products.forEach(p=>{if(p.msec===r.id)delete p.msec;});audit('MENU_SECCION_QUITADA',(r.mNom||r.name)+' · sale del menú (el rubro sigue)');save();pubRefreshSafe();rerender();toast('Sacada del menú');}});};
 
 /* =====================================================================
    MENÚ PÚBLICO: MODALIDAD «LOCAL» O «TIENDA CON ENVÍOS» (V26.10 · 4.26)

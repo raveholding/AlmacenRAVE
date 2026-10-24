@@ -22,7 +22,7 @@ function menuSecCard(){const L=menuSecs(true);const cnt=id=>S.products.filter(p=
   <td><i class="rdot" style="background:${safeColor(r.color)}"></i> <b>${esc(r.mNom||r.name)}</b>${r.mTitle&&r.mTitle!==(r.mNom||r.name)?`<div class="sm mut">${esc(r.mTitle)}</div>`:''}</td>
   <td>${r.kind==='msec'?'Sólo del menú':esc(RW(1))+' «'+esc(r.name)+'»'}</td><td class="r">${cnt(r.id)}</td>
   <td>${ed?`<label class="chk" style="margin:0"><input type="checkbox" data-msecon="${r.id}" ${r.menuOn!==false?'checked':''}> sí</label>`:(r.menuOn!==false?'sí':'no')}</td>
-  <td class="r">${ed?`<button class="btn sm" data-act="${r.kind==='msec'?'msecEdit':'rubEdit'}" data-id="${r.id}">Editar</button>${r.kind==='msec'?` <button class="btn sm red" data-act="msecDel" data-id="${r.id}">Eliminar</button>`:''}`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">No hay secciones.</td></tr>'}
+  <td class="r">${ed?`<button class="btn sm" data-act="${r.kind==='msec'?'msecEdit':'rubEdit'}" data-id="${r.id}">Editar</button>${r.kind==='msec'?` <button class="btn sm red" data-act="msecDel" data-id="${r.id}">Eliminar</button>`:(can('edit_products')?` <button class="btn sm red" data-act="msecRubDel" data-id="${r.id}">Eliminar</button>`:'')}`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">No hay secciones.</td></tr>'}
  </tbody></table></div></div>`;}
 document.addEventListener('change',e=>{const id=e.target&&e.target.dataset&&e.target.dataset.msecon;if(!id)return;if(!can('menu_admin')){e.target.checked=!e.target.checked;return toast('Sin permiso',1);}
  const r=rub(id);if(!r)return;r.menuOn=e.target.checked;audit('MENU_SECCION_VISIBLE',(r.mNom||r.name)+' · '+(r.menuOn?'se muestra':'oculta'));save();pubRefreshSafe();rerender();});
@@ -76,3 +76,13 @@ function menuProdRead(w){const ms=val('pm-ms');const o={msec:ms&&rub(ms)&&isMenu
  if(w._img!==undefined){if(w._img){if(!safeImg(w._img))return{err:'La foto no es válida.'};o.img=w._img;o.imgOff=false;}else{o.img='';o.imgOff=true;}}return o;}
 /* tamaño estimado del menú publicado (la nube acepta hasta 3 MB) */
 function menuSizeKB(){try{return Math.round(JSON.stringify(pubCatalog()).length/1024);}catch(e){return 0;}}
+
+/* V26.20: una sección que sale de un rubro/categoría: «Eliminar» ofrece quitarla sólo del menú o eliminar el rubro (con sus protecciones) */
+A.msecRubDel=el=>{const r=rub(el.dataset.id);if(!r||r.kind!=='rubro')return;
+ modal('Eliminar «'+(r.mNom||r.name)+'»',`<p>Esta sección sale del ${esc(RW())} «${esc(r.name)}». ¿Qué querés hacer?</p>
+ <label class="chk"><input type="radio" name="mrd" value="menu" checked> <span><b>Sacarla sólo del menú público</b><br><span class="sm mut">El ${esc(RW())} y sus productos siguen igual en el sistema (ventas, caja, reparto). Se puede volver a mostrar cuando quieras.</span></span></label>
+ <label class="chk"><input type="radio" name="mrd" value="rubro"> <span><b>Eliminar el ${esc(RW())}</b><br><span class="sm mut">Sus productos pasan a otro ${esc(RW())}; si tiene ventas o movimientos no se borra: se archiva y el historial queda.</span></span></label>`,
+ {okText:'Continuar',onOk:w=>{const v=(w.querySelector('input[name=mrd]:checked')||{}).value;
+  if(v==='rubro'){if(!can('edit_products')){w._err('Sin permiso para eliminar rubros.');return false;}setTimeout(()=>A.rubDel({dataset:{id:r.id}}),60);return;}
+  if(!can('menu_admin')){w._err('Sin permiso.');return false;}
+  r.menuOn=false;S.products.forEach(p=>{if(p.msec===r.id)delete p.msec;});audit('MENU_SECCION_QUITADA',(r.mNom||r.name)+' · sale del menú (el rubro sigue)');save();pubRefreshSafe();rerender();toast('Sacada del menú');}});};

@@ -2,6 +2,8 @@
    Un solo registro de clientes (S.customers). La baja anonimiza y conserva lo contable; la eliminación definitiva sólo existe
    para un cliente SIN historial y SIN deuda. El servidor (rave_puede_escribir, migración 11) vuelve a validar todo esto. */
 const custAdm=()=>!!user&&(can('config')||can('customers_admin'));
+/* V26.20: dar de baja o eliminar socios es SÓLO del rol administrador (no se delega con permisos) */
+const custDelAdm=()=>!!user&&user.role==='admin';
 const maskTail=(v,n)=>{v=String(v==null?'':v).replace(/\s/g,'');return v?'…'+v.slice(-(n||3)):'(vacío)';};
 /* huella de los datos sensibles: viaja en claro (no es reversible) para que el servidor detecte que un no administrador los cambió */
 function custPfp(c){return cyrb(canon([normWA(c.wa||''),String(c.email||'').toLowerCase(),String(c.dni||''),String(c.birth||''),String(c.taxid||'')]));}
@@ -35,7 +37,7 @@ function custBlockers(c){const h=custHistory(c),d=debtOf(c.id);return{hist:h,deb
 
 /* ---------- baja (anonimizar) ---------- */
 A.cuBaja=el=>{const c=custById(el.dataset.id);if(!c)return;
- if(!custAdm())return toast('La baja de un cliente la hace sólo el administrador.',1);
+ if(!custDelAdm())return toast('La baja de un cliente la hace sólo el administrador.',1);
  const n=pad4(c.num),d=debtOf(c.id);
  modal('Baja del cliente · socio N.º '+n,`<p>Se borran nombre, apellido, WhatsApp, correo, nacimiento y DNI, se revoca la tarjeta (QR, código y NFC dejan de validar) y se lo excluye de campañas. <b>Las ventas, la cuenta corriente y los comprobantes se conservan</b> con su identificador interno.</p>
  ${d>0?`<div class="warnbox"><b>Tiene deuda de ${money(d)}.</b> Elegí qué hacer:<label class="chk"><input type="radio" name="bj-d" value="cobrar"> Cobrar primero (abre el cobro y vuelve a esta baja)</label><label class="chk"><input type="radio" name="bj-d" value="condonar"> Condonar con un movimiento compensatorio y motivo</label><label class="chk"><input type="radio" name="bj-d" value="mantener"> Mantener la deuda asociada al registro anonimizado (queda en «Deudas de clientes dados de baja»)</label></div>`:''}
@@ -54,7 +56,7 @@ A.cuBaja=el=>{const c=custById(el.dataset.id);if(!c)return;
 
 /* ---------- eliminación definitiva (sólo sin historial ni deuda) ---------- */
 A.cuDel=el=>{const c=custById(el.dataset.id);if(!c)return;
- if(!custAdm())return toast('La eliminación de un cliente la hace sólo el administrador.',1);
+ if(!custDelAdm())return toast('La eliminación de un cliente la hace sólo el administrador.',1);
  const B=custBlockers(c),n=pad4(c.num);
  if(!B.canDelete){return modal('No se puede eliminar',`<p>El socio N.º ${n} <b>tiene historial: sólo se puede dar de baja</b>.</p><ul>${B.hist.map(x=>`<li>${esc(x)}</li>`).join('')}${B.debt>0?`<li>deuda en cuenta corriente: ${money(B.debt)}</li>`:''}</ul><p class="sm mut">La baja anonimiza los datos y conserva ventas, cuenta corriente y comprobantes.</p>`,{ok:false,cancelText:'Cerrar'});}
  modal('Eliminar definitivamente · socio N.º '+n,`<p>Se borra el registro de <b>todos los equipos</b>. No se puede deshacer (sólo desde un respaldo). No tiene ventas, cuenta corriente, cupones, membresías ni sellos.</p>
