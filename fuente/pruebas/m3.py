@@ -20,11 +20,25 @@ with sync_playwright() as p:
     pg.fill('#ms-n','Ofertas del mes');pg.select_option('#ms-l','rows');ok();pg.wait_for_timeout(300)
     r=ev("rub('%s')"%sid);chk(r['mNom']=='Ofertas del mes' and r['layout']=='rows','se guarda la edición (nombre y diseño)')
     chk(any(s['nom']=='Ofertas del mes' for s in ev("pubCatalog().secciones")),'y el menú público la muestra con el nombre nuevo')
-    # EDITAR una sección que sale de un rubro
-    rid='vino';pg.click('#msec-card [data-act=rubEdit][data-id="%s"]'%rid);pg.wait_for_timeout(200)
-    chk('Nombre del rubro' in pg.inner_text(M),'el formulario del rubro dice «Nombre del rubro»')
-    pg.fill('#rb-m','Vinos y espumantes');ok();pg.wait_for_timeout(300)
-    chk(any(s['nom']=='Vinos y espumantes' and s['cat']==rid for s in ev("pubCatalog().secciones")),'editar el nombre en el menú de un rubro se ve en el menú')
+    # EDITAR una sección que sale de un rubro: nombre, TÍTULO (el subtítulo equivocado), nombre del rubro
+    rid='vino';pg.click('#msec-card [data-act=msecEdit][data-id="%s"]'%rid);pg.wait_for_timeout(200)
+    chk(pg.locator('#ms-t').count()==1 and pg.locator('#ms-rn').count()==1,'la sección de un rubro se edita con título y nombre del rubro')
+    pg.fill('#ms-n','Vinos y espumantes');pg.fill('#ms-t','Vinos, espumantes y más');pg.fill('#ms-rn','Vinoteca');ok();pg.wait_for_timeout(300)
+    sec=[x for x in ev("pubCatalog().secciones") if x['cat']==rid][0]
+    chk(sec['nom']=='Vinos y espumantes' and sec['titulo']=='Vinos, espumantes y más','el menú muestra el nombre y el TÍTULO corregidos')
+    chk(ev("rub('%s').name"%rid)=='Vinoteca' and ev("rub('%s').kind"%rid)=='rubro','el rubro cambia de nombre y sigue siendo rubro')
+    chk('Título: Vinos, espumantes y más' in pg.inner_text('#msec-card'),'la lista muestra el título actual')
+    # TIPO: un rubro con productos no pasa a sólo del menú
+    pg.click('#msec-card [data-act=msecEdit][data-id="%s"]'%rid);pg.wait_for_timeout(200)
+    chk(pg.locator('input[name=ms-k][value=msec]').is_disabled(),'un rubro con productos no puede pasar a «sólo del menú»')
+    pg.locator(M).locator('.mf [data-m=x]').click();pg.wait_for_timeout(200)
+    # TIPO: una sección sólo del menú pasa a rubro
+    pg.click('[data-act=msecAdd]');pg.wait_for_timeout(200);pg.fill('#ms-n','Kiosco');ok();pg.wait_for_timeout(300)
+    kid=ev("S.rubros.find(r=>r.mNom==='Kiosco').id")
+    pg.click('#msec-card [data-act=msecEdit][data-id="%s"]'%kid);pg.wait_for_timeout(200);pg.check('input[name=ms-k][value=rubro]');pg.fill('#ms-rn','Kiosco');ok();pg.wait_for_timeout(300)
+    chk(ev("rub('%s').kind"%kid)=='rubro' and ev("S.rubros.filter(r=>r.kind==='rubro').some(r=>r.id==='%s')"%kid),'«sólo del menú» pasa a rubro del sistema')
+    pg.click('#msec-card [data-act=msecEdit][data-id="%s"]'%kid);pg.wait_for_timeout(200);pg.check('input[name=ms-k][value=msec]');ok();pg.wait_for_timeout(300)
+    chk(ev("rub('%s').kind"%kid)=='msec','y vuelve a «sólo del menú» (no tenía productos)')
     # ELIMINAR: sección que sale de un rubro → sólo del menú
     chk(pg.locator('#msec-card [data-act=msecRubDel][data-id="%s"]'%rid).count()==1,'las secciones de un rubro también tienen «Eliminar»')
     pg.click('#msec-card [data-act=msecRubDel][data-id="%s"]'%rid);pg.wait_for_timeout(200);ok();pg.wait_for_timeout(300)

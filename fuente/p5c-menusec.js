@@ -15,36 +15,56 @@ const prodImg=p=>p.imgOff?'':(safeImg(p.img)||((typeof IMGS!=='undefined'&&IMGS[
 function safeImg(u){return typeof u==='string'&&/^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(u)&&u.length<=300000?u:'';}
 /* ---------- tarjeta en Menú público ---------- */
 function menuSecCard(){const L=menuSecs(true);const cnt=id=>S.products.filter(p=>!p.archived&&p.menu&&prodMenuSec(p)===id).length;const ed=can('menu_admin');
- return`<div class="card" style="margin-top:1rem" id="msec-card"><div class="row"><h3 class="sp">Secciones del menú</h3><button class="btn sm" data-act="mpPreview">Ver cómo queda</button>${ed?'<button class="btn sm gold" data-act="msecAdd">+ Nueva sección</button>':''}</div>${(()=>{const em=L.filter(r=>r.menuOn!==false&&!cnt(r.id));return em.length?`<div class="warnbox" id="msec-empty">Sin productos en el menú: <b>${em.map(r=>esc(r.mNom||r.name)).join(', ')}</b>. No se muestran al público hasta que tengan productos (tocá «Productos» para agregarlos) o podés ocultarlas.</div>`:'';})()}
- <p class="sm mut">Son los títulos del menú (Promos, Vinos, Ofertas…). Las que dicen <b>${esc(RW())}</b> salen de tus ${esc(RWs())}; las <b>sólo del menú</b> no tienen dinero ni caja: sirven para agrupar productos en el menú. Cada producto elige su sección en Inventario (o queda en la de su ${esc(RW())}).</p>
- <div class="tw"><table id="msec-tbl"><thead><tr><th>Orden</th><th>Sección</th><th>Tipo</th><th class="r">Productos en el menú</th><th>Se muestra</th><th></th></tr></thead><tbody>
- ${L.map((r,i)=>`<tr><td>${ed?`<button class="btn sm" data-act="msecMove" data-id="${r.id}" data-d="-1" ${i===0?'disabled':''} aria-label="Subir ${esc(r.mNom||r.name)}">↑</button> <button class="btn sm" data-act="msecMove" data-id="${r.id}" data-d="1" ${i===L.length-1?'disabled':''} aria-label="Bajar ${esc(r.mNom||r.name)}">↓</button>`:i+1}</td>
-  <td><i class="rdot" style="background:${safeColor(r.color)}"></i> <b>${esc(r.mNom||r.name)}</b>${r.mTitle&&r.mTitle!==(r.mNom||r.name)?`<div class="sm mut">${esc(r.mTitle)}</div>`:''}</td>
-  <td>${r.kind==='msec'?'Sólo del menú':esc(RW(1))+' «'+esc(r.name)+'»'}</td><td class="r">${cnt(r.id)} <button class="btn sm" data-act="msecProds" data-id="${r.id}" aria-expanded="${msecOpen===r.id}">${msecOpen===r.id?'Cerrar':'Productos'}</button></td>
-  <td>${ed?`<label class="chk" style="margin:0"><input type="checkbox" data-msecon="${r.id}" ${r.menuOn!==false?'checked':''}> sí</label>`:(r.menuOn!==false?'sí':'no')}</td>
-  <td class="r">${ed?`<button class="btn sm" data-act="${r.kind==='msec'?'msecEdit':'rubEdit'}" data-id="${r.id}">Editar</button>${r.kind==='msec'?` <button class="btn sm red" data-act="msecDel" data-id="${r.id}">Eliminar</button>`:(can('edit_products')?` <button class="btn sm red" data-act="msecRubDel" data-id="${r.id}">Eliminar</button>`:'')}`:''}</td></tr>${msecOpen===r.id?`<tr class="msec-prow"><td colspan="6">${msecProdsHTML(r,ed)}</td></tr>`:''}`).join('')||'<tr><td colspan="6" class="mut">No hay secciones.</td></tr>'}
- </tbody></table></div></div>`;}
+ const em=L.filter(r=>r.menuOn!==false&&!cnt(r.id));
+ return`<div class="card" style="margin-top:1rem" id="msec-card"><div class="row" style="flex-wrap:wrap;gap:.5rem"><h3 class="sp">Secciones del menú</h3><button class="btn sm" data-act="mpPreview">Ver cómo queda</button>${ed?'<button class="btn sm gold" data-act="msecAdd">+ Nueva sección</button>':''}</div>
+ ${em.length?`<div class="warnbox" id="msec-empty">Sin productos en el menú: <b>${em.map(r=>esc(r.mNom||r.name)).join(', ')}</b>. No se muestran al público hasta que tengan productos (tocá «Productos» para agregarlos) o podés ocultarlas.</div>`:''}
+ <p class="sm mut">Son los títulos del menú, en el orden en que se ven. Tocá <b>Editar</b> para cambiar el nombre, el título que se ve arriba de los productos, la aclaración, el diseño, el color, el tipo o el ${esc(RW())}. Las <b>sólo del menú</b> no tienen dinero ni caja.</p>
+ <div id="msec-list">${L.map((r,i)=>`<div class="msec-item" data-sec="${r.id}" style="border:1px solid var(--line);border-left:6px solid ${safeColor(r.color)};border-radius:12px;padding:.6rem .7rem;margin:.5rem 0;${r.menuOn===false?'background:#f4f1ec':''}">
+  <div class="row" style="flex-wrap:wrap;gap:.5rem;align-items:center">${ed?`<span><button class="btn sm" data-act="msecMove" data-id="${r.id}" data-d="-1" ${i===0?'disabled':''} aria-label="Subir ${esc(r.mNom||r.name)}">↑</button> <button class="btn sm" data-act="msecMove" data-id="${r.id}" data-d="1" ${i===L.length-1?'disabled':''} aria-label="Bajar ${esc(r.mNom||r.name)}">↓</button></span>`:`<span class="sm mut">${i+1}</span>`}
+   <span class="sp" style="min-width:160px"><b>${esc(r.mNom||r.name)}</b>${r.menuOn===false?' <span class="tag bad">oculta</span>':''}<div class="sm mut">Título: ${esc(r.mTitle||r.mNom||r.name)}${r.mHint?' · '+esc(r.mHint):''}</div><div class="sm mut">${r.kind==='msec'?'Tipo: sólo del menú':'Tipo: '+esc(RW())+' «'+esc(r.name)+'»'} · ${cnt(r.id)} producto${cnt(r.id)===1?'':'s'} en el menú</div></span></div>
+  <div class="row" style="flex-wrap:wrap;gap:.4rem;margin-top:.45rem">${ed?`<button class="btn sm gold" data-act="msecEdit" data-id="${r.id}">Editar</button>`:''}
+   <button class="btn sm" data-act="msecProds" data-id="${r.id}" aria-expanded="${msecOpen===r.id}">${msecOpen===r.id?'Cerrar productos':'Productos'}</button>
+   ${ed?`<label class="chk" style="margin:0"><input type="checkbox" data-msecon="${r.id}" ${r.menuOn!==false?'checked':''}> se muestra</label>`:''}
+   ${ed?(r.kind==='msec'?`<button class="btn sm red" data-act="msecDel" data-id="${r.id}">Eliminar</button>`:`<button class="btn sm red" data-act="msecRubDel" data-id="${r.id}">Eliminar</button>`):''}</div>
+  ${msecOpen===r.id?`<div class="msec-prow" style="margin-top:.4rem">${msecProdsHTML(r,ed)}</div>`:''}</div>`).join('')||'<p class="mut">No hay secciones.</p>'}</div></div>`;}
 document.addEventListener('change',e=>{const id=e.target&&e.target.dataset&&e.target.dataset.msecon;if(!id)return;if(!can('menu_admin')){e.target.checked=!e.target.checked;return toast('Sin permiso',1);}
  const r=rub(id);if(!r)return;r.menuOn=e.target.checked;audit('MENU_SECCION_VISIBLE',(r.mNom||r.name)+' · '+(r.menuOn?'se muestra':'oculta'));save();pubRefreshSafe();rerender();});
 function pubRefreshSafe(){try{if(typeof pubRefresh==='function')pubRefresh();}catch(e){}try{if(typeof pubReload==='function')pubReload();}catch(e){}}
 A.msecMove=el=>{if(!can('menu_admin'))return toast('Sin permiso',1);const L=menuSecs(true);const i=L.findIndex(r=>r.id===el.dataset.id);const j=i+(+el.dataset.d);if(i<0||j<0||j>=L.length)return;
  const t=L[i];L[i]=L[j];L[j]=t;L.forEach((r,k)=>{r.mOrd=k;});audit('MENU_SECCION_ORDEN',L.map(r=>r.mNom||r.name).join(' > ').slice(0,300));save();pubRefreshSafe();rerender();};
 A.msecAdd=()=>A.msecEdit({dataset:{id:''}});
-A.msecEdit=el=>{if(!can('menu_admin'))return toast('Sin permiso',1);const r=el&&el.dataset.id?rub(el.dataset.id):null;if(el&&el.dataset.id&&(!r||r.kind!=='msec'))return;
- const col=safeColor(r?r.color:RUB_COLORS[(S.rubros.length)%RUB_COLORS.length]);
- const w=modal(r?'Editar sección del menú':'Nueva sección del menú',`<p class="sm mut">Sólo ordena el menú público: no tiene dinero, caja ni reparto.</p>
- <label for="ms-n">Nombre en el menú</label><input id="ms-n" maxlength="30" value="${esc(r?(r.mNom||r.name):'')}" autocomplete="off" placeholder="Ej.: Ofertas de la semana">
- <label for="ms-t">Título de la sección (opcional)</label><input id="ms-t" maxlength="60" value="${esc(r&&r.mTitle&&r.mTitle!==r.mNom?r.mTitle:'')}" autocomplete="off">
+A.msecEdit=el=>{if(!can('menu_admin'))return toast('Sin permiso',1);const r=el&&el.dataset.id?rub(el.dataset.id):null;if(el&&el.dataset.id&&!isMenuSec(r))return;
+ const isRub=!!r&&r.kind==='rubro';const col=safeColor(r?r.color:RUB_COLORS[(S.rubros.length)%RUB_COLORS.length]);
+ const nProdsRub=r?S.products.filter(p=>p.rubro===r.id&&!p.archived).length:0;
+ const histRub=r?(S.sales.some(s=>(s.items||[]).some(i=>i.rubro===r.id))||S.movs.some(m=>m.rubro===r.id)):false;
+ const w=modal(r?'Editar sección del menú':'Nueva sección del menú',`
+ <label for="ms-n">Nombre en el menú (botón de filtro)</label><input id="ms-n" maxlength="30" value="${esc(r?(r.mNom||r.name):'')}" autocomplete="off" placeholder="Ej.: Ofertas de la semana">
+ <label for="ms-t">Título de la sección (arriba de los productos)</label><input id="ms-t" maxlength="60" value="${esc(r?(r.mTitle||r.mNom||r.name):'')}" autocomplete="off" placeholder="Igual que el nombre">
  <label for="ms-h">Aclaración debajo del título (opcional)</label><input id="ms-h" maxlength="80" value="${esc(r?r.mHint||'':'')}" autocomplete="off">
  <label for="ms-l">Diseño</label><select id="ms-l">${MSEC_LAYOUTS.map(([v,t])=>`<option value="${v}" ${(r?r.layout:'grid')===v?'selected':''}>${t}</option>`).join('')}</select>
- <label>Color</label><div class="row" id="ms-cols">${RUB_COLORS.map(c=>`<button type="button" class="swatch ${c.toLowerCase()===col.toLowerCase()?'on':''}" data-col="${c}" style="background:${c}" aria-label="Color ${c}"></button>`).join('')}</div><input type="hidden" id="ms-c" value="${col}">
+ <label>Color</label><div class="row" id="ms-cols" style="flex-wrap:wrap">${RUB_COLORS.map(c=>`<button type="button" class="swatch ${c.toLowerCase()===col.toLowerCase()?'on':''}" data-col="${c}" style="background:${c}" aria-label="Color ${c}"></button>`).join('')}</div><input type="hidden" id="ms-c" value="${col}">
  <label class="chk"><input type="checkbox" id="ms-a" ${r&&r.alcohol?'checked':''}> Tiene bebidas con alcohol (se ocultan fuera del horario permitido)</label>
- <label class="chk"><input type="checkbox" id="ms-on" ${!r||r.menuOn!==false?'checked':''}> Mostrar en el menú</label>`,
+ <label class="chk"><input type="checkbox" id="ms-on" ${!r||r.menuOn!==false?'checked':''}> Mostrar en el menú</label>
+ <fieldset class="card" style="padding:.6rem;margin-top:.6rem"><legend class="sm"><b>Tipo</b></legend>
+  <label class="chk"><input type="radio" name="ms-k" value="msec" ${!isRub?'checked':''} ${isRub&&(nProdsRub||histRub)?'disabled':''}> <span>Sólo del menú <span class="sm mut">(sin dinero ni caja)</span></span></label>
+  <label class="chk"><input type="radio" name="ms-k" value="rubro" ${isRub?'checked':''}> <span>${esc(RW(1))} del sistema <span class="sm mut">(aparece en Inventario, Vender, Caja${ownerMode()?'':' y reparto'})</span></span></label>
+  ${isRub&&(nProdsRub||histRub)?`<p class="sm mut">No se puede pasar a «sólo del menú» porque el ${esc(RW())} tiene ${nProdsRub?nProdsRub+' producto(s)':''}${nProdsRub&&histRub?' y ':''}${histRub?'ventas o movimientos':''}.</p>`:''}
+  <div id="ms-rbox" ${isRub?'':'hidden'}><label for="ms-rn">Nombre del ${esc(RW())} en el sistema</label><input id="ms-rn" maxlength="40" value="${esc(r&&isRub?r.name:'')}" autocomplete="off">
+  ${ownerMode()?'':`<label for="ms-ro">Responsable (opcional)</label><input id="ms-ro" maxlength="40" value="${esc(r&&isRub?r.owner||'':'')}" autocomplete="off">`}</div></fieldset>`,
  {okText:'Guardar sección',onOk:w=>{const n=val('ms-n').trim();if(n.length<2)return w._err('Escribí el nombre (mínimo 2 letras).'),false;
   if(S.rubros.some(x=>isMenuSec(x)&&norm(x.mNom||x.name)===norm(n)&&(!r||x.id!==r.id)))return w._err('Ya hay una sección con ese nombre.'),false;
-  const d={name:n,mNom:n,mTitle:val('ms-t').trim()||n,mHint:val('ms-h').trim(),layout:MSEC_LAYOUTS.some(x=>x[0]===val('ms-l'))?val('ms-l'):'grid',color:safeColor(val('ms-c')),alcohol:$('#ms-a',w).checked,menuOn:$('#ms-on',w).checked};
-  if(r){Object.assign(r,d);audit('MENU_SECCION_EDITAR',n);}else{const L=menuSecs(true);L.forEach((x,k)=>{x.mOrd=k;});S.rubros.push(Object.assign({id:uid(),kind:'msec',owner:'',reparte:false,mOrd:L.length},d));audit('MENU_SECCION_ALTA',n);}
+  const kind=(w.querySelector('input[name=ms-k]:checked')||{}).value==='rubro'?'rubro':'msec';
+  const d={mNom:n,mTitle:val('ms-t').trim()||n,mHint:val('ms-h').trim(),layout:MSEC_LAYOUTS.some(x=>x[0]===val('ms-l'))?val('ms-l'):'grid',color:safeColor(val('ms-c')),alcohol:$('#ms-a',w).checked,menuOn:$('#ms-on',w).checked};
+  if(kind==='rubro'){const rn=(val('ms-rn')||'').trim()||n;if(rn.length<2)return w._err('Escribí el nombre del '+RW()+'.'),false;
+   if(S.rubros.some(x=>x.kind==='rubro'&&norm(x.name)===norm(rn)&&(!r||x.id!==r.id)))return w._err('Ya existe '+(ownerMode()?'una categoría':'un rubro')+' con ese nombre.'),false;d.name=rn;if(!ownerMode()&&w.querySelector('#ms-ro'))d.owner=val('ms-ro').trim();}
+  else{if(isRub&&(nProdsRub||histRub))return w._err('Este '+RW()+' tiene productos o historial: no puede pasar a «sólo del menú».'),false;d.name=n;}
+  const old=r?{kind:r.kind,name:r.name,mNom:r.mNom,mTitle:r.mTitle}:null;
+  if(r){Object.assign(r,d);if(r.kind!==kind){r.kind=kind;if(kind==='rubro'){r.reparte=false;r.owner=r.owner||'';}audit('MENU_SECCION_TIPO',n+' · '+(old.kind==='msec'?'sólo del menú':RW())+' → '+(kind==='msec'?'sólo del menú':RW()));}
+   audit('MENU_SECCION_EDITAR',n+(old.name!==r.name?' · '+RW()+' «'+old.name+'» → «'+r.name+'»':'')+(old.mTitle!==r.mTitle?' · título «'+(old.mTitle||'')+'» → «'+r.mTitle+'»':''));}
+  else{const L=menuSecs(true);L.forEach((x,k)=>{x.mOrd=k;});const nr=Object.assign({id:uid(),kind,owner:d.owner||'',reparte:false,mOrd:L.length},d);
+   if(kind==='rubro'){const k0=S.rubros.findIndex(x=>x.kind!=='rubro'&&x.kind!=='msec');if(k0>=0)S.rubros.splice(k0,0,nr);else S.rubros.push(nr);}else S.rubros.push(nr);audit('MENU_SECCION_ALTA',n+' · '+(kind==='msec'?'sólo del menú':RW()));}
   save();pubRefreshSafe();rerender();toast('Sección guardada');}});
+ w.addEventListener('change',e=>{if(e.target.name==='ms-k'){const rb=w.querySelector('#ms-rbox');rb.hidden=e.target.value!=='rubro';const rn=w.querySelector('#ms-rn');if(rn&&!rn.value)rn.value=val('ms-n');}});
  w.addEventListener('click',e=>{const b=e.target.closest('.swatch');if(!b)return;$('#ms-c',w).value=b.dataset.col;$$('.swatch',w).forEach(x=>x.classList.toggle('on',x===b));});};
 A.msecDel=el=>{if(!can('menu_admin'))return toast('Sin permiso',1);const r=rub(el.dataset.id);if(!r||r.kind!=='msec')return;const ps=S.products.filter(p=>p.msec===r.id);
  confirmBox('Eliminar sección del menú','«'+(r.mNom||r.name)+'» se borra del menú.'+(ps.length?' Sus '+ps.length+' producto(s) vuelven a la sección de su '+RW()+'.':'')+' No cambia ventas, stock ni dinero.',

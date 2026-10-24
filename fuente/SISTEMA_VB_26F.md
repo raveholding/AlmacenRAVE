@@ -1413,6 +1413,7 @@ Sólo corrió contra un Tiendanube **falso**; falta homologar con la app y la ti
 - **Tarjeta de ejemplo del Club (V26.19, igual en todos los menús de Sistema VB):** quien todavía no tiene tarjeta ve «Así se ve tu tarjeta» (rótulo EJEMPLO) con la meta real de sellos y el premio configurado (`site.club`); al tener su tarjeta se ve la real. Prueba `m2.py`.
 - **Revisión V26.20:** en «Secciones del menú» todas las secciones se editan; las sólo del menú se eliminan y las que salen de un rubro ofrecen «sacarla sólo del menú» (el rubro sigue) o «eliminar el rubro» (con sus protecciones: pasar productos, archivar si tiene historial). Dar de baja o eliminar socios del Club es **sólo del rol administrador** (no se delega con permisos). Prueba `m3.py` (13 verificaciones).
 - **V26.21:** en «Secciones del menú», «Productos» despliega los productos de cada sección para **mostrarlos u ocultarlos**, marcarlos **★ destacados** y **ordenarlos** (↑/↓, `p.mOrd`, el menú respeta ese orden); **«Ver cómo queda»** muestra el menú con el borrador sin publicarlo; **aviso** de secciones visibles sin productos (no se muestran al público vacías); al cargar una foto se abre **«Recortar la foto»** (cuadrada, 4:3, 3:4 u original, acercar y arrastrar). Prueba `m4.py` (15 verificaciones).
+- **V26.22:** «Secciones del menú» pasa a tarjetas (todo visible en el celular, sin desplazamiento lateral). Un único editor para todas las secciones: nombre en el menú, **título** (el que se ve arriba de los productos), aclaración, diseño, color, mostrar, **tipo** (sólo del menú ↔ rubro del sistema; un rubro con productos o historial no pasa a «sólo del menú») y, si es rubro, **nombre del rubro** y responsable. Prueba `m3.py` (18 verificaciones).
 - **Límite declarado:** las fotos viajan dentro del producto (no hay almacenamiento de archivos aparte); con muchos productos con foto conviene usar fotos livianas.
 
 ---
@@ -1911,4 +1912,4 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 5. Sin cambios respecto de los límites del anexo C, G.3 y H (hardware, NFC, Wallet, ARCA en producción, multisucursal en servidor).
 
 
-FIN DE SISTEMA VB 26F (revisión V26.21)
+FIN DE SISTEMA VB 26F (revisión V26.22)
