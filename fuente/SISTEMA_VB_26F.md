@@ -1426,6 +1426,19 @@ Sólo corrió contra un Tiendanube **falso**; falta homologar con la app y la ti
 - **Arqueo/cierre:** tabla «Cobros digitales por cuenta» y, en el almacén con rubros, **compensación entre socios**: lo que entró a la cuenta de cada uno contra lo que le corresponde por sus ventas, y la indicación «Juan le pasa $X a Nico». No cambia lo vendido, la ganancia, la caja física ni el efectivo esperado. En el mayorista de un solo dueño sólo se muestran los totales por cuenta. También en el texto de WhatsApp y en el cierre sellado.
 - **Límite declarado:** los cobros de cuenta corriente a cuentas se informan pero no entran en la compensación; los pagos sin cuenta elegida (anteriores) aparecen como «Sin cuenta elegida».
 
+
+## 4.32 SOCIOS DEL CLUB: ELIMINAR (TAMBIÉN CON HISTORIAL Y CON NUBE), LISTA EN FIDELIZACIÓN Y WALLET AL ENVIAR LA TARJETA (V26.25)
+
+**Estado: IMPLEMENTADO** (partes `p6-loyalty.js`, `p6c-custadmin.js`, `p6d-cardportable.js`, `p6e-wallet.js`; pruebas `k4.py`, `y4.py`, `h3.py`). Enmienda a 4.24.4 pedida por el dueño: «el administrador debe poder borrar socios, no sólo dar de baja».
+1. **Eliminar socio (sólo el rol administrador)**, desde la ficha y desde la lista de Fidelización, con motivo y N.º de socio tipeado; auditado `CLIENTE_ELIMINADO`. Con deuda: primero cobrar o condonar (movimiento compensatorio con motivo).
+   - Sin historial → se borra el registro en todos los equipos.
+   - Con historial **sin nube** → se borra el registro; ventas y comprobantes conservan el nombre del ticket.
+   - Con historial **con nube (Almacén RAVE)** → el servidor (migración 11) no permite borrar el registro pero sí actualizarlo: se **borran todos los datos personales**, se revoca la tarjeta, sale de campañas y queda marcado `elim`: **desaparece de Clientes, Fidelización y búsquedas en todos los equipos**. Ventas, sellos y comprobantes se conservan («Socio N.º … (eliminado)»). **Sin migración nueva en producción.**
+   - Corrección: la condonación y la baja/eliminación viajan en el mismo lote y el servidor procesa `clientes` antes que `fiado`; por eso la decisión de deuda se registra también en `debtDec` (con el motivo) para que el servidor no la rechace.
+2. **Fidelización muestra la lista de socios** con buscador, sellos, membresía y botones Ficha · Enviar tarjeta · Eliminar (este último sólo administrador).
+3. **Enviar tarjeta:** la ventana ofrece Apple Wallet y Google Wallet. En las demos es una simulación rotulada; en el sistema del cliente explica que falta activar Wallet (cuenta de emisor de Google, Apple Developer con certificado de pases y servidor que firma, 4.19) y ofrece «Guardar mi tarjeta» y «Agregar a la pantalla de inicio». **Nunca se dice que la tarjeta quedó guardada en la Wallet.**
+4. **Límites:** Wallet real no implementado (depende de cuentas del comercio); el borrado con historial en la nube es «borrado de datos + oculto», no borrado físico del registro (la contabilidad lo exige). Probado en demo y con la nube simulada; no contra Supabase real.
+
 ---
 
 ## 5. MÓDULOS OPCIONALES (aditivos, auditables, apagados por defecto si dependen de terceros)
@@ -1922,4 +1935,4 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 5. Sin cambios respecto de los límites del anexo C, G.3 y H (hardware, NFC, Wallet, ARCA en producción, multisucursal en servidor).
 
 
-FIN DE SISTEMA VB 26F (revisión V26.23)
+FIN DE SISTEMA VB 26F (revisión V26.25)
