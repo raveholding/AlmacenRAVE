@@ -7,14 +7,16 @@
      No hay sueldo, merienda, impuestos por persona, reparto ni «caja de cada rubro».
    · Las cajas (operativas + principal) y los traspasos siguen igual; el dueño los mueve con cajas abiertas o cerradas. */
 /* ---------- Configuración: tipo de negocio ---------- */
+const bizLocked=()=>!!(S&&S.cfg&&S.cfg.bizLocked);
 function bizCard(){const cur=ownerMode()?'owner':'rubros';const adm=!!user&&user.role==='admin';
+ if(bizLocked())return`<div class="card" style="margin-bottom:1rem" id="biz-card"><h3>Tipo de negocio</h3><p><b>Mayorista / distribuidora de un solo dueño</b></p><p class="sm mut">Todo el dinero es del dueño. Los productos se agrupan en categorías (sólo ordenan inventario, ventas y menú). Cajas operativas + caja principal con traspasos. Este sistema está armado para un único dueño, por eso el tipo de negocio no se cambia.</p></div>`;
  return`<div class="card" style="margin-bottom:1rem" id="biz-card"><h3>Tipo de negocio</h3>
  <p class="sm mut">Define cómo se ordena el dinero. No borra ni mueve datos: ventas, cierres sellados y movimientos anteriores quedan como estaban.</p>
  <div class="grid g2">${Object.entries(BIZ_TYPES).map(([k,t])=>`<label class="chk biz-opt ${cur===k?'on':''}" style="align-items:flex-start"><input type="radio" name="biz" value="${k}" ${cur===k?'checked':''} ${adm?'':'disabled'}> <span><b>${esc(t)}</b><br><span class="sm mut">${k==='owner'
   ?'El dinero es todo del dueño: no hay rubros por persona ni reparto entre socios. Los productos se agrupan en categorías. Cajas operativas + caja principal con traspasos.'
   :'Como Almacén RAVE: cada rubro es una persona (responsable), con su caja, sueldo del empleado a medias, impuesto que se separa y reparto de ganancia.'}</span></span></label>`).join('')}</div>
  ${adm?'<div class="row"><button class="btn gold" data-act="bizSave">Aplicar tipo de negocio</button></div>':'<p class="sm mut">Sólo el administrador lo cambia.</p>'}</div>`;}
-A.bizSave=()=>{if(!user||user.role!=='admin')return toast('Sólo el administrador',1);const el=document.querySelector('input[name="biz"]:checked');const nv=el?el.value:'';
+A.bizSave=()=>{if(!user||user.role!=='admin')return toast('Sólo el administrador',1);if(bizLocked())return toast('Este sistema es de un solo dueño: el tipo de negocio no se cambia.',1);const el=document.querySelector('input[name="biz"]:checked');const nv=el?el.value:'';
  if(!BIZ_TYPES[nv])return;const ov=ownerMode()?'owner':'rubros';if(nv===ov)return toast('Ya es ese tipo de negocio');
  if(openSess())return toast('Cerrá la caja abierta antes de cambiar el tipo de negocio (el arqueo cambia de forma).',1);
  confirmBox('Cambiar tipo de negocio',`De «${BIZ_TYPES[ov]}» a «${BIZ_TYPES[nv]}». No se borra nada: los cierres anteriores conservan su forma.${nv==='owner'?' Los rubros pasan a mostrarse como categorías de productos; los ingresos, egresos y pagos dejan de pedir rubro.':' Vuelven a pedirse los rubros en cada ingreso o egreso.'}`,
@@ -71,7 +73,7 @@ function buildReportOwner(a,dayKey,who,inp){const L=[];const P=(t,cls)=>L.push({
 function arqOwnerHTML(s){const d=arqDraft(s);
  return`<div class="row"><h1 class="sp">Arqueo y cierre</h1><span class="tag warn">Vista previa · todavía no cierra la caja</span></div>
  <div class="grid g2" style="align-items:start"><div class="card"><h3>Efectivo contado</h3>
- <p class="sm mut">Negocio de un solo dueño: no hay sueldo, impuestos ni reparto por persona. Los gastos y retiros se cargan como <b>egresos</b> en Caja; el dinero que pasa a la caja principal, con <b>Traspasar fondos</b>.</p>
+ <p class="sm mut">Negocio de un solo dueño: todo el dinero es del negocio. Los gastos y retiros se cargan como <b>egresos</b> en Caja; el dinero que pasa a la caja principal, con <b>Traspasar fondos</b>.</p>
  <label for="aq-d">Efectivo contado en caja ($)</label><input id="aq-d" data-aq="declared" inputmode="decimal" placeholder="Escribí el número" value="${esc(d.declared||'')}" autocomplete="off">
  <label class="chk"><input type="checkbox" data-aq="detailAll" ${d.detailAll?'checked':''}> Incluir ventas por categoría en el texto</label>
  <label class="chk"><input type="checkbox" data-aq="mono" ${d.mono!==false?'checked':''}> Formato monoespaciado de WhatsApp (\`\`\`)</label>
@@ -81,4 +83,5 @@ function arqOwnerHTML(s){const d=arqDraft(s);
  <button class="btn gold" style="width:100%;margin-top:.8rem;min-height:52px" data-act="arqClose">Confirmar cierre de caja</button></div></div></div>`;}
 /* ---------- aviso en la demo: qué tipo de negocio se está viendo ---------- */
 function bizDemoBanner(){if(IS_CLIENT||!user||user.role!=='admin')return'';
+ if(bizLocked())return`<div class="card" style="margin-bottom:1rem"><span>Demo de evaluación: <b>mayorista de un solo dueño</b>. Los datos son de ejemplo; en Configuración → Datos de la demo podés vaciarla y cargar los tuyos.</span></div>`;
  return`<div class="card" style="margin-bottom:1rem"><div class="row"><span class="sp">Demo: estás viendo un <b>${ownerMode()?'mayorista de un solo dueño':'almacén con rubros por responsable'}</b>.</span><button class="btn sm" data-act="nav" data-id="config">Cambiar tipo de negocio</button></div></div>`;}
