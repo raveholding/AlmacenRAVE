@@ -2,10 +2,10 @@
    El menú que ve el público es el mismo archivo que ya está publicado en GitHub (diseño, carrito, buscador, lightbox, mapa, reseñas,
    redes, club). Acá se le conecta el catálogo del inventario, el alta al Club, la tarjeta de fidelización, los cupones y los textos
    legales. El menú sólo recibe datos públicos: nunca costos, stock exacto, proveedores ni clientes de terceros. */
-const mCfg=()=>S.menu.published||S.menu;
+const mCfg=()=>(typeof menuPreview!=='undefined'&&menuPreview)?S.menu:(S.menu.published||S.menu);
 function pubCatalog(){const secs=menuSecs(false).map(r=>({cat:r.id,nom:r.mNom||r.name,titulo:r.mTitle||r.name,hint:r.mHint||'',layout:r.layout,alc:!!r.alcohol,menu:true}));
  const ids=new Set(secs.map(s=>s.cat));
- const productos=S.products.filter(p=>p.menu&&p.active&&!p.archived&&ids.has(prodMenuSec(p))).map(p=>({id:p.id,cat:prodMenuSec(p),grupo:p.grupo||'',nom:p.name,sub:p.sub||'',precio:p.price/100,img:prodImg(p),destacado:!!p.featured,desc:p.desc||'',unidad:p.unit!=='u'?p.unit:'',agotado:stockOf(p)<=0}));
+ const productos=S.products.filter(p=>p.menu&&p.active&&!p.archived&&ids.has(prodMenuSec(p))).map(p=>({id:p.id,cat:prodMenuSec(p),grupo:p.grupo||'',nom:p.name,sub:p.sub||'',precio:p.price/100,img:prodImg(p),destacado:!!p.featured,desc:p.desc||'',unidad:p.unit!=='u'?p.unit:'',agotado:stockOf(p)<=0,_o:p.mOrd!==undefined?p.mOrd:100000+S.products.indexOf(p)})).sort((a,b)=>a._o-b._o).map(x=>{delete x._o;return x;});
  return{secciones:secs,productos};}
 function pubSite(){const c=mCfg();
  return{title:c.title||'RAVE DIGITAL',sub:c.sub,pitch:c.pitch,promo:c.promo,address:S.tenant.address,mapQuery:c.mapQuery,mapUrl:c.mapUrl,reviewUrl:c.reviewUrl,wifi:c.wifi,social:(c.social||[]).filter(x=>x.on!==false&&x.url&&safeUrl(x.url)).map(x=>({k:x.k,label:x.label,handle:x.handle,url:x.url})),icons:Object.assign({},EXTRA_ICONS,SOCIAL_ICONS),footer:c.footer,wa:S.tenant.wa,alcFrom:c.alcFrom,alcTo:c.alcTo,hideTeamBtn:!!c.hideTeamBtn,clubOn:c.clubOn!==false,club:{goal:+S.loyalty.goal||10,reward:String(S.loyalty.reward||'').slice(0,100)},ship:(typeof shipPublic==='function'?shipPublic(c):null)};}
