@@ -1,6 +1,6 @@
 # SISTEMA VB 26F (`SISTEMA_VB_26F`) — PROMPT MAESTRO INTEGRAL FINAL (ERP/POS CONVERSACIONAL Y MODULAR)
 
-Versión 26F · **revisión V26.26 (2026-10-25)** · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) para comercio, gastronomía, servicios, profesionales y ONG · Base heredada: SISTEMA VB 2.5. El detalle de qué integra cada revisión está en la tabla «Historial de revisiones» de abajo (de la más nueva a la más vieja).
+Versión 26F · **revisión V26.27 (2026-10-25)** · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) para comercio, gastronomía, servicios, profesionales y ONG · Base heredada: SISTEMA VB 2.5. El detalle de qué integra cada revisión está en la tabla «Historial de revisiones» de abajo (de la más nueva a la más vieja).
 
 **Objetivo de V26:** construir el sistema desde el inicio con una arquitectura extensible y un asistente conversacional transversal por voz y texto, integrado al catálogo de acciones de negocio. Incorporar además cajas operativas y principales configurables, gestión multisucursal, borrado protegido de artículos, ordenamiento reutilizable de todas las tablas y un checkout e-commerce opcional que convive con el flujo actual de pedidos por WhatsApp, tarjetas de fidelización guardables en Apple Wallet/Google Wallet y avisos automáticos multicanal con consentimiento y control de frecuencia. Este prompt define requisitos y criterios de aceptación; ninguna función se considera implementada hasta demostrarla con archivos, migraciones y pruebas reales.
 
@@ -8,6 +8,7 @@ Versión 26F · **revisión V26.26 (2026-10-25)** · ERP/POS multicomercio, mult
 
 | Revisión | Qué cambió | Sección | Estado |
 |---|---|---|---|
+| **V26.27** (2026-10-25) | Cajas y sucursales → «Consolidado del día»: ventas, ingresos, egresos y traspasos cuentan **sólo lo del día elegido**; un turno que cruza la medianoche (abierto ayer, cerrado hoy) ya no suma lo de ayer a hoy. El efectivo esperado sigue siendo el del turno abierto completo | 4.14.3 | Hecho y probado (`cx1.py`) |
 | **V26.26** (2026-10-25) | Inventario: búsqueda por **palabras sueltas del nombre** (cualquier orden, sin tildes ni mayúsculas), por **precio** (`3500`, `$3.500,50`), por **rango** (`1000-5000`, `>5000`, `<2000`), filtros «Precio desde / hasta» y **orden por precio** (menor → mayor, mayor → menor) o por nombre. Club: las altas del menú hechas con una llave anterior del comercio se archivan a los 3 días (dejan de avisar en cada ingreso) | 4.4.1, 4.6 | Hecho y probado (`i1.py`) |
 | V26.25b | El administrador elimina socios también con historial y con nube (datos borrados, tarjeta revocada, oculto en todas las listas); lista de socios en Fidelización; Wallet al enviar la tarjeta (pendiente de cuentas) | 4.32 | Hecho y probado (`k4.py`, `y4.py`) |
 | V26.23 | Cuentas de cobro por socio y compensación en el arqueo | 4.31 | Hecho |
@@ -395,6 +396,7 @@ Los nombres anteriores son contratos conceptuales, no permiso para duplicar tabl
 - Permitir arqueo individual, cierre de caja operativa, arqueo consolidado de una caja principal y consolidación de varias cajas/sucursales sólo a roles habilitados. Diferenciar “consolidado de lectura” de “transferencia real de fondos”: una vista consolidada no mueve efectivo.
 - Al consolidar, documentar claramente esperado, declarado, diferencias y elementos incluidos; no modificar cierres sellados de origen. La corrección se efectúa con movimiento compensatorio autorizado y motivo.
 - Soportar reparto entre socios cuando el cliente active el módulo correspondiente. Definir porcentajes, base de cálculo, redondeo al centavo, momento de liquidación y snapshot de regla; no inferir porcentajes ni cambiar cierres anteriores al editar la configuración.
+- **Consolidado del día (V26.27):** las cifras del día (ventas, ingresos, egresos, traspasos) se toman por la fecha de cada operación, no por el turno: un turno que cruza la medianoche aporta a cada día lo suyo. El efectivo esperado de una caja abierta es el del turno completo desde la apertura.
 - El consolidado debe ser reproducible, filtrable por período, sucursal, caja, moneda, medio de pago y estado; mostrar hora/zona horaria, origen y fórmula. Excluir registros no confirmados según política y marcarlos con estado explícito.
 - Asegurar aislamiento de tenant y sucursal en base de datos, endpoints/RPC, consultas, exports, informes y funciones de servidor. Casa Central sólo accede al conjunto de sucursales habilitadas. Toda transferencia, distribución, apertura, cierre o autorización queda auditada.
 
@@ -1958,4 +1960,4 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 5. Sin cambios respecto de los límites del anexo C, G.3 y H (hardware, NFC, Wallet, ARCA en producción, multisucursal en servidor).
 
 
-FIN DE SISTEMA VB 26F (revisión V26.26)
+FIN DE SISTEMA VB 26F (revisión V26.27)
