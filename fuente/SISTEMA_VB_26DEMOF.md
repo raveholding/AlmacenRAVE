@@ -185,6 +185,16 @@ ERP/SaaS multicomercio para negocios de `[PAÍS]`, en tres piezas con el mismo c
 - Ajuste rápido con motivo obligatorio; movimientos de stock auditados; stock mínimo/máximo con alertas; depósitos/sucursales como extensión opcional.
 - La API pública nunca expone costo, stock exacto, proveedor ni márgenes.
 
+
+### 4.4.1 Búsqueda y orden del inventario (V26.26)
+
+**Estado: IMPLEMENTADO** (`p3-ops.js`: `invQueryParse`, `invMatch`, `invSortL`; prueba `i1.py`). Pedido del dueño: «buscar por palabras dentro del nombre o por precios, con opción de orden de menor a mayor». Rige igual en Almacén RAVE, raveV2 y KiniDistribuidoraDemo.
+1. **Palabras sueltas:** cada palabra escrita debe aparecer en el nombre, la presentación, el grupo, el código de barras/PLU o el nombre del rubro, **en cualquier orden** y sin importar tildes ni mayúsculas («branca fernet» encuentra «Fernét Branca 1 lt»).
+2. **Precio:** un número suelto busca el número dentro del nombre **o** el precio exacto («750» encuentra «Fernet 750 ml»; «3500» encuentra lo que cuesta $ 3.500). Con `$` sólo busca precio. Rangos: `1000-5000`, `1000..5000`, `>5000`, `>=5000`, `<2000`. Se combina con palabras («<4000 coca»). Formato argentino aceptado (`3.500,50`).
+3. **Precio desde / hasta:** dos campos que se suman a lo escrito.
+4. **Orden:** selector «como está cargado · Nombre (A → Z) · Precio de menor a mayor · Precio de mayor a menor». Al elegir un orden por precio se desactiva «Agrupar por rubro» para ver la lista completa ordenada (se puede volver a agrupar: el orden se aplica dentro de cada grupo). Elegir un orden limpia el orden por encabezado de la tabla (4.15) para que no se pisen.
+5. Contador de resultados visible; sin resultados, mensaje claro; 360 px sin desborde. El precio comparado es el **precio de venta** (unidad); los precios por presentación del mayorista no entran en el filtro.
+
 ### 4.5 Caja y cierres
 - Apertura, movimientos (ingresos, egresos, retiros, reintegros), cierre con arqueo; cada sesión se asigna a la caja configurada para el terminal, responsable, turno y sucursal. **Todo movimiento financiero lleva un rubro válido obligatorio** (sección 6.10).
 - Al cerrar se guarda una foto inmutable: medios de pago, fiscal vs. interno, egresos y retiros, esperado vs. declarado, usuario y hora, observaciones y sello SHA-256; en la nube el cierre queda congelado (sólo se agregan notas).

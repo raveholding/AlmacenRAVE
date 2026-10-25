@@ -1,10 +1,22 @@
 # SISTEMA VB 26F (`SISTEMA_VB_26F`) — PROMPT MAESTRO INTEGRAL FINAL (ERP/POS CONVERSACIONAL Y MODULAR)
 
-Versión 26F · revisión V26.14 (integra el **tipo de negocio —almacén con rubros o mayorista de un solo dueño—, permisos sólo del administrador, traspasos del dueño con cajas cerradas y combos que descuentan cada artículo 4.29**, la **integración con Tiendanube y los pasos de conexión de todas las integraciones 4.28**, las **correcciones V26.12** —cobro mayorista por tramos, traspasos sin rubros, pago a proveedor repartido entre cajas, anexo J— y el **cierre de caja por rubro 4.27**; la **tarjeta del Club portátil 4.25** y el **menú público «local / tienda con envíos» 4.26**; incluye V26.1 pagos mixtos, V26.2 proveedores y compras, V26.3 Club/tarjeta/DNI/NFC, la **especificación del módulo Mayorista/Minorista 4.22** la **especificación corregida de traspasos de fondos, detalle de cobros digitales y expediente digital 4.23** y los **ajustes 4.24: detalle de las ventas de la caja, cajas sin límite de operaciones y administración de los clientes del Club**) · Base heredada: SISTEMA VB 2.5 · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) · Se adapta a comercio, gastronomía, servicios, profesionales y ONG.
+Versión 26F · **revisión V26.26 (2026-10-25)** · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) para comercio, gastronomía, servicios, profesionales y ONG · Base heredada: SISTEMA VB 2.5. El detalle de qué integra cada revisión está en la tabla «Historial de revisiones» de abajo (de la más nueva a la más vieja).
 
 **Objetivo de V26:** construir el sistema desde el inicio con una arquitectura extensible y un asistente conversacional transversal por voz y texto, integrado al catálogo de acciones de negocio. Incorporar además cajas operativas y principales configurables, gestión multisucursal, borrado protegido de artículos, ordenamiento reutilizable de todas las tablas y un checkout e-commerce opcional que convive con el flujo actual de pedidos por WhatsApp, tarjetas de fidelización guardables en Apple Wallet/Google Wallet y avisos automáticos multicanal con consentimiento y control de frecuencia. Este prompt define requisitos y criterios de aceptación; ninguna función se considera implementada hasta demostrarla con archivos, migraciones y pruebas reales.
 
-**Qué cambia en esta revisión (V26.4)** — todo es aditivo: no se quitó ni se reescribió ningún requisito anterior.
+**Historial de revisiones recientes** (todas aditivas; cada fila remite a su sección):
+
+| Revisión | Qué cambió | Sección | Estado |
+|---|---|---|---|
+| **V26.26** (2026-10-25) | Inventario: búsqueda por **palabras sueltas del nombre** (cualquier orden, sin tildes ni mayúsculas), por **precio** (`3500`, `$3.500,50`), por **rango** (`1000-5000`, `>5000`, `<2000`), filtros «Precio desde / hasta» y **orden por precio** (menor → mayor, mayor → menor) o por nombre. Club: las altas del menú hechas con una llave anterior del comercio se archivan a los 3 días (dejan de avisar en cada ingreso) | 4.4.1, 4.6 | Hecho y probado (`i1.py`) |
+| V26.25b | El administrador elimina socios también con historial y con nube (datos borrados, tarjeta revocada, oculto en todas las listas); lista de socios en Fidelización; Wallet al enviar la tarjeta (pendiente de cuentas) | 4.32 | Hecho y probado (`k4.py`, `y4.py`) |
+| V26.23 | Cuentas de cobro por socio y compensación en el arqueo | 4.31 | Hecho |
+| V26.18–V26.22 | Menú público: secciones y rubros editables, foto con recorte, vista previa | 4.30 | Hecho |
+| V26.14–V26.17 | Tipo de negocio (rubros / un solo dueño), permisos sólo del administrador, traspasos del dueño, combos; ingreso/egreso no afecta ventas ni ganancia | 4.29, 4.27 | Hecho |
+| V26.12–V26.13 | Tiendanube y conexión de integraciones; cobro mayorista por tramos | 4.28 | Hecho (Tiendanube inactiva hasta cargar credenciales) |
+| V26.1–V26.11 | Pagos mixtos, proveedores, Club, mayorista F1, traspasos, expediente, cierre por rubro, tarjeta portátil, tienda con envíos | 4.20–4.27 | Hecho (ver anexos) |
+
+**Qué cambió en la revisión V26.4 (histórico)** — todo es aditivo: no se quitó ni se reescribió ningún requisito anterior.
 
 | Cambio | Dónde | Estado en el código (2026-10-19) |
 |---|---|---|
@@ -173,6 +185,16 @@ ERP/SaaS multicomercio para negocios de `[PAÍS]`, en tres piezas con el mismo c
 - Ajuste rápido con motivo obligatorio; movimientos de stock auditados; stock mínimo/máximo con alertas; depósitos/sucursales como extensión opcional.
 - La API pública nunca expone costo, stock exacto, proveedor ni márgenes.
 
+
+### 4.4.1 Búsqueda y orden del inventario (V26.26)
+
+**Estado: IMPLEMENTADO** (`p3-ops.js`: `invQueryParse`, `invMatch`, `invSortL`; prueba `i1.py`). Pedido del dueño: «buscar por palabras dentro del nombre o por precios, con opción de orden de menor a mayor». Rige igual en Almacén RAVE, raveV2 y KiniDistribuidoraDemo.
+1. **Palabras sueltas:** cada palabra escrita debe aparecer en el nombre, la presentación, el grupo, el código de barras/PLU o el nombre del rubro, **en cualquier orden** y sin importar tildes ni mayúsculas («branca fernet» encuentra «Fernét Branca 1 lt»).
+2. **Precio:** un número suelto busca el número dentro del nombre **o** el precio exacto («750» encuentra «Fernet 750 ml»; «3500» encuentra lo que cuesta $ 3.500). Con `$` sólo busca precio. Rangos: `1000-5000`, `1000..5000`, `>5000`, `>=5000`, `<2000`. Se combina con palabras («<4000 coca»). Formato argentino aceptado (`3.500,50`).
+3. **Precio desde / hasta:** dos campos que se suman a lo escrito.
+4. **Orden:** selector «como está cargado · Nombre (A → Z) · Precio de menor a mayor · Precio de mayor a menor». Al elegir un orden por precio se desactiva «Agrupar por rubro» para ver la lista completa ordenada (se puede volver a agrupar: el orden se aplica dentro de cada grupo). Elegir un orden limpia el orden por encabezado de la tabla (4.15) para que no se pisen.
+5. Contador de resultados visible; sin resultados, mensaje claro; 360 px sin desborde. El precio comparado es el **precio de venta** (unidad); los precios por presentación del mayorista no entran en el filtro.
+
 ### 4.5 Caja y cierres
 - Apertura, movimientos (ingresos, egresos, retiros, reintegros), cierre con arqueo; cada sesión se asigna a la caja configurada para el terminal, responsable, turno y sucursal. **Todo movimiento financiero lleva un rubro válido obligatorio** (sección 6.10).
 - Al cerrar se guarda una foto inmutable: medios de pago, fiscal vs. interno, egresos y retiros, esperado vs. declarado, usuario y hora, observaciones y sello SHA-256; en la nube el cierre queda congelado (sólo se agregan notas).
@@ -191,6 +213,7 @@ ERP/SaaS multicomercio para negocios de `[PAÍS]`, en tres piezas con el mismo c
 - **Sellos en el mostrador (V26.3)** — un sello por socio cada 24 h en todos los casos, auditado con el medio usado: por **QR** de la tarjeta (`RAVE2|id|código`, un solo uso; lector USB que escribe solo o cámara con `BarcodeDetector` si el navegador la ofrece), por **código de 8 números** (N.º de socio + código), por **DNI** (se escribe; si hay dos clientes con el mismo DNI se pide buscarlo por nombre) o por **tarjeta/etiqueta NFC** (`RAVE2N|id`, Web NFC: sólo Chrome en Android; la etiqueta se graba desde la ficha del cliente). Disponible en Vender → Cobrar (campo «Sello del Club») y en Fidelización. El cobro también encuentra al cliente por DNI. La etiqueta NFC es fija (no rota como el QR): el límite de un sello por día y la baja de la tarjeta son su defensa. El DNI es opcional, va cifrado en la nube (`__pii`) y se borra en la baja.
 - **Checklist de aceptación del Club (correcciones V26.3 que no se pueden perder):** (1) el cliente que escanea el QR del menú recibe su tarjeta **en el acto**, con QR y código que rotan cada 2 minutos, aunque no haya sesión del negocio abierta: **jamás se oculta el bloque de la tarjeta por falta de sesión**; (2) el alta de un celular no se pierde: una alta ilegible o duplicada queda «nueva» y sólo se rechazan las inválidas (menores de 18, datos incompletos, WhatsApp repetido con otro cumpleaños); (3) la importación de altas corre sola (cada 20 s, al abrir Cobrar o Fidelización), es **no destructiva** y con bloqueo para que no corra dos veces a la vez; (4) el cliente nace con el **mismo id que la tarjeta** y recibe su N.º de socio; el celular lo consulta con `club_estado`, que nunca devuelve nombre, WhatsApp, DNI ni cumpleaños; (5) sellos por **QR, código de 8 cifras, DNI o NFC**: uno cada 24 h por socio, un solo uso por código, auditados con el medio; (6) el **DNI es opcional**, va cifrado (`__pii`), se borra en la baja y, si dos clientes lo comparten, se pide elegir por nombre; (7) la **meta y el premio** del Club se publican en el menú por la lista cerrada de `rave_limpiar_menu`; (8) los **cupones** por audiencia (todos / socios / cumpleaños) aplican en todo el sistema, con límite por cliente y uso sincronizado; (9) las pruebas con códigos que rotan usan reloj ajustable en **todos** los dispositivos (`window.__now`); (10) la tarjeta vive en el celular: si el cliente borra los datos del navegador la pierde, y el mostrador sigue sellando por DNI o NFC.
 - **Administración de clientes por el administrador (edición, baja y eliminación definitiva sin historial, con efectos en cadena sobre la tarjeta, campañas y altas pendientes):** especificada en **4.24.3–4.24.4**.
+- **Altas que no se pueden abrir (V26.26):** si una alta del menú quedó cifrada con una llave anterior del comercio, a los 3 días se archiva como rechazada (auditado `CLUB_ALTA_ILEGIBLE`, una sola vez) y deja de avisar en cada ingreso; el cliente puede volver a anotarse desde el QR. Las recientes siguen esperando.
 - **Wallet (Apple/Google):** no implementado — necesita cuentas de desarrollador y certificados de firma de pases (ver 4.19). Alternativa vigente: la tarjeta queda guardada en el celular (se puede agregar a la pantalla de inicio) y, si se pierde, el mostrador suma sellos con DNI o NFC.
 - **Tarjeta modelo del negocio (en Fidelización):** vista previa de frente y dorso a tamaño tarjeta (85,6 × 54 mm) con logo, nombre, sellos de ejemplo configurables, premio, dirección, WhatsApp y red social del comercio; el dorso lleva un QR al menú; impresión "con ejemplo" y "en blanco" lista para imprimir/cortar. Los datos salen de la configuración, nunca fijos en el código.
 - **Tarjeta digital entregable:** además de consultar/imprimir la tarjeta web existente, el cliente debe poder recibir un enlace seguro para guardarla en Apple Wallet o Google Wallet cuando el comercio haya habilitado y configurado esa plataforma. La tarjeta y el envío de avisos se implementan según **4.19** y el módulo opcional **5.23**; no crear una segunda cuenta ni un saldo paralelo.
@@ -1935,4 +1958,4 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 5. Sin cambios respecto de los límites del anexo C, G.3 y H (hardware, NFC, Wallet, ARCA en producción, multisucursal en servidor).
 
 
-FIN DE SISTEMA VB 26F (revisión V26.25)
+FIN DE SISTEMA VB 26F (revisión V26.26)

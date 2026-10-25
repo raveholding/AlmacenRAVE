@@ -352,10 +352,13 @@ async function rsaOpen(jwkPriv,box){const sk=await crypto.subtle.importKey('jwk'
 async function importAltas(){if(!cl.ready||!cl.clubPriv||!cl.clubPriv.jwk||!cl.online||importAltas.busy)return 0;
  importAltas.busy=true;
  try{
- const rows=await sel(`club_altas?select=id,cifrado&comercio_id=eq.${cl.comercio.id}&estado=eq.nueva&order=id&limit=100`);if(!rows.length)return 0;
- const ok=[],bad=[];let undec=0,made=0,alias=0;
+ const rows=await sel(`club_altas?select=id,cifrado,creado&comercio_id=eq.${cl.comercio.id}&estado=eq.nueva&order=id&limit=100`);if(!rows.length)return 0;
+ const ok=[],bad=[],ileg=[];let undec=0,made=0,alias=0;
  for(const r of rows){
-  let p;try{p=await rsaOpen(cl.clubPriv.jwk,r.cifrado);}catch(e){undec++;continue;} // no se descarta: queda "nueva" (no es culpa del cliente)
+  let p;try{p=await rsaOpen(cl.clubPriv.jwk,r.cifrado);}catch(e){
+   /* V26.26: una alta hecha con una llave anterior del comercio nunca se va a poder abrir. Mientras es reciente (< 3 días) queda «nueva»
+      por si el administrador todavía no entró; después se archiva como rechazada (una sola vez, auditado) y deja de avisar en cada ingreso. */
+   const age=Date.now()-Date.parse(r.creado||'');if(age>3*86400000){ileg.push(r.id);bad.push(r.id);}else undec++;continue;}
   const b=parseBirth(p.birth),w=normWA(p.wa);
   if(!b||!w||ageOf(b)<18||String(p.name||'').trim().length<1||String(p.last||'').trim().length<1){bad.push(r.id);continue;}
   const iso=b.y+'-'+String(b.mo).padStart(2,'0')+'-'+String(b.d).padStart(2,'0');
@@ -375,7 +378,8 @@ async function importAltas(){if(!cl.ready||!cl.clubPriv||!cl.clubPriv.jwk||!cl.o
   if(ok.length)await rpc('club_altas_marcar',{p_comercio:cl.comercio.id,p_ids:ok,p_estado:'importada'});
   if(bad.length)await rpc('club_altas_marcar',{p_comercio:cl.comercio.id,p_ids:bad,p_estado:'rechazada'});
  }catch(e){} // si falla el aviso, la próxima vuelta las reconoce como ya importadas
- if(undec&&importAltas.undec!==undec){importAltas.undec=undec;audit('CLUB_ALTAS_SIN_ABRIR',undec+' altas del menú no se pueden abrir con la llave de este comercio');}
+ if(ileg.length)audit('CLUB_ALTA_ILEGIBLE',ileg.length+' alta(s) del menú hechas con una llave anterior del comercio: archivadas (el cliente puede volver a anotarse desde el QR)');
+ {const k='rave.undec.'+cl.comercio.id,prev=+(LS.get(k)||0);if(undec!==prev){LS.set(k,String(undec));if(undec)audit('CLUB_ALTAS_SIN_ABRIR',undec+' alta(s) recientes del menú todavía no se pueden abrir: si en 3 días siguen así se archivan');}}
  if(made||alias||bad.length){audit('CLUB_ALTAS_IMPORT',made+' socios nuevos, '+alias+' tarjetas nuevas de socios existentes, '+bad.length+' rechazadas');save();if(typeof pubRefresh==='function')pubRefresh();if(typeof curScreen!=='undefined'&&(curScreen==='clientes'||curScreen==='fidel'))rerender();}
  return made+alias;
  }finally{importAltas.busy=false;}}
