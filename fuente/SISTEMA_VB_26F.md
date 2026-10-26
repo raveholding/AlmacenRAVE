@@ -1,6 +1,6 @@
 # SISTEMA VB 26F (`SISTEMA_VB_26F`) — PROMPT MAESTRO INTEGRAL FINAL (ERP/POS CONVERSACIONAL Y MODULAR)
 
-Versión 26F · **revisión V26.27 (2026-10-25)** · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) para comercio, gastronomía, servicios, profesionales y ONG · Base heredada: SISTEMA VB 2.5. El detalle de qué integra cada revisión está en la tabla «Historial de revisiones» de abajo (de la más nueva a la más vieja).
+Versión 26F · **revisión V26.28 (2026-10-25)** · ERP/POS multicomercio, multisucursal y conversacional (web/PWA, nube y Windows) para comercio, gastronomía, servicios, profesionales y ONG · Base heredada: SISTEMA VB 2.5. El detalle de qué integra cada revisión está en la tabla «Historial de revisiones» de abajo (de la más nueva a la más vieja).
 
 **Objetivo de V26:** construir el sistema desde el inicio con una arquitectura extensible y un asistente conversacional transversal por voz y texto, integrado al catálogo de acciones de negocio. Incorporar además cajas operativas y principales configurables, gestión multisucursal, borrado protegido de artículos, ordenamiento reutilizable de todas las tablas y un checkout e-commerce opcional que convive con el flujo actual de pedidos por WhatsApp, tarjetas de fidelización guardables en Apple Wallet/Google Wallet y avisos automáticos multicanal con consentimiento y control de frecuencia. Este prompt define requisitos y criterios de aceptación; ninguna función se considera implementada hasta demostrarla con archivos, migraciones y pruebas reales.
 
@@ -8,6 +8,7 @@ Versión 26F · **revisión V26.27 (2026-10-25)** · ERP/POS multicomercio, mult
 
 | Revisión | Qué cambió | Sección | Estado |
 |---|---|---|---|
+| **V26.28** (2026-10-25) | **Cierre unificado de todas las cajas abiertas**: con 2 o más cajas abiertas, Arqueo arranca en «Cierre unificado» (se puede elegir «Sólo la caja de este equipo»). Junta ventas, rubros y movimientos de todas las cajas; sueldo, gastos e impuestos del día se cuentan **una sola vez** y la ganancia se reparte sobre el total. Se carga el efectivo contado de cada caja y de qué caja se pagaron sueldo y gastos. Al confirmar se cierran **todas** a la vez: cada caja con su propio cierre sellado (esperado, contado y diferencia de esa caja) y todos con el mismo texto de la liquidación unificada | 4.27, 4.14.3 | Hecho y probado (`u1.py`) |
 | **V26.27** (2026-10-25) | Cajas y sucursales → «Consolidado del día»: ventas, ingresos, egresos y traspasos cuentan **sólo lo del día elegido**; un turno que cruza la medianoche (abierto ayer, cerrado hoy) ya no suma lo de ayer a hoy. El efectivo esperado sigue siendo el del turno abierto completo | 4.14.3 | Hecho y probado (`cx1.py`) |
 | **V26.26** (2026-10-25) | Inventario: búsqueda por **palabras sueltas del nombre** (cualquier orden, sin tildes ni mayúsculas), por **precio** (`3500`, `$3.500,50`), por **rango** (`1000-5000`, `>5000`, `<2000`), filtros «Precio desde / hasta» y **orden por precio** (menor → mayor, mayor → menor) o por nombre. Club: las altas del menú hechas con una llave anterior del comercio se archivan a los 3 días (dejan de avisar en cada ingreso) | 4.4.1, 4.6 | Hecho y probado (`i1.py`) |
 | V26.25b | El administrador elimina socios también con historial y con nube (datos borrados, tarjeta revocada, oculto en todas las listas); lista de socios en Fidelización; Wallet al enviar la tarjeta (pendiente de cuentas) | 4.32 | Hecho y probado (`k4.py`, `y4.py`) |
@@ -1351,6 +1352,8 @@ Un paso se da por terminado sólo con sus pruebas de 4.24.5 verdes, **regresión
 
 **4.27.2 Pruebas (`k3.py`, 26 verificaciones):** ventas por rubro, ingreso/egreso por rubro, sueldo 8 hs a medias, impuesto 30.000 por defecto y editable, ganancia a partes iguales y modo «cada uno la suya», cierre del cajón sin diferencia, sin merienda, tablas en Arqueo y Caja, 390 px sin desborde.
 
+**4.27.2-bis Cierre unificado (V26.28).** Con varias cajas abiertas (perfil «Varias cajas» o superior), el arqueo y la liquidación por rubro se calculan sobre **todas** las cajas juntas: sueldo, gastos e impuestos una sola vez; efectivo contado por caja; caja de la que salió el sueldo; al confirmar se cierran todas, cada una con su cierre sellado y la liquidación unificada en el texto (`data.uni`, `union` = id del grupo). La opción «Sólo la caja de este equipo» mantiene el cierre individual.
+
 **4.27.3 Límites declarados:** el egreso entre socios reduce también la **ganancia propia** del rubro que paga si `movAffectProfit` está activo (valor por defecto); sin pagos mixtos por rubro dentro del POS (el ejemplo de la deuda se resuelve con la venta + el egreso del rubro); el reparto asume 2 o más rubros que reparten, a partes iguales; probado sólo en la demo, **no con los datos reales del cliente**.
 
 ---
@@ -1960,4 +1963,4 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 5. Sin cambios respecto de los límites del anexo C, G.3 y H (hardware, NFC, Wallet, ARCA en producción, multisucursal en servidor).
 
 
-FIN DE SISTEMA VB 26F (revisión V26.27)
+FIN DE SISTEMA VB 26F (revisión V26.28)

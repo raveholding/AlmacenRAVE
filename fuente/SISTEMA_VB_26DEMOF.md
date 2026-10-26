@@ -1347,6 +1347,8 @@ Un paso se da por terminado sólo con sus pruebas de 4.24.5 verdes, **regresión
 
 **4.27.2 Pruebas (`k3.py`, 26 verificaciones):** ventas por rubro, ingreso/egreso por rubro, sueldo 8 hs a medias, impuesto 30.000 por defecto y editable, ganancia a partes iguales y modo «cada uno la suya», cierre del cajón sin diferencia, sin merienda, tablas en Arqueo y Caja, 390 px sin desborde.
 
+**4.27.2-bis Cierre unificado (V26.28).** Con varias cajas abiertas (perfil «Varias cajas» o superior), el arqueo y la liquidación por rubro se calculan sobre **todas** las cajas juntas: sueldo, gastos e impuestos una sola vez; efectivo contado por caja; caja de la que salió el sueldo; al confirmar se cierran todas, cada una con su cierre sellado y la liquidación unificada en el texto (`data.uni`, `union` = id del grupo). La opción «Sólo la caja de este equipo» mantiene el cierre individual.
+
 **4.27.3 Límites declarados:** el egreso entre socios reduce también la **ganancia propia** del rubro que paga si `movAffectProfit` está activo (valor por defecto); sin pagos mixtos por rubro dentro del POS (el ejemplo de la deuda se resuelve con la venta + el egreso del rubro); el reparto asume 2 o más rubros que reparten, a partes iguales; probado sólo en la demo, **no con los datos reales del cliente**.
 
 ---
