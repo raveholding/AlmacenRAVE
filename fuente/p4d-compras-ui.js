@@ -95,7 +95,7 @@ function cmpRender(){
  const banner=cloud?(cmpS.err?`<div class="errbox" role="alert">No pude actualizar desde la nube: ${esc(cmpS.err)}. Se muestran los últimos datos conocidos${S.cmpAt?' ('+fmtDT(S.cmpAt)+')':''}; para guardar cambios hace falta conexión.</div>`:(cmpS.loading&&!cmpS.loadedAt?'<div class="warnbox" role="status">Cargando proveedores desde la nube…</div>':'')):'';
  let body='';if(cmpS.tab==='prov')body=cmpProvTab();else if(cmpS.tab==='oc')body=cmpOcTab();else if(cmpS.tab==='remito')body=cmpRemitoTab();else body=cmpCuentaTab();
  return `<div class="cmp"><div class="row"><h1 class="sp">Proveedores y compras</h1>${cloud?cmpTag('☁ En la nube','ok'):cmpTag('Este equipo (sin nube)','')}
-  <button class="btn gold" data-act="cmpSupEdit" data-id="">+ Proveedor</button><button class="btn" data-act="cmpOcNew">+ Orden de compra</button><button class="btn dark" data-act="cmpTab" data-tab="remito">Cargar remito</button></div>
+  <button class="btn gold" data-act="cmpSupEdit" data-id="">+ Proveedor</button><button class="btn" data-act="cmpOcNew">+ Orden de compra</button><button class="btn dark" data-act="cmpTab" data-tab="remito">Cargar remito</button><button class="btn gold" data-act="facLoad">📄 Cargar factura (foto o PDF)</button></div>
   ${banner}${cmpKpis()}${cmpTabs()}<div class="cmp-panel" role="tabpanel">${body}</div>
   <p class="sm mut">Al cargar un remito se suma el stock, se actualiza el costo del producto (el margen se recalcula solo) y, según elijas, queda como deuda con el proveedor o sale de la caja o banco. Si algo falla, no se guarda nada. ${cloud?'En la nube el cálculo lo hace el servidor.':'Sin nube, el cálculo se hace en este equipo.'}</p></div>`;}
 
