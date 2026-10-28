@@ -26,7 +26,7 @@ const (
 	urlBase    = "https://raveholding.github.io/AlmacenRAVE/"
 	marcaNube  = "rdvwrrroerxikfqvpgnh.supabase.co"
 	publisher  = "VINCULAR BUSINESS"
-	version    = "26.30"
+	version    = "26.31"
 	maxHTML    = 30 << 20
 	minHTML    = 300 << 10
 )
