@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#242220">
 <title>Sistema RAVE · Almacén y Licorería RAVE</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242220'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23c9963e' font-family='Georgia,serif' font-weight='700'%3ER%3C/text%3E%3C/svg%3E">
-<script>window.RAVE_BUILD={"ver": "2026-10-28 02:37 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
+<script>window.RAVE_BUILD={"ver": "2026-10-28 02:50 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
 <style>
 :root{--ink:#242220;--gold:#c9963e;--gold2:#a87a28;--bg:#f6f3ee;--card:#fff;--line:#e6e0d6;--mut:#6d675f;--red:#c0392b;--redbg:#fdecea;--ok:#1e7a46;--okbg:#e6f4ec;--warnbg:#fff4dc;--r:16px}
 *{box-sizing:border-box}
@@ -5795,7 +5795,7 @@ async function cloudSignInFlow(email,pass,opts){
   else if(opts.rawDek){raw=opts.rawDek;cl.dekWrap=kr[0];}
   else{try{raw=await unwrapDek(kr[0],pass);cl.dekWrap=kr[0];}
    catch(e){if(opts.google)throw new Error('La clave del sistema no es correcta.'); // la contraseña fue restablecida: la llave se reabre con el código de recuperación
-    const code=await askText('Abrir tus datos','Tu contraseña fue restablecida. Escribí tu código de recuperación (el administrador lo guardó al crear el comercio).',{secret:true,ok:'Abrir'});
+    const code=await askText('Abrir tus datos','Tu contraseña fue restablecida. Escribí tu código de recuperación (el administrador lo guardó al crear el comercio).',{secret:true,ok:'Abrir',hint:'¿No tenés el código? Tocá Cancelar y pedile a otro administrador que, en Usuarios y permisos → Equipo, te quite y te vuelva a invitar: con ese código nuevo entrás por «Tengo una invitación» con tu correo y tu contraseña actual. Tus datos no se pierden. Con «Ingreso sólo con Google» activado, alcanza con tu Gmail.'});
     if(!code)throw new Error('Ingreso cancelado.');
     const rr=await sel('llaves_recuperacion?select=kdf,wrap&comercio_id=eq.'+cid);
     if(!rr.length)throw new Error('Sólo el administrador puede usar el código de recuperación. Pedile que te quite y te vuelva a invitar.');

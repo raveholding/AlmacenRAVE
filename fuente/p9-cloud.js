@@ -283,7 +283,7 @@ async function cloudSignInFlow(email,pass,opts){
   else if(opts.rawDek){raw=opts.rawDek;cl.dekWrap=kr[0];}
   else{try{raw=await unwrapDek(kr[0],pass);cl.dekWrap=kr[0];}
    catch(e){if(opts.google)throw new Error('La clave del sistema no es correcta.'); // la contraseña fue restablecida: la llave se reabre con el código de recuperación
-    const code=await askText('Abrir tus datos','Tu contraseña fue restablecida. Escribí tu código de recuperación (el administrador lo guardó al crear el comercio).',{secret:true,ok:'Abrir'});
+    const code=await askText('Abrir tus datos','Tu contraseña fue restablecida. Escribí tu código de recuperación (el administrador lo guardó al crear el comercio).',{secret:true,ok:'Abrir',hint:'¿No tenés el código? Tocá Cancelar y pedile a otro administrador que, en Usuarios y permisos → Equipo, te quite y te vuelva a invitar: con ese código nuevo entrás por «Tengo una invitación» con tu correo y tu contraseña actual. Tus datos no se pierden. Con «Ingreso sólo con Google» activado, alcanza con tu Gmail.'});
     if(!code)throw new Error('Ingreso cancelado.');
     const rr=await sel('llaves_recuperacion?select=kdf,wrap&comercio_id=eq.'+cid);
     if(!rr.length)throw new Error('Sólo el administrador puede usar el código de recuperación. Pedile que te quite y te vuelva a invitar.');
