@@ -6,7 +6,7 @@ su postgres -c "psql -q -c 'drop database if exists rave_t' -c 'create database 
 P="su postgres -c"
 $P "psql -q -v ON_ERROR_STOP=1 -d rave_t -f $D/tests/00-shim.sql" 2>&1 | grep -v NOTICE || true
 for pass in 1 2; do
-  for f in 01-base 02-sincronizacion 03-recuperacion-soporte 04-menu-publico 05-arca 06-v26 07-pagos-mixtos 08-proveedores-compras 09-club-tarjeta 10-mayorista-precios 11-traspasos-cobros-auditoria 12-pago-proveedor-cajas 13-tiendanube; do
+  for f in 01-base 02-sincronizacion 03-recuperacion-soporte 04-menu-publico 05-arca 06-v26 07-pagos-mixtos 08-proveedores-compras 09-club-tarjeta 10-mayorista-precios 11-traspasos-cobros-auditoria 12-pago-proveedor-cajas 13-tiendanube 14-auditoria-search-path; do
     $P "psql -q -v ON_ERROR_STOP=1 -d rave_t -f $D/$f.sql" 2>&1 | grep -v "NOTICE\|^$" || true
   done
 done
