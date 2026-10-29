@@ -267,7 +267,7 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
      ===================================================================== */
   var BASE_PUBLICA = (function(){
     var c = document.querySelector('link[rel="canonical"]');
-    var u = c ? c.getAttribute('href') : 'https://raveholding.github.io/menu-rave/';
+    var u = c ? c.getAttribute('href') : location.href;
     return u.replace(/[?#].*$/, '').replace(/index\.html$/, '');
   })();
   function urlProducto(id){
