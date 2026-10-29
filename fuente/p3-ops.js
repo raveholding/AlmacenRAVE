@@ -24,7 +24,11 @@ function arqueoCalc(sess,inp){
   {const tots=s.items.map(lineTotal);const T=tots.reduce((a,b)=>a+b,0);
    if(T>0)salePays(s).forEach(pp=>{const k=pp.m==='efectivo'?'cash':(pp.m==='fiado'?'fia':'dig');let acc=0;s.items.forEach((it,i)=>{const sh=i===tots.length-1?pp.a-acc:Math.round(pp.a*tots[i]/T);acc+=sh;if(R[it.rubro])R[it.rubro][k]+=sh;});});}});
  const movs=S.movs.filter(m=>m.sessId===sess.id);let ing=0,egr=0,gAuto=0;
+ /* V26.35: el cobro en efectivo de una cuenta corriente entra a la caja física del rubro de lo que se fió (no queda «sin rubro») */
+ const ccMemo={};const ccAllocOf=m=>{if(m.type!=='ingreso'||typeof ccPayAlloc!=='function')return null;const p=(S.fiadoPays||[]).find(x=>x.mov===m.id);if(!p)return null;
+  if(!ccMemo[p.cust])ccMemo[p.cust]=ccPayAlloc(p.cust);return ccMemo[p.cust][p.id]||null;};
  movs.forEach(m=>{const r0=rub(m.rubro);
+  {const al=r0&&r0.kind==='cobr'?ccAllocOf(m):null;if(al){ing+=m.amount;Object.keys(al).forEach(rid=>{if(R[rid]){R[rid].ing+=al[rid];R[rid].cing+=al[rid];R[rid].ccob=(R[rid].ccob||0)+al[rid];}});return;}}
   /* V26.16 (Almacén RAVE, pedido del dueño): un ingreso/egreso al rubro SÓLO entra o sale de la caja física de ese rubro (y del cajón).
      NO cambia lo vendido, la venta del mostrador ni la ganancia. */
   if(rubAdj(m,r0)){if(R[r0.id]){const sg=m.type==='ingreso'?m.amount:-m.amount;R[r0.id].sold+=sg;R[r0.id].adj+=sg;if(m.type==='ingreso')R[r0.id].ing+=m.amount;else R[r0.id].egr+=m.amount;}return;}
@@ -39,9 +43,9 @@ function arqueoCalc(sess,inp){
  const cubTot=Math.max(0,Math.min(preTot,taxTot)),falS=split(taxTot-cubTot,n);
  const reparte=rp.map((r,i)=>{const q=R[r.id];const base=q.profit-q.fees;const pre=base-sS[i]-sM[i]-sG[i];const tax=tS[i],taxOwn=taxIn[i];
   const cubierto=tax-falS[i];const fis=q.cash+q.cing-q.cegr-gaS[i]-(inp.payFromCash?(sS[i]+gmS[i]):0);
-  return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,sueldo:sS[i],merienda:0,gastos:sG[i],base,pre,tax,taxOwn,cubierto,falta:falS[i],net:pre-tax,cash:q.cash,dig:q.dig,fia:q.fia,ing:q.ing,egr:q.egr,adj:q.adj,fis};});
+  return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,sueldo:sS[i],merienda:0,gastos:sG[i],base,pre,tax,taxOwn,cubierto,falta:falS[i],net:pre-tax,cash:q.cash,dig:q.dig,fia:q.fia,ccob:q.ccob||0,ing:q.ing,egr:q.egr,adj:q.adj,fis};});
  const pool=n>0;const netSum=reparte.reduce((a,r)=>a+r.net,0);const fin=split(netSum,n);reparte.forEach((r,i)=>{r.final=pool?fin[i]:r.net;});
- const otros=S.rubros.filter(r=>r.kind==='rubro'&&!r.reparte).map(r=>{const q=R[r.id];return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,net:q.profit-q.fees+q.mov,cash:q.cash,dig:q.dig,fia:q.fia,ing:q.ing,egr:q.egr,adj:q.adj,fis:q.cash+q.cing-q.cegr};});
+ const otros=S.rubros.filter(r=>r.kind==='rubro'&&!r.reparte).map(r=>{const q=R[r.id];return{id:r.id,name:r.name,owner:r.owner,sold:q.sold,profit:q.profit-q.fees,mov:q.mov,net:q.profit-q.fees+q.mov,cash:q.cash,dig:q.dig,fia:q.fia,ccob:q.ccob||0,ing:q.ing,egr:q.egr,adj:q.adj,fis:q.cash+q.cing-q.cegr};});
  const cashSales=(byMethod.efectivo||{}).gross||0;const tr=(typeof transfersFor==='function')?transfersFor(sess):{tin:0,tout:0,list:[]};
  const paid=inp.payFromCash?(sueldo+inp.gastosManual):0;
  const expectedCash=sess.opening+cashSales+ing-egr-paid+tr.tin-tr.tout;

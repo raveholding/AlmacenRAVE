@@ -74,6 +74,16 @@ function ccLedger(cid){
  rows.sort((a,b)=>a.ts-b.ts);let bal=0;rows.forEach(r=>{bal+=r.kind==='debito'?r.amount:-r.amount;r.bal=bal;});return rows;}
 function ccLedgerHTML(cid){const L=ccLedger(cid);if(!L.length)return '<p class="sm mut">Sin movimientos de cuenta corriente.</p>';
  return `<div class="tw"><table><caption class="sr">Movimientos de cuenta corriente</caption><thead><tr><th>Fecha</th><th>Detalle</th><th class="r">Débito</th><th class="r">Crédito</th><th class="r">Saldo</th></tr></thead><tbody>${L.slice(-30).reverse().map(r=>`<tr><td>${fmtDT(r.ts)}</td><td>${esc(r.concept)}${r.kind==='debito'?` <span class="tag ${r.state==='parcial'?'warn':'bad'}">${esc(PSTATE_TXT[r.state])}</span>`:''}</td><td class="r">${r.kind==='debito'?money(r.amount):''}</td><td class="r">${r.kind==='credito'?money(r.amount):''}</td><td class="r"><b>${money(r.bal)}</b></td></tr>`).join('')}</tbody></table></div>`;}
+/* V26.35 (pedido del dueño): el cobro de una deuda vuelve al rubro de lo que se fió.
+   Parte fiada de cada venta → por rubro, en proporción a sus líneas (igual que el arqueo). */
+function fiadoRubroShares(s){const F=saleFiadoAmt(s);const out={};if(!(F>0))return out;const tots=s.items.map(lineTotal);const T=tots.reduce((a,b)=>a+b,0);if(!(T>0))return out;
+ let acc=0;s.items.forEach((it,i)=>{const sh=i===tots.length-1?F-acc:Math.round(F*tots[i]/T);acc+=sh;if(it.rubro)out[it.rubro]=(out[it.rubro]||0)+sh;});return out;}
+/* Cada cobro del cliente se aplica a sus ventas fiadas de la más vieja a la más nueva (FIFO) → {idCobro:{rubro:importe}} */
+function ccPayAlloc(cid){const sales=S.sales.filter(s=>s.cust===cid&&s.status==='ok'&&saleFiadoAmt(s)>0).sort((a,b)=>a.ts-b.ts).map(s=>{const sh=fiadoRubroShares(s);return{left:saleFiadoAmt(s),tot:saleFiadoAmt(s),sh};});
+ const pays=S.fiadoPays.filter(p=>p.cust===cid).sort((a,b)=>a.ts-b.ts);const res={};let k=0;
+ pays.forEach(p=>{let need=p.amount;const o={};while(need>0&&k<sales.length){const q=sales[k];const take=Math.min(need,q.left);
+   const ids=Object.keys(q.sh);let acc=0;ids.forEach((rid,i)=>{const a=i===ids.length-1?take-acc:Math.round(take*q.sh[rid]/q.tot);acc+=a;if(a)o[rid]=(o[rid]||0)+a;});
+   q.left-=take;need-=take;if(q.left<=0)k++;}res[p.id]=o;});return res;}
 function fiadoPay(cid,amount,method,accId){const c=custById(cid);if(!c)return'Cliente inexistente.';if(!(amount>0))return'El importe debe ser mayor a cero.';if(amount>debtOf(cid))return'Supera la deuda ('+money(debtOf(cid))+').';
  let mov='';if(method==='efectivo'){const e=addMov('ingreso','cobr','Cobro cuenta corriente · '+custFull(c),amount);if(e)return e;mov=S.movs[S.movs.length-1].id;}
  const ac=accId&&typeof accById==='function'?accById(accId):null;S.fiadoPays.push(Object.assign({id:uid(),cust:cid,ts:now(),amount,method,user:user.name,mov,rubro:'cobr'},ac?{acc:ac.id,accN:ac.name,accR:ac.rubro||''}:{}));audit('COBRO_FIADO',custFull(c)+' · '+money(amount)+' · '+MET[method]);save();return'';}
