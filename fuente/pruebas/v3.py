@@ -86,6 +86,7 @@ with sync_playwright() as p:
     chk(ev("(()=>{A.xferRev({dataset:{id:'t1'}});return S.transfers.length})()")==2,'no se puede revertir dos veces')
     # cierre sellado incluye caja y traspasos
     ev("xferCreate({id:'t3',from:'%s',to:'%s',amount:10000,rubro:S.rubros[0].id,motivo:'otro retiro'})"%(c1,main))
+    ev("S.arqDraft.__mode='one';save()")  # V26.27: con varias cajas abiertas el arqueo es unificado; acá se cierra sólo esta caja
     ev("location.hash='#panel/arqueo'");pg.wait_for_timeout(400)
     pg.fill('#aq-d','99900');pg.wait_for_timeout(300);pg.click('[data-act=arqClose]');pg.wait_for_selector('#modal-root [data-m=ok]');pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(500)
     k=ev("S.closures[S.closures.length-1]")
