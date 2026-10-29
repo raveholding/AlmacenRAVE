@@ -117,7 +117,7 @@ with sync_playwright() as p:
     # ---------- 9. cierre de caja del dueño ----------
     ev("go('arqueo')");pg.wait_for_timeout(400)
     v=pg.inner_text('#view')
-    chk('Minorista' in v and 'Mayorista' in v and pg.locator('#aq-emp').count()==0 and not bad_in(v),'arqueo del dueño: ventas por canal, sin sueldo, impuestos ni reparto %s'%bad_in(v))
+    chk('Minorista' not in v and 'Ventas del turno' in v and pg.locator('#aq-emp').count()==0 and not bad_in(v),'V26.33 arqueo del dueño (sólo mayorista): ventas del turno sin separar canal, sin sueldo, impuestos ni reparto %s'%bad_in(v))
     exp=ev("(()=>{const s=openSess();return arqueoCalc(s,arqInputs(s)).expectedCash})()")
     pg.fill('#aq-d',str(exp/100).replace('.',','));pg.wait_for_timeout(250)
     txt=pg.inner_text('#arq-prev')

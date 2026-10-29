@@ -37,8 +37,8 @@ function ownChan(a){const o={minorista:{n:0,t:0},mayorista:{n:0,t:0}};
 function ownCats(a){return S.rubros.filter(r=>r.kind==='rubro'||r.kind==='archivado').map(r=>({name:r.name,sold:(a.rub[r.id]||{}).sold||0,profit:(a.rub[r.id]||{}).profit||0})).filter(x=>x.sold>0).sort((x,y)=>y.sold-x.sold);}
 function ownerTablesHTML(a){const ch=ownChan(a),cv=can('view_cost');const cats=ownCats(a);
  return`<h3>Ventas del turno</h3><div class="tw"><table><thead><tr><th>Canal</th><th class="r">Ventas</th><th class="r">Importe</th></tr></thead><tbody>
- <tr><td>Minorista</td><td class="r">${ch.minorista.n}</td><td class="r">${money(ch.minorista.t)}</td></tr>
- <tr><td>Mayorista</td><td class="r">${ch.mayorista.n}</td><td class="r">${money(ch.mayorista.t)}</td></tr>
+ ${(typeof wsOnly==='function'&&wsOnly())?'':`<tr><td>Minorista</td><td class="r">${ch.minorista.n}</td><td class="r">${money(ch.minorista.t)}</td></tr>
+ <tr><td>Mayorista</td><td class="r">${ch.mayorista.n}</td><td class="r">${money(ch.mayorista.t)}</td></tr>`}
  <tr><td><b>Total</b></td><td class="r"><b>${a.count}</b></td><td class="r"><b>${money(a.total)}</b></td></tr></tbody></table></div>
  <h3 style="margin-top:1rem">Por medio de pago</h3><div class="tw"><table><thead><tr><th>Medio</th><th class="r">Cobros</th><th class="r">Importe</th><th class="r">Comisión</th></tr></thead><tbody>
  ${Object.keys(a.byMethod).map(m=>{const x=a.byMethod[m];return`<tr><td>${esc(MET[m]||m)}${m==='fiado'?' <span class="sm mut">(no entró a caja)</span>':''}</td><td class="r">${x.n}</td><td class="r">${money(x.gross)}</td><td class="r">${x.fee?'- '+money(x.fee):'—'}</td></tr>`;}).join('')||'<tr><td colspan="4" class="mut">Sin ventas.</td></tr>'}
@@ -54,7 +54,7 @@ function ownerTablesHTML(a){const ch=ownChan(a),cv=can('view_cost');const cats=o
 function buildReportOwner(a,dayKey,who,inp){const L=[];const P=(t,cls)=>L.push({t,cls:cls||''});const ch=ownChan(a);
  P(dmy(dayKey)+' '+DIAS[dowOfKey(dayKey)]+' cerró '+who,'h');P('');
  P('VENTAS TOTAL : '+money(a.total)+' ('+a.count+' venta'+(a.count===1?'':'s')+')','h');
- P('  Minorista : '+money(ch.minorista.t)+' ('+ch.minorista.n+')');P('  Mayorista : '+money(ch.mayorista.t)+' ('+ch.mayorista.n+')');P('');
+ if(!(typeof wsOnly==='function'&&wsOnly())){P('  Minorista : '+money(ch.minorista.t)+' ('+ch.minorista.n+')');P('  Mayorista : '+money(ch.mayorista.t)+' ('+ch.mayorista.n+')');}P('');
  Object.keys(a.byMethod).filter(m=>m!=='fiado').forEach(m=>{const x=a.byMethod[m];P((MET[m]||m)+' '+money(x.gross)+(x.n>1?' ('+x.n+')':''));if(x.fee>0)P('  comisión - '+money(x.fee)+' · neto '+money(x.gross-x.fee));});
  P('COBRADO REAL (dinero que entró) : '+money(a.cobrado),'h');
  if(a.aCtaCte>0)P('A CUENTA CORRIENTE (deuda de clientes, NO entró a caja) : '+money(a.aCtaCte),'w');

@@ -60,7 +60,7 @@ function kiniCustomers(){const t0=now()-30*86400000;
   mk('kc2',2,'Almacén Doña Rosa','',{channel:'mayorista',taxid:'27345678900',limit:120000000,term:30,zone:'Zona sur',seller:'Vendedor 2 (ejemplo)'}),
   mk('kc3',3,'Supermercado Los Andes S.R.L.','',{channel:'mayorista',taxid:'30711000018',limit:300000000,term:30,zone:'Centro',seller:'Vendedor 1 (ejemplo)',notes:'Precio especial acordado en gaseosa cola'}),
   mk('kc4',4,'Bar La Esquina','',{channel:'mayorista',taxid:'30711000026',limit:50000000,term:7,zone:'Centro',seller:'Vendedor 2 (ejemplo)'}),
-  mk('kc5',5,'Laura','Ejemplo',{birth:'1990-05-21',consent:{club:true,comm:false,analytics:false,version:'v1-2026-demo',ts:t0},notes:'Cliente del mostrador (minorista)'})];}
+  mk('kc5',5,'Laura','Ejemplo',{channel:'mayorista',birth:'1990-05-21',consent:{club:true,comm:false,analytics:false,version:'v1-2026-demo',ts:t0},notes:'Compra en el mostrador (sin CUIT)'})];}
 function kiniPeople(d){
  d.employees=[{id:'e1',name:'Empleado de depósito (ejemplo)',puestoId:'pu_dep',rate:250000,pin:'1234',active:true},{id:'e2',name:'Vendedor de mostrador (ejemplo)',puestoId:'pu_most',rate:250000,pin:'4321',active:true}];
  d.puestos=[{id:'pu_soc',name:'Dueño',parent:'',holders:''},{id:'pu_most',name:'Mostrador y ventas',parent:'pu_soc',holders:''},{id:'pu_dep',name:'Depósito y entregas',parent:'pu_soc',holders:''}];
@@ -84,7 +84,7 @@ function kiniBase(d){
  if(!d.rubros.some(r=>r.id==='sys-gen'))d.rubros.push({id:'sys-gen',name:'Caja del negocio',kind:'sysgen',color:'#6b7280',sys:true,reparte:false,owner:'',active:true});
  d.rubros.forEach(r=>{r.owner='';r.reparte=false;});
  d.products=kiniCatalog();
- if(d.cfg.wholesale){d.cfg.wholesale.on=true;d.cfg.wholesale.example=true;d.cfg.wholesale.seeded=1;d.cfg.wholesale.allowClub=false;}
+ if(d.cfg.wholesale){d.cfg.wholesale.on=true;d.cfg.wholesale.example=true;d.cfg.wholesale.seeded=1;d.cfg.wholesale.allowClub=false;d.cfg.wholesale.only=true;}d.cfg.kiniOnlyV=1;
  d.cfg.comboSeeded=1;
  d.customers=kiniCustomers();
  d.agreements=[{id:'ag-kini-ej',cust:'kc3',pid:'k-gas-cola',price:240000,pct:0,from:'',to:'',active:true,by:'ejemplo',ts:now(),example:true}];
@@ -111,14 +111,14 @@ function kiniExtras(){if(!isKiniBuild())return;
  const hs=S.sessions.find(s=>s.id==='hist-demo');if(!hs)S.sessions.push({id:'hist-demo',caja:S.tenant.caja,openedBy:'ADMIN',openedAt:Date.now()-12*86400000,opening:0,closedAt:Date.now()-86400000,demo:true});
  const mays=S.customers.filter(c=>c.channel==='mayorista');const metM=['transferencia','transferencia','efectivo','fiado'],metm=['efectivo','efectivo','debito','credito','qr','transferencia'];
  const cj=S.tenant.caja;const dbt={};
- for(let d=10;d>=1;d--){const n=4+Math.floor(rnd()*5);for(let k=0;k<n;k++){const ws=rnd()<0.45;const items=[];const nl=1+Math.floor(rnd()*(ws?3:2));
+ for(let d=10;d>=1;d--){const n=4+Math.floor(rnd()*5);for(let k=0;k<n;k++){const ws=S.cfg.wholesale&&S.cfg.wholesale.only?true:rnd()<0.45;const items=[];const nl=1+Math.floor(rnd()*(ws?3:2));
   for(let j=0;j<nl;j++){const p=pool[Math.floor(rnd()*pool.length)];if(items.some(i=>i.pid===p.id))continue;
    if(ws&&p.pres&&p.pres.length){const sm=p.pres.filter(x=>x.qty<=48);const pr=(sm.length?sm:p.pres)[Math.floor(rnd()*(sm.length||1))];const m=1+Math.floor(rnd()*4);
     items.push({pid:p.id,name:p.name+(p.sub?' ('+p.sub+')':''),rubro:p.rubro,qty:pr.qty*m,price:pr.unit,cost:p.cost,list:p.price,disc:0,lr:'P-'+pr.lv,ll:lvName(pr.lv).name,lb:p.price});}
    else items.push({pid:p.id,name:p.name+(p.sub?' ('+p.sub+')':''),rubro:p.rubro,qty:1+Math.floor(rnd()*3),price:p.price,cost:p.cost,list:p.price,disc:0,...(ws?{lr:'L1',ll:'',lb:p.price}:{})});}
   if(!items.length)continue;
   const total=items.reduce((a,i)=>a+Math.round(i.qty*i.price),0);S.seq[cj]=(S.seq[cj]||0)+1;const ts=Date.now()-d*86400000-Math.floor(rnd()*8*3600000)-3*3600000;
-  const cu=ws?mays[Math.floor(rnd()*mays.length)]:null;let m=ws?metM[Math.floor(rnd()*metM.length)]:metm[Math.floor(rnd()*metm.length)];
+  const cu=ws&&!(S.cfg.wholesale&&S.cfg.wholesale.only&&rnd()<0.3)?mays[Math.floor(rnd()*mays.length)]:null;let m=cu?metM[Math.floor(rnd()*metM.length)]:metm[Math.floor(rnd()*metm.length)];
   if(m==='fiado'&&(!cu||d<2||(cu.term>0&&d>=cu.term)||((dbt[cu.id]||0)+total)>cu.limit*0.35))m='transferencia';const fi=m==='fiado'?total:0;if(fi)dbt[cu.id]=(dbt[cu.id]||0)+fi;
   const s={id:'hs'+d+'_'+k,n:cj+'-'+S.seq[cj],ts,user:ws?'ADMIN':'Mostrador',caja:cj,sessId:'hist-demo',items,total,method:m,doc:'ticket_interno',status:'ok',fee:0,channel:'local',
    cust:cu?cu.id:'',custName:cu?custFull(cu):'',coupon:'',benefit:null,recv:0,fiado:fi>0,pays:[{m,a:total,fee:0}],fiadoAmt:fi,paid:total-fi,balance:fi,vuelto:0,pstate:fi?'pendiente':'pagada',demo:true};
