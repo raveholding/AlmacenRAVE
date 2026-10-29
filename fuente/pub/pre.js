@@ -1,3 +1,29 @@
+/* ===== V26.32 · Contraste automático a partir del color de la marca =====
+   --gold-ink : el color de la marca como LETRA (más oscuro sobre fondo claro, más claro en modo oscuro) con contraste ≥ 4,6:1.
+   --on-gold  : la letra que va ENCIMA del color de la marca (negra o blanca, la que se lea mejor).
+   --vino-ink : lo mismo para el color secundario. Sirve para cualquier marca (RAVE, Kini u otra) y para los dos modos. */
+(function(){
+  function hex(s){ s=String(s||'').trim(); var m=/^#([0-9a-f]{6})$/i.exec(s); if(m){ var n=parseInt(m[1],16); return [n>>16&255,n>>8&255,n&255]; }
+    m=/rgba?\(([^)]+)\)/.exec(s); if(m){ var a=m[1].split(/[ ,\/]+/).map(Number); return [a[0],a[1],a[2]]; } return null; }
+  function lum(c){ var f=function(v){ v/=255; return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4); }; return 0.2126*f(c[0])+0.7152*f(c[1])+0.0722*f(c[2]); }
+  function cr(a,b){ var x=lum(a),y=lum(b); return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05); }
+  function mix(a,b,t){ return [0,1,2].map(function(i){ return Math.round(a[i]+(b[i]-a[i])*t); }); }
+  function css(c){ return 'rgb('+c.join(',')+')'; }
+  function tune(base,bgs,toward){ for(var t=0;t<=1.0001;t+=0.03){ var c=mix(base,toward,t); if(bgs.every(function(b){return cr(c,b)>=4.6;})) return c; } return toward; }
+  function apply(){
+    var root=document.documentElement, cs=getComputedStyle(root);
+    var dark=false; try{ dark=matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){}
+    var g=hex(cs.getPropertyValue('--gold'))||[201,150,62], v=hex(cs.getPropertyValue('--vino'))||[156,59,70];
+    var bgs=dark?[[42,39,35],[27,25,23],[36,34,32]]:[[255,255,255],[251,250,247],[253,246,232]];
+    var to=dark?[255,255,255]:[0,0,0];
+    root.style.setProperty('--gold-ink',css(tune(g,bgs,to)));
+    root.style.setProperty('--vino-ink',css(tune(v,bgs,to)));
+    var ink=[22,19,16];
+    root.style.setProperty('--on-gold',cr(ink,g)>=cr([255,255,255],g)?css(ink):'#ffffff');
+  }
+  apply(); try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',apply); }catch(e){}
+  window.RAVE_CONTRAST=apply;
+})();
 /* ===== Sistema RAVE · datos del comercio (antes del selector de idioma) ===== */
 (function(){
   var API=null; try{ API=window.parent.RAVE_API; }catch(e){}

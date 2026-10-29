@@ -552,7 +552,7 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
       </div>
       <label class="club-consent">
         <input type="checkbox" id="club-consent" required>
-        <span>Acepto que RAVE guarde estos datos, únicamente con el fin de contactarme por sorteos, ofertas y saludos de cumpleaños, conforme a la Ley 25.326 de Protección de Datos Personales. Mis datos no se comparten con terceros ni se usan para otro fin. Ver <a href="#legal-rave" style="color:#8a6d1f;">Términos y Política de Privacidad</a>.</span>
+        <span>Acepto que RAVE guarde estos datos, únicamente con el fin de contactarme por sorteos, ofertas y saludos de cumpleaños, conforme a la Ley 25.326 de Protección de Datos Personales. Mis datos no se comparten con terceros ni se usan para otro fin. Ver <a href="#legal-rave" class="legal-ref">Términos y Política de Privacidad</a>.</span>
       </label>
       <label class="club-consent club-consent2"><input type="checkbox" id="club-comm"><span id="club-comm-txt">Acepto recibir promociones y cupones por WhatsApp (opcional, podés darte de baja cuando quieras).</span></label>
       <button type="button" id="arco-btn" class="arco-link">¿Querés acceder, corregir o eliminar tus datos? Ejercé tus derechos ARCO</button>
@@ -720,10 +720,10 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
 
 <!-- ===== Cart panel ===== -->
 <div id="cart-overlay">
-  <div id="cart-panel">
-    <h3>Tu pedido</h3>
+  <div id="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cp-title">
+    <div class="cp-head"><h3 id="cp-title">Tu pedido</h3><span class="cp-count" id="cp-count" aria-live="polite"></span><button type="button" class="cp-x" id="btn-x" aria-label="Cerrar el pedido">×</button></div>
     <div id="cart-items"></div>
-    <div id="cart-empty" style="display:none;">Todavía no agregaste nada. Tocá "+" en lo que quieras pedir.</div>
+    <div id="cart-empty" style="display:none;"><div class="ce-ic" aria-hidden="true">🛒</div><p class="ce-t">Todavía no agregaste nada.</p><p class="ce-s">Tocá "+" en lo que quieras pedir.</p><button type="button" id="cart-undo" class="ce-undo" hidden>Deshacer: volver a cargar el pedido</button></div>
     <div class="cp-coupon"><label for="cp-coupon-in" id="cp-coupon-lbl">¿Tenés un cupón?</label><div class="cp-coupon-row"><input id="cp-coupon-in" maxlength="24" autocomplete="off" placeholder="CÓDIGO"><button type="button" id="cp-coupon-ok">Aplicar</button></div><div id="cp-coupon-msg" role="status"></div></div>
     <div class="cp-total-row">
       <span>Total estimado</span>
@@ -731,8 +731,8 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
     </div>
     <div class="cp-note">Los ítems marcados "a coordinar" se confirman por WhatsApp.</div>
     <div class="cp-buttons">
-      <button class="cp-btn clear" id="btn-clear" type="button">Vaciar</button>
-      <button class="cp-btn send" id="btn-send" type="button">Enviar por WhatsApp</button>
+      <button class="cp-btn send" id="btn-send" type="button">Enviar pedido por WhatsApp</button>
+      <button class="cp-btn clear" id="btn-clear" type="button">Vaciar pedido</button>
     </div>
     <button class="cp-close" id="btn-close" type="button">Seguir viendo el menú</button>
   </div>
@@ -788,36 +788,61 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
+  function esc3(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch]; }); }
+  function isEn(){ return window.RAVE_LANGV === 'en'; }
+  var lastCleared = null;
+  /* V26.32 · el panel siempre refleja el carrito: vacío = total en $ 0 y sin cupón, envío ni botones de envío */
   function renderPanel(){
     var ids = Object.keys(cart);
+    var panel = document.getElementById('cart-panel');
+    var total = 0, count = 0;
     itemsEl.innerHTML = '';
-    if(ids.length === 0){
-      emptyEl.style.display = 'block';
-    } else {
-      emptyEl.style.display = 'none';
-      var total = 0;
-      ids.forEach(function(id){
-        var it = cart[id];
-        var lineTxt;
-        if(it.price !== null){
-          var line = it.price * it.qty;
-          total += line;
-          lineTxt = fmt(line);
-        } else {
-          lineTxt = (window.rvT ? rvT('A coordinar') : 'A coordinar');
-        }
-        var row = document.createElement('div');
-        row.className = 'cp-item';
-        row.setAttribute('data-pid', String(id));
-        row.innerHTML = '<div class="cp-name">' + String(it.name == null ? '' : it.name).replace(/[&<>"']/g, function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch]; }) + '</div>' +
-                         '<div class="cp-qty">x' + it.qty + '</div>' +
-                         '<div class="cp-line">' + lineTxt + '</div>';
-        itemsEl.appendChild(row);
-      });
-      totalValEl.textContent = fmt(total);
-    }
+    ids.forEach(function(id){
+      var it = cart[id];
+      count += it.qty;
+      var lineTxt, unitTxt;
+      if(it.price !== null){
+        var line = it.price * it.qty;
+        total += line;
+        lineTxt = fmt(line);
+        unitTxt = fmt(it.price) + (isEn() ? ' each' : ' c/u');
+      } else {
+        lineTxt = (window.rvT ? rvT('A coordinar') : 'A coordinar');
+        unitTxt = isEn() ? 'Price to be arranged' : 'Precio a coordinar';
+      }
+      var row = document.createElement('div');
+      row.className = 'cp-item';
+      row.setAttribute('data-pid', String(id));
+      var nm = esc3(it.name);
+      row.innerHTML = '<div class="cp-main"><div class="cp-name">' + nm + '</div><div class="cp-unit">' + esc3(unitTxt) + '</div></div>' +
+        '<div class="cp-step" role="group" aria-label="' + (isEn() ? 'Quantity of ' : 'Cantidad de ') + nm + '">' +
+          '<button type="button" class="cp-dec" data-pid="' + esc3(id) + '" aria-label="' + (it.qty > 1 ? (isEn() ? 'Remove one' : 'Quitar uno') : (isEn() ? 'Remove from order' : 'Quitar del pedido')) + '">' + (it.qty > 1 ? '−' : '🗑') + '</button>' +
+          '<span class="cp-qty" aria-live="polite">' + it.qty + '</span>' +
+          '<button type="button" class="cp-inc" data-pid="' + esc3(id) + '" aria-label="' + (isEn() ? 'Add one' : 'Agregar uno') + '">+</button></div>' +
+        '<div class="cp-line">' + lineTxt + '</div>';
+      itemsEl.appendChild(row);
+    });
+    var empty = ids.length === 0;
+    emptyEl.style.display = empty ? 'block' : 'none';
+    if(panel) panel.classList.toggle('is-empty', empty);
+    var undo = document.getElementById('cart-undo'); if(undo) undo.hidden = !(empty && lastCleared);
+    var cc = document.getElementById('cp-count');
+    if(cc) cc.textContent = empty ? '' : count + (isEn() ? (count === 1 ? ' item' : ' items') : (count === 1 ? ' producto' : ' productos'));
+    totalValEl.textContent = fmt(total);
     window.RAVE_CART_TOTAL = total; if(window.RAVE_COUPON_RENDER) window.RAVE_COUPON_RENDER(total);
+    if(empty){ var dr = document.getElementById('cp-disc-row'); if(dr) dr.remove(); }
   }
+  window.RAVE_CART_RERENDER = function(){ if(overlay.style.display === 'flex') renderPanel(); };
+  /* +/− dentro del pedido: usa el mismo botón del catálogo, así el menú y el pedido nunca se desfasan */
+  itemsEl.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('.cp-inc, .cp-dec') : null; if(!b) return;
+    var id = b.getAttribute('data-pid'); var el = document.querySelector('.sheet [data-id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+    var d = b.classList.contains('cp-inc') ? 1 : -1;
+    if(el){ changeQty(el, d); }
+    else if(cart[id]){ cart[id].qty += d; if(cart[id].qty <= 0) delete cart[id]; refreshBar(); }
+    lastCleared = null; renderPanel();
+    var again = itemsEl.querySelector('.cp-item[data-pid="' + id + '"] .' + (d > 0 ? 'cp-inc' : 'cp-dec')); if(again) again.focus();
+  });
 
   function changeQty(el, delta){
     var id = el.dataset.id;
@@ -1002,20 +1027,29 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
     if(e.target === overlay) overlay.style.display = 'none';
   });
 
+  document.getElementById('btn-x').addEventListener('click', function(){ overlay.style.display = 'none'; });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && overlay.style.display === 'flex') overlay.style.display = 'none'; });
+  function syncCatalogUI(){
+    document.querySelectorAll('.sheet [data-id]').forEach(function(el){ var it = cart[el.dataset.id]; updateElementUI(el, it ? it.qty : 0); });
+  }
   document.getElementById('btn-clear').addEventListener('click', function(){
-    Object.keys(cart).forEach(function(id){
-      var el = document.querySelector('[data-id="' + id + '"]');
-      if(el) updateElementUI(el, 0);
-    });
+    if(!Object.keys(cart).length) return;
+    lastCleared = JSON.parse(JSON.stringify(cart));
     cart = {};
+    syncCatalogUI();
     refreshBar();
     renderPanel();
+  });
+  document.getElementById('cart-undo').addEventListener('click', function(){
+    if(!lastCleared) return;
+    cart = lastCleared; lastCleared = null;
+    syncCatalogUI(); refreshBar(); renderPanel();
   });
 
   document.getElementById('btn-send').addEventListener('click', function(){
     var ids = Object.keys(cart);
     if(ids.length === 0) return;
-    var lines = ['Hola RAVE! Quiero hacer este pedido:'];
+    var lines = ['¡Hola! Quiero hacer este pedido:'];
     var total = 0;
     ids.forEach(function(id){
       var it = cart[id];
@@ -1283,12 +1317,15 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
     ['#sale-fab .sf-txt','Your business?'],
     ['#sale-fab','Have a business? Get this system for your store','aria'],
     ['#cart-bar .cb-left',' item(s)','text2'],
-    ['#cart-panel h3','Your order'],
-    ['#cart-empty','You haven\'t added anything yet. Tap "+" on what you want to order.'],
+    ['#cp-title','Your order'],
+    ['#cart-empty .ce-t','You haven\'t added anything yet.'],
+    ['#cart-empty .ce-s','Tap "+" on what you want to order.'],
+    ['#cart-undo','Undo: put the order back'],
+    ['#btn-x','Close the order','aria'],
     ['.cp-total-row span:first-child','Estimated total'],
     ['.cp-note','Items marked "to be arranged" are confirmed via WhatsApp.'],
-    ['#btn-clear','Clear'],
-    ['#btn-send','Send via WhatsApp'],
+    ['#btn-clear','Clear order'],
+    ['#btn-send','Send order via WhatsApp'],
     ['#btn-close','Keep browsing the menu'],
     ['#pm-add','Add to order'],
     ['#pm-close','Keep browsing']
@@ -1360,6 +1397,7 @@ var MENU_PUBLICADO = {"secciones":[],"productos":[]};
     lang = l; window.RAVE_LANGV = l;
     try { localStorage.setItem('rave_lang', l); } catch(e){}
     apply();
+    try{ if(window.RAVE_CART_RERENDER) window.RAVE_CART_RERENDER(); }catch(e){}
   }
 
   var toastEl = document.getElementById('rv-toast'), toastT;
