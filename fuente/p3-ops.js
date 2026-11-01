@@ -139,11 +139,20 @@ function invQueryParse(q){const out={words:[],min:null,max:null,eq:[]};
   if((m=t.match(/^\$([\d.,]+)$/))){const v=parseNum(m[1]);if(v>=0){out.min=v;out.max=v;return;}}
   if(/^[\d.,]+$/.test(t)){const v=parseNum(t);out.eq.push({w:foldTxt(t),v:v>=0?v:null});return;}
   out.words.push(foldTxt(t));});return out;}
-function invMatch(p,Q){const pr=(+p.price||0)/100;const r=rub(p.rubro);
- const hay=foldTxt([p.name,p.sub,p.group,p.barcode,p.plu,r&&r.name].filter(Boolean).join(' '));
+/* V26.36 · la misma búsqueda sirve en Inventario y en Vender: palabras en cualquier orden (nombre, presentación, grupo, rubro,
+   código de barras, PLU, presentaciones mayoristas) y números del precio: exacto («3500») o mientras se escribe («35» → $ 3.500, $ 35.000…).
+   Con presentaciones mayoristas también encuentra por su precio por unidad o por bulto. */
+function prodPrices(p){const L=[(+p.price||0)];(Array.isArray(p.pres)?p.pres:[]).forEach(k=>{if(k&&k.unit>0){L.push(+k.unit);if(k.qty>0)L.push(Math.round(k.unit*k.qty));}});return L.map(c=>c/100);}
+function prodMatch(p,Q){const pr=(+p.price||0)/100;const r=rub(p.rubro);const pres=Array.isArray(p.pres)?p.pres:[];
+ const hay=foldTxt([p.name,p.sub,p.group,p.grupo,p.barcode,p.plu,r&&r.name].concat(pres.map(k=>[typeof wsLvName==='function'?wsLvName(k.lv):'',k.barcode].join(' '))).filter(Boolean).join(' '));
  if(Q.min!=null&&pr<Q.min-0.001)return false;if(Q.max!=null&&pr>Q.max+0.001)return false;
  if(!Q.words.every(w=>hay.includes(w)))return false;
- return Q.eq.every(e=>hay.includes(e.w)||(e.v!=null&&Math.abs(pr-e.v)<0.005));}
+ if(!Q.eq.length)return true;const PR=prodPrices(p);
+ return Q.eq.every(e=>{if(hay.includes(e.w))return true;if(e.v==null)return false;
+  if(PR.some(x=>Math.abs(x-e.v)<0.005))return true;
+  const d=/^\d+$/.test(e.w)?e.w:'';if(!d)return false;
+  return PR.some(x=>{const pd=String(Math.trunc(x+0.0001));return d.length<pd.length&&pd.startsWith(d);});});}
+const invMatch=prodMatch;
 function invSortL(L){const k=invF.sort;if(!k)return L;const d=k==='pdesc'?-1:1;
  return L.slice().sort((a,b)=>k==='name'?a.name.localeCompare(b.name,'es',{sensitivity:'base'}):(((+a.price||0)-(+b.price||0))*d||a.name.localeCompare(b.name,'es')));}
 let invSel=new Set();
@@ -196,7 +205,7 @@ A.rubEdit=el=>{if(!can('edit_products'))return toast('Sin permiso',1);const r=el
   if(r){Object.assign(r,d);audit('RUBRO_EDITAR',n);}else{S.rubros.splice(S.rubros.findIndex(x=>x.kind==='shared'),0,Object.assign({id:uid(),reparte:false,kind:'rubro',mHint:''},d));audit('RUBRO_ALTA',n);}
   save();rerender();pubRefresh();toast(RW(1)+' guardad'+(ownerMode()?'a':'o'));}});
  w.addEventListener('click',e=>{const b=e.target.closest('.swatch');if(!b)return;$('#rb-c',w).value=b.dataset.col;$$('.swatch',w).forEach(x=>x.classList.toggle('on',x===b));});};
-A.pedit=el=>{const p=S.products.find(x=>x.id===el.dataset.id)||null;const cv=can('view_cost');
+A.pedit=el=>{const p=S.products.find(x=>x.id===el.dataset.id)||null;const cv=can('view_cost');const after=p?null:(typeof pEditAfter==='function'?pEditAfter:null);if(typeof pEditAfter!=='undefined')pEditAfter=null;
  const w=modal(p?'Editar producto':'Nuevo producto',`<label for="pm-n">Nombre</label><input id="pm-n" value="${esc(p?p.name:'')}" maxlength="80">
  <div class="grid g2"><div><label for="pm-r">${ownerMode()?'Categoría':'Rubro (a quién pertenece)'}</label><select id="pm-r"><option value="">— Elegí —</option>${S.rubros.filter(r=>r.kind==='rubro').map(r=>`<option value="${r.id}" ${p&&p.rubro===r.id?'selected':''}>${esc(r.name)}${r.owner&&!ownerMode()?' ('+esc(r.owner)+')':''}</option>`).join('')}</select></div>
  <div><label for="pm-u">Unidad</label><select id="pm-u">${['u','kg','l'].map(u=>`<option value="${u}" ${p&&p.unit===u?'selected':''}>${unitLbl(u)}</option>`).join('')}</select></div></div>
@@ -223,7 +232,7 @@ A.pedit=el=>{const p=S.products.find(x=>x.id===el.dataset.id)||null;const cv=can
   if(p&&p.stock!==d.stock)d.hist=true;
   d.msec=MP.msec;if(MP.img!==undefined){d.img=MP.img;d.imgOff=MP.imgOff;audit('FOTO_PRODUCTO',name+' · '+(MP.img?'foto nueva':'foto quitada'));}
   if(p){if(p.price!==pr||p.cost!==cost)audit('PRECIO_PRODUCTO',p.name+': precio '+money(p.price)+' → '+money(pr)+(p.cost!==cost?' · costo '+money(p.cost)+' → '+money(cost):''));Object.assign(p,d);audit('EDITAR_PRODUCTO',name);}
-  else{S.products.push(Object.assign({id:uid()},d));audit('ALTA_PRODUCTO',name+' · '+rubName(rubro));}save();rerender();toast('Producto guardado');}});
+  else{S.products.push(Object.assign({id:uid()},d));audit('ALTA_PRODUCTO',name+' · '+rubName(rubro));}save();rerender();toast('Producto guardado');if(after)setTimeout(()=>after(S.products[S.products.length-1]),0);}});
  const upd=()=>{const ul=$('#pm-ul',w);if(ul)ul.textContent=unitLbl(val('pm-u'));if(!cv)return;const c=cents(val('pm-c')),pc=parseNum(val('pm-p')),sg=sugPrice(c,val('pm-t'),pc);const s=$('#pm-s',w);
   if(val('pm-p')==='')s.textContent='Ingresá costo y porcentaje para ver el precio sugerido.';else if(isNaN(sg))s.textContent=val('pm-t')==='margen'?'El margen debe estar entre 0 y menos de 100 %.':'Porcentaje o costo inválido.';else s.innerHTML='Precio sugerido: <b>'+money(sg)+'</b> <button class="btn sm" type="button" id="pm-use">Usar sugerido</button>';
   const f=cents(val('pm-f'));const x=$('#pm-x',w);if(!isNaN(f)&&!isNaN(c)&&c>0){x.textContent='Con ese precio: recargo '+numAR((f-c)/c*100,1)+' % · margen bruto '+numAR((f-c)/f*100,1)+' %';}else x.textContent='';};
