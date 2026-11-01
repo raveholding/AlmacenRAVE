@@ -58,7 +58,8 @@ with sync_playwright() as p:
     chk(ev("CI.st.draft.map.items.at(-1).x")==1.5,'mover con las flechas')
     w0,d0=e['w'],e['d'];pg.click('[data-act=ciEdRot]');pg.wait_for_timeout(200)
     chk(ev("CI.st.draft.map.items.at(-1).w")==d0,'girar 90°')
-    # arrastrar con el mouse: el centro del mostrador en pantalla
+    # arrastrar con el mouse: el centro del mostrador en pantalla (la página ya no salta arriba al editar: se lleva el plano a la vista)
+    ev("document.querySelector('.ci-root canvas.ci-cv').scrollIntoView({block:'center'})");pg.wait_for_timeout(200)
     cxy=ev("(()=>{const v=CI._view,e=CI.st.draft.map.items.at(-1);const cv=document.querySelector('.ci-root canvas.ci-cv').getBoundingClientRect();return[cv.left+v.ox+(e.x+e.w/2-v.cx)*v.sc,cv.top+v.oy+(e.y+e.d/2-v.cy)*v.sc,v.sc]})()")
     pg.mouse.move(cxy[0],cxy[1]);pg.mouse.down();pg.mouse.move(cxy[0]+cxy[2]*2,cxy[1]+cxy[2]*1,steps=6);pg.mouse.up();pg.wait_for_timeout(400)
     x2=ev("CI.st.draft.map.items.find(x=>x.label==='Mostrador fiambres').x")
