@@ -36,6 +36,9 @@ if V=='cliente':
 head=head.replace('<style>',cfg+'<style>',1)
 parts=['p2-core.js','p2b-sort.js','p3-ops.js','p3b-pos.js','p3n-posquick.js','p3c-cash.js','p3f-transfers.js','p3g-paydetail.js','p3h-expediente.js','p3i-rubcash.js','p3j-combos.js','p3k-owner.js','p3l-kini.js','p3m-payacc.js','p3d-assist.js','p3e-saledetail.js','p6-loyalty.js','p6c-custadmin.js','p6d-cardportable.js','p6e-wallet.js','p6b-wholesale.js','p4-mods.js','p4c-compras.js','p4d-compras-ui.js','p4e-factura.js','p4b-online.js','p7a-dash.js','p7b-charts.js','p7-devices.js','p8-legal.js','p9-cloud.js','p9b-arca.js','p9c-tiendanube.js','p5c-menusec.js','p5b-store.js','p5-menu-boot.js']
 parts=[p for p in parts if os.path.exists(p)]
+# V26.37 · Centro Inteligente (p10-centro.js): módulo aislado. Entra SOLO en la demo raveV2, o en una versión cliente
+# cuando se pide expresamente con CI=1 (rama de AlmacenRAVE, hasta que el dueño apruebe la demostración). Kini no lo lleva.
+if (V=='demo' and not KINI) or os.environ.get('CI')=='1': parts.append('p10-centro.js')
 import base64
 def kini_brand(h):
     # Marca de la demo Kini: logo y colores (se reemplazan con los del cliente cuando lleguen); los créditos de Vincular Business no se tocan

@@ -1,0 +1,128 @@
+# V26.37 · Centro Inteligente — demostración de 7 pasos pedida por el dueño + aislamiento:
+# 1) el sistema original funciona · 2) activar · 3) mapa 3D · 4) Gerente IA · 5) desactivar · 6) volver a operar ·
+# 7) ventas, caja, inventario y guardado/sincronización siguen funcionando. Además: el módulo no cambia ningún dato
+# del negocio, una falla del módulo no frena el sistema, permisos por rol y pantallas de PC y celular.
+from playwright.sync_api import sync_playwright
+import sys,json
+errs=[];res=[]
+def chk(c,m):
+    print(('OK   ' if c else 'FALLA ')+m);res.append(bool(c))
+URL=sys.argv[1] if len(sys.argv)>1 else 'file:///tmp/rave/index.html'
+SNAP="""(()=>{const o={};for(const k of Object.keys(S)){if(k==='audit'||k==='arqDraft')continue;o[k]=S[k];}const c=Object.assign({},S.cfg);delete c.ci;o.cfg=c;return JSON.stringify(o);})()"""
+with sync_playwright() as p:
+    b=p.chromium.launch(args=['--no-proxy-server'])
+    ctx=b.new_context(viewport={'width':1280,'height':900})
+    pg=ctx.new_page()
+    pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
+    ev=pg.evaluate
+    pg.goto(URL+'#acceso');pg.wait_for_timeout(700)
+    pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(400)
+    chk(ev("typeof CI==='object'&&!CI.isOn()"),'el módulo viene APAGADO por defecto')
+    chk(ev("!document.getElementById('ci-style')"),'apagado no inyecta estilos ni dibuja nada (no carga hasta abrirlo)')
+    # ---- 1) el sistema original funciona
+    ev("location.hash='#panel/caja'");pg.wait_for_timeout(300)
+    if pg.locator('#ap').count():
+        pg.fill('#ap','20000');pg.click('[data-act=openCaja]');pg.wait_for_timeout(300)
+    pid=ev("(()=>{const p=S.products.find(p=>p.active&&!p.archived&&p.unit==='u'&&!(Array.isArray(p.kit)&&p.kit.length)&&p.stock>3);return p.id})()")
+    st0=ev("prod('%s').stock"%pid);n0=ev("S.sales.length")
+    ev("location.hash='#panel/vender'");pg.wait_for_timeout(400)
+    ev("pos.lines=[];A.padd({dataset:{id:'%s'}})"%pid)
+    r=ev("(()=>{const r=commitSale('efectivo',false,'local',pos.lines);pos.lines=[];return r.err||'ok'})()")
+    chk(r=='ok' and ev("S.sales.length")==n0+1 and ev("prod('%s').stock"%pid)==st0-1,'1) sistema original: vende y descuenta stock')
+    exp1=ev("(()=>{const s=openSess();return arqueoCalc(s,arqInputs(s)).expectedCash})()")
+    chk(exp1>0,'1) la caja calcula el efectivo esperado')
+    pg.wait_for_timeout(2500)  # el propio sistema procesa sus eventos en segundo plano; se espera antes de la foto
+    before=ev(SNAP)
+    # ---- 2) activar
+    ev("location.hash='#panel/centro'");pg.wait_for_timeout(400)
+    chk('está apagado' in pg.inner_text('#view'),'2) el administrador ve el módulo apagado con su explicación')
+    pg.click('[data-act=ciToggle]');pg.wait_for_timeout(500)
+    chk(ev("CI.isOn()") and ev("S.audit.some(a=>a.action==='CENTRO_INTELIGENTE'&&a.detail.startsWith('activado'))"),'2) activado y auditado')
+    chk(pg.locator('#side [data-id=centro]').count()==1,'2) aparece en el menú, dentro de Resumen')
+    # ---- 3) mapa 3D
+    chk(pg.locator('.ci-root canvas.ci-cv').count()==1,'3) mapa 3D presente')
+    painted=ev("(()=>{const c=document.querySelector('.ci-root canvas.ci-cv');const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<d.length;i+=4*97)if(d[i])n++;return n})()")
+    chk(painted>50,'3) el mapa se dibuja (píxeles pintados: %d)'%painted)
+    nh=ev("CI._hits.filter(h=>h.it.r).length");nr=ev("S.rubros.filter(r=>r.kind==='rubro').length")
+    chk(nh==nr,'3) una góndola por rubro (%d de %d)'%(nh,nr))
+    pt=ev("(()=>{const h=CI._hits.filter(h=>h.it.r).pop();const c=document.querySelector('.ci-root canvas.ci-cv').getBoundingClientRect();const xs=h.pts.map(p=>p[0]),ys=h.pts.map(p=>p[1]);return [c.left+(Math.min(...xs)+Math.max(...xs))/2,c.top+(Math.min(...ys)+Math.max(...ys))/2,h.it.r.name]})()")
+    pg.mouse.click(pt[0],pt[1]);pg.wait_for_timeout(400)
+    chk(pt[2] in pg.inner_text('.ci-side'),'3) tocar una góndola muestra sus artículos (%s)'%pt[2])
+    pg.click('[data-act=ciRot]');pg.wait_for_timeout(200);pg.click('[data-act=ciMode][data-id="2d"]');pg.wait_for_timeout(300)
+    chk(ev("CI.st.mode")=='2d' and ev("CI._hits.length")>0,'3) vista 2D y giro funcionan')
+    pg.click('[data-act=ciMode][data-id="3d"]');pg.wait_for_timeout(300)
+    chk(pg.locator('.ci-root table [data-act=ciSel]').count()==nr,'3) lista accesible equivalente al mapa')
+    # ---- 4) Gerente IA
+    pg.click('[data-act=ciTab][data-id=gerente]');pg.wait_for_timeout(300)
+    chk(pg.locator('.ci-root svg.ci-bot').count()==1,'4) avatar del Gerente IA')
+    pg.click('[data-act=ciChip][data-id=hoy]');pg.wait_for_timeout(300)
+    chk('Hoy llevás' in pg.inner_text('.ci-chat'),'4) «¿Cómo vamos hoy?» responde con las ventas del día')
+    pg.click('[data-act=ciChip][data-id=reponer]');pg.wait_for_timeout(300)
+    t=pg.inner_text('.ci-chat');chk('reponer' in t or 'No hay artículos' in t,'4) «¿Qué tengo que reponer?» responde')
+    pg.click('[data-act=ciChip][data-id=caja]');pg.wait_for_timeout(300)
+    chk('efectivo esperado' in pg.inner_text('.ci-chat'),'4) «¿Cómo está la caja?» da el efectivo esperado')
+    nm=ev("prod('%s').name"%pid)
+    pg.fill('#ci-q',nm);pg.keyboard.press('Enter');pg.wait_for_timeout(300)
+    chk('Encontré' in pg.inner_text('.ci-chat'),'4) consulta escrita por artículo: «%s»'%nm)
+    pg.click('[data-act=ciChip][data-id=margen]');pg.wait_for_timeout(300)
+    chk('Margen' in pg.inner_text('.ci-chat') or 'No hay ventas' in pg.inner_text('.ci-chat'),'4) márgenes por rubro (administrador)')
+    after=ev(SNAP)
+    chk(before==after,'SÓLO LECTURA: después de usar el mapa y el Gerente, los datos del negocio son idénticos (%d bytes)'%len(after))
+    # ---- aislamiento: una falla del módulo no frena el sistema
+    ev("CI._failRender=true");ev("location.hash='#panel/inicio'");pg.wait_for_timeout(200);ev("location.hash='#panel/centro'");pg.wait_for_timeout(400)
+    chk('sigue funcionando' in pg.inner_text('#view'),'falla simulada de la pantalla: aviso propio, sin romper el panel')
+    chk(pg.locator('#side [data-id=vender]').count()==1,'con la falla, el menú y el resto del sistema siguen disponibles')
+    ev("location.hash='#panel/inicio'");pg.wait_for_timeout(200);ev("location.hash='#panel/centro'");pg.wait_for_timeout(400)
+    pg.click('[data-act=ciTab][data-id=mapa]');pg.wait_for_timeout(300)
+    ev("CI._failDraw=true;CI.draw()");pg.wait_for_timeout(200)
+    chk(ev("CI.log.some(x=>x.kind==='error'&&x.msg.includes('falla simulada del mapa'))"),'falla simulada del mapa: queda en el registro del módulo')
+    pg.click('[data-act=ciTab][data-id=registro]');pg.wait_for_timeout(300)
+    chk('falla simulada' in pg.inner_text('#view'),'el Registro del módulo muestra los errores')
+    # ---- permisos
+    ev("(()=>{window.__u=user.role;user.role='mostrador';rerender();})()");pg.wait_for_timeout(300)
+    chk(pg.locator('#side [data-id=centro]').count()==0,'un rol no habilitado no lo ve en el menú')
+    ev("location.hash='#panel/centro'");pg.wait_for_timeout(300)
+    chk(ev("curScreen")!='centro','y no puede entrar por la dirección directa')
+    chk(ev("(()=>{A.ciToggle();return CI.isOn()})()"),'y no puede apagarlo aunque llame la acción directo')
+    ev("user.role=window.__u;rerender()");pg.wait_for_timeout(200)
+    # ---- 5) desactivar
+    ev("showPanel('centro')");pg.wait_for_timeout(400)
+    pg.click('.ci-head [data-act=ciToggle]');pg.wait_for_timeout(400)
+    chk(not ev("CI.isOn()") and ev("S.audit.some(a=>a.action==='CENTRO_INTELIGENTE'&&a.detail.startsWith('desactivado'))"),'5) desactivado y auditado')
+    ev("(()=>{user.role='mostrador';rerender();})()");pg.wait_for_timeout(200)
+    chk(pg.locator('#side [data-id=centro]').count()==0,'5) apagado: desaparece para los demás roles');ev("user.role=window.__u;rerender()")
+    # ---- 6) y 7) volver a operar el sistema original
+    ev("location.hash='#panel/vender'");pg.wait_for_timeout(400)
+    st1=ev("prod('%s').stock"%pid)
+    ev("pos.lines=[];A.padd({dataset:{id:'%s'}})"%pid)
+    r=ev("(()=>{const r=commitSale('efectivo',false,'local',pos.lines);pos.lines=[];return r.err||'ok'})()")
+    chk(r=='ok' and ev("prod('%s').stock"%pid)==st1-1,'6) después de apagarlo se vende y descuenta stock')
+    exp2=ev("(()=>{const s=openSess();return arqueoCalc(s,arqInputs(s)).expectedCash})()")
+    price=ev("S.sales[S.sales.length-1].total")
+    chk(exp2==exp1+price,'7) la caja suma la venta nueva (%s → %s)'%(exp1,exp2))
+    ev("location.hash='#panel/inventario'");pg.wait_for_timeout(400)
+    chk('Inventario' in pg.inner_text('#view'),'7) inventario abre normal')
+    ev("location.hash='#panel/arqueo'");pg.wait_for_timeout(400)
+    chk('Efectivo' in pg.inner_text('#view'),'7) arqueo abre normal')
+    # guardado: se recarga la página y las ventas siguen (persistencia local; la nube usa la misma función save())
+    pg.wait_for_timeout(900);nS=ev("S.sales.length")
+    pg.reload();pg.wait_for_timeout(900)
+    pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(500)
+    chk(ev("S.sales.length")==nS,'7) guardado: al recargar, las %d ventas siguen ahí'%nS)
+    chk(not ev("CI.isOn()"),'7) el módulo sigue apagado después de recargar')
+    # ---- pantallas
+    ev("S.cfg.ci={on:true,roles:[]};showPanel('centro')");pg.wait_for_timeout(400)
+    for w in (360,768,1280):
+        pg.set_viewport_size({'width':w,'height':820});pg.wait_for_timeout(300);ev("CI.draw()")
+        chk(ev("document.documentElement.scrollWidth<=%d"%(w+2)),'%d px sin desborde (mapa)'%w)
+    pg.click('[data-act=ciTab][data-id=gerente]');pg.set_viewport_size({'width':360,'height':820});pg.wait_for_timeout(300)
+    chk(ev("document.documentElement.scrollWidth<=362"),'360 px sin desborde (Gerente)')
+    small=ev("[...document.querySelectorAll('.ci-root button')].filter(b=>b.offsetParent).map(b=>b.getBoundingClientRect()).filter(r=>r.height<44).length")
+    chk(small==0,'botones del módulo de al menos 44 px de alto (%d más chicos)'%small)
+    ev("document.documentElement.dataset.theme='dark'");pg.wait_for_timeout(200)
+    chk(ev("(()=>{const e=document.querySelector('.ci-root .ci-msg');const s=getComputedStyle(e);return s.color!==s.backgroundColor})()"),'tema oscuro: el texto del Gerente se lee')
+    chk(ev("!['--gold','--ink','--card','--bg','--line'].some(v=>document.getElementById('ci-style').textContent.includes(v+':'))"),'no redefine las variables de color del comercio')
+    chk(ev("document.getElementById('ci-style').textContent.split('}').filter(r=>r.trim()&&!r.includes('{'.repeat(2))).every(r=>{const s=r.split('{')[0].trim();return !s||s.startsWith('.ci-root')||s.startsWith('@')||s.startsWith('from')||s.startsWith('to')||/^\\d/.test(s)})"),'todos los estilos están encapsulados bajo .ci-root')
+    chk(not errs,'sin errores de JavaScript %s'%errs[:2])
+    b.close()
+print('%d / %d'%(sum(res),len(res)))
