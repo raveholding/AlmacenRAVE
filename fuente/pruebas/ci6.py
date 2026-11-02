@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 errs=[];res=[]
 def chk(c,m):
     print(('OK   ' if c else 'FALLA ')+m);res.append(bool(c))
-F='/tmp/rave/index.html'
+F='/tmp/rave/v3.html'  # V26.43: el equipo SVB R2AVE vive en la demo raveV3
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--no-proxy-server'])
     pg=b.new_page(viewport={'width':1366,'height':900});pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
@@ -27,6 +27,7 @@ with sync_playwright() as p:
     ev("go('centro')");pg.wait_for_timeout(300)
     chk(pg.locator('.r2-team').count()==0 and not ev("!!document.getElementById('r2-style')"),'apagado: no muestra el equipo ni carga sus estilos')
     ev("A.ciToggle()");pg.wait_for_timeout(1000)
+    ev("document.querySelectorAll('.ci-root details').forEach(d=>d.open=true)")
     # identidad: 4 avatares oficiales (imágenes embebidas) con nombre
     names=ev("[...document.querySelectorAll('.r2-card .r2-ph b')].map(x=>x.innerText)")
     chk(names==['R2AVE','M2ARGOTH','T2ULUZ','S2HAKIRA'],'los cuatro asistentes con su nombre oficial %s'%names)
@@ -160,7 +161,7 @@ with sync_playwright() as p:
             bad=q.evaluate(CJS);chk(not bad,'contraste %s %d px: todos los textos del Centro y del equipo legibles %s'%(sch,w,[(x['t'][:25],x['r']) for x in bad[:4]]));q.close()
     b.close()
     # el cliente y Kini no llevan la extensión
-    for f,tag in (('/tmp/rave/out_cliente.html','cliente (Almacén RAVE)'),('/tmp/rave/kini.html','Kini')):
+    for f,tag in (('/tmp/rave/out_cliente.html','cliente (Almacén RAVE)'),('/tmp/rave/kini.html','Kini'),('/tmp/rave/solo.html','raveV2 (un solo dueño)'),('/tmp/rave/index.html','demo interna')):
         if os.path.exists(f):
             s=open(f,encoding='utf8').read();chk('M2ARGOTH' not in s and 'p10b' not in s,'%s no lleva el equipo R2AVE'%tag)
 print('errores:',errs[:5]);chk(not errs,'sin errores de consola')

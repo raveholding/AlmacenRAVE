@@ -267,6 +267,9 @@ CI.drawExt=({ctx,P,L,is3,sc,tags})=>{
  TEAM.forEach(a=>{const p0=pos[a.k];if(!p0)return;const [x,y]=[Math.min(L.W-0.3,Math.max(0.3,p0[0])),Math.min(L.D-0.3,Math.max(0.3,p0[1]))];
   const fly=a.k==='t2uluz'?1.4:0;const g=P(x,y,is3?fly:0);const r=Math.max(12,Math.min(26,sc*0.38));
   if(fly&&is3){const f=P(x,y,0);ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(f[0],f[1],r*0.8,r*0.35,0,0,7);ctx.fill();}
+  if(CI.vivo&&CI.vivo.drawChar){const ch=CI.vivo.CH[a.k]||{};const u=Math.max(14,Math.min(40,sc*0.62));const gy=P(x,y,0)[1];const st0=Object.assign({},ch,{pose:a.k==='r2ave'?(ch.pose==='walk'?'walk':'stand'):(ch.pose==='walk'?'walk':(ch.pose||'sit')),z:fly});
+   CI.vivo.drawChar(ctx,a.k,g[0],is3?g[1]:gy,u,st0,{fx:1,front:true},performance.now(),gy);const top=a.k==='r2ave'?2.5:a.k==='t2uluz'?0.9:1.2;const it={kind:'asst',a:a.k};
+   tags.push({x:g[0],y:(is3?g[1]:gy)-top*u-8,t:a.n,sub:'asistente digital',c:a.c,it});CI._hits.push({it,pts:[[g[0]-0.6*u,g[1]-top*u],[g[0]+0.6*u,g[1]-top*u],[g[0]+0.6*u,g[1]],[g[0]-0.6*u,g[1]]]});return;}
   const im=img(a.k);ctx.save();ctx.beginPath();ctx.arc(g[0],g[1]-r,r,0,7);ctx.closePath();ctx.fillStyle='#0d0c0a';ctx.fill();ctx.clip();if(im.complete&&im.naturalWidth){const s=im.naturalWidth/im.naturalHeight;const h=2*r,w2=h*s;ctx.drawImage(im,g[0]-w2/2,g[1]-2*r,w2,h);}ctx.restore();
   ctx.strokeStyle=a.c;ctx.lineWidth=3;ctx.beginPath();ctx.arc(g[0],g[1]-r,r,0,7);ctx.stroke();
   const it={kind:'asst',a:a.k};tags.push({x:g[0],y:g[1]-2*r-10,t:a.n,sub:'asistente digital',c:a.c,it});
@@ -278,10 +281,10 @@ CI.zoneClick=it=>{if(it.kind==='asst'){st().asst=it.a;typeof rerender==='functio
 
 /* ---------- paneles ---------- */
 const capRow=a=>{const w=a.k==='r2ave';return`<div class="r2-chips"><span class="r2-badge">Consultar ✔</span><span class="r2-badge">Analizar ✔</span><span class="r2-badge">Recomendar ✔</span><span class="r2-badge ${w?'w':''}">Modificar: ${E(a.mod)}${w?(r2().adjust?' · habilitada':' · apagada'):''}</span></div>`;};
-function teamHTML(){css();const s=st();
- return`<section class="r2-team" aria-label="Equipo SVB R2AVE">${TEAM.map(a=>`<article class="ci-pan r2-card ${s.asst===a.k?'on':''}" style="--r2c:${a.c}"><div class="r2-ph"><img class="r2-av" src="${AV[a.k]}" alt="${E(a.n)}: ${E(a.t)} (avatar oficial)"><div><b style="color:${a.tc||a.c}">${E(a.n)}</b><span>${E(a.t)}</span></div></div>
+function teamHTML(){css();const s=st();const fold=!!CI.r2.cardsFolded;
+ return`${fold?'<details class="ci-pan r2-sec" style="padding:.4rem .8rem"><summary>Fichas del equipo SVB R2AVE (identidad, responsabilidades y permisos)</summary>':''}<section class="r2-team" aria-label="Equipo SVB R2AVE">${TEAM.map(a=>`<article class="ci-pan r2-card ${s.asst===a.k?'on':''}" style="--r2c:${a.c}"><div class="r2-ph"><img class="r2-av" src="${AV[a.k]}" alt="${E(a.n)}: ${E(a.t)} (avatar oficial)"><div><b style="color:${a.tc||a.c}">${E(a.n)}</b><span>${E(a.t)}</span></div></div>
   <p>${E(a.per)}</p>${li(a.resp.map(E))}${capRow(a)}${a.note?`<p style="font-size:.76rem">${E(a.note)}</p>`:''}
-  <button class="ci-btn ${s.asst===a.k?'on':''}" data-act="r2Asst" data-id="${a.k}" aria-pressed="${s.asst===a.k}">${s.asst===a.k?'Te está respondiendo':'Preguntarle a '+E(a.n)}</button></article>`).join('')}</section>
+  <button class="ci-btn ${s.asst===a.k?'on':''}" data-act="r2Asst" data-id="${a.k}" aria-pressed="${s.asst===a.k}">${s.asst===a.k?'Te está respondiendo':'Preguntarle a '+E(a.n)}</button></article>`).join('')}</section>${fold?'</details>':''}
   <details class="ci-pan r2-sec" style="padding:.4rem .8rem"><summary>Imagen oficial del equipo SVB R2AVE · jerarquía</summary><p class="ci-mut" style="font-size:.85rem">Dueño → <b style="color:#ff8a7f">R2AVE</b> → M2ARGOTH, T2ULUZ y S2HAKIRA. El dueño tiene siempre la última palabra. Los asistentes son representaciones digitales: no hay robots, cámaras ni drones conectados.</p><img class="r2-teamimg" src="${AV.team}" alt="Equipo SVB R2AVE: R2AVE, S2HAKIRA y M2ARGOTH en el depósito, con T2ULUZ volando"></details>`;}
 function alertsHTML(d){const A=alerts(d);const sn=seen();const f=CI.st.r2f||'todas';const L=A.filter(a=>f==='todas'||a.pri===f);
  const cnt=k=>A.filter(a=>a.pri===k).length;

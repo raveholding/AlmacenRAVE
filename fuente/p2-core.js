@@ -65,7 +65,7 @@ function seedProducts(){return SEED_PRODS.map((p,i)=>({id:p.id,name:p.nom,sub:p.
  .concat([{id:'granel-1',name:'Maní con cáscara a granel',sub:'ejemplo para probar la balanza',grupo:'',rubro:'promo',price:850000,cost:610000,stock:12.5,unit:'kg',barcode:'',plu:'12',menu:false,active:true,desc:'',demo:true}]);}
 const BUILD_VER=(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.ver)||'sin dato';
 const IS_CLIENT=!!(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente');
-const DEF=()=>{const d=DEF0();if(IS_CLIENT)return clientClean(d);const r=wsDemoSeed(d);if(typeof comboDemoSeed==='function')comboDemoSeed(r);if(typeof isKiniBuild==='function'&&isKiniBuild())kiniBase(r);return r;};
+const DEF=()=>{const d=DEF0();if(IS_CLIENT)return clientClean(d);const r=wsDemoSeed(d);if(typeof comboDemoSeed==='function')comboDemoSeed(r);if(typeof isKiniBuild==='function'&&isKiniBuild())kiniBase(r);if(typeof isSoloBuild==='function'&&isSoloBuild())soloBase(r);return r;};
 /* DEMO: canal mayorista encendido con datos rotulados «ejemplo» (el sistema del cliente nace apagado y sin esto) */
 function wsDemoSeed(d){d.cfg=d.cfg||{};if(!d.cfg.wholesale)d.cfg.wholesale={on:true,example:true,allowClub:false,grace:0,levels:[{id:'d',name:'Display'},{id:'f',name:'Fardo'},{id:'p',name:'Pallet'}]};
  wsDemoPres(d.products);d.cfg.wholesale.seeded=1;return wsDemoCust(d);}
@@ -148,7 +148,7 @@ function rolesMigrate(r){if(!r)return r;if(Array.isArray(r.admin))for(const p of
  for(const perm of['purchases','price_lists','credit_ov','audit_read','pay_detail_edit']){const any=Object.values(r).some(a=>Array.isArray(a)&&a.includes(perm));if(!any){if(Array.isArray(r.supervisor))r.supervisor.push(perm);if(Array.isArray(r.admin))r.admin.push(perm);}}return r;}
 function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);if(st.cfg&&st.cfg.permNotice===undefined)st.cfg.permNotice={ack:false};if(!IS_CLIENT&&st.cfg&&st.cfg.wholesale===undefined)wsDemoSeed(st);wsMigrate(st);bizMigrate(st);if(!IS_CLIENT&&typeof comboDemoSeed==='function')comboDemoSeed(st);return st;}
 /* V26.14: el viejo «perfil sin rubros» de traspasos pasa a ser el tipo de negocio; el dueño (administrador) mueve fondos con su propia autorización */
-function bizMigrate(st){if(!st.cfg)return;if(typeof isKiniBuild==='function'&&isKiniBuild()){st.cfg.biz='owner';st.cfg.bizLocked=1;if(!st.cfg.kiniOnlyV&&st.cfg.wholesale){st.cfg.wholesale.only=true;(st.customers||[]).forEach(c=>{c.channel='mayorista';});st.cfg.kiniOnlyV=1;}}if(!st.cfg.biz)st.cfg.biz=(st.cfg.xfer&&st.cfg.xfer.noRubro)?'owner':'rubros';
+function bizMigrate(st){if(!st.cfg)return;if(typeof isSoloBuild==='function'&&isSoloBuild()){st.cfg.biz='owner';st.cfg.bizLocked=1;}if(typeof isKiniBuild==='function'&&isKiniBuild()){st.cfg.biz='owner';st.cfg.bizLocked=1;if(!st.cfg.kiniOnlyV&&st.cfg.wholesale){st.cfg.wholesale.only=true;(st.customers||[]).forEach(c=>{c.channel='mayorista';});st.cfg.kiniOnlyV=1;}}if(!st.cfg.biz)st.cfg.biz=(st.cfg.xfer&&st.cfg.xfer.noRubro)?'owner':'rubros';
  st.cfg.xfer=st.cfg.xfer||{};if(!st.cfg.xfer.ownerV){st.cfg.xfer.selfAuth=true;st.cfg.xfer.ownerV=1;}}
 
 /* ---------- Permisos, auditoría ---------- */

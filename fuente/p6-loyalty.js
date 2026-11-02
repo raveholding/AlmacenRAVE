@@ -348,5 +348,5 @@ function demoExtras(){const t0=Date.now()-20*86400000;const mk=(i,name,last,birt
   let cpn='',cpc='';if(k%6===2){const it0=items.find(i=>{const r=S.rubros.find(x=>x.id===i.rubro);return r&&!r.age;});if(it0){it0.disc=Math.round(it0.qty*it0.price*0.10);cpn='BIENVENIDA10';cpc='cp1';}}
   const total2=total-items.reduce((a,i)=>a+(i.disc||0),0);
   S.sales.push({id:'hs'+d+'_'+k,n:S.tenant.caja+'-'+S.seq[S.tenant.caja],ts,user:'Mostrador',caja:S.tenant.caja,sessId:'hist-demo',items,total:total2,method:metods[Math.floor(rnd()*metods.length)],doc:'ticket_interno',status:'ok',fee:0,channel:'local',cust:'',custName:'',coupon:cpn,benefit:cpc?{kind:'coupon',couponId:cpc}:null,recv:0,fiado:false,demo:true});if(cpc){const cp=S.coupons.find(x=>x.id===cpc);if(cp)cp.uses.push({ts,sale:'hs'+d+'_'+k,cust:'',demo:true});}}}
- if(typeof kiniExtras==='function')kiniExtras();}
+ if(typeof kiniExtras==='function')kiniExtras();if(typeof soloExtras==='function')soloExtras();}
 function pubRefresh(){try{const f=document.getElementById('pubframe');if(f&&f.contentWindow&&f.contentWindow.RAVE_PUB_REFRESH)f.contentWindow.RAVE_PUB_REFRESH();}catch(e){}}

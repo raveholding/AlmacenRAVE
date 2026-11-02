@@ -9,7 +9,7 @@
 /* ---------- Configuración: tipo de negocio ---------- */
 const bizLocked=()=>!!(S&&S.cfg&&S.cfg.bizLocked);
 function bizCard(){const cur=ownerMode()?'owner':'rubros';const adm=!!user&&user.role==='admin';
- if(bizLocked())return`<div class="card" style="margin-bottom:1rem" id="biz-card"><h3>Tipo de negocio</h3><p><b>Mayorista / distribuidora de un solo dueño</b></p><p class="sm mut">Todo el dinero es del dueño. Los productos se agrupan en categorías (sólo ordenan inventario, ventas y menú). Cajas operativas + caja principal con traspasos. Este sistema está armado para un único dueño, por eso el tipo de negocio no se cambia.</p></div>`;
+ if(bizLocked())return`<div class="card" style="margin-bottom:1rem" id="biz-card"><h3>Tipo de negocio</h3><p><b>${typeof isSoloBuild==='function'&&isSoloBuild()?'Comercio de un solo dueño':'Mayorista / distribuidora de un solo dueño'}</b></p><p class="sm mut">Todo el dinero es del dueño. Los productos se agrupan en categorías (sólo ordenan inventario, ventas y menú). ${typeof isSoloBuild==='function'&&isSoloBuild()?'Una caja (se pueden agregar más cajas y una caja principal en Cajas y sucursales).':'Cajas operativas + caja principal con traspasos.'} Este sistema está armado para un único dueño, por eso el tipo de negocio no se cambia.</p></div>`;
  return`<div class="card" style="margin-bottom:1rem" id="biz-card"><h3>Tipo de negocio</h3>
  <p class="sm mut">Define cómo se ordena el dinero. No borra ni mueve datos: ventas, cierres sellados y movimientos anteriores quedan como estaban.</p>
  <div class="grid g2">${Object.entries(BIZ_TYPES).map(([k,t])=>`<label class="chk biz-opt ${cur===k?'on':''}" style="align-items:flex-start"><input type="radio" name="biz" value="${k}" ${cur===k?'checked':''} ${adm?'':'disabled'}> <span><b>${esc(t)}</b><br><span class="sm mut">${k==='owner'
@@ -83,5 +83,5 @@ function arqOwnerHTML(s){const d=arqDraft(s);
  <button class="btn gold" style="width:100%;margin-top:.8rem;min-height:52px" data-act="arqClose">Confirmar cierre de caja</button></div></div></div>`;}
 /* ---------- aviso en la demo: qué tipo de negocio se está viendo ---------- */
 function bizDemoBanner(){if(IS_CLIENT||!user||user.role!=='admin')return'';
- if(bizLocked())return`<div class="card" style="margin-bottom:1rem"><span>Demo de evaluación: <b>mayorista de un solo dueño</b>. Los datos son de ejemplo; en Configuración → Datos de la demo podés vaciarla y cargar los tuyos.</span></div>`;
+ if(bizLocked())return`<div class="card" style="margin-bottom:1rem"><span>Demo de evaluación: <b>${typeof isSoloBuild==='function'&&isSoloBuild()?'comercio de un solo dueño':'mayorista de un solo dueño'}</b>. Los datos son de ejemplo; en Configuración → Datos de la demo podés vaciarla y cargar los tuyos.</span></div>`;
  return`<div class="card" style="margin-bottom:1rem"><div class="row"><span class="sp">Demo: estás viendo un <b>${ownerMode()?'mayorista de un solo dueño':'almacén con rubros por responsable'}</b>.</span><button class="btn sm" data-act="nav" data-id="config">Cambiar tipo de negocio</button></div></div>`;}
