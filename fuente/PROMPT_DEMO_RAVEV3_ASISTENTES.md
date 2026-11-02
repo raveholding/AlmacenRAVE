@@ -1,6 +1,6 @@
 # SISTEMA VB · PROMPT DE VERSIÓN — DEMO «CON ASISTENTES INTELIGENTES SVB R2AVE» (repositorio `raveV3`)
 
-**Versión:** V26.43 · 2026-11-02 · **Producto:** SISTEMA VB de **VINCULAR BUSINESS** · **Publicación:** `https://raveholding.github.io/raveV3/`
+**Versión:** V26.44 · 2026-11-02 · **Producto:** SISTEMA VB de **VINCULAR BUSINESS** · **Publicación:** `https://raveholding.github.io/raveV3/`
 **Para qué es:** la demo «como Almacén RAVE» (rubros por persona, socios, reparto y cierre por rubro, Club, mayorista/minorista) **más el Centro Inteligente con el equipo oficial SVB R2AVE** y su centro de operaciones vivo. Acá se desarrolla y se prueba todo lo de asistentes antes de decidir si se lleva a Almacén RAVE.
 
 > Los requisitos de cada módulo están en el prompt maestro genérico `SISTEMA_VB_26F.md`. Este prompt agrega lo propio de esta versión: el equipo SVB R2AVE (especificación del 2026-11-01), el **centro inteligente vivo** (especificación del 2026-11-02) y el **principio rector de integridad**, que manda sobre todo lo demás. Si hay conflicto, el orden es: **principio rector → este prompt → maestro**.
@@ -86,6 +86,14 @@ Jerarquía: dueño → R2AVE → M2ARGOTH, T2ULUZ y S2HAKIRA. El dueño tiene si
   - Vista general, zoom progresivo y órbita (botones y arrastre), movimiento con zoom y enfoque de estaciones.
   - **Seguir a un integrante**: la cámara se acerca y lo muestra de cuerpo completo; también tocándolo en la escena.
 - En el **mapa del local** los cuatro también aparecen de cuerpo completo. Las fichas con fotos quedan plegadas.
+- **V26.44 · Equipo de 10 según la imagen guía** («Equipo SVB R2AVE · 10 especialistas inteligentes», entregada por el dueño):
+  - Se suman seis especialistas: **VÉRTICE** (Comercial), **NÉBULA** (Marketing), **QUANTUM** (Inventario), **ORIÓN** (Finanzas), **ATENEA** (RR.HH.) y **NEXUS** (Datos e IA).
+  - Sus fichas usan recortes de la imagen guía (no se rediseñan). La imagen guía completa queda en «Imagen oficial del equipo».
+  - En el centro vivo cada uno tiene su plataforma holográfica y su consola, se dibuja de cuerpo completo con sus rasgos (armadura roja y negra, capucha y capa, armadura pesada, abrigo con la V azul, androide plateado) y trabaja con una tableta holográfica.
+  - Escenografía de la imagen guía: globo holográfico central, cartel «SVB R2AVE · Centro Inteligente», estandartes con la calavera roja y los carteles «Equipo SVB R2AVE · 10 especialistas inteligentes» y «Un equipo · Una visión».
+  - **Sólo leen datos de su área**, con el rótulo Real/Simulación: VÉRTICE ventas de hoy; NÉBULA cupones activos y socios del Club; QUANTUM stock bajo y negativo; ORIÓN cajas abiertas y ventas por medio de pago; ATENEA personal y fichadas (sólo con permiso de personal); NEXUS auditoría y estado de la nube.
+  - Se les puede preguntar desde el chat del Centro: cada uno responde con los datos reales de su área. Ninguno modifica nada: la única capacidad de escritura sigue siendo la corrección de stock de R2AVE (QUANTUM tampoco puede).
+  - En el **mapa del local** siguen apareciendo sólo los cuatro originales; los especialistas están en el centro de operaciones.
 - **Accesibilidad y cuidado del sistema:**
   - Tabla alternativa: dónde está cada uno, qué hace y si es real o simulación.
   - Resumen para lectores de pantalla.
@@ -124,7 +132,7 @@ Detalle completo en el **Anexo P** del maestro.
 ```bash
 cd AlmacenRAVE/fuente           # rama centro-r2ave
 python3 build.py v3 /tmp/rave/v3.html && rm -f all.js
-cd pruebas && python3 vv1.py && python3 ci6.py     # 31 + 63 verificaciones del equipo y del centro vivo
+cd pruebas && python3 vv1.py && python3 ci6.py     # 43 + 63 verificaciones del equipo y del centro vivo
 # regresión: ci1–ci5 v1 v2 v4–v7 d1 p1 ws1 h1 h3 g1–g3 k1–k4 kc1 kn2 kn3 resp4 pq1 sv1
 cp /tmp/rave/v3.html ../../../ravev3/index.html     # commit y push en raveV3
 ```
@@ -137,6 +145,7 @@ Qué cubre `vv1`:
 - La cámara sigue, centra, orbita, hace zoom, enfoca estaciones y vuelve a la vista general.
 - Las alertas reales mueven a M2ARGOTH (rotulado Real) y una consulta real lleva a R2AVE a responder (Real); las animaciones dicen Simulación.
 - La tabla alternativa funciona y hay nota honesta de que no son modelos 3D con esqueleto.
+- Están los **diez** integrantes, cada uno de cuerpo completo y con botón para seguirlo; QUANTUM muestra el stock bajo real; ORIÓN y NÉBULA responden con datos reales; QUANTUM no puede corregir stock.
 - Es de **sólo lectura**: los datos del negocio no cambian.
 - En el mapa del local aparecen los cuatro de cuerpo completo.
 - La animación se pausa fuera de la pantalla.
@@ -154,6 +163,7 @@ Qué cubre `vv1`:
 
 ## 7. Contradicciones a resolver con el dueño (no se implementan en silencio)
 
-- El principio rector habla de **«diez asistentes»** y de un especialista **«QUANTUM»**. El equipo oficial tiene **cuatro** integrantes y no existe QUANTUM en el código ni en las especificaciones. No se agregó nada: hace falta que el dueño defina quiénes son los otros seis, su imagen, su rol y sus permisos.
+- **Resuelto en V26.44:** los «diez asistentes» y QUANTUM salen de la imagen guía. **Pendiente:** la imagen tiene una figura extra (encapuchada, entre NÉBULA y R2AVE) con el rótulo ilegible «NÉRULA / Investing», que sería el integrante número 11. No se agregó: el dueño tiene que decir si es un error del dibujo o un integrante más (nombre, rol e imagen).
+- **Funciones de los especialistas:** hoy sólo consultan. Si el dueño quiere que alguno haga algo (por ejemplo, NÉBULA enviando promociones), hace falta la autorización, la integración real (WhatsApp Business o correo) y pruebas.
 - **Modelos 3D reales con esqueleto:** los puntos 2 y 3 de la sección 3.
 - **Llevar R2AVE y el centro vivo a Almacén RAVE:** sólo con la demostración aprobada en raveV3.

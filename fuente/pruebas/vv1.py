@@ -34,12 +34,26 @@ with sync_playwright() as p:
     chk(mx<0.8,'sin teletransportes: el mayor salto en 0,1 s es %.2f m de escena'%mx)
     chk(ev("CI.vivo.CH.t2uluz.z")>1,'T2ULUZ vuela en altura (z = %.1f)'%ev("CI.vivo.CH.t2uluz.z"))
     # dibujo de cuerpo completo: cada personaje pinta píxeles en un lienzo aparte
-    for k in ['r2ave','m2argoth','s2hakira','t2uluz']:
+    chk(len(ev("Object.keys(CI.vivo.CH)"))==10 and pg.locator('.vv [data-act=vvFollow]').count()==10,'los diez integrantes de la imagen guía están en la escena y se pueden seguir')
+    for k in ['r2ave','m2argoth','s2hakira','t2uluz','vertice','nebula','quantum','orion','atenea','nexus']:
         n=ev("""(()=>{const c=document.createElement('canvas');c.width=200;c.height=260;const x=c.getContext('2d');const st=Object.assign({},CI.vivo.CH['%s'],{z:0});CI.vivo.drawChar(x,'%s',100,220,70,st,{fx:1,front:true},1000,240);
           const d=x.getImageData(0,0,200,260).data;let n=0,top=260,bot=0;for(let i=3;i<d.length;i+=4)if(d[i]>20){n++;const y=Math.floor((i>>2)/200);top=Math.min(top,y);bot=Math.max(bot,y);}return [n,top,bot]})()"""%(k,k))
         chk(n[0]>800 and (n[2]-n[1])>40,'%s se dibuja de cuerpo completo (%d píxeles, %d px de alto)'%(k,n[0],n[2]-n[1]))
     hr=ev("""(()=>{const c=document.createElement('canvas');c.width=200;c.height=260;const x=c.getContext('2d');CI.vivo.drawChar(x,'r2ave',100,230,70,Object.assign({},CI.vivo.CH.r2ave),{fx:1,front:true},1000);const d=x.getImageData(0,0,200,260).data;let top=260,bot=0;for(let i=3;i<d.length;i+=4)if(d[i]>20){const y=Math.floor((i>>2)/200);top=Math.min(top,y);bot=Math.max(bot,y);}return bot-top})()""")
     chk(hr>150,'R2AVE de pies a cuernos (%d px con 70 px por metro)'%hr)
+    sp=ev("['vertice','nebula','quantum','orion','atenea','nexus'].map(k=>[k,CI.vivo.CH[k].act,CI.vivo.CH[k].real])")
+    chk(all(x[1] for x in sp),'cada especialista tiene una actividad %s'%[x[1] for x in sp][:3])
+    q=ev("(()=>{const R=CI.vivo.V.real.spec.quantum;return R})()");lw=ev("CI.data().lowAll.length")
+    chk(q[1] and ('%d con stock bajo'%lw) in q[0],'QUANTUM muestra el stock bajo real (%s)'%q[0])
+    chk(ev("CI.r2.capCheck('quantum','inventory.stock.adjust').ok")==False,'los especialistas sólo leen: QUANTUM no puede corregir stock')
+    # respuestas de los especialistas con datos reales
+    ev("CI.st.asst='orion'");pg.fill('#ci-q','¿cómo venimos?');pg.click('[data-act=ciAsk]');pg.wait_for_timeout(300)
+    t=ev("CI.st.chat.slice(-1)[0]");t=str(t)
+    chk('ORIÓN' in t and ('caja' in t.lower()),'ORIÓN responde con las cajas y los medios de pago reales')
+    ev("CI.st.asst='nebula'");pg.fill('#ci-q','¿cómo venimos?');pg.click('[data-act=ciAsk]');pg.wait_for_timeout(300)
+    t=str(ev("CI.st.chat.slice(-1)[0]"))
+    chk('NÉBULA' in t and 'BIENVENIDA10' in t and 'No envío promociones' in t,'NÉBULA responde con los cupones reales y aclara que no envía promociones')
+    ev("CI.st.asst='r2ave';document.querySelector('.vv').scrollIntoView()");pg.wait_for_timeout(300)
     # cámara: seguir y vista general
     ev("A.vvFollow({dataset:{id:'m2argoth'}})");pg.wait_for_timeout(1500)
     chk(ev("CI.vivo.V.follow")=='m2argoth' and ev("CI.vivo.V.zoom")>2,'al elegir un integrante la cámara lo sigue y se acerca')

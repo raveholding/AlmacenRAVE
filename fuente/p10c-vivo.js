@@ -3,7 +3,10 @@
    · Escenario 2.5D propio en <canvas> (la CSP del sistema no admite librerías 3D externas): instalación tecnológica con
      coordinación central, estaciones individuales, sala de monitoreo, análisis, comunicaciones, laboratorio/hangar,
      descanso, pasarela elevada, columnas, pantallas holográficas gigantes, suelo reflectante y luces rojo/cian.
-   · Los cuatro integrantes DE CUERPO COMPLETO, dibujados y animados en tiempo real con los colores y rasgos de la imagen
+   · V26.44: los DIEZ integrantes de la imagen guía «Equipo SVB R2AVE · 10 especialistas»: los cuatro de siempre más VÉRTICE
+     (Comercial), NÉBULA (Marketing), QUANTUM (Inventario), ORIÓN (Finanzas), ATENEA (RR.HH.) y NEXUS (Datos e IA), cada uno en su
+     plataforma holográfica, con el globo y el cartel «SVB R2AVE · Centro Inteligente» en el centro. Los especialistas sólo leen datos.
+   · Los cuatro integrantes originales DE CUERPO COMPLETO, dibujados y animados en tiempo real con los colores y rasgos de la imagen
      oficial: R2AVE (humanoide con capucha, cráneo, cuernos y ojos rojos) camina y trabaja; M2ARGOTH (Cane Corso robótico)
      camina con marcha de cuatro patas, se sienta, se acuesta y olfatea; T2ULUZ (drone) vuela en altura con sombra en el piso;
      S2HAKIRA (perra holográfica) acompaña, mueve la cola, pulsa y se desmaterializa.
@@ -24,24 +27,50 @@ const ST={
  ana:{n:'Área de análisis',x:5.2,y:12,r:1.1,c:'#36e3d2'},
  lab:{n:'Laboratorio y hangar del drone',x:19,y:12.2,r:1.2,c:'#ff8a3d'},
  com:{n:'Centro de comunicaciones',x:12,y:2.3,r:0.8,c:'#4aa8ff'},
- rest:{n:'Zona de descanso',x:2.4,y:7.6,r:1.0,c:'#36e3d2'}};
+ rest:{n:'Zona de descanso',x:2.4,y:7.6,r:1.0,c:'#36e3d2'},
+ /* V26.44 · puestos de los seis especialistas (consola detrás de una plataforma holográfica) */
+ p_ver:{n:'Puesto de VÉRTICE · Comercial',x:2.5,y:14.5,r:0.45,c:'#e53935'},
+ p_neb:{n:'Puesto de NÉBULA · Marketing',x:8.4,y:14.6,r:0.45,c:'#3d7bff'},
+ p_qua:{n:'Puesto de QUANTUM · Inventario',x:15.4,y:14.6,r:0.45,c:'#3fa2ff'},
+ p_nex:{n:'Puesto de NEXUS · Datos e IA',x:21.6,y:14.6,r:0.45,c:'#5ab8ff'},
+ p_ori:{n:'Puesto de ORIÓN · Finanzas',x:22.4,y:6.6,r:0.45,c:'#3fa2ff'},
+ p_ate:{n:'Puesto de ATENEA · RR.HH.',x:22.4,y:9.9,r:0.45,c:'#e53935'}};
 const PILLARS=[[1,1],[23,1],[1,15],[23,15],[9,1],[15,1]];
 const OBST=Object.entries(ST).filter(([k])=>k!=='coord').map(([k,s])=>({k,x:s.x,y:s.y,r:s.r})).concat(PILLARS.map(p=>({k:'pil',x:p[0],y:p[1],r:0.45})));
 const SPOT={/* lugares de trabajo frente a cada estación */
- r2:[6,5.5],mon:[18.5,5.2],ana:[6.6,12.6],lab:[17.6,12.8],com:[12,3.6],rest:[3.6,8.6],coord:[12,10.6]};
+ r2:[6,5.5],mon:[18.5,5.2],ana:[6.6,12.6],lab:[17.6,12.8],com:[12,3.6],rest:[3.6,8.6],coord:[12,10.6],
+ p_ver:[3.2,13.3],p_neb:[8.4,13.4],p_qua:[15.4,13.4],p_nex:[21.0,13.4],p_ori:[21.1,6.6],p_ate:[21.1,9.9]};
+/* especialistas: puesto, estación que visitan, lugar alrededor de la coordinación cuando informan a R2AVE y aspecto (imagen guía) */
+const SPEC={
+ vertice:{post:'p_ver',visit:'coord',rep:[9.6,9.9],look:{body:'#1b1b20',plate:'#c62828',head:'#b71c1c',eye:'#8fd4ff',leg:'#232329',glow:'#e53935'}},
+ nebula:{post:'p_neb',visit:'com',rep:[10.6,11.0],look:{body:'#171a22',plate:'#26324e',head:'#24304a',eye:'#8fd4ff',leg:'#1b1e27',hood:'#10141f',cloak:'#0f121a',fem:1,glow:'#3d7bff'}},
+ quantum:{post:'p_qua',visit:'lab',rep:[13.6,11.0],look:{body:'#1d1e24',plate:'#2e3038',head:'#2a2c33',eye:'#6ec3ff',leg:'#202128',bulk:1.3,glow:'#3fa2ff'}},
+ orion:{post:'p_ori',visit:'mon',rep:[14.5,7.0],look:{body:'#121318',plate:'#1a1c22',head:'#15171c',eye:'#6ec3ff',leg:'#141519',cloak:'#0d0e12',hood:'#0f1014',vglow:'#3fa2ff',glow:'#3fa2ff'}},
+ atenea:{post:'p_ate',visit:'rest',rep:[14.6,9.6],look:{body:'#1b1b20',plate:'#c62828',head:'#7a1717',eye:'#8fd4ff',leg:'#232329',fem:1,glow:'#e53935'}},
+ nexus:{post:'p_nex',visit:'com',rep:[14.0,10.6],look:{body:'#b9bdc6',plate:'#e4e6ec',head:'#d6d9e0',eye:'#5ab8ff',leg:'#9fa4ad',face:'#33363e',glow:'#5ab8ff'}}};
 /* ---------- integrantes: parámetros de movimiento y estado ---------- */
 const mk=(k,x,y,sp)=>({k,x,y,z:0,vx:0,vy:0,a:0,ph:0,sp,st:'idle',t:0,tgt:null,act:'',real:false,pose:'stand',wag:0,alpha:1,sit:0,talk:0,point:0,work:0,beam:0,hp:0});
 const CH={r2ave:mk('r2ave',6,5.6,1.35),m2argoth:mk('m2argoth',8,6.5,2.1),s2hakira:mk('s2hakira',7.2,6.2,1.7),t2uluz:mk('t2uluz',18,12.6,2.8)};
+Object.keys(SPEC).forEach(k=>{const p=SPOT[SPEC[k].post];CH[k]=mk(k,p[0],p[1],1.25);});
 CH.t2uluz.z=0.35;
-const NAME={r2ave:'R2AVE',m2argoth:'M2ARGOTH',s2hakira:'S2HAKIRA',t2uluz:'T2ULUZ'};
-const COL={r2ave:'#ff3b3b',m2argoth:'#ff4d3d',s2hakira:'#5ee0d0',t2uluz:'#ff6a3d'};
-const TXT={r2ave:'#ff8a7f',m2argoth:'#ff9a8c',s2hakira:'#5ee0d0',t2uluz:'#ffa27a'};/* colores de texto legibles sobre fondo oscuro */
+const NAME={r2ave:'R2AVE',m2argoth:'M2ARGOTH',s2hakira:'S2HAKIRA',t2uluz:'T2ULUZ',vertice:'VÉRTICE',nebula:'NÉBULA',quantum:'QUANTUM',orion:'ORIÓN',atenea:'ATENEA',nexus:'NEXUS'};
+const ROLE={r2ave:'Director general',m2argoth:'Guardián',s2hakira:'Compañera holográfica',t2uluz:'Drone operativo',vertice:'Comercial',nebula:'Marketing',quantum:'Inventario',orion:'Finanzas',atenea:'RR.HH.',nexus:'Datos e IA'};
+const COL={r2ave:'#ff3b3b',m2argoth:'#ff4d3d',s2hakira:'#5ee0d0',t2uluz:'#ff6a3d',vertice:'#e53935',nebula:'#3d7bff',quantum:'#3fa2ff',orion:'#3fa2ff',atenea:'#e53935',nexus:'#5ab8ff'};
+const TXT={r2ave:'#ff8a7f',m2argoth:'#ff9a8c',s2hakira:'#5ee0d0',t2uluz:'#ffa27a',vertice:'#ff8a80',nebula:'#8fb4ff',quantum:'#8cc8ff',orion:'#8cc8ff',atenea:'#ff8a80',nexus:'#9fd3ff'};/* colores de texto legibles sobre fondo oscuro */
 const V={th:-0.45,zoom:1,panX:0,panY:0,follow:'',focus:'',drag:null,last:0,acc:0,raf:0,seen:false,fps:0,real:{},sum:'',sumAt:0,events:{chat:0,adj:0}};
 CI.vivo={CH,ST,V};
 /* ---------- datos reales que mueven a los personajes (sólo lectura) ---------- */
 function realData(){return safe(()=>{const d=CI.data();const al=CI.r2.alerts();const imp=al.filter(a=>a.pri==='critica'||a.pri==='importante');
  const po=(S.pOrders||[]).filter(o=>o.estado==='Solicitada').length;const adj=(S.audit||[]).filter(a=>a.action==='R2AVE_AJUSTE');const lastAdj=adj.length?adj[adj.length-1]:null;
- return{tot:d.tot,n:d.n,low:d.lowAll.length,neg:d.negAll.length,imp:imp.length,crit:al.filter(a=>a.pri==='critica').length,opp:al.filter(a=>a.pri==='oportunidad').length,po,chat:(CI.st.chat||[]).length,lastAdj};},{tot:0,n:0,low:0,neg:0,imp:0,crit:0,opp:0,po:0,chat:0,lastAdj:null},'datos vivos');}
+ const t0=typeof now==='function'?now():Date.now();const cp=(S.coupons||[]).filter(c=>c.active&&(!c.to||c.to>=d.tk)).length;const soc=(S.customers||[]).filter(c=>c.status!=='baja'&&c.num).length;
+ const stf=typeof user!=='undefined'&&!!user&&(user.role==='admin'||(typeof can==='function'&&can('staff')));const em=(S.employees||[]).filter(e=>e.active).length;const pu=(S.punches||[]).filter(p=>typeof dkey==='function'&&dkey(p.ts)===d.tk).length;
+ const spec={vertice:d.n?[d.n+' venta(s) hoy · '+$m(d.tot),true]:['Revisando el catálogo y los precios',false],
+  nebula:(cp||soc)?[cp+' cupón(es) activo(s) · '+soc+' socio(s) del Club',true]:['Preparando ideas de promociones',false],
+  quantum:[(d.lowAll.length||d.negAll.length)?d.lowAll.length+' con stock bajo · '+d.negAll.length+' en negativo':'Inventario sin alertas de stock',true],
+  orion:[d.open.length?d.open.length+' caja(s) abierta(s) · '+$m(d.tot)+' vendido hoy':'No hay cajas abiertas',true],
+  atenea:stf&&em?[em+' persona(s) en el personal · '+pu+' fichada(s) hoy',true]:['Revisando la agenda del equipo',false],
+  nexus:[(S.audit||[]).length+' registro(s) de auditoría encadenados',true]};
+ return{spec,tot:d.tot,n:d.n,low:d.lowAll.length,neg:d.negAll.length,imp:imp.length,crit:al.filter(a=>a.pri==='critica').length,opp:al.filter(a=>a.pri==='oportunidad').length,po,chat:(CI.st.chat||[]).length,lastAdj};},{tot:0,n:0,low:0,neg:0,imp:0,crit:0,opp:0,po:0,chat:0,lastAdj:null},'datos vivos');}
 /* ---------- navegación: aceleración, giro suave, separación y rodeo de obstáculos ---------- */
 function steer(c,tx,ty,dt,fly){const dx=tx-c.x,dy=ty-c.y;const dist=Math.hypot(dx,dy);let ax=0,ay=0;
  if(dist>0.05){const want=c.sp*Math.min(1,dist/1.3);ax=dx/dist*want;ay=dy/dist*want;}
@@ -91,9 +120,18 @@ function brainT2(c,R,dt){c.t-=dt;const r2=CH.r2ave;
  else if(c.st==='tour'){const tt=V.last/4000;tx=CX+Math.cos(tt)*8;ty=CY+Math.sin(tt)*5;tz=3;setAct(c,'Recorriendo la instalación',false);}
  else{if(!c.tgt||Math.hypot(c.tgt[0]-c.x,c.tgt[1]-c.y)<0.5)c.tgt=[rnd(3,21),rnd(3,13)];tx=c.tgt[0];ty=c.tgt[1];tz=2.6;setAct(c,'Inspeccionando sectores',false);}
  steer(c,tx,ty,dt,true);const hov=Math.sin(V.last/420)*0.08;c.z+=((tz+hov)-c.z)*Math.min(1,dt*1.5);c.beam+=((c.st==='project'&&Math.hypot(tx-c.x,ty-c.y)<0.6?1:0)-c.beam)*Math.min(1,dt*3);}
+/* especialistas: trabajan en su plataforma con la tableta; cada tanto informan a R2AVE o recorren una estación */
+function brainSpec(c,R,dt){const sp=SPEC[c.k];const dat=(R.spec&&R.spec[c.k])||['Trabajando en su puesto',false];c.t-=dt;
+ if(c.t<=0){const r=Math.random();if(r<0.62){c.st='post';c.t=rnd(11,19);}else if(r<0.82&&dat[1]){c.st='report';c.t=rnd(7,10);}else{c.st='visit';c.t=rnd(7,10);}}
+ let tg=SPOT[sp.post];if(c.st==='report')tg=sp.rep;else if(c.st==='visit')tg=SPOT[sp.visit];
+ const dd=steer(c,tg[0],tg[1],dt);const arrived=dd<0.3;
+ if(c.st==='post')setAct(c,dat[0],dat[1]);else if(c.st==='report')setAct(c,'Informando a R2AVE: '+dat[0],dat[1]);else setAct(c,'Recorriendo '+ST[sp.visit].n.toLowerCase(),false);
+ c.work+=((arrived&&c.st==='post')?1:-1)*dt*3;c.work=Math.min(1,Math.max(0,c.work));c.talk=(arrived&&c.st==='report')?1:Math.max(0,c.talk-dt);
+ if(arrived){const f=c.st==='report'?ST.coord:(c.st==='visit'?ST[sp.visit]:{x:CX,y:CY});const ta=Math.atan2(f.y-c.y,f.x-c.x);let da=ta-c.a;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;c.a+=da*Math.min(1,dt*4);}
+ c.pose=Math.hypot(c.vx,c.vy)>0.12?'walk':'stand';}
 /* reunión de coordinación ambiental (cada tanto los cuatro se juntan en el centro) */
 function meeting(dt){V.meet=(V.meet||0)+dt;if(V.meet>75&&V.meet<84){const r2=CH.r2ave;if(r2.st!=='answer'){r2.st='coord';r2.tgt=SPOT.coord;r2.t=Math.max(r2.t,2);setAct(r2,'Reunión de coordinación con el equipo',false);}}if(V.meet>=84)V.meet=0;}
-function tick(dt){const R=realData();V.real=R;brainR2(CH.r2ave,R,dt);brainM2(CH.m2argoth,R,dt);brainS2(CH.s2hakira,R,dt);brainT2(CH.t2uluz,R,dt);meeting(dt);
+function tick(dt){const R=realData();V.real=R;brainR2(CH.r2ave,R,dt);brainM2(CH.m2argoth,R,dt);brainS2(CH.s2hakira,R,dt);brainT2(CH.t2uluz,R,dt);Object.keys(SPEC).forEach(k=>brainSpec(CH[k],R,dt));meeting(dt);
  const r2=CH.r2ave;r2.pose=Math.hypot(r2.vx,r2.vy)>0.12?'walk':'stand';Object.values(CH).forEach(c=>{c.wag=Math.max(0,c.wag-dt*0.4);});}
 CI.vivo.tick=tick;
 /* ---------- proyección: cámara orbital isométrica con zoom, paneo y seguimiento ---------- */
@@ -192,7 +230,39 @@ function drawDrone(ctx,x0,y0,u,c,dir,t,gy){/* sombra en el piso según altura */
  ctx.save();ctx.shadowColor='#ff2020';ctx.shadowBlur=0.35*u;ctx.fillStyle='#ff3030';ctx.beginPath();ctx.arc(0.18*u*f,-0.18*u,0.06*u,0,7);ctx.fill();ctx.restore();
  if(Math.floor(t/400)%2){ctx.fillStyle='#ffa040';ctx.beginPath();ctx.arc(-0.26*u*f,0.1*u,0.025*u,0,7);ctx.fill();}
  ctx.restore();}
-CI.vivo.drawChar=(ctx,k,x0,y0,u,c,dir,t,gy)=>safe(()=>{if(k==='r2ave')drawR2(ctx,x0,y0,u,c,dir,t);else if(k==='m2argoth')drawDog(ctx,x0,y0,u,c,dir,t,false);else if(k==='s2hakira')drawDog(ctx,x0,y0,u,c,dir,t,true);else drawDrone(ctx,x0,y0,u,c,dir,t,gy==null?y0:gy);},null,'personaje');
+/* especialista humanoide de cuerpo completo (rasgos y colores de la imagen guía): armadura, visor, capa o capucha, tableta holográfica */
+function drawHum(ctx,x0,y0,u,c,dir,t,L){const walk=c.pose==='walk'?1:0;const sw=Math.sin(c.ph)*0.5*walk;const f=dir.fx;const bk=L.bulk||1,fm=L.fem?0.88:1;
+ ctx.save();ctx.translate(x0,y0);ctx.scale(f,1);
+ if(L.cloak){const sway=Math.sin(c.ph*0.5)*0.04*u*walk+Math.sin(t/800)*0.015*u;ctx.fillStyle=L.cloak;ctx.beginPath();ctx.moveTo(-0.26*u*bk,-1.5*u);ctx.lineTo(0.26*u*bk,-1.5*u);ctx.lineTo(0.36*u+sway,-0.22*u);ctx.lineTo(-0.36*u+sway,-0.2*u);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=L.glow;ctx.globalAlpha=0.55;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;}
+ const leg=(s,dk)=>{const hip=[0.1*u*s*bk*fm,-0.95*u];const ka=sw*s,kn=[hip[0]+Math.sin(ka)*0.47*u,hip[1]+Math.cos(ka)*0.47*u];const sa=ka-Math.max(0,-sw*s)*0.9,ft=[kn[0]+Math.sin(sa)*0.47*u,kn[1]+Math.cos(sa)*0.47*u];
+  ctx.strokeStyle=dk?shade(L.leg,-0.35):L.leg;ctx.lineWidth=0.14*u*bk*fm;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(hip[0],hip[1]);ctx.lineTo(kn[0],kn[1]);ctx.lineTo(ft[0],ft[1]);ctx.stroke();
+  ctx.fillStyle=L.plate;ctx.beginPath();ctx.arc(kn[0],kn[1],0.055*u*bk,0,7);ctx.fill();ctx.fillStyle=shade(L.leg,-0.3);ctx.beginPath();ctx.ellipse(ft[0]+0.07*u,ft[1],0.12*u,0.045*u,0,0,7);ctx.fill();};
+ leg(-1,true);leg(1,false);
+ /* torso con placas */const tw=0.25*u*bk*fm;ctx.fillStyle=L.body;ctx.beginPath();ctx.moveTo(-tw,-1.55*u);ctx.lineTo(tw,-1.55*u);ctx.lineTo(tw*0.72,-0.92*u);ctx.lineTo(-tw*0.72,-0.92*u);ctx.closePath();ctx.fill();
+ ctx.fillStyle=L.plate;ctx.beginPath();ctx.moveTo(-tw*0.85,-1.52*u);ctx.lineTo(tw*0.85,-1.52*u);ctx.lineTo(tw*0.55,-1.22*u);ctx.lineTo(-tw*0.55,-1.22*u);ctx.closePath();ctx.fill();
+ ctx.fillStyle=shade(L.body,-0.3);ctx.fillRect(-tw*0.7,-1.0*u,tw*1.4,0.07*u);
+ if(L.vglow){ctx.save();ctx.shadowColor=L.vglow;ctx.shadowBlur=0.2*u;ctx.strokeStyle=L.vglow;ctx.lineWidth=0.035*u;ctx.beginPath();ctx.moveTo(-tw*0.6,-1.5*u);ctx.lineTo(0,-1.2*u);ctx.lineTo(tw*0.6,-1.5*u);ctx.stroke();ctx.restore();}
+ else{ctx.save();ctx.shadowColor=L.glow;ctx.shadowBlur=0.15*u;ctx.fillStyle=L.glow;ctx.beginPath();ctx.arc(0,-1.36*u,0.04*u,0,7);ctx.fill();ctx.restore();}
+ /* hombreras */[-1,1].forEach(s=>{ctx.fillStyle=L.plate;ctx.beginPath();ctx.ellipse(s*tw*1.02,-1.5*u,0.11*u*bk,0.08*u*bk,0,0,7);ctx.fill();});
+ /* brazos con la tableta holográfica cuando trabaja */
+ const hold=c.work,arm=(s,back)=>{const sh=[tw*1.05*s,-1.5*u];let a1=-sw*s*0.8,a2=0.15;if(hold>0.01){a1=(s>0?-0.9:-0.7)*hold;a2=-1.1*hold;}if(c.talk>0.01&&s<0){a1=-1.0+Math.sin(t/230)*0.35;a2=-0.7;}
+  const el=[sh[0]+Math.sin(a1)*0.36*u,sh[1]+Math.cos(a1)*0.36*u],hd=[el[0]+Math.sin(a1+a2)*0.34*u,el[1]+Math.cos(a1+a2)*0.34*u];
+  ctx.strokeStyle=back?shade(L.body,-0.35):L.body;ctx.lineWidth=0.12*u*bk*fm;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(sh[0],sh[1]);ctx.lineTo(el[0],el[1]);ctx.lineTo(hd[0],hd[1]);ctx.stroke();
+  ctx.fillStyle=L.plate;ctx.beginPath();ctx.arc(el[0],el[1],0.045*u,0,7);ctx.fill();return hd;};
+ arm(-1,true);const hd=arm(1,false);
+ if(hold>0.3){ctx.save();ctx.globalAlpha=hold;ctx.globalCompositeOperation='lighter';const tx=hd[0]+0.04*u,ty=hd[1]-0.06*u;ctx.fillStyle='rgba(80,170,255,.35)';ctx.strokeStyle='rgba(150,215,255,.95)';ctx.lineWidth=1.3;
+  ctx.beginPath();ctx.moveTo(tx-0.22*u,ty-0.04*u);ctx.lineTo(tx+0.2*u,ty-0.14*u);ctx.lineTo(tx+0.22*u,ty+0.08*u);ctx.lineTo(tx-0.2*u,ty+0.16*u);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.strokeStyle='rgba(190,235,255,.6)';ctx.beginPath();ctx.arc(tx,ty+0.01*u,0.06*u,0,7);ctx.stroke();ctx.restore();}
+ /* cabeza: casco con visor, capucha o cara de androide */const hy=-1.75*u;
+ if(L.hood){ctx.fillStyle=L.hood;ctx.beginPath();ctx.moveTo(-0.24*u,hy+0.25*u);ctx.quadraticCurveTo(-0.26*u,hy-0.28*u,0,hy-0.33*u);ctx.quadraticCurveTo(0.26*u,hy-0.28*u,0.24*u,hy+0.25*u);ctx.closePath();ctx.fill();ctx.strokeStyle=L.glow;ctx.globalAlpha=0.5;ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;}
+ const hg=ctx.createRadialGradient(0.04*u,hy-0.05*u,0.02*u,0,hy,0.2*u*fm);hg.addColorStop(0,shade(L.head,0.25));hg.addColorStop(1,L.head);ctx.fillStyle=hg;ctx.beginPath();ctx.ellipse(0.02*u,hy,0.14*u*fm*(L.bulk?1.1:1),0.18*u*fm,0,0,7);ctx.fill();
+ if(L.fem&&!L.hood){ctx.fillStyle=shade(L.head,-0.3);ctx.beginPath();ctx.ellipse(-0.08*u,hy+0.05*u,0.08*u,0.17*u,0.3,0,7);ctx.fill();}
+ if(dir.front){if(L.face){ctx.fillStyle=L.face;ctx.beginPath();ctx.ellipse(0.05*u,hy+0.02*u,0.09*u,0.11*u,0,0,7);ctx.fill();}
+  ctx.save();ctx.shadowColor=L.eye;ctx.shadowBlur=0.22*u;ctx.fillStyle=L.eye;if(L.face||L.fem){ctx.beginPath();ctx.ellipse(0.0*u,hy-0.01*u,0.03*u,0.017*u,0,0,7);ctx.ellipse(0.1*u,hy-0.01*u,0.03*u,0.017*u,0,0,7);ctx.fill();}
+  else{ctx.fillRect(-0.06*u,hy-0.03*u,0.2*u,0.035*u);}ctx.restore();}
+ ctx.restore();}
+CI.vivo.drawChar=(ctx,k,x0,y0,u,c,dir,t,gy)=>safe(()=>{if(SPEC[k]){drawHum(ctx,x0,y0,u,c,dir,t,SPEC[k].look);return;}if(k==='r2ave')drawR2(ctx,x0,y0,u,c,dir,t);else if(k==='m2argoth')drawDog(ctx,x0,y0,u,c,dir,t,false);else if(k==='s2hakira')drawDog(ctx,x0,y0,u,c,dir,t,true);else drawDrone(ctx,x0,y0,u,c,dir,t,gy==null?y0:gy);},null,'personaje');
 /* ---------- escena ---------- */
 function draw(cv,t){const ctx=cv.getContext&&cv.getContext('2d');if(!ctx)return false;const dpr=Math.min(2,window.devicePixelRatio||1);const w=cv.clientWidth||600,h=cv.clientHeight||420;
  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -216,6 +286,25 @@ function draw(cv,t){const ctx=cv.getContext&&cv.getContext('2d');if(!ctx)return 
  station('com',()=>{const s=ST.com;box(ctx,G,s.x-0.4,s.y-0.4,0.8,0.8,0,0.5,'#23242c','rgba(80,160,255,.7)');const a=P(s.x,s.y,0.5),b=P(s.x,s.y,2.6);ctx.strokeStyle='#5b6070';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
   ctx.save();ctx.globalCompositeOperation='lighter';for(let i=0;i<3;i++){const r=((t/900+i/3)%1)*1.6;ctx.strokeStyle='rgba(80,160,255,'+(0.5*(1-r/1.6))+')';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(b[0],b[1],r*u*0.6,r*u*0.25,0,0,7);ctx.stroke();}glow(ctx,b[0],b[1],0.6*u,BLUE,0.5);ctx.restore();});
  station('rest',()=>{const s=ST.rest;box(ctx,G,s.x-0.8,s.y-0.35,1.6,0.7,0,0.45,'#2b2530','rgba(70,230,215,.45)');box(ctx,G,s.x-0.8,s.y+0.45,1.6,0.3,0,0.3,'#231f28',null);const p=P(s.x+1.1,s.y-0.6,0);ctx.fillStyle='#1d3b33';ctx.beginPath();ctx.arc(p[0],p[1]-0.5*u,0.3*u,0,7);ctx.fill();});
+ /* V26.44 · plataformas holográficas y consolas de los seis especialistas */
+ Object.keys(SPEC).forEach(k=>{const sp=SPEC[k],po=ST[sp.post],sq=SPOT[sp.post],col=COL[k];const rgb=col==='#e53935'?'229,57,53':'63,162,255';
+  items.push({d:G.depth(sq[0],sq[1])-0.6,fn:()=>{disc(ctx,G,sq[0],sq[1],0.02,0.85,'#191a20','rgba('+rgb+',.85)',2);ctx.save();ctx.globalCompositeOperation='lighter';disc(ctx,G,sq[0],sq[1],0.04,0.62+Math.sin(t/600+sq[0])*0.04,null,'rgba('+rgb+',.45)',1.5);ctx.restore();}});
+  items.push({d:G.depth(po.x,po.y),fn:()=>{box(ctx,G,po.x-0.35,po.y-0.3,0.7,0.6,0,0.85,'#24252d','rgba('+rgb+',.7)');const a=P(po.x-0.3,po.y,1.0),b=P(po.x+0.3,po.y,1.0),c2=P(po.x+0.3,po.y,1.5),d2=P(po.x-0.3,po.y,1.5);
+   ctx.save();ctx.globalCompositeOperation='lighter';poly(ctx,[a,b,c2,d2],'rgba('+rgb+',.16)','rgba('+rgb+',.7)',1);ctx.restore();}});});
+ /* globo holográfico central y cartel «SVB R2AVE · CENTRO INTELIGENTE» (imagen guía) */
+ items.push({d:G.depth(co.x,co.y)+0.05,fn:()=>{const gc=P(co.x,co.y,3.3);const R0=1.25*u;ctx.save();ctx.globalCompositeOperation='lighter';glow(ctx,gc[0],gc[1],R0*1.7,BLUE,0.28);
+  ctx.strokeStyle='rgba(120,190,255,.75)';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(gc[0],gc[1],R0,0,7);ctx.stroke();ctx.strokeStyle='rgba(120,190,255,.35)';
+  for(let i=1;i<6;i++){const yy=gc[1]-R0+i*R0/3;const rr=Math.sqrt(Math.max(0,R0*R0-(yy-gc[1])**2));ctx.beginPath();ctx.ellipse(gc[0],yy,rr,rr*0.12,0,0,7);ctx.stroke();}
+  for(let i=0;i<6;i++){const ph=(t/5000+i/6)*Math.PI;const rx=Math.abs(Math.cos(ph))*R0;ctx.beginPath();ctx.ellipse(gc[0],gc[1],rx,R0,0,0,7);ctx.stroke();}
+  ctx.fillStyle='rgba(160,215,255,.5)';for(let i=0;i<40;i++){const la=(i*1.7)%Math.PI-Math.PI/2,lo=i*2.4+t/5000*Math.PI;const x=Math.cos(la)*Math.sin(lo);if(Math.cos(lo)<0)continue;ctx.fillRect(gc[0]+x*R0-1,gc[1]+Math.sin(la)*R0-1,2.2,2.2);}
+  const sg=P(co.x,co.y,6.3);ctx.strokeStyle='rgba(80,160,255,.6)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(sg[0],sg[1],2.6*u,0.5*u,0,0,7);ctx.stroke();ctx.restore();
+  const fs=Math.max(11,Math.min(28,u*0.55));ctx.textAlign='center';ctx.font='900 '+fs+'px sans-serif';ctx.save();ctx.shadowColor='#ff2a2a';ctx.shadowBlur=12;ctx.fillStyle='#ff6b6b';ctx.fillText('SVB R2AVE',sg[0],sg[1]-fs*0.2);ctx.restore();
+  ctx.font='700 '+(fs*0.5)+'px sans-serif';ctx.fillStyle='#a9d4ff';ctx.fillText('CENTRO INTELIGENTE',sg[0],sg[1]+fs*0.5);}});
+ /* estandartes con la calavera roja en las columnas del fondo */
+ [[9,1],[15,1]].forEach(([x,y])=>items.push({d:G.depth(x,y)+0.02,fn:()=>{const a=P(x-0.45,y+0.32,3.3),b=P(x+0.45,y+0.32,3.3),c2=P(x+0.45,y+0.32,1.7),d2=P(x-0.45,y+0.32,1.7);poly(ctx,[a,b,[c2[0],c2[1]],[ (c2[0]+d2[0])/2,(c2[1]+d2[1])/2+0.18*u],d2],'#160b0d','rgba(255,48,48,.7)',1.2);
+  const m=P(x,y+0.32,2.65),r=0.17*u;ctx.save();ctx.shadowColor='#ff2020';ctx.shadowBlur=8;ctx.fillStyle='#d32020';ctx.beginPath();ctx.arc(m[0],m[1],r,0,7);ctx.fill();ctx.fillRect(m[0]-r*0.55,m[1],r*1.1,r*0.9);
+  ctx.strokeStyle='#d32020';ctx.lineWidth=r*0.35;ctx.beginPath();ctx.moveTo(m[0]-r*0.7,m[1]-r*0.6);ctx.quadraticCurveTo(m[0]-r*1.3,m[1]-r*1.4,m[0]-r*0.9,m[1]-r*1.9);ctx.moveTo(m[0]+r*0.7,m[1]-r*0.6);ctx.quadraticCurveTo(m[0]+r*1.3,m[1]-r*1.4,m[0]+r*0.9,m[1]-r*1.9);ctx.stroke();
+  ctx.fillStyle='#160b0d';ctx.beginPath();ctx.arc(m[0]-r*0.38,m[1]+r*0.05,r*0.25,0,7);ctx.arc(m[0]+r*0.38,m[1]+r*0.05,r*0.25,0,7);ctx.fill();ctx.restore();}}));
  PILLARS.forEach(([x,y])=>items.push({d:G.depth(x,y),fn:()=>{box(ctx,G,x-0.3,y-0.3,0.6,0.6,0,3.4,'#202128','rgba(255,48,48,.5)');const a=P(x+0.3,y+0.3,0.2),b=P(x+0.3,y+0.3,3.2);ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle='rgba(255,48,48,.6)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();ctx.restore();}}));
  /* pasarela superior con baranda */items.push({d:G.depth(12,0.9)-0.5,fn:()=>{box(ctx,G,3,0.4,18,1.2,2.6,0.12,'#2a2b33','rgba(255,48,48,.6)');for(let x=3.4;x<21;x+=1.4){const a=P(x,1.6,2.72),b=P(x,1.6,3.3);ctx.strokeStyle='rgba(255,90,90,.45)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();}
   const r1=P(3,1.6,3.3),r2=P(21,1.6,3.3);ctx.strokeStyle='rgba(255,90,90,.7)';ctx.beginPath();ctx.moveTo(r1[0],r1[1]);ctx.lineTo(r2[0],r2[1]);ctx.stroke();[4,12,20].forEach(x=>box(ctx,G,x-0.15,0.85,0.3,0.3,0,2.6,'#1d1e24',null));}});
@@ -232,14 +321,18 @@ function draw(cv,t){const ctx=cv.getContext&&cv.getContext('2d');if(!ctx)return 
  Object.values(CH).forEach(c=>{items.push({d:G.depth(c.x,c.y)+0.01,fn:()=>{const g=P(c.x,c.y,0),p=P(c.x,c.y,c.z),dir=screenDir(G,c),sc=Math.max(0.6,u*1.2);
   ctx.save();ctx.globalAlpha=0.35;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(g[0],g[1],(c.k==='r2ave'?0.42:0.55)*sc,0.16*sc,0,0,7);ctx.fill();ctx.restore();
   if(V.quality!=='baja'&&c.k!=='t2uluz'){ctx.save();ctx.translate(g[0],g[1]);ctx.scale(1,-0.45);ctx.translate(-g[0],-g[1]);ctx.globalAlpha=0.13;CI.vivo.drawChar(ctx,c.k,g[0],g[1],sc,c,dir,t);ctx.restore();}
-  ctx.save();ctx.globalCompositeOperation='lighter';glow(ctx,p[0],p[1]-(c.k==='r2ave'?1.2:0.4)*sc,(c.k==='r2ave'?1.3:0.9)*sc,c.k==='s2hakira'?CYAN:(c.k==='t2uluz'?ORANGE:RED),c.k==='s2hakira'?0.22:0.14);ctx.restore();
+  ctx.save();ctx.globalCompositeOperation='lighter';glow(ctx,p[0],p[1]-(c.k==='r2ave'||SPEC[c.k]?1.1:0.4)*sc,(c.k==='r2ave'?1.3:0.9)*sc,c.k==='s2hakira'||(SPEC[c.k]&&COL[c.k]!=='#e53935')?CYAN:(c.k==='t2uluz'?ORANGE:RED),c.k==='s2hakira'?0.22:0.12);ctx.restore();
   if(c.k==='t2uluz'&&c.beam>0.05){const r2=CH.r2ave,tp=P(r2.x,r2.y,1.9);ctx.save();ctx.globalCompositeOperation='lighter';const gr=ctx.createLinearGradient(p[0],p[1],tp[0],tp[1]);gr.addColorStop(0,'rgba(255,140,60,'+(0.5*c.beam)+')');gr.addColorStop(1,'rgba(70,230,215,'+(0.25*c.beam)+')');ctx.fillStyle=gr;ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(tp[0]-0.7*u,tp[1]-0.4*u);ctx.lineTo(tp[0]+0.7*u,tp[1]-0.4*u);ctx.closePath();ctx.fill();ctx.restore();}
   CI.vivo.drawChar(ctx,c.k,p[0],p[1],sc,c,dir,t,g[1]);
-  const top=c.k==='r2ave'?2.7:(c.k==='t2uluz'?0.95:1.3);lab.push({c,x:p[0],y:p[1]-top*sc,base:p[1]});}});});
+  const top=c.k==='r2ave'?2.7:(c.k==='t2uluz'?0.95:(SPEC[c.k]?2.3:1.3));lab.push({c,x:p[0],y:p[1]-top*sc,base:p[1]});}});});
  items.sort((a,b)=>a.d-b.d).forEach(it=>safe(it.fn,null,'escena'));
  /* partículas discretas */ctx.save();ctx.globalCompositeOperation='lighter';for(let i=0;i<26;i++){const px=(i*7.3+t/2600*(1+i%3))%W,py=(i*3.1)%D,pz=((t/3000+i*0.37)%1)*3.5;const p=P(px,py,pz);ctx.fillStyle=i%3?'rgba(255,70,60,.5)':'rgba(70,230,215,.5)';ctx.fillRect(p[0],p[1],2,2);}ctx.restore();
+ /* carteles de la imagen guía (texto fijo de marca, no son datos) */
+ if(w>=520&&V.zoom<1.4&&!V.follow){const hud=(x,al,l1,l2,c1)=>{ctx.font='800 12px sans-serif';const w1=Math.max(ctx.measureText(l1).width,(ctx.font='600 11px sans-serif',ctx.measureText(l2).width))+24;const bx=al==='l'?x:x-w1;
+   ctx.fillStyle='rgba(8,8,11,.84)';ctx.strokeStyle=c1;ctx.lineWidth=1.5;ctx.beginPath();ctx.rect(bx,h-50,w1,40);ctx.fill();ctx.stroke();ctx.textAlign='left';ctx.fillStyle='#ffffff';ctx.font='800 12px sans-serif';ctx.fillText(l1,bx+12,h-34);ctx.fillStyle='#d5dbe6';ctx.font='600 11px sans-serif';ctx.fillText(l2,bx+12,h-18);};
+  hud(10,'l','EQUIPO SVB R2AVE','10 especialistas inteligentes','rgba(255,70,70,.9)');hud(w-10,'r','UN EQUIPO · UNA VISIÓN','Innovación · Estrategia · Crecimiento','rgba(80,160,255,.9)');}
  /* nombres y actividad: «Real» (dato del sistema) o «Simulación» (animación) */
- V.hits=[];const placed=[];lab.sort((a,b)=>b.y-a.y).forEach(L=>{const c=L.c;const fs=Math.max(10,Math.min(13,u*0.28));ctx.font='800 '+fs+'px sans-serif';const t1=NAME[c.k];const t2=(c.real?'● Real: ':'○ Simulación: ')+c.act;
+ V.hits=[];const placed=[];lab.sort((a,b)=>b.y-a.y).forEach(L=>{const c=L.c;const fs=Math.max(10,Math.min(13,u*0.28));ctx.font='800 '+fs+'px sans-serif';const cmp=SPEC[c.k]&&V.zoom<1.5&&V.follow!==c.k;const t1=NAME[c.k];const t2=cmp?(c.real?'● ':'○ ')+ROLE[c.k]:(c.real?'● Real: ':'○ Simulación: ')+c.act;
   ctx.font='600 '+(fs-2)+'px sans-serif';const w2=Math.min(ctx.measureText(t2).width,u*6.5);ctx.font='800 '+fs+'px sans-serif';const w1=ctx.measureText(t1).width;const bw=Math.max(w1,w2)+14,bh=fs*2.6;
   const bx=L.x-bw/2;let by=L.y-bh;for(let i=0;i<8;i++){const o=placed.find(o=>bx<o.x+o.w+3&&bx+bw+3>o.x&&by<o.y+o.h+3&&by+bh+3>o.y);if(!o)break;by=o.y-bh-4;}placed.push({x:bx,y:by,w:bw,h:bh});
   if(by<L.y-bh-2){ctx.strokeStyle=COL[c.k];ctx.globalAlpha=0.6;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(L.x,by+bh);ctx.lineTo(L.x,L.y-2);ctx.stroke();ctx.globalAlpha=1;}ctx.fillStyle='rgba(8,8,11,.82)';ctx.strokeStyle=COL[c.k];ctx.lineWidth=V.follow===c.k?2.5:1.2;if(!c.real)ctx.setLineDash([4,3]);ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,7):ctx.rect(bx,by,bw,bh);ctx.fill();ctx.stroke();ctx.setLineDash([]);
@@ -277,11 +370,11 @@ function html(){css();const sel=k=>`<button class="ci-btn ${V.follow===k?'on':''
   <button class="ci-btn" data-act="vvView" aria-label="Vista general">Vista general</button><button class="ci-btn" data-act="vvOrbit" data-id="-1" aria-label="Girar la cámara a la izquierda">⟲</button><button class="ci-btn" data-act="vvOrbit" data-id="1" aria-label="Girar la cámara a la derecha">⟳</button>
   <button class="ci-btn" data-act="vvZoom" data-id="1" aria-label="Acercar">＋</button><button class="ci-btn" data-act="vvZoom" data-id="-1" aria-label="Alejar">－</button>
   <label class="ci-sr" for="vv-focus">Enfocar una estación</label><select id="vv-focus" class="vv-sel" data-vvfocus><option value="">Enfocar estación…</option>${Object.entries(ST).map(([k,s])=>`<option value="${k}" ${V.focus===k?'selected':''}>${E(s.n)}</option>`).join('')}</select>
-  <span style="flex-basis:100%;height:0"></span><span class="ci-mut" style="font-size:.82rem">Seguir:</span>${['r2ave','m2argoth','t2uluz','s2hakira'].map(sel).join('')}</div>
+  <span style="flex-basis:100%;height:0"></span><span class="ci-mut" style="font-size:.82rem">Seguir:</span>${Object.keys(NAME).map(sel).join('')}</div>
   <canvas class="vv-cv" aria-hidden="true"></canvas><p class="ci-sr vv-sum" aria-live="polite"></p>
   <div class="vv-legend"><span><span class="vv-real">● Real</span> actividad que viene de un dato u operación del sistema</span><span><span class="vv-sim">○ Simulación</span> animación ambiental: no es una operación</span></div>
   <details style="padding:0 .8rem"><summary>Qué está haciendo cada integrante (alternativa al dibujo)</summary><div class="tw"><table class="ci-tb" id="vv-tab" data-nosort><thead><tr><th>Integrante</th><th>Dónde</th><th>Actividad</th><th>Tipo</th></tr></thead><tbody></tbody></table></div></details>
-  <p class="vv-note">Escena 2.5D dibujada en tiempo real en el navegador (sin librerías externas: la política de seguridad del sistema no las permite). Los cuatro integrantes se dibujan de cuerpo completo con los rasgos y colores de la imagen oficial; no son modelos 3D con esqueleto. Arrastrá para girar la cámara (con zoom, para mover), tocá un integrante para seguirlo.</p></section>`;}
+  <p class="vv-note">Escena 2.5D dibujada en tiempo real en el navegador (sin librerías externas: la política de seguridad del sistema no las permite). Los diez integrantes se dibujan de cuerpo completo con los rasgos y colores de las imágenes oficiales; no son modelos 3D con esqueleto. Los seis especialistas sólo consultan datos: no modifican nada. Arrastrá para girar la cámara (con zoom, para mover), tocá un integrante para seguirlo.</p></section>`;}
 function bind(){const cv=document.querySelector('.ci-root canvas.vv-cv');if(!cv||cv._vv)return;cv._vv=1;
  try{const io=new IntersectionObserver(e=>{V.seen=e.some(x=>x.isIntersecting);if(V.seen)start();},{threshold:0.05});io.observe(cv);}catch(e){V.seen=true;}
  let d=null;cv.addEventListener('pointerdown',ev=>{d={x:ev.clientX,y:ev.clientY,th:V.th,px:V.panX,py:V.panY,m:false};cv.setPointerCapture&&cv.setPointerCapture(ev.pointerId);});
