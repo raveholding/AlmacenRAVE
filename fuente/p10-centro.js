@@ -243,8 +243,8 @@ function draw(){const cv=document.querySelector('.ci-root canvas.ci-cv');if(!cv)
  const raw=(x,y,z)=>{const [a,b]=rp(x,y);return is3?[(a-b)*0.5,(a+b)*0.29-(z||0)*0.55]:[a,b];};
  const cn=[[0,0,0],[L.W,0,0],[L.W,L.D,0],[0,L.D,0],[0,0,2.6],[L.W,0,2.6],[L.W,L.D,2.6],[0,L.D,2.6]].map(c=>raw(c[0],c[1],is3?c[2]:0));
  const bx=[Math.min(...cn.map(c=>c[0])),Math.max(...cn.map(c=>c[0]))],by=[Math.min(...cn.map(c=>c[1])),Math.max(...cn.map(c=>c[1]))];
- const sbar=document.querySelector('.ci-root .ci-sbar');const top=sbar&&getComputedStyle(sbar).position==='absolute'?sbar.offsetHeight+22:16;const pad=is3?26:(st.edit?14:40);const sc=Math.min((Wc-pad*2)/(bx[1]-bx[0]),(Hc-pad-top)/(by[1]-by[0]));
- const ox=Wc/2-(bx[0]+bx[1])/2*sc,oy=top+(Hc-pad-top)/2-(by[0]+by[1])/2*sc;CI._view={ox,oy,sc,cx,cy,is3,rot};
+ const sbar=document.querySelector('.ci-root .ci-sbar');const top=sbar&&getComputedStyle(sbar).position==='absolute'?sbar.offsetHeight+22:16;const pad=is3?26:(st.edit?14:40);const sc0=Math.min((Wc-pad*2)/(bx[1]-bx[0]),(Hc-pad-top)/(by[1]-by[0]));
+ const zm=st.edit?1:Math.min(4,Math.max(1,+st.zoom||1));const sc=sc0*zm;const ox=Wc/2-(bx[0]+bx[1])/2*sc+(zm>1?(+st.panX||0):0),oy=top+(Hc-pad-top)/2-(by[0]+by[1])/2*sc+(zm>1?(+st.panY||0):0);CI._view={ox,oy,sc,cx,cy,is3,rot};
  const P=(x,y,z)=>{const r=raw(x,y,z);return[ox+r[0]*sc,oy+r[1]*sc];};
  const poly=(pts,fill,stroke,lw)=>{ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||1;ctx.stroke();}};
  const box=(x0,y0,w,dd,z0,h,c,stroke)=>{const x1=x0+w,y1=y0+dd;const b=[P(x0,y0,z0),P(x1,y0,z0),P(x1,y1,z0),P(x0,y1,z0)];
@@ -266,8 +266,8 @@ function draw(){const cv=document.querySelector('.ci-root canvas.ci-cv');if(!cv)
   items.push(b);});
  const T2=T.filter(p=>!p.hide&&(p.active||p.fn==='gerente'||p.pos));const cnt={};const dpos=(st.edit&&st.draft)?st.draft.pos:null;
  T2.forEach(p=>{const i=cnt[p.fn]=(cnt[p.fn]||0);cnt[p.fn]++;const pp=(dpos&&dpos[p.k]!==undefined)?dpos[p.k]:p.pos;const [x,y]=pp||zonePos(L,p.fn,i);items.push({kind:'person',x:x-0.2,y:y-0.2,w:0.4,d:0.4,p,fixed:!!pp});});
- items.push({kind:'bot',x:Math.max(0.3,cx-0.05),y:Math.max(0.5,L.D-3.85),w:0.5,d:0.5});
- items.forEach(it=>{const c=rp(it.x+it.w/2,it.y+it.d/2);it.k=c[0]+c[1]+(it.kind==='person'||it.kind==='bot'?0.3:0);});items.sort((a,b)=>a.k-b.k);
+ if(!CI.hideBot)items.push({kind:'bot',x:Math.max(0.3,cx-0.05),y:Math.max(0.5,L.D-3.85),w:0.5,d:0.5});
+ items.forEach(it=>{const c=rp(it.x+it.w/2,it.y+it.d/2);it.k=(MT[it.kind]&&MT[it.kind].zone?-1e6:0)+c[0]+c[1]+(it.kind==='person'||it.kind==='bot'?0.3:0);});items.sort((a,b)=>a.k-b.k);
  CI._hits=[];const bob=k=>(is3&&!reduced())?Math.sin(tick/6+k)*0.04:0;const tags=[];let curIt=null;tags.push=function(...a){a.forEach(t=>{if(!t.it)t.it=curIt;});return Array.prototype.push.apply(this,a);};
  items.forEach((it,ix)=>{curIt=it;const sel=(it.r&&st.sel===it.r.id);
   if(it.kind==='gond'){const H=is3?1.9:0;const c=it.r.color;const pts=[];
@@ -317,6 +317,7 @@ function draw(){const cv=document.querySelector('.ci-root canvas.ci-cv');if(!cv)
     const nm=seeTeam()?String(it.p.show).split(/\s+/)[0]:f.n;tags.push({x:bx0,y:by0-s2*1.14,t:nm,sub:f.n+(it.fixed&&st.edit?' · fijado':''),c:uc,dot:it.p.onShift||it.p.active?'#3ccf7e':'#8a857c'});
     CI._hits.push({it,pts:[[bx0-s2*0.3,by0-s2*1.25],[bx0+s2*0.3,by0-s2*1.25],[bx0+s2*0.3,by0+4],[bx0-s2*0.3,by0+4]]});}}});
  /* carteles arriba de todo */
+ if(CI.drawExt)safe(()=>CI.drawExt({ctx,P,L,is3,sc,tags,gold,box,poly,d,T}),null,'mapa equipo');
  const fs=fsz(sc);
  /* carteles sin encimarse: se miden y, si chocan con uno ya puesto, se corren hacia arriba (con una guía al lugar) */
  const placed=[];tags.forEach(t=>{ctx.font='700 '+fs+'px sans-serif';t.t1=String(t.t).slice(0,20);t.t2=t.sub?String(t.sub):'';const w1=ctx.measureText(t.t1).width;ctx.font='500 '+(fs-2)+'px sans-serif';const w2=t.t2?ctx.measureText(t.t2).width:0;
@@ -373,7 +374,7 @@ function A_deuda(){if(!can('customers'))return'Para ver deudas de clientes neces
  if(!L.length)return'Nadie te debe en cuenta corriente.';const tot=L.reduce((a,x)=>a+x.d,0);return`Te deben <b>${$m(tot)}</b> entre ${L.length} cliente(s):`+li(L.slice(0,8).map(x=>E(typeof custFull==='function'?custFull(x.c):(x.c.name||''))+': '+$m(x.d)));}
 function A_equipo(){if(!seeTeam())return'Para ver la actividad del equipo necesitás el permiso «Personal y fichaje».';const T=team();if(!T.length)return'No hay personas cargadas.';
  return'Hoy en el equipo:'+li(T.map(p=>'<b>'+E(p.name)+'</b> ('+E((FN[p.fn]||FN.vendedor).n)+'): '+E(personState(p))+' · '+E(personSum(p))));}
-function answer(q){const d=D();const k=intent(q);
+function answer(q){const d=D();if(CI.preAnswer){const r0=CI.preAnswer(q,d);if(r0)return r0;}const k=intent(q);
  if(k==='hoy')return A_hoy(d);if(k==='reponer')return A_reponer(d);if(k==='stock')return A_stock(d);if(k==='top')return A_top(d);if(k==='caja')return A_caja(d);if(k==='margen')return A_margen(d);if(k==='deuda')return A_deuda();if(k==='equipo')return A_equipo();
  if(k==='analizar'){const parts=['<b>Ventas.</b> '+A_hoy(d),'<b>Lo que más sale.</b> '+A_top(d),'<b>Reposición.</b> '+A_reponer(d)];if(can('view_cost'))parts.push('<b>Márgenes.</b> '+A_margen(d));if(can('customers'))parts.push('<b>Cuentas corrientes.</b> '+A_deuda());return parts.join('<hr style="border:0;border-top:1px solid rgba(201,150,62,.25);margin:.4rem 0">');}
  if(k==='ayuda')return'Respondo con los datos de este equipo (sólo leo, no cambio nada):'+li(CHIPS.concat(MORE).map(c=>E(c[1])))+'También podés escribir un artículo («fernet 750») o un precio («3500»).';
@@ -456,13 +457,13 @@ function view(){if(CI._failRender){CI._failRender=false;throw new Error('falla s
  if(!isOn())return`<div class="ci-root">${head(false)}${adm?offHTML():'<p class="ci-mut">El administrador no activó el Centro Inteligente.</p>'}</div>`;
  const d=D();CI._d=d;const T=team();CI._t=T;const st=CI.st;
  const stage=`<div class="ci-pan ci-stage${st.edit?' ci-editing':''}" id="ci-stage"><div class="ci-sbar"><span class="ci-stitle">${ic('box').replace('<svg','<svg style="width:18px;height:18px;vertical-align:-3px;color:var(--ci-acc)"')} ${st.edit?'Editando el local (vista de plano)':'Local '+(st.mode==='3d'?'3D':'2D')+' · en vivo'}</span>
-   ${st.edit?'':`<button class="ci-btn ${st.mode==='2d'?'on':''}" data-act="ciMode" data-id="2d">2D</button><button class="ci-btn ${st.mode==='3d'?'on':''}" data-act="ciMode" data-id="3d">3D</button><button class="ci-btn" data-act="ciRot" aria-label="Girar el local">⟳</button>`}<button class="ci-btn" data-act="ciFull" aria-label="Pantalla completa">⛶</button>${adm?(st.edit?`<button class="ci-btn on" data-act="ciEdSave">Guardar</button><button class="ci-btn" data-act="ciEdCancel">Descartar</button>`:`<button class="ci-btn" data-act="ciEdit">✎ Editar local</button>`):''}</div>
+   ${st.edit?'':`<button class="ci-btn ${st.mode==='2d'?'on':''}" data-act="ciMode" data-id="2d">2D</button><button class="ci-btn ${st.mode==='3d'?'on':''}" data-act="ciMode" data-id="3d">3D</button><button class="ci-btn" data-act="ciRot" aria-label="Girar el local">⟳</button>${CI.zoomUI?`<button class="ci-btn" data-act="ciZoom" data-id="1" aria-label="Acercar">＋</button><button class="ci-btn" data-act="ciZoom" data-id="-1" aria-label="Alejar">－</button>`:''}`}<button class="ci-btn" data-act="ciFull" aria-label="Pantalla completa">⛶</button>${adm?(st.edit?`<button class="ci-btn on" data-act="ciEdSave">Guardar</button><button class="ci-btn" data-act="ciEdCancel">Descartar</button>`:`<button class="ci-btn" data-act="ciEdit">✎ Editar local</button>`):''}</div>
    <canvas class="ci-cv${st.edit?' ci-cved':''}" aria-hidden="true"></canvas>${st.edit?'<p class="ci-mut" style="margin:0;padding:.35rem .8rem;font-size:.82rem;border-top:1px solid var(--ci-ln)">Arrastrá con el mouse o el dedo para mover. Tocá un elemento o una persona y cambiá sus datos en «Editar el local», justo debajo.</p>':''}<p class="ci-sr ci-cvsum" aria-live="polite"></p><p class="ci-nocv" hidden style="padding:1rem">Este equipo no puede dibujar el local; usá las listas de abajo.</p>
    <div class="ci-legend"><span><i class="ci-dot" style="background:#ff6b5b"></i>stock negativo</span><span><i class="ci-dot" style="background:#f2b632"></i>stock bajo</span><span><i class="ci-dot" style="background:#3ccf7e"></i>en turno / caja abierta</span>${Object.values(FN).map(f=>`<span><i class="ci-dot" style="background:${f.c}"></i>${f.n}</span>`).join('')}<span>Tocá una góndola o una persona</span></div></div>`;
  const vb=voiceOK()?`<button class="ci-btn ${st.listen?'ci-rec':''}" data-act="ciMic" aria-pressed="${st.listen}" aria-label="${st.listen?'Detener el micrófono':'Hablar con el Gerente'}">${st.listen?'■ Detener':'🎙 Hablar'}</button>`:'';
  const mb=cfg().tts&&window.speechSynthesis?`<button class="ci-btn" data-act="ciMute" aria-pressed="${!st.mute}" aria-label="${st.mute?'Activar la voz de las respuestas':'Silenciar las respuestas'}">${st.mute?'🔇':'🔊'}</button>`:'';
- const gm=`<div class="ci-pan ci-gm" id="ci-gm"><div class="ci-gmh"><h2>Gerente IA</h2><span class="ci-live"><i class="ci-dotl"></i>Activo</span></div>${voiceCard()}${BOT}
-   <div class="ci-bubble">¡Hola${typeof user!=='undefined'&&user?', '+E(user.name):''}! ¿Cómo puedo ayudarte hoy?</div>
+ const gm=`<div class="ci-pan ci-gm" id="ci-gm"><div class="ci-gmh"><h2>${E(CI.gmTitle||'Gerente IA')}</h2><span class="ci-live"><i class="ci-dotl"></i>Activo</span></div>${voiceCard()}${CI.gmAvatar?safe(CI.gmAvatar,BOT,'avatar'):BOT}
+   <div class="ci-bubble">${CI.gmHello?safe(CI.gmHello,'','saludo'):'¡Hola'+(typeof user!=='undefined'&&user?', '+E(user.name):'')+'! ¿Cómo puedo ayudarte hoy?'}</div>
    ${CHIPS.map(c=>`<button class="ci-btn ci-qb" data-act="ciChip" data-id="${c[0]}">${ic(c[2])}${E(c[1])}</button>`).join('')}
    <details><summary>Más preguntas</summary><div class="ci-chips">${MORE.map(c=>`<button class="ci-btn" data-act="ciChip" data-id="${c[0]}">${E(c[1])}</button>`).join('')}</div></details>
    <div class="ci-chat" aria-live="polite" ${st.chat.length?'':'hidden'}>${st.chat.map(m=>`<div class="ci-msg ${m.q?'ci-q':'ci-a'}">${m.q?E(m.q):m.a}</div>`).join('')}</div>
@@ -476,11 +477,13 @@ function view(){if(CI._failRender){CI._failRender=false;throw new Error('falla s
    <div class="ci-pan ci-card"><h3>Medios de pago <span class="ci-mut" style="font-size:.8rem">· 7 días</span></h3>${donutSVG(d)}</div>
    <div class="ci-pan ci-card"><h3>Stock por rubro</h3>${stockBars(d)}</div>
    <div class="ci-pan ci-card"><h3>Actividad reciente</h3>${feed()}</div></div>`;
- return`<div class="ci-root">${head(true)}${kpiHTML(d)}<div class="ci-main">${stage}${gm}</div>${st.edit&&adm?edHTML(d):''}${row2}${teamHTML(T)}${rubTable}</div>`;}
-function after(){if(!isOn())return;draw();loop();const cv=document.querySelector('.ci-root canvas.ci-cv');
- if(cv)edBind(cv);if(cv)cv.addEventListener('click',e=>safe(()=>{if(CI.st.edit)return;const b=cv.getBoundingClientRect();const x=e.clientX-b.left,y=e.clientY-b.top;
-   const order=CI._hits.slice().sort((a,b)=>(b.it.kind==='person'||b.it.kind==='bot')-(a.it.kind==='person'||a.it.kind==='bot'));
+ const ext=pos=>(CI.ext||[]).filter(x=>(x.pos||'bottom')===pos).map(x=>safe(()=>x.html(d,T),'',x.id)).join('');
+ return`<div class="ci-root">${head(true)}${kpiHTML(d)}${ext('top')}<div class="ci-main">${stage}${gm}</div>${st.edit&&adm?edHTML(d):''}${ext('mid')}${row2}${teamHTML(T)}${rubTable}${ext('bottom')}</div>`;}
+function after(){if(!isOn())return;draw();loop();(CI.ext||[]).forEach(x=>{if(x.after)safe(x.after,null,x.id);});const cv=document.querySelector('.ci-root canvas.ci-cv');
+ if(cv)edBind(cv);if(cv)cv.addEventListener('click',e=>safe(()=>{if(CI.st.edit)return;if(CI._panMoved){CI._panMoved=false;return;}const b=cv.getBoundingClientRect();const x=e.clientX-b.left,y=e.clientY-b.top;
+   const rk=it=>(it.kind==='person'||it.kind==='bot')?2:it.kind==='asst'?1:(MT[it.kind]&&MT[it.kind].zone)?0:1;const order=CI._hits.slice().sort((a,b)=>rk(b.it)-rk(a.it));
    for(const h of order){if(inPoly(x,y,h.pts)){const it=h.it;
+     if(CI.zoneClick&&CI.zoneClick(it))return;
      if(it.kind==='gond'){CI.st.sel=it.r.id;logEv('mapa','góndola '+it.r.name);re();setTimeout(()=>{const r=document.getElementById('ci-rub');if(r&&r.scrollIntoView)r.scrollIntoView({block:'nearest'});},50);}
      else if(it.kind==='person'){if(seeTeam())personModal(it.p.k);}
      else if(it.kind==='bot'){const i=document.getElementById('ci-q');if(i)i.focus();}
@@ -533,7 +536,7 @@ function edBind(cv){let drag=null;const W=(ev)=>{const b=cv.getBoundingClientRec
   if(pk){CI.st.psel=pk;CI.st.esel=null;const xy=personXY(pk);drag={k:pk,ox:wx-xy[0],oy:wy-xy[1],moved:false};}
   else{const M=CI.st.draft.map;const tol=Math.max(0.15,14/(CI._view.sc||30));let e=tg&&tg.it.e&&M.items.find(x=>x===tg.it.e);
    if(!e){let best=null,bd=1e9;M.items.forEach(x=>{const y0=x.y-(x.t==='puerta'?0.2:0),d0=Math.max(x.d,x.t==='puerta'?0.4:0);const dx=Math.max(x.x-wx,0,wx-(x.x+x.w)),dy=Math.max(y0-wy,0,wy-(y0+d0));const dd=Math.hypot(dx,dy);
-     if(dd<=tol){const sc2=dd*1000+Math.hypot(wx-(x.x+x.w/2),wy-(y0+d0/2));if(sc2<bd){bd=sc2;best=x;}}});e=best;}
+     if(dd<=tol){const sc2=dd*1000+Math.hypot(wx-(x.x+x.w/2),wy-(y0+d0/2))+(MT[x.t]&&MT[x.t].zone?500:0);if(sc2<bd){bd=sc2;best=x;}}});e=best;}
    CI.st.esel=e?e.id:null;CI.st.psel=null;if(e)drag={e,ox:wx-e.x,oy:wy-e.y,moved:false};}
   if(drag){cv.setPointerCapture&&cv.setPointerCapture(ev.pointerId);ev.preventDefault();}CI.draw();},null,'arrastre'));
  cv.addEventListener('pointermove',ev=>safe(()=>{if(!drag||!CI.st.edit)return;const [wx,wy]=W(ev);const M=CI.st.draft.map;drag.moved=true;M.auto=false;
@@ -611,6 +614,7 @@ act('ciEdSave',()=>{if(!isAdm())return;const dr=CI.st.draft;const st=Object.assi
  CI.st.edit=false;CI.st.draft=null;CI.st.esel=CI.st.psel=null;save();re();toast('Local guardado');});
 act('ciMode',el=>{CI.st.mode=el.dataset.id==='2d'?'2d':'3d';logEv('mapa','vista '+CI.st.mode);re();});
 act('ciRot',()=>{CI.st.rot=(CI.st.rot+1)%4;CI.draw();});
+act('ciZoom',el=>{const z=Math.min(4,Math.max(1,(+CI.st.zoom||1)*((+el.dataset.id)>0?1.4:1/1.4)));CI.st.zoom=z<1.05?1:Math.round(z*100)/100;if(CI.st.zoom===1){CI.st.panX=CI.st.panY=0;}CI.draw();});
 act('ciFull',()=>{const s=document.getElementById('ci-stage');if(!s)return;if(document.fullscreenElement)document.exitFullscreen();else if(s.requestFullscreen)s.requestFullscreen().catch(()=>toast('Este navegador no permite pantalla completa',1));});
 act('ciSel',el=>{CI.st.sel=CI.st.sel===el.dataset.id?null:el.dataset.id;re();});
 act('ciInv',el=>{if(typeof invF!=='undefined')invF.rub=el.dataset.id;go('inventario');});

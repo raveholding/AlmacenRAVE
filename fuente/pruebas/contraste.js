@@ -8,7 +8,7 @@ function bgs(el){ // devuelve lista de fondos posibles (opacos)
   while(e&&e.nodeType===1){const cs=getComputedStyle(e);
     const bi=cs.backgroundImage;
     if(bi&&bi.includes('gradient')){const cols=(bi.match(/rgba?\([^)]+\)/g)||[]).map(P).filter(Boolean);
-      if(cols.length){let res=cols.map(c=>c.a<1?mix(c,{r:255,g:255,b:255,a:1}):c);return res.map(c=>layers.reduceRight((acc,l)=>mix(l,acc),c));}}
+      if(cols.length){/* las paradas transparentes del degradado se ven sobre el color de fondo del propio elemento (si lo tiene), no sobre blanco */const own=P(cs.backgroundColor);const under=own&&own.a>=0.99?own:{r:255,g:255,b:255,a:1};let res=cols.map(c=>c.a<1?mix(c,under):c);return res.map(c=>layers.reduceRight((acc,l)=>mix(l,acc),c));}}
     const c=P(cs.backgroundColor);if(c&&c.a>0){layers.push(c);if(c.a>=0.99)break;}
     e=e.parentElement;}
   let base={r:255,g:255,b:255,a:1};

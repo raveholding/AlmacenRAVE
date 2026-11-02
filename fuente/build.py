@@ -39,6 +39,9 @@ parts=[p for p in parts if os.path.exists(p)]
 # V26.37 · Centro Inteligente (p10-centro.js): módulo aislado.
 # V26.40: aprobado por el dueño para Almacén RAVE (apagado por defecto; lo activa el administrador). Kini no lo lleva salvo CI=1.
 if (V in ('demo','cliente') and not KINI) or os.environ.get('CI')=='1': parts.append('p10-centro.js')
+# V26.42 · Equipo SVB R2AVE (p10b-r2ave.js): extensión del Centro Inteligente SÓLO para la demo raveV2 hasta que el dueño
+# apruebe la demostración. El cliente (Almacén RAVE) y Kini NO la llevan; con R2AVE=1 se fuerza (pruebas).
+if ('p10-centro.js' in parts and V=='demo' and not KINI and os.environ.get('R2AVE','1')!='0') or os.environ.get('R2AVE')=='1': parts.append('p10b-r2ave.js')
 import base64
 def kini_brand(h):
     # Marca de la demo Kini: logo y colores (se reemplazan con los del cliente cuando lleguen); los créditos de Vincular Business no se tocan

@@ -1934,6 +1934,86 @@ Este anexo dice **qué quedó construido y probado** y qué no. No amplía los r
 5. Sin cambios respecto de los límites del anexo C, G.3 y H (hardware, NFC, Wallet, ARCA en producción, multisucursal en servidor).
 
 
+## ANEXO P — V26.42 · EQUIPO SVB R2AVE EN EL CENTRO INTELIGENTE (SÓLO DEMO raveV2; 2026-11-01; evidencia reproducible)
+
+**P.0 Alcance y protección.** Encargo del dueño: la especificación «Centro Inteligente — Equipo oficial SVB R2AVE» se integra **sólo en la demo raveV2** para probarla; **Almacén RAVE no se toca** hasta que el dueño apruebe la demostración. Fase 0 (auditoría y plan): documento del proyecto `claude/CENTRO_R2AVE_FASE0.md`. Desarrollo en la rama `centro-r2ave` de AlmacenRAVE (la rama `main` y el sitio publicado del cliente no cambian); respaldo `respaldo-v26.36`; la demo publicada anterior es el commit `32be133` de raveV2. **Bandera de compilación propia:** `build.py` agrega `p10b-r2ave.js` sólo en la variante `demo` (raveV2); el cliente y Kini **no** la llevan (`R2AVE=1` la fuerza para pruebas, `R2AVE=0` la saca de la demo). Además, todo vive dentro del Centro Inteligente, que sigue apagado por defecto.
+
+**P.1 Qué se construyó.** Parte nueva `p10b-r2ave.js` y ganchos mínimos en `p10-centro.js`. Sin `CI.ext`, la pantalla del Centro queda igual que antes: el cliente compila sin la extensión. Los ganchos son:
+- `CI.ext`: paneles arriba, en el medio y abajo.
+- `CI.preAnswer`: la conversación.
+- `CI.gmTitle`, `CI.gmAvatar` y `CI.gmHello`.
+- `CI.drawExt`: el equipo en el mapa.
+- `CI.zoneClick`.
+- `CI.hideBot` y `CI.zoomUI`.
+- Zonas planas detrás de los muebles y clic que prioriza los muebles sobre las zonas.
+
+Contenido:
+1. **Equipo oficial con los avatares del dueño**: recortes WebP de su imagen, sin redibujar, incrustados en el archivo (unos 57 KB), más la imagen oficial del equipo y la jerarquía.
+   - Dueño → **R2AVE** (asistente principal; el «Gerente IA» pasa a ser R2AVE).
+   - R2AVE coordina a **M2ARGOTH** (riesgos y alertas; aclara que no hay cámaras), **T2ULUZ** (mapa, recepción y despacho; representación digital, sin drone) y **S2HAKIRA** (segunda opinión con criterio propio: compara contra el promedio de 7 días, señala la dependencia de un rubro y cuestiona reponer lo que no se vende).
+   - Selector de quién responde y tipo de respuesta visible: Consulta, Recomendación, Pendiente de confirmación, Acción ejecutada, Acción fallida, Pendiente de sincronización o Rechazada.
+2. **Catálogo de capacidades** (`CI.r2.CAPS`, lista blanca):
+   - `inventory.stock.adjust` es **exclusiva de R2AVE**, **apagada hasta que el administrador la habilita** (auditado como `R2AVE_PERMISO`) y limitada por el permiso humano `edit_products`.
+   - Otras cinco capacidades futuras (pedidos de compra, promociones, precios, tareas y aprobaciones) quedan **deshabilitadas**.
+   - Los otros tres asistentes no escriben nada; un intento queda rechazado y auditado como `R2AVE_RECHAZO`.
+3. **Corrección de stock por R2AVE (§5.3)**:
+   - El formulario muestra el artículo (si la frase es ambigua, pide elegir), el stock registrado, la sucursal y la unidad, y pide la cantidad física y el motivo obligatorio.
+   - Valida decimales en artículos por unidad y no avanza si no hay diferencia.
+   - Muestra un resumen previo (anterior → físico, ajuste, quién lo pide y quién lo ejecuta) y recién después pide confirmar.
+   - Ejecuta con el **servicio existente `stockAdjust`**, que en la nube viaja como movimiento `smov`.
+   - Comprueba el resultado y registra la auditoría `R2AVE_AJUSTE` con usuario, asistente, comercio, sucursal, producto, anterior y nuevo, motivo, fecha, clave de operación (idempotencia: no se repite) y resultado.
+   - Si la nube tiene cambios por subir, informa «pendiente de sincronización»; si algo falla, lo dice y no lo da por hecho.
+4. **Centro de alertas** con 4 prioridades, filtro, evidencia, origen, fecha, comercio, sucursal, responsable sugerido, recomendación, estado (vista en este equipo) y botón «Ir a resolverlo», sin repetidos. Sólo usa datos reales:
+   - stock negativo y bajo;
+   - productos que rotan y pueden faltar;
+   - cajas abiertas de días anteriores y cierres con diferencia;
+   - marcaciones faltantes;
+   - pedidos de compra sin recibir y recepciones con diferencias;
+   - clientes frecuentes que dejaron de comprar;
+   - periféricos desconectados;
+   - pedidos de PedidosYa sin preparar.
+5. **Oficina de RR. HH.**: **lee el fichaje existente** (presentes, sin fichar, entradas y salidas del día, horas de 7 días, marcaciones faltantes) y no crea ni corrige marcaciones. Declara que no hay horarios por persona ni pausas.
+6. **Recepción y despacho**: pedidos de compra pendientes, que se reciben en Proveedores y compras sin duplicar el ingreso. Para despacho declara «sin datos»: no se inventan entregas.
+7. **Mapa**:
+   - 18 tipos de zona de §7.1, más cámaras y ventiladores.
+   - **Plano de ejemplo SVB**, que se carga como borrador del editor existente y se guarda con «Guardar»: oficinas de gerencia, marketing, RR. HH. y administración; cocina, baño y break room; recepción, depósitos y despacho; bebidas, snacks, fiambrería y línea de cajas; heladeras, freezers, cámaras, ventiladores, columnas, pasillos y accesos.
+   - Las góndolas y cajas del dueño se conservan dentro del salón.
+   - **Zoom** (botones y Ctrl + rueda) y **movimiento** arrastrando con el zoom puesto.
+   - Los cuatro asistentes aparecen en el mapa como **representación digital** y se pueden tocar.
+   - Tabla «Zonas del local» como alternativa al mapa, rotulada «plano no calibrado».
+   - En pantallas chicas, los nombres de zonas se ven al acercar.
+8. **Áreas del negocio** (enlaces a las pantallas originales, sin duplicarlas), **integraciones con su estado real** (Google Maps, cámaras, sensores, robots y envíos: «No configurado») y **permisos de los asistentes** (sólo administrador).
+
+Arreglos de paso:
+- Los avisos (toast) eran ilegibles en modo oscuro (letra blanca sobre crema): ahora tienen fondo carbón en `p1-head.html`.
+- El auditor de contraste (`pruebas/contraste.js`) mezclaba los degradados transparentes contra blanco: ahora usa el fondo real.
+
+**P.2 Pruebas.**
+- `ci6` (61 verificaciones): identidad, permisos individuales, rechazo de los otros tres asistentes, flujo completo de corrección con validaciones y auditoría, usuario sin permiso, segunda opinión, riesgos, ubicación, alertas, RR. HH., plano de ejemplo, zoom, aislamiento de fallas, integraciones, apagado y venta normal, 360 px con botones de 44 px o más, contraste claro y oscuro, y que el cliente y Kini no lleven la extensión.
+- Regresión contra la línea base: `ci1`–`ci5`, `v1`, `v2`, `v4`–`v7`, `d1`, `p1`, `ws1`, `h1`, `h3`, `g1`–`g3`, `k1`–`k4`, `kc1`, `kn2`, `kn3`, `resp4` y `pq1` sin fallas.
+- `ci1` se adaptó a que el «Gerente IA» ahora es R2AVE.
+- `kc1` pasó de 2 fallas a 0.
+- `ci2` tuvo una falla de tiempos sólo corriendo en paralelo; sola da 19/19.
+- `v8` mantiene sus 3 fallas conocidas de antes.
+
+**P.3 Límites declarados.**
+- La nube no se probó de extremo a extremo; el ajuste usa la misma puerta de siempre.
+- El stock es uno por producto, no por sucursal: la sucursal registrada es la de la caja del equipo.
+- La idempotencia se comprueba en la auditoría del equipo.
+- Sin horarios por persona no hay llegadas tarde ni ausencias contra horario.
+- Arrastrar tareas a una persona no está hecho: las tareas actuales no tienen responsable y espera la autorización del dueño para agregar ese campo.
+- Google Maps exterior queda pendiente de clave y de autorizar un cambio de la CSP.
+- No hay integraciones físicas (cámaras, sensores, robots).
+- Ocultar o mostrar zonas y la rotación libre no están hechos (el editor gira de a 90°).
+- El plano no está calibrado (faltan las medidas reales).
+
+**P.4 Reversión.**
+1. «Desactivar» en el Centro, que es inmediato.
+2. Compilar la demo con `R2AVE=0`.
+3. Volver a publicar el `index.html` de raveV2 del commit `32be133` o revertir el commit de V26.42.
+4. La rama `centro-r2ave` no se une a `main` de AlmacenRAVE sin aprobación del dueño.
+
+
 FIN DE SISTEMA VB 26 DEMO F (revisión V26.14)
 
 ## ANEXO K — V26.32 · CARRITO DEL MENÚ PÚBLICO Y CONTRASTE DE COLORES (2026-10-29; evidencia reproducible)
