@@ -16,7 +16,7 @@
    · Sólo lee datos. Se pausa fuera de la pantalla y con «reducir movimiento»; si algo falla, CI.safe lo ataja.
    =================================================================================================== */
 (function(){'use strict';if(typeof CI==='undefined'||!CI||!CI.safe||!CI.r2)return;
-const safe=CI.safe;const E=v=>typeof esc==='function'?esc(v):String(v);const $m=c=>typeof money==='function'?money(c):String(c);
+const safe=CI.safe;/* en el sistema del cliente no se usa la palabra «Simulación»: la animación ambiental se rotula «Ambiente» */const SIMW=(typeof IS_CLIENT!=='undefined'&&IS_CLIENT)?'Ambiente':'Simulación';const E=v=>typeof esc==='function'?esc(v):String(v);const $m=c=>typeof money==='function'?money(c):String(c);
 const reduced=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;}};
 const W=24,D=16,CX=W/2,CY=D/2;
 /* ---------- escenario: estaciones y obstáculos (unidades = metros aproximados de la escena, no del local) ---------- */
@@ -332,7 +332,7 @@ function draw(cv,t){const ctx=cv.getContext&&cv.getContext('2d');if(!ctx)return 
    ctx.fillStyle='rgba(8,8,11,.84)';ctx.strokeStyle=c1;ctx.lineWidth=1.5;ctx.beginPath();ctx.rect(bx,h-50,w1,40);ctx.fill();ctx.stroke();ctx.textAlign='left';ctx.fillStyle='#ffffff';ctx.font='800 12px sans-serif';ctx.fillText(l1,bx+12,h-34);ctx.fillStyle='#d5dbe6';ctx.font='600 11px sans-serif';ctx.fillText(l2,bx+12,h-18);};
   hud(10,'l','EQUIPO SVB R2AVE','10 especialistas inteligentes','rgba(255,70,70,.9)');hud(w-10,'r','UN EQUIPO · UNA VISIÓN','Innovación · Estrategia · Crecimiento','rgba(80,160,255,.9)');}
  /* nombres y actividad: «Real» (dato del sistema) o «Simulación» (animación) */
- V.hits=[];const placed=[];lab.sort((a,b)=>b.y-a.y).forEach(L=>{const c=L.c;const fs=Math.max(10,Math.min(13,u*0.28));ctx.font='800 '+fs+'px sans-serif';const cmp=SPEC[c.k]&&V.zoom<1.5&&V.follow!==c.k;const t1=NAME[c.k];const t2=cmp?(c.real?'● ':'○ ')+ROLE[c.k]:(c.real?'● Real: ':'○ Simulación: ')+c.act;
+ V.hits=[];const placed=[];lab.sort((a,b)=>b.y-a.y).forEach(L=>{const c=L.c;const fs=Math.max(10,Math.min(13,u*0.28));ctx.font='800 '+fs+'px sans-serif';const cmp=SPEC[c.k]&&V.zoom<1.5&&V.follow!==c.k;const t1=NAME[c.k];const t2=cmp?(c.real?'● ':'○ ')+ROLE[c.k]:(c.real?'● Real: ':'○ '+SIMW+': ')+c.act;
   ctx.font='600 '+(fs-2)+'px sans-serif';const w2=Math.min(ctx.measureText(t2).width,u*6.5);ctx.font='800 '+fs+'px sans-serif';const w1=ctx.measureText(t1).width;const bw=Math.max(w1,w2)+14,bh=fs*2.6;
   const bx=L.x-bw/2;let by=L.y-bh;for(let i=0;i<8;i++){const o=placed.find(o=>bx<o.x+o.w+3&&bx+bw+3>o.x&&by<o.y+o.h+3&&by+bh+3>o.y);if(!o)break;by=o.y-bh-4;}placed.push({x:bx,y:by,w:bw,h:bh});
   if(by<L.y-bh-2){ctx.strokeStyle=COL[c.k];ctx.globalAlpha=0.6;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(L.x,by+bh);ctx.lineTo(L.x,L.y-2);ctx.stroke();ctx.globalAlpha=1;}ctx.fillStyle='rgba(8,8,11,.82)';ctx.strokeStyle=COL[c.k];ctx.lineWidth=V.follow===c.k?2.5:1.2;if(!c.real)ctx.setLineDash([4,3]);ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,7):ctx.rect(bx,by,bw,bh);ctx.fill();ctx.stroke();ctx.setLineDash([]);
@@ -349,8 +349,8 @@ function frame(ts){V.raf=0;const cv=document.querySelector('.ci-root canvas.vv-c
  V.raf=requestAnimationFrame(frame);}
 function start(){if(V.raf)return;if(reduced()){const cv=document.querySelector('.ci-root canvas.vv-cv');if(cv){safe(()=>tick(0.03),null,'comportamiento');CI.vivo.draw(cv);summary(true);}return;}V.last=0;V.raf=requestAnimationFrame(frame);}
 CI.vivo.start=start;CI.vivo.stop=()=>{if(V.raf)cancelAnimationFrame(V.raf);V.raf=0;};
-function summary(force){const now0=performance.now();if(!force&&now0-V.sumAt<4000)return;V.sumAt=now0;const s=Object.values(CH).map(c=>NAME[c.k]+': '+c.act+(c.real?' (real)':' (simulación)')).join('. ');const el=document.querySelector('.ci-root .vv-sum');if(el&&el.textContent!==s)el.textContent=s;
- const tb=document.querySelector('.ci-root #vv-tab tbody');if(tb)tb.innerHTML=Object.values(CH).map(c=>`<tr><td><b style="color:${TXT[c.k]}">${NAME[c.k]}</b></td><td>${E(zoneOf(c))}</td><td>${E(c.act)}</td><td>${c.real?'<b>Real</b> (dato del sistema)':'Simulación (animación ambiental)'}</td></tr>`).join('');}
+function summary(force){const now0=performance.now();if(!force&&now0-V.sumAt<4000)return;V.sumAt=now0;const s=Object.values(CH).map(c=>NAME[c.k]+': '+c.act+(c.real?' (real)':' ('+SIMW.toLowerCase()+')')).join('. ');const el=document.querySelector('.ci-root .vv-sum');if(el&&el.textContent!==s)el.textContent=s;
+ const tb=document.querySelector('.ci-root #vv-tab tbody');if(tb)tb.innerHTML=Object.values(CH).map(c=>`<tr><td><b style="color:${TXT[c.k]}">${NAME[c.k]}</b></td><td>${E(zoneOf(c))}</td><td>${E(c.act)}</td><td>${c.real?'<b>Real</b> (dato del sistema)':SIMW+' (animación ambiental)'}</td></tr>`).join('');}
 function zoneOf(c){let best='Pasillos de circulación',bd=1e9;Object.values(ST).forEach(s=>{const d0=Math.hypot(s.x-c.x,s.y-c.y);if(d0<bd&&d0<s.r+2){bd=d0;best=s.n;}});return c.k==='t2uluz'&&c.z>1?best+' (volando)':best;}
 /* ---------- panel ---------- */
 function css(){if(document.getElementById('vv-style'))return;const s=document.createElement('style');s.id='vv-style';s.textContent=`
@@ -372,7 +372,7 @@ function html(){css();const sel=k=>`<button class="ci-btn ${V.follow===k?'on':''
   <label class="ci-sr" for="vv-focus">Enfocar una estación</label><select id="vv-focus" class="vv-sel" data-vvfocus><option value="">Enfocar estación…</option>${Object.entries(ST).map(([k,s])=>`<option value="${k}" ${V.focus===k?'selected':''}>${E(s.n)}</option>`).join('')}</select>
   <span style="flex-basis:100%;height:0"></span><span class="ci-mut" style="font-size:.82rem">Seguir:</span>${Object.keys(NAME).map(sel).join('')}</div>
   <canvas class="vv-cv" aria-hidden="true"></canvas><p class="ci-sr vv-sum" aria-live="polite"></p>
-  <div class="vv-legend"><span><span class="vv-real">● Real</span> actividad que viene de un dato u operación del sistema</span><span><span class="vv-sim">○ Simulación</span> animación ambiental: no es una operación</span></div>
+  <div class="vv-legend"><span><span class="vv-real">● Real</span> actividad que viene de un dato u operación del sistema</span><span><span class="vv-sim">○ ${SIMW}</span> animación ambiental: no es una operación</span></div>
   <details style="padding:0 .8rem"><summary>Qué está haciendo cada integrante (alternativa al dibujo)</summary><div class="tw"><table class="ci-tb" id="vv-tab" data-nosort><thead><tr><th>Integrante</th><th>Dónde</th><th>Actividad</th><th>Tipo</th></tr></thead><tbody></tbody></table></div></details>
   <p class="vv-note">Escena 2.5D dibujada en tiempo real en el navegador (sin librerías externas: la política de seguridad del sistema no las permite). Los diez integrantes se dibujan de cuerpo completo con los rasgos y colores de las imágenes oficiales; no son modelos 3D con esqueleto. Los seis especialistas sólo consultan datos: no modifican nada. Arrastrá para girar la cámara (con zoom, para mover), tocá un integrante para seguirlo.</p></section>`;}
 function bind(){const cv=document.querySelector('.ci-root canvas.vv-cv');if(!cv||cv._vv)return;cv._vv=1;

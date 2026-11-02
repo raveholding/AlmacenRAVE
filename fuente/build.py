@@ -46,7 +46,8 @@ if (V in ('demo','cliente') and PROFILE not in('kini','solo')) or os.environ.get
 # V26.42 · Equipo SVB R2AVE (p10b-r2ave.js): extensión del Centro Inteligente SÓLO para la demo raveV2 hasta que el dueño
 # apruebe la demostración. El cliente (Almacén RAVE) y Kini NO la llevan; con R2AVE=1 se fuerza (pruebas).
 # V26.43: el equipo SVB R2AVE y su centro vivo SÓLO en raveV3 (perfil v3). El cliente, raveV2 y Kini no los llevan.
-if ('p10-centro.js' in parts and PROFILE=='v3' and os.environ.get('R2AVE','1')!='0') or os.environ.get('R2AVE')=='1': parts.append('p10b-r2ave.js');parts.append('p10c-vivo.js') if os.path.exists('p10c-vivo.js') else None
+# V26.45: aprobado por el dueño para Almacén RAVE (2026-11-02): el cliente también lleva el equipo y el centro vivo.
+if ('p10-centro.js' in parts and (PROFILE=='v3' or V=='cliente') and os.environ.get('R2AVE','1')!='0') or os.environ.get('R2AVE')=='1': parts.append('p10b-r2ave.js');parts.append('p10c-vivo.js') if os.path.exists('p10c-vivo.js') else None
 import base64
 def kini_brand(h):
     # Marca de la demo Kini: logo y colores (se reemplazan con los del cliente cuando lleguen); los créditos de Vincular Business no se tocan

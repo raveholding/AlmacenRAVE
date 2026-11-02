@@ -160,8 +160,11 @@ with sync_playwright() as p:
             q.evaluate("go('centro');CI.isOn()||A.ciToggle()");q.wait_for_timeout(900);q.evaluate("document.querySelectorAll('.ci-root details').forEach(d=>d.open=true)");q.wait_for_timeout(200)
             bad=q.evaluate(CJS);chk(not bad,'contraste %s %d px: todos los textos del Centro y del equipo legibles %s'%(sch,w,[(x['t'][:25],x['r']) for x in bad[:4]]));q.close()
     b.close()
-    # el cliente y Kini no llevan la extensión
-    for f,tag in (('/tmp/rave/out_cliente.html','cliente (Almacén RAVE)'),('/tmp/rave/kini.html','Kini'),('/tmp/rave/solo.html','raveV2 (un solo dueño)'),('/tmp/rave/index.html','demo interna')):
+    # V26.45: el cliente (Almacén RAVE) lleva el equipo, aprobado por el dueño; Kini, raveV2 y la demo interna no
+    f='/tmp/rave/out_cliente.html'
+    if os.path.exists(f):
+        s2=open(f,encoding='utf8').read();chk('M2ARGOTH' in s2 and 'NEXUS' in s2 and 'vvFollow' in s2,'el cliente (Almacén RAVE) lleva el equipo de 10 y el centro vivo')
+    for f,tag in (('/tmp/rave/kini.html','Kini'),('/tmp/rave/solo.html','raveV2 (un solo dueño)'),('/tmp/rave/index.html','demo interna')):
         if os.path.exists(f):
             s=open(f,encoding='utf8').read();chk('M2ARGOTH' not in s and 'p10b' not in s,'%s no lleva el equipo R2AVE'%tag)
 print('errores:',errs[:5]);chk(not errs,'sin errores de consola')
