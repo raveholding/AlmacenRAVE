@@ -2130,3 +2130,12 @@ FIN DE SISTEMA VB 26F (revisión V26.31)
 - Regresión del Centro sin fallas: `cr1`, `vv1`, `ci1`, `ci2`, `ci3`, `ci6`, `sv1`.
 - **No probado:** el Centro con la sesión real de la nube y los datos reales del comercio (el banco de pruebas de nube sigue pendiente, G.3.1).
 - Vuelta atrás: «Desactivar» en el Centro, o volver a publicar el `index.html` de V26.41.
+
+## ANEXO R — V26.48 · ELIMINAR DESDE EL EDITOR, DATOS DE CLIENTES Y FICHAS DE LOS ASISTENTES (2026-11-03)
+
+Pedido del dueño del 2026-11-03. El número de caja ocupado y la tarjeta del Club en iPhone se resolvieron en otra sesión (V26.47, `16-liberar-caja.sql`).
+
+- **Eliminar desde el editor de producto:** botón «Eliminar este artículo» al pie de «Editar producto», **sólo para el administrador** (`canDelItems`). Reutiliza el borrado protegido de 4.16 (`delFlow`): vista previa, motivo, escribir ELIMINAR, auditoría `INV_ELIMINAR`; con historial se archiva. Otro rol no ve el botón y la función lo rechaza aunque se llame directo. Prueba `pe1` 9/9.
+- **Clientes:** columnas **Alta (registro)** (fecha en que se dio de alta, `c.ts`; para los viejos, la del consentimiento), **Última compra** (con «hace N días») y **Compras** (cantidad y total de ventas confirmadas a su nombre). Se pueden ordenar. La exportación suma `ultima_compra`, `compras` y `total_compras`. Prueba `cu2` 8/8.
+- **Centro Inteligente:** las fichas de los **cuatro asistentes** (R2AVE, M2ARGOTH, T2ULUZ, S2HAKIRA) quedan siempre a la vista, **justo debajo del centro de operaciones vivo**; los seis especialistas, plegados aparte. Vale para Almacén RAVE y raveV3. Prueba `tc1` 13/13 (1600 y 390 px).
+- **Modo oscuro:** barrido de contraste en las 23 pantallas, las ventanas de producto y cliente, el menú público y la tarjeta del Club, en oscuro y en claro: sin textos por debajo de 4,5:1. El caso que vio el dueño queda pendiente de una captura.
