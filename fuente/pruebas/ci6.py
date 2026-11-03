@@ -45,7 +45,7 @@ with sync_playwright() as p:
     chk(len(fut)>=5 and not any(fut),'las capacidades futuras de R2AVE están deshabilitadas por defecto (%d)'%len(fut))
     chk(not ev("CI.r2.capCheck('r2ave','sql.run').ok"),'una acción fuera del catálogo se rechaza')
     # pedirle a R2AVE con la capacidad apagada → rechazo honesto, nada cambia
-    pid=ev("S.products.find(p=>p.unit==='u'&&!p.archived&&p.active!==false).id");pname=ev("S.products.find(p=>p.id==='%s').name"%pid)
+    pid=ev("(S.products.find(p=>p.unit==='u'&&!p.archived&&p.active!==false&&S.products.filter(x=>!x.archived&&prodMatch(x,invQueryParse(p.name.toLowerCase()))).length===1)||S.products.find(p=>p.unit==='u'&&!p.archived)).id");pname=ev("S.products.find(p=>p.id==='%s').name"%pid)
     t=ask('corregí el stock de '+pname,'r2ave')
     chk('no habilitó' in t and pg.locator('#modal-root .ov').count()==0,'con la capacidad apagada R2AVE no abre la corrección')
     # habilitar (administrador, auditado)
@@ -118,15 +118,20 @@ with sync_playwright() as p:
     # mapa: zonas, plano de ejemplo, zoom
     zn=ev("Object.entries(CI.MT).filter(([k,v])=>v.zone).length")
     chk(zn>=18,'catálogo de zonas del local (%d)'%zn)
-    ev("A.r2Plan()");pg.wait_for_timeout(200);ok();pg.wait_for_timeout(500)
-    chk(ev("CI.st.edit===true"),'el plano de ejemplo se carga como borrador en «Editar local»')
-    pg.locator('[data-act=ciEdSave]').first.click();pg.wait_for_timeout(600)
-    labels=ev("CI.mapOf().items.map(x=>x.label)")
-    need=['Recepción','Despacho','Depósito pesado','Depósito de envíos','Gerencia','Marketing','RR. HH.','Administración','Cocina y personal','Baño','Break room','Bebidas','Snacks','Fiambrería','Línea de cajas','Salón de ventas','Pasillo']
-    chk(all(n in labels for n in need),'el plano incluye oficinas (gerencia, marketing, RR. HH.), recepción, despacho, frío y servicios')
-    chk(any(l.startswith('Heladera') for l in labels) and any(l.startswith('Freezer') for l in labels) and any(l.startswith('Cámara') for l in labels) and any(l.startswith('Ventilador') for l in labels),'cadena de frío, cámaras y ventiladores en el plano')
-    zt=ev("[...document.querySelectorAll('.r2-sec summary')].some(s=>s.innerText.includes('Zonas del local'))")
-    chk(zt,'tabla de zonas como alternativa al mapa')
+    if ev("!!(CI.basic&&CI.basic())"):  # raveV3: mapa básico automático, sin plano de ejemplo ni editor
+        chk(pg.locator('[data-act=r2Plan]').count()==0 and pg.locator('[data-act=ciEdit]').count()==0,'raveV3: sin «plano de ejemplo SVB» ni «Editar local»')
+        ev("A.r2Plan();A.ciEdit()");pg.wait_for_timeout(300)
+        chk(not ev("CI.st.edit") and ev("document.querySelectorAll('#modal-root .ov').length")==0 and ev("CI.mapOf().auto")==True,'raveV3: ni llamándolos directo se abre el plano de ejemplo ni el editor; el mapa es el básico')
+    else:
+        ev("A.r2Plan()");pg.wait_for_timeout(200);ok();pg.wait_for_timeout(500)
+        chk(ev("CI.st.edit===true"),'el plano de ejemplo se carga como borrador en «Editar local»')
+        pg.locator('[data-act=ciEdSave]').first.click();pg.wait_for_timeout(600)
+        labels=ev("CI.mapOf().items.map(x=>x.label)")
+        need=['Recepción','Despacho','Depósito pesado','Depósito de envíos','Gerencia','Marketing','RR. HH.','Administración','Cocina y personal','Baño','Break room','Bebidas','Snacks','Fiambrería','Línea de cajas','Salón de ventas','Pasillo']
+        chk(all(n in labels for n in need),'el plano incluye oficinas (gerencia, marketing, RR. HH.), recepción, despacho, frío y servicios')
+        chk(any(l.startswith('Heladera') for l in labels) and any(l.startswith('Freezer') for l in labels) and any(l.startswith('Cámara') for l in labels) and any(l.startswith('Ventilador') for l in labels),'cadena de frío, cámaras y ventiladores en el plano')
+        zt=ev("[...document.querySelectorAll('.r2-sec summary')].some(s=>s.innerText.includes('Zonas del local'))")
+        chk(zt,'tabla de zonas como alternativa al mapa')
     chk('Sin conexión (no hay integración)' in ev("document.body.innerHTML"),'cámaras y heladeras se muestran sin conexión (no se inventa telemetría)')
     ev("A.ciZoom({dataset:{id:'1'}})");chk(ev("CI.st.zoom")>1,'zoom del mapa')
     ev("A.ciZoom({dataset:{id:'-1'}});A.ciZoom({dataset:{id:'-1'}})");chk(ev("CI.st.zoom")==1,'alejar vuelve a la vista completa')

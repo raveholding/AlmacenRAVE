@@ -3,7 +3,8 @@
    propio de Almacén RAVE (nombre, dirección, WhatsApp, redes, rubros, catálogo, Wi-Fi). Venta minorista de almacén/kiosco.
    Los productos se agrupan en CATEGORÍAS (sólo ordenan inventario, Vender y menú). Todo el dinero es del dueño.
    No lleva el Centro Inteligente ni los asistentes SVB R2AVE (eso es raveV3). Todo rotulado «ejemplo». */
-function isSoloBuild(){return!!(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.profile==='solo');}
+/* V26.46: raveV3 (perfil v3) usa la misma base genérica de un solo dueño, más el Centro Inteligente con los asistentes */
+function isSoloBuild(){return!!(typeof window!=='undefined'&&window.RAVE_BUILD&&(window.RAVE_BUILD.profile==='solo'||window.RAVE_BUILD.profile==='v3'));}
 function soloCats(){return[
  {id:'s-alm',name:'Almacén',color:'#5b7d3a',mNom:'Almacén',mTitle:'Almacén',layout:'rows',alcohol:false},
  {id:'s-beb',name:'Bebidas',color:'#2f6f8f',mNom:'Bebidas',mTitle:'Bebidas',layout:'grid',alcohol:false},

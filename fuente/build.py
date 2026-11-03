@@ -20,7 +20,7 @@ pub=os.environ.get('PUBLIC_URL','https://raveholding.github.io/'+('AlmacenRAVE/'
 import datetime
 if KINI: pub=os.environ.get('PUBLIC_URL','https://raveholding.github.io/KiniDistribuidoraDemo/')
 if PROFILE=='v3': pub=os.environ.get('PUBLIC_URL','https://raveholding.github.io/raveV3/')
-build={'ver':datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M')+' UTC','variant':V,'db':'rave-almacenrave-v1' if V=='cliente' else {'kini':'rave-kini-demo-v2','solo':'rave-solo-demo-v1','v3':'rave-v3-demo-v1'}.get(PROFILE,'rave-cliente-v3'),'publicUrl':pub}
+build={'ver':datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M')+' UTC','variant':V,'db':'rave-almacenrave-v1' if V=='cliente' else {'kini':'rave-kini-demo-v2','solo':'rave-solo-demo-v1','v3':'rave-v3-demo-v2'}.get(PROFILE,'rave-cliente-v3'),'publicUrl':pub}
 if PROFILE: build['profile']=PROFILE
 cfg='<script>window.RAVE_BUILD=%s;window.RAVE_CLOUD=%s;</script>\n'%(json.dumps(build),json.dumps({'url':url,'key':key,'slug':slug}))
 head=B('p1-head.html')
@@ -77,7 +77,7 @@ def kini_brand(h):
     h=h.replace('--gold-deep:#dba854','--gold-deep:%s'%c2)
 
     return h
-def solo_brand(h):
+def solo_brand(h,v3=False):
     # Demo raveV2 «Mi Comercio» (un solo dueño): marca genérica, sin nada de Almacén RAVE. Los créditos de Vincular Business no se tocan.
     svg='<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><rect width="320" height="180" rx="22" fill="#1f2a37"/><text x="160" y="92" font-family="Arial,Helvetica,sans-serif" font-size="46" font-weight="700" fill="#ffffff" text-anchor="middle">MI COMERCIO</text><text x="160" y="136" font-family="Arial,Helvetica,sans-serif" font-size="20" letter-spacing="4" fill="#5cc2a8" text-anchor="middle">DEMO</text></svg>'
     uri='data:image/svg+xml;base64,'+base64.b64encode(svg.encode()).decode()
@@ -87,7 +87,7 @@ def solo_brand(h):
     h=h.replace('--ink:#242220;','--ink:%s;'%c1,1).replace('--gold:#c9963e;','--gold:%s;'%c2,1).replace('--gold2:#a87a28;','--gold2:%s;'%c3,1)
     h=h.replace('style="width:48px;height:27px;object-fit:cover;border-radius:6px"','style="width:48px;height:27px;object-fit:contain;border-radius:6px"')
     h=h.replace('Sistema RAVE','Sistema VB').replace('alt="RAVE"','alt="Mi Comercio"')
-    h=re.sub(r'<title>[^<]*</title>','<title>Mi Comercio · Demo de un solo dueño · Sistema VB</title>',h,count=1)
+    h=re.sub(r'<title>[^<]*</title>','<title>Mi Comercio · %s · Sistema VB</title>'%('Demo con asistentes inteligentes' if v3 else 'Demo de un solo dueño'),h,count=1)
     h=re.sub(r'(class=\\"logo\\" src=\\")data:image/[a-z]+;base64,[A-Za-z0-9+/=]+',lambda m:m.group(1)+uri,h,count=1)
     for o,n in [('Almacén y Licorería RAVE, Urquiza 1052, Salta, Argentina. Contacto: WhatsApp 387 4574892.','Mi Comercio (demo de evaluación, datos de ejemplo).'),
                 ('Almacén y Licorería · Urquiza 1052 · Salta, Argentina','Mi Comercio · demo'),
@@ -96,11 +96,15 @@ def solo_brand(h):
                 ('Almacén y Licorería RAVE','Mi Comercio'),('Almacén y Licorería · Salta','Almacén y kiosco · demo'),('RAVE DIGITAL','MI COMERCIO'),('Club RAVE','Club Mi Comercio'),('class=\\"foot-brand\\">RAVE<','class=\\"foot-brand\\">MI COMERCIO<'),('alt=\\"RAVE','alt=\\"Mi Comercio'),('que RAVE guarde','que Mi Comercio guarde'),('RAVE Club','Mi Comercio Club'),('<title>RAVE','<title>Mi Comercio'),('Este menú incluye bebidas alcohólicas y tabaco.','Este catálogo incluye bebidas alcohólicas.'),('This menu includes alcoholic beverages and tobacco.','This catalog includes alcoholic beverages.')]:
         h=h.replace(o,n)
     h=h.replace('--gold:#c9963e','--gold:%s'%c2).replace('--gold-deep:#dba854','--gold-deep:%s'%c2)
+    # menú lateral: el ítem activo sobre el verde de la marca lleva texto negro (5,0:1; con #1b1100 daba 4,49:1)
+    h=h.replace('#side a.on{background:var(--gold);color:#1b1100;','#side a.on{background:var(--gold);color:#000;',1)
+    # raveV3: el Centro Inteligente usa una variante más clara del mismo verde para cumplir contraste 4,5:1 sobre su fondo oscuro
+    if v3: h=h.replace('--ci-acc:var(--gold,#c9963e)','--ci-acc:#45ad92',1)
     return h
 vbj='const VB_BANNER="data:image/webp;base64,'+base64.b64encode(open('assets/vb-banner.webp','rb').read()).decode()+'";\n'
 html=head+'\n'+vbj+B('build/p0-data.js')+B('build/p0-pub.js')+"const SOCIAL_ICONS_OK=1;\n"+B('build/qr.js')+'\n'+'\n'.join(B(p) for p in parts)+'\n</script>\n</body></html>\n'
 if KINI: html=kini_brand(html)
-if PROFILE=='solo': html=solo_brand(html)
+if PROFILE in('solo','v3'): html=solo_brand(html,PROFILE=='v3')
 open(out,'w',encoding='utf8').write(html)
 m=re.search(r'\n<script>\n(.*?)\n</script>\n</body>',html,re.S)
 open('all.js','w',encoding='utf8').write(m.group(1))

@@ -23,6 +23,8 @@ CI.safe=safe;
 const re=()=>{const y=window.scrollY||0;rerender();if(y)window.scrollTo(0,y);};
 const cfg=()=>(typeof S!=='undefined'&&S&&S.cfg&&S.cfg.ci)||{};
 const isAdm=()=>typeof user!=='undefined'&&!!user&&user.role==='admin';
+/* V26.46 · raveV3 (perfil v3): demo genérica con el Centro y los asistentes, mapa básico automático; sin la personalización de Almacén RAVE (editor del local ni personal con fotos) */
+const BASIC=()=>!!(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.profile==='v3');CI.basic=BASIC;
 const isOn=()=>!!cfg().on;
 const allowed=()=>{if(typeof user==='undefined'||!user)return false;if(isAdm())return true;const rl=cfg().roles;return isOn()&&Array.isArray(rl)&&rl.includes(user.role);};
 const seeTeam=()=>isAdm()||(typeof can==='function'&&can('staff'));
@@ -191,7 +193,7 @@ function team(){const now0=typeof now==='function'?now():Date.now();const tk=dke
   .sort((a,b)=>(b.active-a.active)||(b.last-a.last)||a.name.localeCompare(b.name,'es'));}
 CI.team=()=>safe(team,[],'equipo');
 /* configuración propia de cada persona dentro del módulo (no toca la ficha de Personal ni el usuario) */
-function stf(k){const v=(cfg().staff||{})[k];return typeof v==='string'?{fn:v}:(v&&typeof v==='object'?v:{});}
+function stf(k){if(BASIC())return{};const v=(cfg().staff||{})[k];return typeof v==='string'?{fn:v}:(v&&typeof v==='object'?v:{});}
 const okCol=c=>/^#[0-9a-fA-F]{6}$/.test(String(c||''))?c:'';
 const okPh=v=>typeof v==='string'&&v.length<60000&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(v);
 const okPos=v=>Array.isArray(v)&&v.length===2&&v.every(n=>typeof n==='number'&&isFinite(n)&&n>=0&&n<=60)?v:null;
@@ -217,7 +219,7 @@ function cleanMap(m){if(!m||!Array.isArray(m.items)||!(+m.W>0)||!(+m.D>0))return
  const items=m.items.slice(0,80).map((x,i)=>{const t=MT[x&&x.t]?x.t:null;if(!t)return null;const w=Math.min(W,Math.max(0.1,+x.w||MT[t].w)),dd=Math.min(Dd,Math.max(0.1,+x.d||MT[t].d));
   return{id:String(x.id||('e'+i)).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,20)||('e'+i),t,x:Math.min(W-w,Math.max(0,Math.round((+x.x||0)*10)/10)),y:Math.min(Dd-dd,Math.max(0,Math.round((+x.y||0)*10)/10)),w:Math.round(w*10)/10,d:Math.round(dd*10)/10,
    label:String(x.label||'').slice(0,30),rubro:t==='gond'&&x.rubro&&(S.rubros||[]).some(r=>r.id===x.rubro)?x.rubro:'',color:okCol(x.color)};}).filter(Boolean);return{W,D:Dd,items};}
-function mapOf(d){if(CI.st.edit&&CI.st.draft)return CI.st.draft.map;const m=cleanMap(cfg().map);return m||autoMap(d.R,d.open.length);}
+function mapOf(d){if(BASIC())return autoMap(d.R,d.open.length);if(CI.st.edit&&CI.st.draft)return CI.st.draft.map;const m=cleanMap(cfg().map);return m||autoMap(d.R,d.open.length);}
 CI.mapOf=()=>safe(()=>mapOf(D()),null,'local');
 function shade(hex,f){const n=parseInt(String(hex).slice(1),16);if(isNaN(n))return hex;let r=n>>16,g=n>>8&255,b=n&255;const m=x=>Math.max(0,Math.min(255,Math.round(f<0?x*(1+f):x+(255-x)*f)));return`rgb(${m(r)},${m(g)},${m(b)})`;}
 function zonePos(M,f,i){/* dónde se para cada función (siempre del lado del pasillo, a la vista) */
@@ -457,7 +459,7 @@ function view(){if(CI._failRender){CI._failRender=false;throw new Error('falla s
  if(!isOn())return`<div class="ci-root">${head(false)}${adm?offHTML():'<p class="ci-mut">El administrador no activó el Centro Inteligente.</p>'}</div>`;
  const d=D();CI._d=d;const T=team();CI._t=T;const st=CI.st;
  const stage=`<div class="ci-pan ci-stage${st.edit?' ci-editing':''}" id="ci-stage"><div class="ci-sbar"><span class="ci-stitle">${ic('box').replace('<svg','<svg style="width:18px;height:18px;vertical-align:-3px;color:var(--ci-acc)"')} ${st.edit?'Editando el local (vista de plano)':'Local '+(st.mode==='3d'?'3D':'2D')+' · en vivo'}</span>
-   ${st.edit?'':`<button class="ci-btn ${st.mode==='2d'?'on':''}" data-act="ciMode" data-id="2d">2D</button><button class="ci-btn ${st.mode==='3d'?'on':''}" data-act="ciMode" data-id="3d">3D</button><button class="ci-btn" data-act="ciRot" aria-label="Girar el local">⟳</button>${CI.zoomUI?`<button class="ci-btn" data-act="ciZoom" data-id="1" aria-label="Acercar">＋</button><button class="ci-btn" data-act="ciZoom" data-id="-1" aria-label="Alejar">－</button>`:''}`}<button class="ci-btn" data-act="ciFull" aria-label="Pantalla completa">⛶</button>${adm?(st.edit?`<button class="ci-btn on" data-act="ciEdSave">Guardar</button><button class="ci-btn" data-act="ciEdCancel">Descartar</button>`:`<button class="ci-btn" data-act="ciEdit">✎ Editar local</button>`):''}</div>
+   ${st.edit?'':`<button class="ci-btn ${st.mode==='2d'?'on':''}" data-act="ciMode" data-id="2d">2D</button><button class="ci-btn ${st.mode==='3d'?'on':''}" data-act="ciMode" data-id="3d">3D</button><button class="ci-btn" data-act="ciRot" aria-label="Girar el local">⟳</button>${CI.zoomUI?`<button class="ci-btn" data-act="ciZoom" data-id="1" aria-label="Acercar">＋</button><button class="ci-btn" data-act="ciZoom" data-id="-1" aria-label="Alejar">－</button>`:''}`}<button class="ci-btn" data-act="ciFull" aria-label="Pantalla completa">⛶</button>${adm&&!BASIC()?(st.edit?`<button class="ci-btn on" data-act="ciEdSave">Guardar</button><button class="ci-btn" data-act="ciEdCancel">Descartar</button>`:`<button class="ci-btn" data-act="ciEdit">✎ Editar local</button>`):''}</div>
    <canvas class="ci-cv${st.edit?' ci-cved':''}" aria-hidden="true"></canvas>${st.edit?'<p class="ci-mut" style="margin:0;padding:.35rem .8rem;font-size:.82rem;border-top:1px solid var(--ci-ln)">Arrastrá con el mouse o el dedo para mover. Tocá un elemento o una persona y cambiá sus datos en «Editar el local», justo debajo.</p>':''}<p class="ci-sr ci-cvsum" aria-live="polite"></p><p class="ci-nocv" hidden style="padding:1rem">Este equipo no puede dibujar el local; usá las listas de abajo.</p>
    <div class="ci-legend"><span><i class="ci-dot" style="background:#ff6b5b"></i>stock negativo</span><span><i class="ci-dot" style="background:#f2b632"></i>stock bajo</span><span><i class="ci-dot" style="background:#3ccf7e"></i>en turno / caja abierta</span>${Object.values(FN).map(f=>`<span><i class="ci-dot" style="background:${f.c}"></i>${f.n}</span>`).join('')}<span>Tocá una góndola o una persona</span></div></div>`;
  const vb=voiceOK()?`<button class="ci-btn ${st.listen?'ci-rec':''}" data-act="ciMic" aria-pressed="${st.listen}" aria-label="${st.listen?'Detener el micrófono':'Hablar con el Gerente'}">${st.listen?'■ Detener':'🎙 Hablar'}</button>`:'';
@@ -524,7 +526,7 @@ document.addEventListener('input',e=>safe(()=>{const t=e.target;if(!t||!t.datase
  if(k==='t'||k==='rubro'){if(k==='t'&&!Object.prototype.hasOwnProperty.call(MT,t.value))return;it[k]=t.value;if(k==='t'&&MT[t.value]){it.w=MT[t.value].w;it.d=MT[t.value].d;edClamp(it,M);if(t.value!=='gond')it.rubro='';}re();return;}
  const v=parseFloat(String(t.value).replace(',','.'));if(!isFinite(v))return;it[k]=v;edClamp(it,M);CI.draw();},null,'editar local'));
 /* los campos de texto y números no redibujan la pantalla (así no se pierde el foco al pasar de un campo a otro) */
-function edStart(){if(!isAdm())return toast('Sólo el administrador edita el local',1);const d=D();const M=JSON.parse(JSON.stringify(mapOf(d)));M.auto=!!M.auto;const pos={};
+function edStart(){if(BASIC())return toast('En esta demo el local es el plano básico automático',1);if(!isAdm())return toast('Sólo el administrador edita el local',1);const d=D();const M=JSON.parse(JSON.stringify(mapOf(d)));M.auto=!!M.auto;const pos={};
  CI.st.edit=true;CI.st.draft={map:M,pos};CI.st.esel=null;CI.st.psel=null;logEv('local','edición iniciada');re();}
 function edMovePerson(k,x,y){const M=CI.st.draft.map;CI.st.draft.pos[k]=[Math.round(Math.min(M.W-0.3,Math.max(0.3,x))*10)/10,Math.round(Math.min(M.D-0.3,Math.max(0.3,y))*10)/10];}
 function personXY(k){const h=CI._hits.find(h=>h.it.kind==='person'&&h.it.p.k===k);return h?[h.it.x+0.2,h.it.y+0.2]:null;}
@@ -545,7 +547,7 @@ function edBind(cv){let drag=null;const W=(ev)=>{const b=cv.getBoundingClientRec
 CI.ed={start:()=>safe(edStart,null,'editar local'),move:(id,x,y)=>safe(()=>{const e=CI.st.draft.map.items.find(z=>z.id===id);if(e){e.x=x;e.y=y;edClamp(e,CI.st.draft.map);CI.st.draft.map.auto=false;CI.draw();}},null,'editar local'),movePerson:(k,x,y)=>safe(()=>{edMovePerson(k,x,y);CI.draw();},null,'editar local')};
 
 /* ---------- detalle de una persona ---------- */
-function personModal(k){const p=team().find(x=>x.k===k);if(!p)return;const f=FN[p.fn]||FN.vendedor;const tk=dkey(Date.now());const adm=isAdm();
+function personModal(k){const p=team().find(x=>x.k===k);if(!p)return;const f=FN[p.fn]||FN.vendedor;const tk=dkey(Date.now());const adm=isAdm()&&!BASIC();
  const rows=[];p.punches.forEach(x=>rows.push({ts:x.ts,t:'Fichaje · '+(x.kind==='in'?'entrada':'salida')}));
  (S.sales||[]).forEach(s=>{if(ok(s)&&dkey(s.ts)===tk&&String(s.user||'').trim().toLowerCase()===k)rows.push({ts:s.ts,t:'Venta '+(s.n||'')+' · '+$m(s.total)+' · '+((typeof MET!=='undefined'&&MET[s.method])||s.method||'')});});
  p.acts.forEach(a=>{if(a.action==='VENTA')return;rows.push({ts:a.ts,t:(CATN[CAT(a.action)]||a.action)+' · '+(a.detail||a.action)});});
