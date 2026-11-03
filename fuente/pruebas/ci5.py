@@ -46,7 +46,7 @@ for dpr,W in [(3,390),(1,1280)]:
     pg.click('[data-act=ciEdAdd][data-t=freezer]');pg.wait_for_timeout(300)
     fid=ev("CI.st.esel");pg.click('[data-act=ciEdDel]');pg.wait_for_timeout(300)
     chk(not ev("CI.st.draft.map.items.some(x=>x.id==='%s')"%fid),'%d px: borrar el freezer'%W)
-    pg.screenshot(path='ed2_%d.png'%W)
+    pg.screenshot(path='/tmp/ed2_%d.png'%W)
     pg.locator('.ci-sbar [data-act=ciEdSave]').click();pg.wait_for_timeout(400)
     chk(ev("!CI.st.edit") and any(x['id']==hid for x in ev("S.cfg.ci.map.items")),'%d px: Guardar deja la heladera en el local'%W)
     chk(not errs,'%d px: sin errores %s'%(W,errs[:1]))
