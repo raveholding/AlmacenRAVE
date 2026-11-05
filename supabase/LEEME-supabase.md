@@ -25,6 +25,7 @@ Todo se hace con el **dueño del proyecto** (Vincular Business). Nada de esto va
 | `12-pago-proveedor-cajas.sql` | **Pago a proveedor repartido entre varias cajas (V26.12):** el pago en efectivo puede salir de la caja principal y de otras cajas a la vez (`asignaciones`); un solo Pago en el libro, un egreso por caja, todo o nada, tabla sólo-agregar `pagos_proveedor_asignaciones`. Sin `asignaciones` funciona como siempre. **Requiere 01 a 11.** |
 | `16-ajustes-medios-pago.sql` | **Recargos y descuentos por medio de pago (V26.49):** documento de configuración `cfg/payadj` que escribe **sólo el administrador** (todos los roles lo leen para cobrar) y control de los pagos con ajuste dentro de cada venta (`a = base + ajuste`, enteros; un descuento no supera la base). Modifica la función vigente `sincronizar` en el lugar (no la copia entera). Aditivo e idempotente. **Requiere 01 a 15. Correrlo ANTES de activar los recargos en Configuración** (sin él, el servidor rechaza la configuración nueva). |
 | `17-fiado-cc-cortes.sql` | **Fiado / Cuenta corriente y cortes X (V26.49):** colección `cortesx` (foto del turno que no cierra la caja; escritura única, todos los roles de caja) y validación del tipo de deuda de la venta (`ck` = `fiado` o `cc`). Modifica en el lugar `sincronizar` y `rave_puede_escribir`. Aditivo e idempotente. **Requiere 01 a 16.** |
+| `18-telegram.sql` | **R2AVE en Telegram (@R2aveBot, V26.52, sólo Almacén RAVE):** configuración del bot por comercio (encendido, ventana de correcciones de stock, límites, IA, grupo de alertas) que cambia **sólo el administrador**; vínculos Telegram ↔ administrador con códigos de un solo uso; correcciones de stock en dos pasos que se vuelven a verificar al confirmar (mismo camino que los equipos: `smov` + stock + Auditoría). Las tablas no se leen por la API: sólo la función `telegram` (service role) y las funciones del administrador. Aditivo e idempotente; no toca `sincronizar`. **Requiere 01 a 17 y la función `telegram`.** |
 | `90-reiniciar-pruebas.sql` | **SÓLO PRUEBAS. Borra lo subido por todos los comercios.** No correr con el sistema en uso real. |
 
 Todos (menos 90) se pueden repetir sin romper nada.
@@ -56,6 +57,20 @@ supabase functions deploy arca --no-verify-jwt   # la propia función valida al 
 
 ## 6 · Pruebas incluidas (`tests/`)
 `tests/run.sh` corre 152 comprobaciones SQL (aislamiento entre comercios, roles, stock, cierres, ARCA), `20-concurrency.sh` prueba dos cajas vendiendo a la vez y `functions/arca/arca_test.ts` (Deno) prueba la función contra un ARCA **falso**. Necesitan un Postgres/PostgREST local (`tests/mk-e2e-db.sh`). **No sustituyen la prueba en homologación con ARCA real.**
+
+## Función `telegram` · R2AVE en Telegram (@R2aveBot) · sólo Almacén RAVE
+Lo usan **sólo los administradores**. Pasos (una vez):
+1. **SQL:** correr `16-ajustes-medios-pago.sql`, `17-fiado-cc-cortes.sql` y `18-telegram.sql` (en ese orden, si no estaban).
+2. **Función:** Supabase → Edge Functions → *Deploy a new function* → nombre `telegram`, con los dos archivos de `functions/telegram/` (`index.ts` y `handler.ts`). En la configuración de la función, **apagar «Verify JWT»** (Telegram no manda sesión; la protege la cabecera secreta y las acciones del sistema verifican al administrador en la base).
+3. **Secretos** (Edge Functions → Secrets). Los carga el administrador; **el token no se manda por chat, mail ni WhatsApp y no se escribe en el sistema**:
+   - `TELEGRAM_BOT_TOKEN`: el que da @BotFather para @R2aveBot (si alguna vez se compartió, pedile a @BotFather `/revoke` y cargá el nuevo).
+   - `TELEGRAM_WEBHOOK_SECRET`: 32 o más caracteres aleatorios, sólo `A-Z a-z 0-9 _ -` (por ejemplo, el resultado de `openssl rand -hex 32`).
+   - `TG_COMERCIO` = `almacen-rave` (el bot atiende a un solo comercio).
+   - Opcional: `ANTHROPIC_API_KEY` (preguntas en lenguaje natural; si no está, el bot responde con los comandos).
+4. **Conectar:** en el sistema, Configuración → *R2AVE en Telegram* → **Conectar con Telegram** (registra el webhook con el secreto y la lista de comandos) → encender el bot → **Vincular mi Telegram** (código de un solo uso, 10 minutos).
+5. **Alertas (opcional):** agregar @R2aveBot a un grupo y que un administrador vinculado escriba `/alertas_aqui`. Para el resumen diario, programar en Supabase → Integrations → Cron una llamada `POST https://<proyecto>.supabase.co/functions/v1/telegram?alertas=1` con la cabecera `x-tg-cron: <TELEGRAM_WEBHOOK_SECRET>` (por ejemplo, todos los días a las 8:30 y a las 20:30). Las alertas no se repiten.
+
+Pruebas: `./tests/mk-e2e-db.sh && bun test functions/telegram/tg_test.ts` (Telegram e IA **falsos**). La prueba real se hace con @R2aveBot una vez instalado.
 
 ## Función `api` (REST de Proveedores y Compras) · opcional
 La pantalla del sistema **no la necesita** (usa las funciones SQL con la sesión del usuario). Sirve para integrar otros sistemas. Se despliega igual que `arca` (ver `despliegue-panel/LEEME.md`), **sin ningún secreto propio**: usa `SUPABASE_URL` y `SUPABASE_ANON_KEY`, que Supabase ya provee, y reenvía el JWT del usuario; la base decide qué puede hacer. Rutas y formato en la sección 4.21 de `fuente/sistema_vb_26.md`.

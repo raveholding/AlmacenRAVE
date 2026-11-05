@@ -6,6 +6,8 @@ Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. 
 
 ## Versión: SISTEMA VB 26F (`SISTEMA_VB_26F`)
 
+**V26.52 (2026-11-05):** R2AVE en Telegram (@R2aveBot), sólo para administradores: consultas de ventas, stock, cajas, cierres y deudas; corrección de stock en dos pasos con límites cuando el administrador la habilita; alertas a un grupo. Se configura en Configuración → R2AVE en Telegram (instalación en `supabase/LEEME-supabase.md`).
+
 **V26.51 (2026-11-05):** con una ventana abierta el Tab ya no se va a la pantalla de atrás; y desde la ficha del cliente se le puede mandar un WhatsApp con su saldo (Fiado / Cuenta corriente y vencimientos) o un aviso.
 
 **V26.50 (2026-11-05):** modo oscuro y claro revisados pantalla por pantalla: la línea seleccionada del ticket ya no queda con fondo claro y letra clara, y los avisos en rojo se leen en los dos modos.
