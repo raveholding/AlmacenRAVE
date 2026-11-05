@@ -93,7 +93,7 @@ function clientClean(d){d.products=d.products.filter(p=>!/granel-1/.test(p.id)).
 const DEF0=()=>({v:3,
  tenant:{name:'RAVE',legal:'Almacén y Licorería RAVE',slogan:'Almacén y Licorería · Salta',wa:'5493874574892',address:'Urquiza 1052, Salta, Argentina',phone:'(387) 4 57 48 92',cuit:'',iva:'',caja:1,ig:'RAVE_LICORERIA',fb:'LICORERIA_RAVE'},
  rubros:SEED_RUBROS.map(r=>({...r})),branches:[],registers:[],transfers:[],transferEvents:[],payDetails:[],
- payadj:{on:false,stack:false,rules:{}},
+ payadj:{on:false,stack:false,rules:{}},cortesX:[],
  cfg:{biz:'rubros',permNotice:{ack:true},xfer:{strict:true,closedMode:'transito',approvalOver:0,transitAlertH:0,selfAuth:true,ownerV:1},cashProfile:'simple',negStock:true,tax:{promo:3000000,vino:3000000},fee:{qr:0,modo:0,debito:0,credito:0,pedidosya:0},movAffectProfit:true,payFromCash:true,scaleMode:'peso',ticket:{w:80,msg:'¡Gracias por tu compra! Seguinos en Instagram @rave_licoreria',showLogo:true,legal:true}},
  products:seedProducts(),
  sales:[],sessions:[],movs:[],closures:[],seq:{},

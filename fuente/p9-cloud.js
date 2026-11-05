@@ -72,6 +72,7 @@ const COLS=[
  {c:'rubros',key:'rubros',del:1},
  {c:'clientes',key:'customers',pii:['name','last','birth','wa','email','secret','notes','dni','cardSecrets','taxid'],del:1},
  {c:'fiado',key:'fiadoPays',once:1},
+ {c:'cortesx',key:'cortesX',once:1},
  {c:'emp',key:'employees',pii:['pin','dni'],del:1},
  {c:'fich',key:'punches'},
  {c:'puestos',key:'puestos',del:1},
@@ -95,7 +96,7 @@ const COLS=[
 const BYC=Object.fromEntries(COLS.map(x=>[x.c,x]));
 const DELC=new Set(COLS.filter(x=>x.del).map(x=>x.c));
 const CFGIDS=['tenant','cfg','menu','loyalty','roles','integ','legal','payadj'];
-const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado']);
+const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado','cortesx']);
 const r3=n=>Math.round(n*1000)/1000;
 function stripOf(col,it){const d=JSON.parse(JSON.stringify(it));(col.strip||[]).forEach(k=>delete d[k]);return d;}
 function cfgWire(id){switch(id){

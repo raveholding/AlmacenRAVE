@@ -73,8 +73,9 @@ function ticketHTML(sale){const W=S.cfg.ticket.w===58?32:42;const mm=S.cfg.ticke
 let LOGO_R=null;
 function logoRaster(){if(LOGO_R)return LOGO_R;LOGO_R=new Promise(res=>{try{const im=new Image();im.onload=()=>{try{const w=Math.floor(Math.min(im.width,S.cfg.ticket.w===58?384:384)/8)*8,h=Math.round(im.height*w/im.width);const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,w,h);cx.drawImage(im,0,0,w,h);const d=cx.getImageData(0,0,w,h).data;const bytes=new Uint8Array(w/8*h);
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=(y*w+x)*4;const lum=(d[i]*299+d[i+1]*587+d[i+2]*114)/1000;if(lum<128)bytes[y*(w/8)+(x>>3)]|=0x80>>(x&7);}res({w,h,bytes});}catch(e){res(null);}};im.onerror=()=>res(null);im.src=LOGO_TICKET;}catch(e){res(null);}});return LOGO_R;}
-async function escposTicket(sale){const W=S.cfg.ticket.w===58?32:42;const o=[];const p=a=>a.forEach(x=>o.push(x));
+async function escposTicket(sale,opt){const W=S.cfg.ticket.w===58?32:42;const o=[];const p=a=>a.forEach(x=>o.push(x));
  p([0x1b,0x40,0x1b,0x74,0x02]);                       // init + página de códigos PC850 [VERIFICAR por modelo]
+ if(opt&&opt.drawer&&typeof drawerBytes==='function')p(drawerBytes(tkDrawer().pin));   // V26.49 · apertura del cajón (ESC p) [VERIFICAR pin]
  for(const b of ticketModel(sale,W)){
   if(b.t==='logo'){const r=await logoRaster();if(r){p([0x1b,0x61,1,0x1d,0x76,0x30,0,(r.w/8)&255,(r.w/8)>>8,r.h&255,r.h>>8]);r.bytes.forEach(x=>o.push(x));p([0x0a]);}}
   else if(b.t==='sep'){p(encPC850('-'.repeat(W)));p([0x0a]);}
@@ -82,7 +83,7 @@ async function escposTicket(sale){const W=S.cfg.ticket.w===58?32:42;const o=[];c
   else if(b.t==='l'){p([0x1b,0x61,0,0x1b,0x45,b.b?1:0]);p(encPC850(lr(b.l,b.r,W)));p([0x0a,0x1b,0x45,0]);}
   else if(b.t==='t'){p([0x1b,0x61,0]);p(encPC850(b.s));p([0x0a]);}
   else if(b.t==='qr'){const d=encPC850(b.data);const n=d.length+3;p([0x1b,0x61,1,0x1d,0x28,0x6b,4,0,0x31,0x41,0x32,0,0x1d,0x28,0x6b,3,0,0x31,0x43,5,0x1d,0x28,0x6b,3,0,0x31,0x45,0x30,0x1d,0x28,0x6b,n&255,n>>8,0x31,0x50,0x30]);p(d);p([0x1d,0x28,0x6b,3,0,0x31,0x51,0x30,0x0a]);}}
- p([0x0a,0x0a,0x0a,0x1d,0x56,0x42,0x00]);               // avance + corte parcial
+ p(typeof cutBytes==='function'?cutBytes():[0x0a,0x0a,0x0a,0x1d,0x56,0x42,0x00]);   // avance + corte (parcial / total / sin corte)
  return new Uint8Array(o);}
 
 /* ---------- envío a cada tipo de conexión ---------- */
@@ -94,11 +95,11 @@ async function devSend(d,bytes){
 /* cola de impresión: reintenta sin duplicar (una orden por venta y copia) */
 const PRQ=[];let prBusy=false;
 function printSale(saleId,opts){opts=opts||{};const s=opts.sale||S.sales.find(x=>x.id===saleId);if(!s)return false;const key='pr_'+s.id+(opts.copy?'_'+opts.copy:'');
- let j=PRQ.find(x=>x.key===key);if(j&&j.status!=='fallido'&&!opts.reprint)return false;if(!j){j={key,sale:s,status:'pendiente',tries:0,ts:now()};PRQ.push(j);}else{j.status='pendiente';j.tries=0;}
+ let j=PRQ.find(x=>x.key===key);if(j&&j.status!=='fallido'&&!opts.reprint)return false;if(!j){j={key,sale:s,status:'pendiente',tries:0,ts:now(),drawer:!opts.reprint&&!opts.copy&&typeof drawerWanted==='function'&&drawerWanted(s)};PRQ.push(j);}else{j.status='pendiente';j.tries=0;}
  if(PRQ.length>40)PRQ.shift();setTimeout(printPump,0);return true;}
 async function printPump(){if(prBusy)return;prBusy=true;try{for(const j of PRQ){if(j.status!=='pendiente')continue;
   try{const kind=printerKind();
-   if(kind==='usb'||kind==='serial'||kind==='ble'){const d=devList().find(x=>x.type==='printer_thermal'&&x.status==='conectado'&&!x.sim);const bytes=await escposTicket(j.sale);await devSend(d,bytes);j.status='ok';j.via=d.name;if(S.sales.includes(j.sale)){j.sale.printedAt=now();}audit('IMPRESION',j.sale.n+' · '+d.name);}
+   if(kind==='usb'||kind==='serial'||kind==='ble'){const d=devList().find(x=>x.type==='printer_thermal'&&x.status==='conectado'&&!x.sim);const bytes=await escposTicket(j.sale,{drawer:j.drawer});await devSend(d,bytes);j.status='ok';j.via=d.name;if(S.sales.includes(j.sale)){j.sale.printedAt=now();}audit('IMPRESION',j.sale.n+' · '+d.name);if(j.drawer){audit('CAJON_ABIERTO','venta '+j.sale.n);j.drawer=false;}}
    else{browserPrint(j.sale);j.status='ok';j.via=kind==='windows'?'Impresora de Windows':'Vista previa / navegador';if(S.sales.includes(j.sale))j.sale.printedAt=now();audit('IMPRESION',j.sale.n+' · '+j.via);}
   }catch(e){j.tries++;j.err=String(e&&e.message||e);if(j.tries>=3){j.status='fallido';toast('No se pudo imprimir '+j.sale.n+': '+j.err,1);audit('IMPRESION_FALLIDA',j.sale.n+' · '+j.err);}else{await new Promise(r=>setTimeout(r,800*j.tries));}}}
  }finally{prBusy=false;}if(PRQ.some(x=>x.status==='pendiente'))setTimeout(printPump,300);}
@@ -210,6 +211,8 @@ reg('dispositivos','Periféricos y ticket','plug','devices',()=>{const cfg=S.cfg
  <div class="grid g2" style="margin-top:1rem"><div class="card"><h3>Ticket del cliente</h3><label for="tk-m">Mensaje al pie</label><input id="tk-m" maxlength="120" value="${esc(cfg.msg)}">
   <div class="grid g2"><div><label for="tk-w">Ancho de papel</label><select id="tk-w"><option value="80" ${cfg.w===80?'selected':''}>80 mm</option><option value="58" ${cfg.w===58?'selected':''}>58 mm</option></select></div><div><label for="tk-cu">CUIT (si ya está definido)</label><input id="tk-cu" maxlength="13" placeholder="sin cargar" value="${esc(S.tenant.cuit)}"></div></div>
   <label for="tk-iv">Condición frente al IVA (texto del ticket)</label><input id="tk-iv" maxlength="60" placeholder="Ej.: Responsable Monotributo [completar]" value="${esc(S.tenant.iva)}"><label for="tk-ph">Teléfono / WhatsApp que se imprime</label><input id="tk-ph" maxlength="30" value="${esc(S.tenant.phone)}">
+  <div class="grid g2"><div><label for="tk-cut">Corte del papel</label><select id="tk-cut"><option value="parcial" ${tkCut()==='parcial'?'selected':''}>Parcial</option><option value="total" ${tkCut()==='total'?'selected':''}>Total</option><option value="no" ${tkCut()==='no'?'selected':''}>Sin corte (impresora sin cuchilla)</option></select></div>
+  <div><label for="tk-dr">Cajón de dinero (conectado a la impresora)</label><select id="tk-dr"><option value="no" ${tkDrawer().when==='no'?'selected':''}>No abrir solo</option><option value="cash" ${tkDrawer().when==='cash'?'selected':''}>Abrir en ventas con efectivo</option><option value="all" ${tkDrawer().when==='all'?'selected':''}>Abrir en todas las ventas</option></select><select id="tk-pin" aria-label="Pin del cajón" style="margin-top:.3rem"><option value="2" ${tkDrawer().pin===2?'selected':''}>Pin 2 (el más común)</option><option value="5" ${tkDrawer().pin===5?'selected':''}>Pin 5</option></select></div></div>
   <label class="chk"><input type="checkbox" id="tk-lo" ${cfg.showLogo?'checked':''}> Imprimir el logo de ${esc(S.tenant.name||'el negocio')}</label><label class="chk"><input type="checkbox" id="tk-lg" ${cfg.legal?'checked':''}> Imprimir leyendas legales (consumidor, +18)</label>
   <div class="row" style="margin-top:.6rem"><button class="btn gold" data-act="tkSave">Guardar</button><button class="btn" data-act="tkTest">Imprimir ticket de prueba</button></div><p class="sm mut">El ticket sin CAE dice "DOCUMENTO NO VÁLIDO COMO FACTURA". CUIT y condición fiscal los completa el dueño; no se inventan.</p></div>
  <div class="card"><h3>Vista previa (${cfg.w} mm)</h3><div style="background:#fff;border:1px dashed #cfc7b9;border-radius:10px;padding:10px;text-align:center"><img src="${LOGO_TICKET}" alt="Logo RAVE" style="width:190px;${cfg.showLogo?'':'display:none'}"></div><pre class="rep" id="tk-pre" style="margin-top:.5rem;font-size:11.5px">${esc(ticketText(samp))}</pre></div></div>
@@ -218,7 +221,7 @@ reg('dispositivos','Periféricos y ticket','plug','devices',()=>{const cfg=S.cfg
  <div class="card" style="margin-top:1rem"><h3>Cola de impresión</h3>${PRQ.length?`<div class="tw"><table><tbody>${PRQ.slice().reverse().slice(0,8).map(j=>`<tr><td>${esc(j.sale.n)}</td><td><span class="tag ${j.status==='ok'?'ok':j.status==='fallido'?'bad':'warn'}">${j.status}</span></td><td class="sm">${esc(j.via||j.err||'')}</td><td class="r"><button class="btn sm" data-act="prRe" data-k="${esc(j.key)}">Reimprimir</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="mut sm">Sin impresiones en esta sesión.</p>'}<p class="sm mut">La cola reintenta hasta 3 veces y no duplica el ticket de una misma venta (la reimpresión es manual).</p></div>`;},
  ()=>{devChips();if(typeof arcaCardInit==='function')arcaCardInit();},'Sistema');
 A.devAuto=devAuto;A.devScaleAuto=devScaleAuto;A.devWin=devWin;A.devUsb=devUsb;A.devSerial=devSerialModal;A.devBle=devBle;A.devSimScale=devSimScale;A.devTestB=el=>devTest(el.dataset.id);A.devDel=el=>{devQuitar(el.dataset.id);rerender();};
-A.tkSave=()=>{const c=S.cfg.ticket;c.msg=val('tk-m').trim();c.w=+val('tk-w');c.showLogo=$('#tk-lo').checked;c.legal=$('#tk-lg').checked;S.tenant.cuit=val('tk-cu').trim();S.tenant.iva=val('tk-iv').trim();S.tenant.phone=val('tk-ph').trim();audit('CONFIG_TICKET','guardado');save();toast('Ticket guardado');rerender();};
+A.tkSave=()=>{const c=S.cfg.ticket;c.msg=val('tk-m').trim();if($('#tk-cut'))c.cut=val('tk-cut');if($('#tk-dr'))c.drawer={when:val('tk-dr'),pin:+val('tk-pin')===5?5:2};c.w=+val('tk-w');c.showLogo=$('#tk-lo').checked;c.legal=$('#tk-lg').checked;S.tenant.cuit=val('tk-cu').trim();S.tenant.iva=val('tk-iv').trim();S.tenant.phone=val('tk-ph').trim();audit('CONFIG_TICKET','guardado');save();toast('Ticket guardado');rerender();};
 A.tkTest=()=>{const sale={id:'test',n:'PRUEBA',ts:now(),user:user.name,caja:S.tenant.caja,items:[{name:'Producto de prueba',qty:1,price:123450,disc:0}],total:123450,method:'efectivo',recv:150000,doc:'ticket_interno',cust:'',fiado:false,benefit:null};printSale('test',{sale,reprint:true});};
 A.prRe=el=>{const j=PRQ.find(x=>x.key===el.dataset.k);if(j){printSale(j.sale.id,{sale:j.sale,reprint:true});setTimeout(rerender,600);}};
 A.printLast=()=>{const s=S.sales.find(x=>x.id===S.lastSale);if(s)printSale(s.id,{reprint:true});};

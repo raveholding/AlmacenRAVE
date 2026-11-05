@@ -1,0 +1,95 @@
+# V26.49 · 4.34 H2/H4 · cortes X (guardado, numerado, no cierra), Z correlativo, cajón (ESC p) y corte del papel
+import sys
+from playwright.sync_api import sync_playwright
+URL=sys.argv[1] if len(sys.argv)>1 else 'file:///tmp/rave/index.html'
+errs=[];res=[]
+def chk(c,m):
+    print(('OK   ' if c else 'FALLA ')+m);res.append(bool(c))
+with sync_playwright() as p:
+    b=p.chromium.launch(args=['--no-proxy-server'])
+    pg=b.new_page(viewport={'width':1280,'height':900})
+    pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
+    pg.on('console',lambda m:errs.append(m.text[:200]) if m.type=='error' and 'TUNNEL' not in m.text else None)
+    ev=pg.evaluate
+    pg.goto(URL+'#acceso');pg.wait_for_timeout(700)
+    pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(400)
+    ev("location.hash='#panel/caja'");pg.wait_for_timeout(300)
+    if pg.locator('#ap').count():
+        pg.fill('#ap','50000');pg.click('[data-act=openCaja]');pg.wait_for_timeout(300)
+    ev("""window.mk=(c)=>{const p=S.products.find(x=>x.unit==='u'&&x.active&&x.price>0);return[{pid:p.id,name:p.name,rubro:p.rubro,qty:1,price:c,cost:0,unit:'u',list:c,man:1}]};
+      window.C=S.customers.find(x=>x.status!=='suspendido'&&x.status!=='baja');C.limit=100000000;C.term=30;""")
+    ev("commitSale('efectivo',false,'local',mk(300000),{})")
+    ev("commitSale('fiado',false,'local',mk(200000),{custId:C.id,ck:'fiado'})")
+    ev("commitSale('fiado',false,'local',mk(500000),{custId:C.id,ck:'cc'})")
+    a=ev("(()=>{const s=openSess();const a=arqueoCalc(s,arqInputs(s));return[a.aCtaCte,a.aFiado,a.aCC]})()")
+    chk(a[1]>=200000 and a[2]>=500000 and a[0]==a[1]+a[2],'arqueo separa la deuda nueva: Fiado / Cuenta corriente %s'%a)
+    # ---- corte X ----
+    ev("location.hash='#panel/arqueo'");pg.wait_for_timeout(500)
+    chk(pg.locator('[data-act=corteX]').count()==1,'Arqueo: botón «Corte X»')
+    sid=ev("openSess().id");caja=ev("String(S.tenant.caja)")
+    pg.click('[data-act=corteX]');pg.wait_for_timeout(300)
+    x=ev("S.cortesX[S.cortesX.length-1]")
+    chk(x['n']=='X-%s-1'%caja and x['sessId']==sid and len(x['hash'])==64,'corte X guardado y numerado: %s'%x['n'])
+    T=pg.inner_text('#modal-root')
+    chk('no cierra la caja' in T and 'Fiado' in T and 'Cuenta corriente' in T and 'EFECTIVO ESPERADO' in T,'el corte X muestra medios, Fiado / Cta. cte. y efectivo esperado')
+    chk(ev("!!openSess()&&openSess().id===%r"%sid),'la caja sigue abierta después del corte X')
+    ev("document.querySelectorAll('#modal-root .ov').forEach(o=>o.remove())")
+    ev("commitSale('efectivo',false,'local',mk(100000),{})")
+    ev("rerender()");pg.wait_for_timeout(300);pg.click('[data-act=corteX]');pg.wait_for_timeout(300)
+    x2=ev("S.cortesX[S.cortesX.length-1]")
+    chk(x2['n']=='X-%s-2'%caja and x2['total']==x['total']+100000,'segundo corte X: X-%s-2 con la venta nueva'%caja)
+    chk(ev("allAudit().filter(a=>a.action==='CORTE_X').length")>=2,'cada corte X queda en Auditoría')
+    ev("document.querySelectorAll('#modal-root .ov').forEach(o=>o.remove());rerender()");pg.wait_for_timeout(300)
+    chk('Cortes X de este turno' in pg.inner_text('#panel'),'lista de cortes X del turno en Arqueo')
+    chk(ev("CFGIDS&&typeof COLS!=='undefined'&&COLS.some(c=>c.c==='cortesx'&&c.once)"),'nube: colección cortesx de escritura única')
+    # ---- ESC/POS: cajón y corte ----
+    s=ev("S.sales[S.sales.length-1].id")
+    ev("S.cfg.ticket.drawer={when:'cash',pin:2};S.cfg.ticket.cut='parcial'")
+    by=ev("escposTicket(S.sales[S.sales.length-1],{drawer:true}).then(u=>Array.from(u))")
+    chk(by[:10]==[0x1b,0x40,0x1b,0x74,0x02,0x1b,0x70,0x00,0x19,0xfa],'ticket con cajón: empieza con ESC @, ESC t 2 y ESC p 0 25 250')
+    chk(by[-4:]==[0x1d,0x56,0x42,0x00],'corte parcial al final (GS V 66)')
+    ev("S.cfg.ticket.cut='total'");by=ev("escposTicket(S.sales[S.sales.length-1]).then(u=>Array.from(u))")
+    chk(by[-4:]==[0x1d,0x56,0x41,0x00] and 0x70 not in by[:8],'corte total (GS V 65) y sin cajón si no se pide')
+    ev("S.cfg.ticket.cut='no'");by=ev("escposTicket(S.sales[S.sales.length-1]).then(u=>Array.from(u))")
+    chk(not any(by[i]==0x1d and by[i+1]==0x56 for i in range(len(by)-1)),'«sin corte»: no manda GS V')
+    ev("S.cfg.ticket.cut='parcial';S.cfg.ticket.drawer={when:'cash',pin:5}")
+    chk(ev("drawerBytes(tkDrawer().pin).join()")=='27,112,1,25,250','pin 5 → ESC p 1')
+    chk(ev("drawerWanted({id:'v',pays:[{m:'efectivo',a:100}],total:100,method:'efectivo'})")==True and ev("drawerWanted({id:'v',pays:[{m:'debito',a:100}],total:100,method:'debito'})")==False,'«con efectivo»: abre con efectivo, no con débito')
+    # impresora USB simulada: el cajón se abre DESPUÉS de confirmar la venta e imprime una sola vez
+    ev("""window.__out=[];devAdd({id:'usb:fake',type:'printer_thermal',name:'Térmica simulada USB',conn:'usb',status:'conectado',lastSeen:now(),sector:'caja'});
+      DEV.usb['usb:fake']={dev:{opened:true,transferOut:async(ep,b)=>{window.__out.push(...Array.from(b));}},ep:1};""")
+    ev("(()=>{const r=commitSale('efectivo',false,'local',mk(100000),{});window.__sid=r.sale.id;printSale(r.sale.id);})()");pg.wait_for_timeout(1200)
+    o=ev("window.__out")
+    chk(len(o)>20 and o[5:10]==[0x1b,0x70,0x01,0x19,0xfa],'venta en efectivo impresa por USB con apertura de cajón (pin 5)')
+    chk(ev("allAudit().some(a=>a.action==='CAJON_ABIERTO'&&/venta/.test(a.detail))"),'la apertura del cajón por venta queda en Auditoría')
+    ev("window.__out=[];printSale(window.__sid,{reprint:true})");pg.wait_for_timeout(1200)
+    o=ev("window.__out")
+    chk(len(o)>20 and o[5:7]!=[0x1b,0x70],'la reimpresión NO vuelve a abrir el cajón')
+    ev("window.__out=[];A.openDrawer()");pg.wait_for_timeout(400)
+    chk(ev("window.__out.join()")=='27,64,27,112,1,25,250' and ev("allAudit().some(a=>a.action==='CAJON_ABIERTO'&&/sin venta/.test(a.detail))"),'«Abrir cajón» desde Caja: manda ESC p y queda auditado «sin venta»')
+    ev("location.hash='#panel/caja'");pg.wait_for_timeout(300)
+    chk(pg.locator('[data-act=openDrawer]').count()==1,'Caja muestra «Abrir cajón» cuando el cajón está configurado')
+    # corte X por la impresora
+    ev("window.__out=[];printText('Corte X',S.cortesX[0].text)");pg.wait_for_timeout(500)
+    o=ev("window.__out")
+    chk(len(o)>50 and o[-4:]==[0x1d,0x56,0x42,0x00],'el corte X se imprime por ESC/POS con corte')
+    # configuración del ticket
+    ev("location.hash='#panel/dispositivos'");pg.wait_for_timeout(400)
+    pg.select_option('#tk-cut','total');pg.select_option('#tk-dr','all');pg.select_option('#tk-pin','2');pg.click('[data-act=tkSave]');pg.wait_for_timeout(200)
+    chk(ev("S.cfg.ticket.cut==='total'&&S.cfg.ticket.drawer.when==='all'&&S.cfg.ticket.drawer.pin===2"),'Periféricos → Ticket: corte y cajón se guardan')
+    # ---- corte Z ----
+    ev("location.hash='#panel/arqueo'");pg.wait_for_timeout(400)
+    zn0=ev("zNext(openSess().caja)")
+    ev("(()=>{const s=arqSess();const d=arqDraft(s);d.declared='1000';save();})()");ev("rerender()");pg.wait_for_timeout(300)
+    ev("A.arqClose()");pg.wait_for_timeout(300)
+    if pg.locator('#modal-root .ov .btn.gold').count():
+        pg.click('#modal-root .ov .btn.gold');pg.wait_for_timeout(500)
+    cl=ev("S.closures[S.closures.length-1]")
+    chk(cl and cl.get('zn')==zn0 and cl['text'].startswith('CORTE Z N.º Z-%s-%d'%(caja,zn0)),'cierre = corte Z N.º Z-%s-%d dentro del texto sellado'%(caja,zn0))
+    chk('de eso: Fiado' in cl['text'],'el Z separa Fiado y Cuenta corriente')
+    chk(ev("zNext(%r)"%caja)==zn0+1,'el próximo Z es correlativo (%d)'%(zn0+1))
+    ev("location.hash='#panel/cierres'");pg.wait_for_timeout(300)
+    chk(('Z-%s-%d'%(caja,zn0)) in pg.inner_text('#panel'),'«Cajas cerradas» muestra el número de Z')
+    print('errores:',errs[:5]);chk(not errs,'sin errores de consola')
+    b.close()
+print('%d OK / %d FALLAN de %d'%(sum(res),len(res)-sum(res),len(res)))

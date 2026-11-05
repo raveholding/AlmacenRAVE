@@ -58,6 +58,7 @@ function buildReportOwner(a,dayKey,who,inp){const L=[];const P=(t,cls)=>L.push({
  Object.keys(a.byMethod).filter(m=>m!=='fiado').forEach(m=>{const x=a.byMethod[m];P((MET[m]||m)+' '+money(x.gross)+(x.n>1?' ('+x.n+')':''));if(x.fee>0)P('  comisión - '+money(x.fee)+' · neto '+money(x.gross-x.fee));});
  P('COBRADO REAL (dinero que entró) : '+money(a.cobrado),'h');
  if(a.aCtaCte>0)P('A CUENTA CORRIENTE (deuda de clientes, NO entró a caja) : '+money(a.aCtaCte),'w');
+ if(a.aCtaCte>0&&a.aFiado>0)P('   de eso: Fiado '+money(a.aFiado)+' · Cuenta corriente '+money(a.aCC||0));
  if(a.vueltoTot>0)P('Vuelto entregado en el turno : '+money(a.vueltoTot)+' (ya descontado del efectivo)');
  if(a.pend.n)P('⚠ Cobros digitales pendientes de confirmar: '+a.pend.n+' · '+money(a.pend.total),'w');
  if(a.detMissing)P('⚠ Cobros digitales sin el detalle del comprobante: '+a.detMissing,'w');

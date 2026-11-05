@@ -1,4 +1,4 @@
-> **Proyecto nuevo:** el proyecto Supabase anterior ya no existe. Para uno nuevo alcanza con pegar **el contenido** de `INSTALAR-TODO.sql` (= 01 a 11, sin el 00) en el SQL Editor y ejecutarlo una vez. Después: `select public.rave_invitar_comercio('correo','Almacén RAVE','CODIGO');`, desactivar «Confirm email» y desplegar la función `arca`.
+> **Proyecto nuevo:** el proyecto Supabase anterior ya no existe. Para uno nuevo alcanza con pegar **el contenido** de `INSTALAR-TODO.sql` (= 01 a 17, sin el 00) en el SQL Editor y ejecutarlo una vez. Después: `select public.rave_invitar_comercio('correo','Almacén RAVE','CODIGO');`, desactivar «Confirm email» y desplegar la función `arca`.
 
 # Supabase · proyecto raveholding · Sistema RAVE
 
@@ -24,6 +24,7 @@ Todo se hace con el **dueño del proyecto** (Vincular Business). Nada de esto va
 | `13-tiendanube.sql` | **Integración con Tiendanube (V26.13):** conexión por tienda con token cifrado (sin lectura por la API), espejo de variantes con vínculo uno a uno al producto del sistema, órdenes con estados separados (orden / pago / envío) que nunca retroceden, bitácora sólo-agregar. **Requiere 01 a 12 y la función `tiendanube`.** |
 | `12-pago-proveedor-cajas.sql` | **Pago a proveedor repartido entre varias cajas (V26.12):** el pago en efectivo puede salir de la caja principal y de otras cajas a la vez (`asignaciones`); un solo Pago en el libro, un egreso por caja, todo o nada, tabla sólo-agregar `pagos_proveedor_asignaciones`. Sin `asignaciones` funciona como siempre. **Requiere 01 a 11.** |
 | `16-ajustes-medios-pago.sql` | **Recargos y descuentos por medio de pago (V26.49):** documento de configuración `cfg/payadj` que escribe **sólo el administrador** (todos los roles lo leen para cobrar) y control de los pagos con ajuste dentro de cada venta (`a = base + ajuste`, enteros; un descuento no supera la base). Modifica la función vigente `sincronizar` en el lugar (no la copia entera). Aditivo e idempotente. **Requiere 01 a 15. Correrlo ANTES de activar los recargos en Configuración** (sin él, el servidor rechaza la configuración nueva). |
+| `17-fiado-cc-cortes.sql` | **Fiado / Cuenta corriente y cortes X (V26.49):** colección `cortesx` (foto del turno que no cierra la caja; escritura única, todos los roles de caja) y validación del tipo de deuda de la venta (`ck` = `fiado` o `cc`). Modifica en el lugar `sincronizar` y `rave_puede_escribir`. Aditivo e idempotente. **Requiere 01 a 16.** |
 | `90-reiniciar-pruebas.sql` | **SÓLO PRUEBAS. Borra lo subido por todos los comercios.** No correr con el sistema en uso real. |
 
 Todos (menos 90) se pueden repetir sin romper nada.
