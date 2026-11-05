@@ -122,7 +122,7 @@ function devSerialModal(){if(!devHas.serial)return toast('Este navegador no tien
   try{await port.open({baudRate:baud});}catch(e){toast('No se pudo abrir el puerto: '+(e.message||e),1);return;}
   const info=port.getInfo?port.getInfo():{};const id='serial:'+(info.usbVendorId||0).toString(16)+':'+(info.usbProductId||0).toString(16)+':'+Object.keys(DEV.serial).length;DEV.serial[id]={port,baud};
   devAdd({id,type,name:(type==='scale'?'Balanza':type==='scanner'?'Lector':'Impresora')+' (serie '+baud+')',conn:'serial',vid:info.usbVendorId||0,pid:info.usbProductId||0,baud,status:'conectado',lastSeen:now(),sector:'caja'});
-  audit('DISPOSITIVO_ALTA',type+' serie');save();devTag();if(type==='scale')scaleListen(id);toast('Puerto conectado');rerender();}});}
+  audit('DISPOSITIVO_ALTA',type+' serie');save();devTag();if(type==='scale'){scaleListen(id);scaleDetect(DEV.serial[id]).then(p=>{const d=devById(id);if(d){d.proto=p||'continuo';if(p)d.name='Balanza '+SCALE_PROTOS[p].name+' (serie '+baud+')';save();rerender();}toast(p?'Protocolo reconocido: '+SCALE_PROTOS[p].name:'La balanza no respondió todavía: queda en envío continuo',!p);});}toast('Puerto conectado');rerender();}});}
 async function devBle(){if(!devHas.ble)return toast('Este navegador no tiene Web Bluetooth (en iPhone/iPad no existe).',1);
  let dev;try{dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','e7810a71-73ae-499d-8c15-faa9aef0c3f2']});}catch(e){return toast('No se eligió ningún dispositivo.',1);}
  try{const srv=await dev.gatt.connect();let ch=null;for(const s of await srv.getPrimaryServices()){for(const c of await s.getCharacteristics()){if(c.properties.writeWithoutResponse||c.properties.write){ch=c;break;}}if(ch)break;}
@@ -139,33 +139,70 @@ async function devTest(id){const d=devById(id);if(!d)return;const sale={id:'test
 /* reconexión automática (al abrir, al enchufar y cada 30 s) + aviso si se desconecta */
 async function devReconnect(){try{
  if(devHas.usb){const gr=await navigator.usb.getDevices();for(const dev of gr){const id='usb:'+dev.vendorId.toString(16)+':'+dev.productId.toString(16);const d=devById(id);if(!d)continue;if(!dev.opened){try{DEV.usb[id]=await usbOpen(dev);devSet(id,'conectado');}catch(e){devSet(id,'desconectado');}}else devSet(id,'conectado');}}
- if(devHas.serial){const ps=await navigator.serial.getPorts();for(const port of ps){const info=port.getInfo?port.getInfo():{};const d=devList().find(x=>x.conn==='serial'&&x.vid===(info.usbVendorId||0)&&x.pid===(info.usbProductId||0)&&!DEV.serial[x.id]);if(d){try{await port.open({baudRate:d.baud||9600});DEV.serial[d.id]={port,baud:d.baud};devSet(d.id,'conectado');if(d.type==='scale')scaleListen(d.id);}catch(e){}}}}
+ if(devHas.serial){const ps=await navigator.serial.getPorts();for(const port of ps){const info=port.getInfo?port.getInfo():{};const d=devList().find(x=>x.conn==='serial'&&x.vid===(info.usbVendorId||0)&&x.pid===(info.usbProductId||0)&&!DEV.serial[x.id]);if(d){try{await port.open({baudRate:d.baud||9600,dataBits:8,stopBits:1,parity:'none'});DEV.serial[d.id]={port,baud:d.baud,proto:d.proto||'continuo'};devSet(d.id,'conectado');if(d.type==='scale')scaleListen(d.id);}catch(e){}}}}
  }catch(e){}}
 function devHeartbeat(){devList().forEach(d=>{if(d.sim||d.conn==='windows'||d.conn==='teclado')return;let ok=false;if(d.conn==='usb')ok=!!(DEV.usb[d.id]&&DEV.usb[d.id].dev.opened);else if(d.conn==='serial')ok=!!DEV.serial[d.id];else if(d.conn==='ble')ok=!!(DEV.ble[d.id]&&DEV.ble[d.id].dev.gatt&&DEV.ble[d.id].dev.gatt.connected);
  if(d.status==='conectado'&&!ok){d.status='desconectado';toast('Se desconectó: '+d.name,1);audit('DISPOSITIVO_DESCONECTADO',d.name);}else if(d.status!=='conectado'&&ok)d.status='conectado';});devTag();devChips();}
 function devBoot(){devTag();devReconnect();clearInterval(DEV.hb);DEV.hb=setInterval(()=>{devReconnect();devHeartbeat();},30000);
- if(devHas.usb){navigator.usb.addEventListener('connect',devReconnect);navigator.usb.addEventListener('disconnect',()=>setTimeout(devHeartbeat,200));}}
+ if(devHas.usb){navigator.usb.addEventListener('connect',devReconnect);navigator.usb.addEventListener('disconnect',()=>setTimeout(devHeartbeat,200));}
+ if(devHas.serial){navigator.serial.addEventListener('connect',()=>setTimeout(devReconnect,300));navigator.serial.addEventListener('disconnect',e=>{for(const[k,h]of Object.entries(DEV.serial))if(h.port===e.target){h.listening=false;clearInterval(h.poll);delete DEV.serial[k];}setTimeout(devHeartbeat,200);});}}
 /* botón único */
 async function devAuto(){if(devHas.usb)return devUsb();if(devHas.serial)return devSerialModal();if(devHas.ble)return devBle();toast('Este navegador no permite conectar dispositivos (WebUSB/Serie/Bluetooth). Usá Chrome o Edge, o la impresora de Windows.',1);}
 
-/* ---------- balanza ---------- */
-function parseScale(line){const s=String(line||'').trim();if(!s)return null;const m=/([-+]?\d{1,3}(?:[.,]\d{1,4})?)\s*(kg|g|KG|G)?/.exec(s);if(!m)return null;let v=parseFloat(m[1].replace(',','.'));if(!isFinite(v))return null;const u=(m[2]||'kg').toLowerCase();if(u==='g')v=v/1000;
- if(!(v>0&&v<=50))return null;return{kg:Math.round(v*1000)/1000,stable:!/^\s*(US|D|\?)/i.test(s)};}
-async function scaleListen(id){const h=DEV.serial[id];if(!h||h.listening)return;h.listening=true;try{const dec=new TextDecoderStream();h.port.readable.pipeTo(dec.writable).catch(()=>{});const rd=dec.readable.getReader();let buf='';
- for(;;){const{value,done}=await rd.read();if(done)break;buf+=value;const ls=buf.split(/[\r\n]+/);buf=ls.pop();ls.forEach(l=>{const p=parseScale(l);if(p){DEV.scale.last=p;DEV.scale.samples.push(p.kg);if(DEV.scale.samples.length>4)DEV.scale.samples.shift();}});}}catch(e){}h.listening=false;}
-function scaleRead(timeout){return new Promise(res=>{const t0=Date.now();const iv=setInterval(()=>{const s=DEV.scale.samples;if(s.length>=3&&s.slice(-3).every(x=>x===s[s.length-1])&&DEV.scale.last&&DEV.scale.last.stable){clearInterval(iv);res(s[s.length-1]);}else if(Date.now()-t0>(timeout||3000)){clearInterval(iv);res(null);}},150);});}
+/* ---------- balanza (V26.49 · 4.34 H1: pedido de peso por marca, reconocimiento automático, estable ≥ 400 ms, anti-duplicado) ---------- */
+/* compatibilidad: parseScale sigue existiendo (balanza simulada y pruebas viejas) y usa la trama nueva */
+function parseScale(line){const p=scaleFrame(line);return p&&!p.zero&&p.kg>0&&p.kg<=50?{kg:p.kg,stable:p.stable}:null;}
+const scaleSleep=ms=>new Promise(r=>setTimeout(r,ms));
+function scaleState(){if(!DEV.scale.stab){DEV.scale.stab=scaleStabNew({tol:+(S.cfg.scaleTol||0)});DEV.scale.raw=[];DEV.scale.frames=0;}return DEV.scale;}
+function scaleFeed(line){const sc=scaleState();const t=Date.now();sc.raw.push({t,s:String(line).slice(0,60)});if(sc.raw.length>20)sc.raw.shift();
+ const p=scaleFrame(line);if(!p)return;sc.frames++;sc.last=p;sc.lastT=t;const r=scaleStabPush(sc.stab,{kg:p.kg,stable:p.stable,t});sc.stableKg=r.stable?r.kg:null;
+ sc.samples=(sc.samples||[]).concat(p.kg).slice(-4);if(typeof pos!=='undefined'){pos.sg=pos.sg||scaleDupNew();scaleDupSeen(pos.sg,p);}}
+async function scaleReq(h){const P=SCALE_PROTOS[h.proto||'continuo'];if(!P||!P.req||!h.port||!h.port.writable||h.wbusy)return;h.wbusy=true;
+ try{const w=h.port.writable.getWriter();try{await w.write(new Uint8Array(P.req));}finally{w.releaseLock();}}catch(e){}h.wbusy=false;}
+async function scaleListen(id){const h=DEV.serial[id];if(!h||h.listening)return;h.listening=true;const d=devById(id);if(!h.proto)h.proto=(d&&d.proto)||'continuo';
+ clearInterval(h.poll);h.poll=setInterval(()=>{if(h.listening&&SCALE_PROTOS[h.proto]&&SCALE_PROTOS[h.proto].req)scaleReq(h);},200);
+ const dec=new TextDecoder('latin1');let buf='';
+ try{const rd=h.port.readable.getReader();h.reader=rd;
+  for(;;){const{value,done}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});const ls=buf.split(/[\r\n\x03]+/);buf=ls.pop();if(buf.length>200)buf=buf.slice(-60);ls.forEach(scaleFeed);}}
+ catch(e){}finally{try{h.reader&&h.reader.releaseLock();}catch(e){}h.reader=null;h.listening=false;clearInterval(h.poll);}}
+async function scaleStop(h){if(!h)return;h.listening=false;clearInterval(h.poll);try{if(h.reader)await h.reader.cancel();}catch(e){}await scaleSleep(30);try{await h.port.close();}catch(e){}}
+/* reconoce el protocolo: primero escucha (envío continuo); si no llega nada, prueba los pedidos de Systel (ENQ), Kretz (P) y genérico (W) */
+async function scaleDetect(h){const sc=scaleState();h.proto='continuo';let f0=sc.frames;await scaleSleep(900);if(sc.frames>=f0+2)return 'continuo';
+ for(const k of SCALE_PROBE){h.proto=k;f0=sc.frames;for(let i=0;i<3;i++){await scaleReq(h);await scaleSleep(260);}if(sc.frames>f0)return k;}
+ h.proto='continuo';return null;}
+/* conexión automática: el navegador pide elegir el puerto UNA vez (seguridad); el resto lo hace el sistema */
+async function devScaleAuto(){if(!devHas.serial)return toast('Este navegador no tiene Web Serial (usá Chrome o Edge en la computadora).',1);
+ let port;try{port=await navigator.serial.requestPort();}catch(e){return toast('No se eligió ningún puerto.',1);}
+ toast('Buscando la balanza… (hasta 15 segundos)');const r=await scaleAutoPort(port);
+ if(!r){toast('El puerto no respondió como balanza. Revisá el cable, que la balanza esté encendida y que su salida a PC esté activa.',1);return;}
+ const info=port.getInfo?port.getInfo():{};const id='serial:'+(info.usbVendorId||0).toString(16)+':'+(info.usbProductId||0).toString(16)+':'+Object.keys(DEV.serial).length;
+ DEV.serial[id]=r.h;const nm='Balanza '+(r.proto==='systel'?'Systel':r.proto==='kretz'?'Kretz':'')+' ('+SCALE_PROTOS[r.proto].name+' · '+r.baud+')';
+ devAdd({id,type:'scale',name:nm.replace('Balanza  (','Balanza ('),conn:'serial',vid:info.usbVendorId||0,pid:info.usbProductId||0,baud:r.baud,proto:r.proto,status:'conectado',lastSeen:now(),sector:'caja'});
+ audit('DISPOSITIVO_ALTA','balanza serie · protocolo '+r.proto+' · '+r.baud+' baudios');save();devTag();toast('Balanza reconocida: '+SCALE_PROTOS[r.proto].name+' a '+r.baud+' baudios');rerender();}
+async function scaleAutoPort(port,bauds){for(const baud of(bauds||SCALE_BAUDS)){try{await port.open({baudRate:baud,dataBits:8,stopBits:1,parity:'none'});}catch(e){continue;}
+  const h={port,baud,proto:'continuo'};const tmp='probe:'+baud;DEV.serial[tmp]=h;scaleListen(tmp);const p=await scaleDetect(h);delete DEV.serial[tmp];
+  if(p){return{h,proto:p,baud};}await scaleStop(h);}
+ return null;}
+/* espera un peso estable (≥ 400 ms sin cambios, sin plato vacío) */
+function scaleRead(timeout){return new Promise(res=>{const t0=Date.now();const iv=setInterval(()=>{const sc=scaleState();
+ if(sc.stableKg!=null&&sc.stableKg>SCALE_ZERO&&Date.now()-(sc.lastT||0)<1000){clearInterval(iv);res(sc.stableKg);}else if(Date.now()-t0>(timeout||3000)){clearInterval(iv);res(null);}},100);});}
+/* toma el peso para una línea pasando por la guardia anti-duplicado */
+function scaleTake(i,kg,devId){pos.sg=pos.sg||scaleDupNew();const t=Date.now();const c=scaleDupCheck(pos.sg,kg,t);
+ const go=()=>{scaleDupMark(pos.sg,kg,Date.now());const L=pos.lines[i];if(L){L.src='balanza';if(devId)L.dev=devId;}lineEdit(i,'qty',String(kg));const L2=pos.lines[i];if(L2){L2.src='balanza';if(devId)L2.dev=devId;}};
+ if(c.ok)return go();
+ modal('Confirmar el peso',`<p>${esc(c.why)}</p><p class="sm mut">Si es el mismo producto pesado dos veces, cancelá. Si son dos productos distintos que pesan lo mismo, confirmá.</p>`,{okText:'Sí, es otro producto',onOk:()=>{audit('BALANZA_CONFIRMADO',(c.same?'peso repetido ':'sin volver a cero ')+numAR(kg,3)+' kg');go();}});}
 A.pesar=async el=>{const i=+el.dataset.i;const L=pos.lines[i];if(!L)return;const d=devList().find(x=>x.type==='scale'&&x.status==='conectado');if(!d)return toast('No hay balanza conectada.',1);
- if(d.sim){modal('Balanza simulada',`<p class="sm mut">Simula el peso estable que informaría la balanza (sólo para evaluar el flujo).</p><label for="bs-w">Peso (kg)</label><input id="bs-w" inputmode="decimal" placeholder="0,000" autocomplete="off">`,{okText:'Usar este peso',onOk:w=>{const p=parseScale(val('bs-w')+' kg');if(!p)return w._err('Peso fuera de rango (0 a 50 kg).'),false;lineEdit(i,'qty',String(p.kg));}});return;}
- const w=await scaleRead(3000);if(!w)return toast('No se obtuvo un peso estable. Reintentá con la balanza quieta.',1);lineEdit(i,'qty',String(w));};
+ if(d.sim){modal('Balanza simulada',`<p class="sm mut">Simula el peso estable que informaría la balanza (sólo para evaluar el flujo). Escribí 0 para simular el plato vacío.</p><label for="bs-w">Peso (kg)</label><input id="bs-w" inputmode="decimal" placeholder="0,000" autocomplete="off">`,{okText:'Usar este peso',onOk:w=>{const p=scaleFrame(val('bs-w')+' kg');if(p&&p.zero){pos.sg=pos.sg||scaleDupNew();scaleDupSeen(pos.sg,p);toast('Plato vacío (0,000 kg)');return;}if(!p||!(p.kg>0&&p.kg<=50))return w._err('Peso fuera de rango (0 a 50 kg).'),false;setTimeout(()=>scaleTake(i,p.kg,d.id),30);}});return;}
+ const w=await scaleRead(3000);if(!w)return toast('No se obtuvo un peso estable. Reintentá con la balanza quieta.',1);scaleTake(i,w,d.id);};
 
 /* ================= PANTALLA: PERIFÉRICOS Y TICKET ================= */
 reg('dispositivos','Periféricos y ticket','plug','devices',()=>{const cfg=S.cfg.ticket;const samp={id:'demo',n:S.tenant.caja+'-15',ts:now(),user:user.name,caja:S.tenant.caja,items:[{name:'Gin Beefeater + Cunnington Tónica (2.25 lt)',qty:1,price:3300000,disc:0},{name:'Pachamama',qty:2,price:700000,disc:70000}],total:4630000,method:'efectivo',recv:5000000,doc:'ticket_interno',cust:'',fiado:false,benefit:{label:'Cupón BIENVENIDA10',disc:70000}};
  const dv=devList();
  return `<div class="row"><h1 class="sp">Periféricos y ticket</h1><button class="btn gold" data-act="devAuto">Conectar y reconocer (automático)</button></div>
  <div class="warnbox sm"><b>Hardware sin probar:</b> esta versión trae los conectores (USB, serie, Bluetooth, impresora de Windows) pero <b>no se probó con equipos reales</b>. Cada impresora, balanza y lector se prueba físicamente antes de comprometerse [VERIFICAR por marca y modelo]. El navegador siempre pide elegir el dispositivo una vez (es una exigencia de seguridad); después se reconecta solo al abrir, al enchufar y cada 30 s. Impresoras de red (TCP 9100), descubrimiento y NFC PC/SC requieren un agente local (etapa futura).</div>
- <div class="grid g2"><div class="card"><h3>Conectar</h3><div class="row"><button class="btn" data-act="devWin">Impresora de Windows (1 clic)</button><button class="btn" data-act="devUsb">Impresora térmica USB</button><button class="btn" data-act="devSerial">Balanza / lector (serie)</button><button class="btn" data-act="devBle">Impresora Bluetooth</button>${IS_CLIENT?'':'<button class="btn" data-act="devSimScale">Balanza simulada (demo)</button>'}</div>
+ <div class="grid g2"><div class="card"><h3>Conectar</h3><div class="row"><button class="btn" data-act="devWin">Impresora de Windows (1 clic)</button><button class="btn" data-act="devUsb">Impresora térmica USB</button><button class="btn" data-act="devScaleAuto">Balanza (reconoce Systel / Kretz)</button><button class="btn" data-act="devSerial">Lector / impresora (serie)</button><button class="btn" data-act="devBle">Impresora Bluetooth</button>${IS_CLIENT?'':'<button class="btn" data-act="devSimScale">Balanza simulada (demo)</button>'}</div>
   <p class="sm mut" style="margin-top:.6rem">Disponible en este navegador: USB ${devHas.usb?'✔':'✘'} · Serie ${devHas.serial?'✔':'✘'} · Bluetooth ${devHas.ble?'✔':'✘'}. iPhone/iPad (Safari): ninguna de las tres; usar impresora por red o Bluetooth LE con agente [VERIFICAR]. Android: USB OTG y Bluetooth con Chrome.</p>
-  <p class="sm"><b>Lector de código de barras:</b> funciona sin configurar (modo teclado): el sistema distingue una lectura rápida de una persona tecleando. Etiquetas EAN-13 de balanza (prefijo 2 + PLU + peso o precio) soportadas [VERIFICAR el formato de cada balanza].</p></div>
+  <p class="sm"><b>Lector de código de barras:</b> funciona sin configurar (modo teclado): el sistema distingue una lectura rápida de una persona tecleando. Etiquetas EAN-13 de balanza: ver «Balanza y etiquetas».</p></div>
  <div class="card"><h3>Dispositivos registrados</h3><div class="tw"><table><thead><tr><th>Dispositivo</th><th>Tipo</th><th>Estado</th><th></th></tr></thead><tbody>
   <tr><td>Lector de código de barras (teclado)</td><td>Lector</td><td><span class="tag ok">listo</span></td><td></td></tr>
   ${dv.map(d=>`<tr><td>${esc(d.name)}${d.sim?' <span class="tag sim">simulado</span>':''}<div class="sm mut">${esc(d.conn)} · sector ${esc(d.sector||'caja')}${d.tested?' · probado':''}</div></td><td>${esc(DEV_TYPES[d.type]||d.type)}</td><td><span class="tag ${d.status==='conectado'?'ok':'bad'}">${esc(d.status)}</span></td><td class="r"><button class="btn sm" data-act="devTestB" data-id="${d.id}">Probar</button> <button class="btn sm red" data-act="devDel" data-id="${d.id}">Quitar</button></td></tr>`).join('')}</tbody></table></div></div></div>
@@ -175,11 +212,30 @@ reg('dispositivos','Periféricos y ticket','plug','devices',()=>{const cfg=S.cfg
   <label class="chk"><input type="checkbox" id="tk-lo" ${cfg.showLogo?'checked':''}> Imprimir el logo de ${esc(S.tenant.name||'el negocio')}</label><label class="chk"><input type="checkbox" id="tk-lg" ${cfg.legal?'checked':''}> Imprimir leyendas legales (consumidor, +18)</label>
   <div class="row" style="margin-top:.6rem"><button class="btn gold" data-act="tkSave">Guardar</button><button class="btn" data-act="tkTest">Imprimir ticket de prueba</button></div><p class="sm mut">El ticket sin CAE dice "DOCUMENTO NO VÁLIDO COMO FACTURA". CUIT y condición fiscal los completa el dueño; no se inventan.</p></div>
  <div class="card"><h3>Vista previa (${cfg.w} mm)</h3><div style="background:#fff;border:1px dashed #cfc7b9;border-radius:10px;padding:10px;text-align:center"><img src="${LOGO_TICKET}" alt="Logo RAVE" style="width:190px;${cfg.showLogo?'':'display:none'}"></div><pre class="rep" id="tk-pre" style="margin-top:.5rem;font-size:11.5px">${esc(ticketText(samp))}</pre></div></div>
+ ${scaleCardHtml()}
  ${typeof arcaCardHtml==='function'?arcaCardHtml():''}
  <div class="card" style="margin-top:1rem"><h3>Cola de impresión</h3>${PRQ.length?`<div class="tw"><table><tbody>${PRQ.slice().reverse().slice(0,8).map(j=>`<tr><td>${esc(j.sale.n)}</td><td><span class="tag ${j.status==='ok'?'ok':j.status==='fallido'?'bad':'warn'}">${j.status}</span></td><td class="sm">${esc(j.via||j.err||'')}</td><td class="r"><button class="btn sm" data-act="prRe" data-k="${esc(j.key)}">Reimprimir</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="mut sm">Sin impresiones en esta sesión.</p>'}<p class="sm mut">La cola reintenta hasta 3 veces y no duplica el ticket de una misma venta (la reimpresión es manual).</p></div>`;},
  ()=>{devChips();if(typeof arcaCardInit==='function')arcaCardInit();},'Sistema');
-A.devAuto=devAuto;A.devWin=devWin;A.devUsb=devUsb;A.devSerial=devSerialModal;A.devBle=devBle;A.devSimScale=devSimScale;A.devTestB=el=>devTest(el.dataset.id);A.devDel=el=>{devQuitar(el.dataset.id);rerender();};
+A.devAuto=devAuto;A.devScaleAuto=devScaleAuto;A.devWin=devWin;A.devUsb=devUsb;A.devSerial=devSerialModal;A.devBle=devBle;A.devSimScale=devSimScale;A.devTestB=el=>devTest(el.dataset.id);A.devDel=el=>{devQuitar(el.dataset.id);rerender();};
 A.tkSave=()=>{const c=S.cfg.ticket;c.msg=val('tk-m').trim();c.w=+val('tk-w');c.showLogo=$('#tk-lo').checked;c.legal=$('#tk-lg').checked;S.tenant.cuit=val('tk-cu').trim();S.tenant.iva=val('tk-iv').trim();S.tenant.phone=val('tk-ph').trim();audit('CONFIG_TICKET','guardado');save();toast('Ticket guardado');rerender();};
 A.tkTest=()=>{const sale={id:'test',n:'PRUEBA',ts:now(),user:user.name,caja:S.tenant.caja,items:[{name:'Producto de prueba',qty:1,price:123450,disc:0}],total:123450,method:'efectivo',recv:150000,doc:'ticket_interno',cust:'',fiado:false,benefit:null};printSale('test',{sale,reprint:true});};
 A.prRe=el=>{const j=PRQ.find(x=>x.key===el.dataset.k);if(j){printSale(j.sale.id,{sale:j.sale,reprint:true});setTimeout(rerender,600);}};
 A.printLast=()=>{const s=S.sales.find(x=>x.id===S.lastSale);if(s)printSale(s.id,{reprint:true});};
+
+/* V26.49 · tarjeta «Balanza y etiquetas» (Periféricos) */
+function scaleLabelsCfg(){return Array.isArray(S.cfg.scaleLabels)&&S.cfg.scaleLabels.length?S.cfg.scaleLabels:SCALE_LABELS_DEF;}
+function scaleCardHtml(){const L=scaleLabelsCfg();const sc=DEV.scale||{};const raw=(sc.raw||[]).slice(-8);const rows=[0,1,2,3].map(i=>{const x=L[i]||{prefix:'',pluLen:5,mode:'peso',dec:3};
+ return `<tr><td><input id="sl-p${i}" inputmode="numeric" maxlength="2" style="width:4.5em" value="${esc(x.prefix||'')}" aria-label="Prefijo fila ${i+1}"></td><td><select id="sl-n${i}" aria-label="Cifras de PLU fila ${i+1}">${[4,5,6].map(n=>`<option ${+x.pluLen===n?'selected':''}>${n}</option>`).join('')}</select></td><td><select id="sl-m${i}" aria-label="Contenido fila ${i+1}"><option value="peso" ${x.mode==='peso'?'selected':''}>Peso (gramos)</option><option value="precio" ${x.mode==='precio'&&+x.dec!==2?'selected':''}>Importe en pesos</option><option value="precio2" ${x.mode==='precio'&&+x.dec===2?'selected':''}>Importe con centavos</option></select></td></tr>`;}).join('');
+ return `<div class="card" style="margin-top:1rem"><h3>Balanza y etiquetas</h3>
+ <p class="sm">«Balanza (reconoce Systel / Kretz)»: elegís el puerto una vez y el sistema prueba solo la velocidad y el protocolo (envío continuo, Systel con pedido ENQ, Kretz con pedido P, genérico). Después se reconecta solo al abrir y al enchufar el cable. El peso se toma cuando queda quieto 400 ms; si se repite sin que el plato vuelva a cero, pide confirmación. <b>[VERIFICAR con el equipo real]</b></p>
+ <div class="grid g2"><div><label for="sl-tol">Tolerancia de estabilidad</label><select id="sl-tol"><option value="0" ${!(+S.cfg.scaleTol>0)?'selected':''}>Idéntico (recomendado)</option><option value="0.002" ${+S.cfg.scaleTol===0.002?'selected':''}>± 2 g</option><option value="0.005" ${+S.cfg.scaleTol===0.005?'selected':''}>± 5 g</option></select></div><div></div></div>
+ <h4 style="margin:.8rem 0 .3rem">Formato de las etiquetas EAN-13 (13 cifras: prefijo + PLU + valor + verificador)</h4>
+ <div class="tw"><table><thead><tr><th>Prefijo</th><th>Cifras del PLU</th><th>El valor es</th></tr></thead><tbody>${rows}</tbody></table></div>
+ <p class="sm mut">Por defecto: 20 = peso, 21 = importe, PLU de 5 cifras. Los prefijos 22 a 29 sin fila se leen como peso con PLU de 5 cifras. El dígito verificador se controla siempre.</p>
+ <div class="row"><button class="btn gold" data-act="slSave">Guardar</button><button class="btn" data-act="slDef">Volver a los valores de fábrica</button></div>
+ <h4 style="margin:.8rem 0 .3rem">Diagnóstico (últimas tramas recibidas)</h4>${raw.length?`<pre class="rep sm">${raw.map(r=>esc(new Date(r.t).toLocaleTimeString('es-AR'))+'  '+esc(JSON.stringify(r.s))).join('\n')}</pre><p class="sm">Último peso: ${sc.last?numAR(sc.last.kg,3)+' kg'+(sc.last.stable?'':' (moviéndose)'):'—'} · estable: ${sc.stableKg!=null?numAR(sc.stableKg,3)+' kg':'no'}</p>`:'<p class="sm mut">Todavía no llegó ninguna trama de una balanza.</p>'}</div>`;}
+A.slSave=()=>{const out=[];for(let i=0;i<4;i++){const p=(val('sl-p'+i)||'').trim();if(!p)continue;if(!/^2\d$/.test(p))return toast('El prefijo de la fila '+(i+1)+' debe ser de 20 a 29.',1);if(out.some(x=>x.prefix===p))return toast('El prefijo '+p+' está repetido.',1);
+  const m=val('sl-m'+i);out.push({prefix:p,pluLen:+val('sl-n'+i),mode:m==='peso'?'peso':'precio',dec:m==='peso'?3:m==='precio2'?2:0});}
+ const prev=JSON.stringify(scaleLabelsCfg());S.cfg.scaleLabels=out.length?out:SCALE_LABELS_DEF.slice();S.cfg.scaleTol=+val('sl-tol')||0;if(DEV.scale)DEV.scale.stab=null;
+ audit('CONFIG_BALANZA','etiquetas '+prev+' → '+JSON.stringify(S.cfg.scaleLabels)+' · tolerancia '+S.cfg.scaleTol);save();toast('Balanza y etiquetas guardadas');rerender();};
+A.slDef=()=>{S.cfg.scaleLabels=SCALE_LABELS_DEF.slice();S.cfg.scaleTol=0;if(DEV.scale)DEV.scale.stab=null;audit('CONFIG_BALANZA','valores de fábrica');save();rerender();};

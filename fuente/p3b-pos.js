@@ -66,7 +66,7 @@ function commitSale(method,arca,channel,lines,opts){
  const c=S.tenant.caja;S.seq[c]=(S.seq[c]||0)+1;const digital=method==='qr'||method==='modo';
  pays.forEach(p=>{p.fee=(digital||p.m==='fiado')?0:Math.round(p.a*((S.cfg.fee[p.m]||0))/100);});
  const fiadoAmt=pc.fiadoAmt;
- const sale={id:opts.saleId||uid(),n:c+'-'+S.seq[c],ts:now(),user:user?user.name:'sistema',caja:c,sessId:sess.id,items:lines.map((l,i)=>({pid:l.pid,name:l.name,rubro:l.rubro,qty:l.qty,price:l.price,cost:isKit(prod(l.pid))?kitCost(prod(l.pid)):l.cost,list:l.list,disc:alloc[i]||0,...(isKit(prod(l.pid))?{kit:kitSnap(l.pid)}:{}),...(W&&l.rule?{lr:l.rule,ll:l.lst||'',lb:l.base||0}:{})})),total,method,
+ const sale={id:opts.saleId||uid(),n:c+'-'+S.seq[c],ts:now(),user:user?user.name:'sistema',caja:c,sessId:sess.id,items:lines.map((l,i)=>({pid:l.pid,name:l.name,rubro:l.rubro,qty:l.qty,price:l.price,cost:isKit(prod(l.pid))?kitCost(prod(l.pid)):l.cost,list:l.list,disc:alloc[i]||0,...(isKit(prod(l.pid))?{kit:kitSnap(l.pid)}:{}),...(W&&l.rule?{lr:l.rule,ll:l.lst||'',lb:l.base||0}:{}),...(l.src?{src:l.src}:{})})),total,method,
   doc:arca?'factura_pendiente_cae':'ticket_interno',status:digital?'pendiente':'ok',fee:0,channel:channel||'local',cust:cust?cust.id:'',custName:cust?cust.name+' '+cust.last:'',
   coupon:ben.kind==='coupon'?ben.code:'',benefit:ben.disc?{kind:ben.kind,label:ben.label,disc:ben.disc}:null,recv:opts.recv||0,fiado:fiadoAmt>0,
   pays,fiadoAmt,paid:total-fiadoAmt,balance:fiadoAmt,vuelto:pc.vuelto,pstate:fiadoAmt<=0?'pagada':(fiadoAmt>=total?'pendiente':'parcial')};
@@ -244,14 +244,20 @@ reg('vender','Vender','cart','sell',()=>`<div class="fbar" id="fbar" role="toolb
 function addByCode(code){code=String(code).trim();
  if(typeof wsAddByPack==='function'&&wsAddByPack(code))return true;
  let p=S.products.find(x=>x.active&&x.barcode&&x.barcode===code);if(p){A.padd({dataset:{id:p.id}});return true;}
- if(/^2\d{12}$/.test(code)){const plu=String(+code.slice(1,6));const val=+code.slice(6,11);p=S.products.find(x=>x.active&&x.plu&&String(+x.plu)===plu);
-  if(p){if(p.unit==='u'){toast('Etiqueta de balanza para un producto por unidad: revisá el PLU.',1);return true;}
-   const mode=(S.cfg.scaleMode||'peso');let qty,priceC;
-   if(mode==='peso'){qty=val/1000;if(!(qty>0&&qty<=50)){toast('Peso fuera de rango en la etiqueta.',1);return true;}}
-   else{priceC=val*100;qty=Math.round(priceC/p.price*1000)/1000;if(!(qty>0&&qty<=50)){toast('Importe fuera de rango en la etiqueta.',1);return true;}}
+ {const E=scaleLabelParse(code,typeof scaleLabelsCfg==='function'?scaleLabelsCfg():null,S.cfg.scaleMode||'peso');   /* V26.49: verificador + formato por prefijo (20 = peso, 21 = importe) */
+  if(E&&E.err){toast(E.err,1);return true;}
+  if(E){p=S.products.find(x=>x.active&&x.plu&&String(+x.plu)===E.plu);
+   if(!p){toast('Etiqueta de balanza: no hay ningún producto con PLU '+E.plu+'.',1);return true;}
+   if(p.unit==='u'){toast('Etiqueta de balanza para un producto por unidad: revisá el PLU.',1);return true;}
+   let qty,price=p.price,man;
+   if(E.mode==='peso'){qty=E.kg;if(!(qty>0&&qty<=50)){toast('Peso fuera de rango en la etiqueta.',1);return true;}}
+   else{const q=scaleLabelQty(E.priceC,p.price);if(!q||!(q.qty>0&&q.qty<=50)){toast('Importe fuera de rango en la etiqueta.',1);return true;}qty=q.qty;price=q.price;man=1;
+    if(q.adj&&q.diffPct>1)toast('El precio por kg de la balanza no coincide con el del sistema ('+money(p.price)+'): se cobra el importe de la etiqueta. Actualizá el precio en la balanza.',1);}
+   if(pos.lastLbl===code&&pos.lines.some(l=>l.lbl===code)){const add=()=>{pos.lastLbl='';scanAddLabel(p,qty,price,man,code);};modal('Etiqueta repetida',`<p>Esta misma etiqueta ya se leyó en este ticket. ¿La sumás de nuevo?</p>`,{okText:'Sí, sumar otra vez',onOk:()=>{audit('ETIQUETA_REPETIDA',code);add();}});return true;}
    if(!canOver(p)&&qty>p.stock){toast('Sin stock suficiente de '+p.name,1);return true;}
-   pos.lines.push({pid:p.id,name:pfull(p),rubro:p.rubro,qty,price:p.price,cost:p.cost,unit:p.unit,list:p.price,man:mode==='peso'?undefined:1});pos.sel=pos.lines.length-1;posCart();return true;}}
+   scanAddLabel(p,qty,price,man,code);return true;}}
  return false;}
+function scanAddLabel(p,qty,price,man,code){pos.lines.push({pid:p.id,name:pfull(p),rubro:p.rubro,qty,price,cost:p.cost,unit:p.unit,list:p.price,man,src:'etiqueta',lbl:code});pos.lastLbl=code;pos.sel=pos.lines.length-1;posCart();}
 let scanBuf='',scanLast=0,scanFast=0;
 document.addEventListener('keydown',e=>{if(curScreen!=='vender'||$('#panel').hidden||$('#modal-root .ov'))return;
  const t=e.target;const inField=t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT');
