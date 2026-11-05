@@ -177,6 +177,7 @@ function cobroView(){
   ${pos.pays.length<PAY_MIX.length?'<button type="button" class="btn sm" data-act="cbmadd">+ Agregar medio</button>':''}
   <div id="mx-sum" style="margin-top:.6rem">${mixSummaryHTML(tot)}</div></div>`:'';
  return `<div class="card" style="margin-bottom:.6rem">${pos.lines.map(l=>`<div class="row sm"><span class="sp">${esc(l.name)} × ${numAR(l.qty,3)}${typeof wsLineTag==='function'?wsLineTag(l):''}</span><b>${money(Math.round(l.qty*l.price))}</b></div>`).join('')}${ben.disc?`<div class="row sm"><span class="sp">Subtotal</span><span>${money(gross)}</span></div><div class="row sm" style="color:var(--ok)"><span class="sp">${esc(ben.label)}</span><b>− ${money(ben.disc)}</b></div>`:''}${typeof paCobroTotHTML==='function'?paCobroTotHTML(tot,gross,ben):`<hr><div class="row"><span class="sp">TOTAL</span><span class="total">${money(tot)}</span></div>`}</div>
+ ${rcvBoxHTML(m)}
  <div class="row" style="margin-bottom:.5rem">${chips}</div>
  <p class="sm"><b>Documento:</b> ${pos.arca?'Factura electrónica (CAE al cobrar)':'Ticket interno — DOCUMENTO NO VÁLIDO COMO FACTURA'} <button class="btn sm" data-act="parca">${pos.arca?'CON ARCA':'SIN ARCA'} (F8)</button></p>
  ${custBox}
@@ -190,9 +191,17 @@ function cobroView(){
  <div><label for="cb-code">Sello del Club: DNI, código o QR del cliente</label><input id="cb-code" inputmode="text" placeholder="DNI, 0007 4821 o lector de QR" autocomplete="off" value="${esc(pos.stamp)}"><div class="row" style="margin-top:.3rem"><button class="btn sm" type="button" data-act="cbQr">📷 QR</button><button class="btn sm" type="button" data-act="cbNfc">📡 NFC</button></div></div></div>
  ${benTxt}
  ${m==='fiado'&&!cust?'<div class="warnbox">Elegí el cliente para dejar la venta en cuenta corriente.</div>':''}
- ${m==='efectivo'?`<label for="rcv">Recibido ($) — opcional</label>${numIn('rcv',0,'0')}<div id="vuelto" class="sm mut" aria-live="assertive"></div>`:''}
  ${pos.mix&&needCust&&!cust?'<div class="warnbox">Hay una línea de cuenta corriente: identificá al cliente (no puede ser consumidor final).</div>':''}
  ${(m==='qr'||m==='modo')?'<div class="warnbox">Cobro digital: queda <b>pendiente</b> hasta que llegue la confirmación del webhook. El stock se reserva y el cobro no cuenta en caja hasta confirmarse.</div>':''}`;}
+/* V26.50 · «Importe recibido» OBLIGATORIO en efectivo, debajo del total y arriba de los medios de pago; F12 deja el cursor ahí */
+const rcvTotal=()=>typeof posFinal==='function'?posFinal('efectivo'):posTotal();
+function rcvBoxHTML(m){
+ if(m==='efectivo'){const r=pos.recv?cents(pos.recv):NaN;return `<div class="rcvbox card" id="rcvbox"><label for="rcv"><b>Importe recibido en efectivo ($)</b> <span class="tag warn">obligatorio</span></label>
+  <div class="row" style="gap:.5rem;flex-wrap:nowrap"><input id="rcv" class="sp" inputmode="decimal" autocomplete="off" placeholder="¿Con cuánto paga?" value="${esc(pos.recv||'')}" aria-describedby="vuelto" style="font-size:1.4rem;min-height:56px"><button type="button" class="btn" data-act="rcvJusto" style="min-height:56px" title="El cliente paga justo: sin vuelto">Justo</button></div>
+  <div id="vuelto" aria-live="assertive">${vueltoHTML(r,rcvTotal())}</div><p class="sm mut" style="margin:.3rem 0 0">Escribí el importe y apretá Enter o F12 para cobrar.</p></div>`;}
+ return `<div class="rcvbox card sm mut" id="rcvbox" style="min-height:56px;display:flex;align-items:center">${m==='mixto'?'Pago dividido: el efectivo que entrega el cliente va en «Recibe en mano».':'Cobro con '+esc(MET[m]||m)+': no se ingresa efectivo.'}</div>`;}
+function rcvFocus(){setTimeout(()=>{const i=$('#rcv');if(i){i.focus();i.select();}},60);}
+A.rcvJusto=()=>{const t=rcvTotal();pos.recv=pesosStr(t);const i=$('#rcv');if(i)i.value=pos.recv;const v=$('#vuelto');if(v)v.innerHTML=vueltoHTML(t,t);if(i)i.focus();};
 function vueltoHTML(r,tot){if(isNaN(r)||!r)return '';if(r>tot)return `<div class="vuelto" role="alert"><span>VUELTO A ENTREGAR</span><b>${money(r-tot)}</b><small>Recibido ${money(r)} − total ${money(tot)}</small></div>`;if(r===tot)return '<div class="okbox sm">Efectivo justo: sin vuelto.</div>';return `<div class="errbox sm"><b>Falta ${money(tot-r)}</b> para completar el efectivo.</div>`;}
 A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin permiso',1);if(!openSess()){toast('Abrí la caja para vender.',1);return;}
  if(cobroW())return;
@@ -200,10 +209,12 @@ A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin perm
  if(typeof stampPrep==='function')stampPrep();
  const w=modal('Confirmar cobro',cobroView(),{wide:true,okText:'Cobrar (F12)',onOk:()=>{cobroSync();
   const rc=pos.recv?cents(pos.recv):0;
+  if(!pos.mix&&pos.method==='efectivo'){const t=rcvTotal();if(!(rc>0)||isNaN(rc)){toast('Ingresá el importe recibido en efectivo (o tocá «Justo»).',1);rcvFocus();return false;}
+   if(rc<t){toast('El importe recibido ('+money(rc)+') es menor al total ('+money(t)+'): faltan '+money(t-rc)+'.',1);rcvFocus();return false;}}
   if(pos.stamp&&!pos.cust){const vr=resolveStamp(pos.stamp,'');if(vr.ok)pos.cust=vr.cust.id;}
   if(pos.arca&&typeof arcaRcpCheck==='function'){const er=arcaRcpCheck();if(er){toast(er,1);return false;}}
   const pg=typeof pdGateCobro==='function'?pdGateCobro():{det:null};if(pg.err){toast(pg.err,1);return false;}
-  let pays=null,recv=isNaN(rc)?0:rc;
+  let pays=null,recv=(!pos.mix&&pos.method!=='efectivo')?0:(isNaN(rc)?0:rc); /* V26.50: un importe escrito en efectivo no viaja si se cobra con otro medio */
   if(pos.mix){const L=mixParsed();if(L.some(p=>isNaN(p.a)||isNaN(p.r))){toast('Revisá los importes: hay un número inválido.',1);return false;}
    pays=L.filter(p=>p.a>0).map(p=>({m:p.m,a:p.a}));}
   const ag=typeof accGate==='function'?accGate():{acc:null};if(ag.err){toast(ag.err,1);return false;}
@@ -215,6 +226,8 @@ A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin perm
   toast('Venta '+sale.n+' registrada'+(r.stamp?' · sello sumado':''));if(typeof csPaid==='function')csPaid(sale);
   setTimeout(()=>{if(sale.status==='pendiente')payModal(sale);else if(sale.doc!=='ticket_interno'&&typeof arcaPostSale==='function')arcaPostSale(sale,r.stamp);else receiptModal(sale,r.stamp);},50);}});
  if(typeof pdBind==='function')pdBind(w);
+ if(!pos.mix&&pos.method==='efectivo')rcvFocus();
+ w.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='rcv'){e.preventDefault();const ok=w.querySelector('[data-m=ok]');if(ok)ok.click();}});
  w.addEventListener('input',e=>{const t=e.target;
   if(t.id==='rcv'){const v=$('#vuelto',w);if(v)v.innerHTML=vueltoHTML(cents(t.value),typeof posFinal==='function'?posFinal(pos.method):posTotal());}
   if(t.dataset&&t.dataset.pi!==undefined&&t.dataset.pf!=='m'){pos.pays[+t.dataset.pi][t.dataset.pf]=t.value;const sm=$('#mx-sum',w);if(sm)sm.innerHTML=mixSummaryHTML(posTotal());if(typeof pdRecheck==='function')pdRecheck(w);}
@@ -226,7 +239,7 @@ A.cbmix=()=>{cobroSync();pos.mix=!pos.mix;if(pos.mix){const first=(PAY_MIX.inclu
 A.cbmadd=()=>{const used=pos.pays.map(p=>p.m);const m=PAY_MIX.find(k=>!used.includes(k));if(m){pos.pays.push({m,a:'',r:''});cobroRender();}};
 A.cbmrm=el=>{pos.pays.splice(+el.dataset.i,1);cobroRender();};
 A.cbrest=el=>{const L=mixParsed();const i=+el.dataset.i;const others=L.reduce((a,p,j)=>a+(j===i||isNaN(p.a)?0:p.a),0);const rest=posTotal()-others;if(rest<=0)return toast('No queda resto: los otros medios ya cubren el total.',1);pos.pays[i].a=pesosStr(rest);cobroRender();};
-A.cbmet=el=>{pos.method=el.dataset.m;pos.mix=false;pos.pays=[];cobroRender();posCart();};
+A.cbmet=el=>{pos.method=el.dataset.m;pos.mix=false;pos.pays=[];cobroRender();posCart();if(pos.method==='efectivo')rcvFocus();};
 A.cbcust=el=>{pos.cust=el.dataset.id||'';pos.chanSet=null;cobroRender();posCart();};
 A.cbcup=()=>{cobroRender();};
 const cbSetStamp=t=>{const i=document.getElementById('cb-code');if(i)i.value=t;pos.stamp=t;cobroRender();};
@@ -287,7 +300,7 @@ document.addEventListener('keydown',e=>{if(curScreen!=='vender'||$('#panel').hid
 document.addEventListener('keydown',e=>{if(curScreen!=='vender'||$('#panel').hidden)return;const ov=$('#modal-root .ov');const m=/^F(\d{1,2})$/.exec(e.key);if(!m)return;const n=+m[1];if(n<1||n>12)return;
  if(ov){if(!cobroW()||$$('#modal-root .ov').length>1)return;e.preventDefault();
   if(n===12){ov.querySelector('[data-m=ok]').click();return;}
-  const mm={1:'efectivo',2:'debito',3:'credito',4:'fiado'}[n];if(mm){pos.method=mm;pos.mix=false;pos.pays=[];cobroRender();posCart();}else if(n===8)A.parca();
+  const mm={1:'efectivo',2:'debito',3:'credito',4:'fiado'}[n];if(mm){pos.method=mm;pos.mix=false;pos.pays=[];cobroRender();posCart();if(mm==='efectivo')rcvFocus();}else if(n===8)A.parca();
   return;}
  e.preventDefault();
  const k=FKEYS[n-1];const el={dataset:{m:k.m||''}};

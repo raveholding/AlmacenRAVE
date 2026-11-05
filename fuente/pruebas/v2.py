@@ -21,7 +21,7 @@ with sync_playwright() as p:
     pid=ev("S.products.find(p=>p.stock>5&&p.active).id")
     # vender uno para que tenga historia
     pg.evaluate("location.hash='#panel/vender'");pg.wait_for_timeout(400)
-    pg.locator('[data-act=padd]').nth(0).click();pg.keyboard.press('F1');pg.wait_for_timeout(300);pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(500)
+    pg.locator('[data-act=padd]').nth(0).click();pg.keyboard.press('F1');pg.wait_for_timeout(300);pg.click('[data-act=rcvJusto]');pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(500)  # V26.50: importe recibido obligatorio
     pg.keyboard.press('Escape')
     vp=ev("S.sales[S.sales.length-1].items[0].pid")
     pg.evaluate("location.hash='#panel/inventario'");pg.wait_for_timeout(500)

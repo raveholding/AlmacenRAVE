@@ -19,6 +19,7 @@ with sync_playwright() as p:
     chk(ev("pos.arca")==True,'F8 deja la operación Con ARCA')
     pg.keyboard.press('F1');pg.wait_for_timeout(400)
     t=pg.inner_text('#modal-root');chk('Receptor de la factura' in t,'el cobro muestra el receptor de la factura')
+    if pg.locator('[data-act=rcvJusto]').count(): pg.click('[data-act=rcvJusto]');pg.wait_for_timeout(100)  # V26.50: importe recibido obligatorio en efectivo
     pg.select_option('#rc-t','96');pg.fill('#rc-n','12');pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(300)
     chk('DNI' in pg.inner_text('#modal-root') or 'DNI del receptor' in pg.inner_text('#modal-root') or ev("document.querySelector('#toast').innerText").find('DNI')>=0,'DNI inválido se rechaza')
     pg.fill('#rc-n','30111222');pg.select_option('#rc-c','5');pg.fill('#rc-nm','Juan Pérez')
@@ -35,6 +36,7 @@ with sync_playwright() as p:
     # venta común sin ARCA sigue igual
     pg.locator('[data-act=padd]').nth(0).click();pg.keyboard.press('F8');pg.keyboard.press('F1');pg.wait_for_timeout(300)
     chk('Receptor de la factura' not in pg.inner_text('#modal-root'),'sin ARCA: no se pide receptor')
+    if pg.locator('[data-act=rcvJusto]').count(): pg.click('[data-act=rcvJusto]');pg.wait_for_timeout(100)  # V26.50: importe recibido obligatorio en efectivo
     pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(500)
     chk('DOCUMENTO NO VÁLIDO COMO FACTURA' in ev("ticketText(S.sales[S.sales.length-1])"),'ticket interno intacto')
     pg.keyboard.press('Escape')

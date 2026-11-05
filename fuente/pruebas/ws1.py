@@ -104,6 +104,7 @@ with sync_playwright() as p:
     chk(ev("pos.lines[0].price")==9000 and ev("posTotal()")==108000,'2 Display de 6 = 12 u de Prod codigo = $1.080')
     st0=ev("prod('wt2').stock")
     pg.keyboard.press('F12');pg.wait_for_timeout(300)
+    if pg.locator('[data-act=rcvJusto]').count(): pg.click('[data-act=rcvJusto]');pg.wait_for_timeout(100)  # V26.50: importe recibido obligatorio en efectivo
     pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(500)
     s=ev("S.sales.slice(-1)[0]")
     chk(s['total']==108000 and s['wch']=='mayorista' and s['items'][0]['lr']=='P-d' and s['items'][0]['ll']=='Display','venta guardada: total, canal y regla aplicada en la línea: %s · %s'%(s['items'][0]['lr'],s['items'][0]['ll']))

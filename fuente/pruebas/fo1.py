@@ -60,7 +60,7 @@ with sync_playwright() as p:
     if pg.locator('#modal-root .ov').count():ev("document.querySelectorAll('#modal-root .ov').forEach(o=>o.remove())");pg.wait_for_timeout(200)
     chk(foc()=='psearch','al cerrar el cobro vuelve al buscador')
     ev("pos.method='efectivo';A.cobrar()");pg.wait_for_timeout(300)
-    pg.click('#modal-root .ov .btn.gold');pg.wait_for_timeout(600)
+    pg.click('[data-act=rcvJusto]');pg.click('#modal-root .ov .btn.gold');pg.wait_for_timeout(600)
     while pg.locator('#modal-root .ov').count():
         pg.keyboard.press('Escape');pg.wait_for_timeout(250)
         if pg.locator('#modal-root .ov').count():ev("document.querySelectorAll('#modal-root .ov').forEach(o=>o.remove())");pg.wait_for_timeout(200)
