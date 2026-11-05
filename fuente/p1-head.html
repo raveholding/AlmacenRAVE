@@ -216,6 +216,13 @@ html[data-theme=dark] .cmp{--nm-l:#2c2824;--nm-d:#0b0a09;--nm-bg:#221f1c}html[da
 html[data-theme=dark] #view [style*="background:#fff"],html[data-theme=dark] .dlg [style*="background:#fff;"]{background:var(--card)!important}
 html[data-theme=dark] #view [style*="color:#242220"]:not(.cm-card){color:var(--ink)!important}
 html[data-theme=dark] .cm-card,html[data-theme=dark] .cm-card *{color-scheme:light}
+/* V26.49 · Fiado / Cuenta corriente: selección obligatoria y excluyente, estados inequívocos, ≥ 60 px */
+.ckrow{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.ckbtn{min-height:64px;padding:.55rem .7rem;border:2px solid var(--line);border-radius:12px;background:var(--card,#fff);color:inherit;text-align:left;display:flex;flex-direction:column;gap:.15rem;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;font:inherit}
+.ckbtn small{opacity:.8}
+.ckbtn.selected{border:3px solid var(--gold);background:color-mix(in srgb,var(--gold) 16%,transparent);box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 35%,transparent)}
+.ckbtn:active{transform:translateY(1px)}
+@media(max-width:420px){.ckrow{grid-template-columns:1fr}}
 </style>
 </head>
 <body>

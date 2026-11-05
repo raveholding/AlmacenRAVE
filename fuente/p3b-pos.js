@@ -1,5 +1,5 @@
 /* ===== Venta (POS) · barra de teclas F arriba, cobro con cliente, cupón y fiado ===== */
-const pos={lines:[],method:'efectivo',arca:false,rcp:null,sel:-1,q:'',rub:'',cust:'',coupon:'',stamp:'',recv:'',mix:false,pays:[]};
+const pos={lines:[],method:'efectivo',arca:false,rcp:null,sel:-1,q:'',rub:'',cust:'',coupon:'',stamp:'',recv:'',mix:false,pays:[],ck:''};
 const prod=id=>S.products.find(p=>p.id===id);
 const pfull=p=>p.name+(p.sub?' ('+p.sub+')':'');
 const qtyIn=pid=>pos.lines.filter(l=>l.pid===pid).reduce((a,l)=>a+l.qty,0);
@@ -80,6 +80,7 @@ function commitSale(method,arca,channel,lines,opts){
  sale.fee=pays.reduce((a,p)=>a+p.fee,0);
  if(opts.tnOrder)sale.tn=opts.tnOrder;
  if(W)sale.wch=W.chan;if(cr.ov)sale.cov=cr.ov;if(fiadoAmt>0&&wsOn()&&cust&&cust.term>0){sale.term=cust.term;sale.due=sale.ts+cust.term*WS_DAY;}
+ if(fiadoAmt>0&&typeof creditSplit==='function'&&creditSplit()){sale.ck=opts.ck==='fiado'?'fiado':'cc';const du=ccDueFor(sale.ck,sale.ts,cust);if(du){sale.due=du;if(sale.ck==='cc'&&cust&&cust.term>0)sale.term=cust.term;}else if(sale.ck==='cc'){delete sale.due;}} /* V26.49 · Fiado / Cuenta corriente */
  const neg=[];for(const pid in need){const p=prod(pid);p.stock=Math.round((p.stock-need[pid])*1000)/1000;if(p.stock<0)neg.push(p.name+' → '+p.stock);}if(neg.length)audit('VENTA_SIN_STOCK',neg.join(' · '));
  S.sales.push(sale);S.lastSale=sale.id;
  if(typeof pdCommitAll==='function')pdCommitAll(sale,opts.det);
@@ -159,7 +160,7 @@ function cobroView(){
  const cust=custById(pos.cust);const ben=posBen();const gross=posGross();const tot=gross-ben.disc;const m=pos.mix?'mixto':pos.method;
  const needCust=m==='fiado'||(pos.mix&&pos.pays.some(p=>p.m==='fiado'));
  const chips=POS_METHODS.map((k,i)=>`<button type="button" class="btn sm ${m===k?'on':''}" data-act="cbmet" data-m="${k}">${esc(MET[k]||k)}${typeof paChipTag==='function'?esc(paChipTag(k)):''}${i<4?` (F${i+1})`:''}</button>`).join('')+`<button type="button" class="btn sm ${pos.mix?'on':''}" data-act="cbmix" aria-pressed="${pos.mix?'true':'false'}">Dividir el pago (mixto)</button>`;
- const custBox=cust?`<div class="okbox row"><span class="sp"><b>${esc(cust.name+' '+cust.last)}</b> · socio ${esc(pad4(cust.num))}${memberActive(cust)?' · ⭐ '+esc(memberActive(cust).name):''}${needCust?` · debe ${money(debtOf(cust.id))} de ${money(cust.limit||0)}`:''}</span><button class="btn sm" data-act="cbcust" data-id="">Quitar</button></div>`
+ const custBox=cust?`<div class="okbox row"><span class="sp"><b>${esc(cust.name+' '+cust.last)}</b> · socio ${esc(pad4(cust.num))}${memberActive(cust)?' · ⭐ '+esc(memberActive(cust).name):''}${needCust?` · debe ${money(debtOf(cust.id))} de ${money(cust.limit||0)}${typeof ccKindsHTML==='function'?ccKindsHTML(cust.id):''}`:''}</span><button class="btn sm" data-act="cbcust" data-id="">Quitar</button></div>`
   :`<label for="cb-q">Cliente ${needCust?'(obligatorio para cuenta corriente)':'(opcional: sellos, cupones, membresía)'}</label><input id="cb-q" placeholder="Buscar por nombre, WhatsApp o DNI" autocomplete="off"><div id="cb-res"></div>`;
  const benTxt=(ben.disc?`<div class="okbox">${esc(ben.label)}: − ${money(ben.disc)}${ben.note?'<br><span class="sm">'+esc(ben.note)+'</span>':''}</div>`:'')+(pos.coupon&&ben.couponErr?`<div class="errbox">Cupón: ${esc(ben.couponErr)}</div>`:'')+(!ben.disc&&ben.note?`<div class="warnbox sm">${esc(ben.note)}</div>`:'');
  const mixHtml=pos.mix?`<div class="card" id="mixbox" style="margin:.5rem 0"><h3 style="margin-top:0">Pagos del cliente</h3><p class="sm mut">Repartí el total entre los medios. La suma debe dar exactamente el total. El efectivo que entrega el cliente va en “Recibe en mano”; si es más que el importe, se calcula el vuelto.</p>
@@ -174,6 +175,7 @@ function cobroView(){
  <p class="sm"><b>Documento:</b> ${pos.arca?'Factura electrónica (CAE al cobrar)':'Ticket interno — DOCUMENTO NO VÁLIDO COMO FACTURA'} <button class="btn sm" data-act="parca">${pos.arca?'CON ARCA':'SIN ARCA'} (F8)</button></p>
  ${custBox}
  ${mixHtml}
+ ${typeof ckPickHTML==='function'?ckPickHTML():''}
  ${typeof accPickHTML==='function'?accPickHTML():''}
  ${typeof pdHostHTML==='function'?pdHostHTML():''}
  ${typeof arcaRcpHtml==='function'?arcaRcpHtml():''}
@@ -188,7 +190,7 @@ function cobroView(){
 function vueltoHTML(r,tot){if(isNaN(r)||!r)return '';if(r>tot)return `<div class="vuelto" role="alert"><span>VUELTO A ENTREGAR</span><b>${money(r-tot)}</b><small>Recibido ${money(r)} − total ${money(tot)}</small></div>`;if(r===tot)return '<div class="okbox sm">Efectivo justo: sin vuelto.</div>';return `<div class="errbox sm"><b>Falta ${money(tot-r)}</b> para completar el efectivo.</div>`;}
 A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin permiso',1);if(!openSess()){toast('Abrí la caja para vender.',1);return;}
  if(cobroW())return;
- pos.pdet={};
+ pos.pdet={};pos.ck='';
  if(typeof stampPrep==='function')stampPrep();
  const w=modal('Confirmar cobro',cobroView(),{wide:true,okText:'Cobrar (F12)',onOk:()=>{cobroSync();
   const rc=pos.recv?cents(pos.recv):0;
@@ -199,10 +201,11 @@ A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin perm
   if(pos.mix){const L=mixParsed();if(L.some(p=>isNaN(p.a)||isNaN(p.r))){toast('Revisá los importes: hay un número inválido.',1);return false;}
    pays=L.filter(p=>p.a>0).map(p=>({m:p.m,a:p.a}));}
   const ag=typeof accGate==='function'?accGate():{acc:null};if(ag.err){toast(ag.err,1);return false;}
+  if(typeof ckNeeded==='function'&&ckNeeded()&&!pos.ck){toast('Elegí «Mandar a Fiado» o «Mandar a Cuenta Corriente».',1);const k=$('#ckpick');if(k)k.scrollIntoView({block:'center'});return false;}
   if(pos.mix){const L=mixParsed();const ef=L.find(p=>p.m==='efectivo');recv=ef?ef.r:0;}
-  const r=commitSale(pos.mix?'mixto':pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv,pays,det:pg.det,acc:ag.acc,ws:wsOn()?{chan:wsChan()}:null,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null});
+  const r=commitSale(pos.mix?'mixto':pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv,pays,det:pg.det,acc:ag.acc,ws:wsOn()?{chan:wsChan()}:null,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null,ck:pos.ck});
   if(r.err){wsCommitErr(r);return false;}
-  const sale=r.sale;pos.lines=[];pos.sel=-1;pos.cust='';pos.chanSet=null;pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];pos.pdet={};pos.acc={};posCart();posGrid();
+  const sale=r.sale;pos.lines=[];pos.sel=-1;pos.cust='';pos.chanSet=null;pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];pos.pdet={};pos.acc={};pos.ck='';posCart();posGrid();
   toast('Venta '+sale.n+' registrada'+(r.stamp?' · sello sumado':''));
   setTimeout(()=>{if(sale.status==='pendiente')payModal(sale);else if(sale.doc!=='ticket_interno'&&typeof arcaPostSale==='function')arcaPostSale(sale,r.stamp);else receiptModal(sale,r.stamp);},50);}});
  if(typeof pdBind==='function')pdBind(w);

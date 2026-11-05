@@ -47,7 +47,7 @@ function ticketModel(sale,W){const T=S.tenant,cfg=S.cfg.ticket;const B=[];const 
  add('l',{l:'TOTAL',r:money(sale.total),b:1,big:1});
  if(cb&&cb.letra==='B'&&cb.iva>0)add('t',{s:'Régimen de Transparencia Fiscal (Ley 27.743) — IVA contenido: '+money(cb.iva)+' [VERIFICAR texto]'});
  {const pl=salePays(sale);const fi=saleFiadoAmt(sale);
-  if(pl.length>1||fi>0){add('t',{s:'Medios de pago:',b:1});pl.forEach(pp=>add('l',{l:'  '+(MET[pp.m]||pp.m)+(pp.m==='fiado'?' (a cta. cte.)':''),r:money(pp.a)}));add('l',{l:'Cobrado',r:money(sale.total-fi)});}
+  if(pl.length>1||fi>0){add('t',{s:'Medios de pago:',b:1});pl.forEach(pp=>add('l',{l:'  '+(MET[pp.m]||pp.m)+(pp.m==='fiado'?(sale.ck==='fiado'?' (fiado'+(sale.due?', vence '+dmy(dkey(sale.due)):'')+')':' (a cta. cte.'+(sale.ck&&sale.due?', vence '+dmy(dkey(sale.due)):'')+')'):''),r:money(pp.a)}));add('l',{l:'Cobrado',r:money(sale.total-fi)});}
   else add('t',{s:'Medio de pago: '+(MET[sale.method]||sale.method)});
   if(sale.recv>0&&(sale.vuelto>0||(sale.method==='efectivo'&&sale.recv>=sale.total))){add('l',{l:'Recibido',r:money(sale.recv)});add('l',{l:'Vuelto',r:money(sale.vuelto!=null&&sale.pays?sale.vuelto:sale.recv-sale.total)});}
   if(fi>0&&sale.cust){add('t',{s:'Estado: '+(salePayState(sale)==='parcial'?'PAGO PARCIAL':'PENDIENTE DE COBRO')+' · saldo de esta venta '+money(fi)});add('t',{s:'Saldo adeudado en cuenta corriente: '+money(debtOf(sale.cust))});}

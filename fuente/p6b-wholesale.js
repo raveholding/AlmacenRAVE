@@ -74,11 +74,8 @@ const wsNoClub=()=>wsOn()&&wsChan()==='mayorista'&&!wsConf().allowClub;
 
 /* ---- crédito: límite + plazo + mora + excepción autorizada (4.22.2) ---- */
 const wsDue=(s,c)=>s.due||((c&&c.term>0)?s.ts+c.term*WS_DAY:0);
-function wsOpenDocs(cid){const c=custById(cid);
- const d=S.sales.filter(s=>s.cust===cid&&s.fiado&&s.status==='ok').sort((a,b)=>a.ts-b.ts).map(s=>({s,left:saleFiadoAmt(s),due:wsDue(s,c)}));
- let paid=S.fiadoPays.filter(p=>p.cust===cid).reduce((a,p)=>a+p.amount,0);
- for(const x of d){const t=Math.min(x.left,paid);x.left-=t;paid-=t;}
- return d.filter(x=>x.left>0);}
+function wsOpenDocs(cid){const c=custById(cid); /* V26.49: misma aplicación de cobros que los saldos por tipo */
+ return ccAlloc(cid).docs.filter(x=>x.left>0).map(x=>({s:x.s,left:x.left,due:wsDue(x.s,c),ck:x.ck}));}
 function wsOverdue(cid,at){at=at||now();const g=wsConf().grace*WS_DAY;return wsOpenDocs(cid).filter(x=>x.due&&x.due+g<at);}
 function wsAging(cid){const B=[{k:'0–30',a:0,b:30,t:0},{k:'31–60',a:31,b:60,t:0},{k:'61–90',a:61,b:90,t:0},{k:'+90',a:91,b:1e9,t:0}];
  wsOpenDocs(cid).forEach(x=>{const age=Math.floor((now()-x.s.ts)/WS_DAY);const b=B.find(q=>age>=q.a&&age<=q.b)||B[3];b.t+=x.left;});return B;}
