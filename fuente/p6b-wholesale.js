@@ -130,7 +130,7 @@ A.wsPack=el=>{const i=+el.dataset.i,L=pos.lines[i];if(!L)return;const p=prod(L.p
 function wsAddPres(p,k){if(!p||!k)return false;const had=pos.lines.some(l=>l.pid===p.id);
  if(!had){A.padd({dataset:{id:p.id}});}
  const i=pos.lines.findIndex(l=>l.pid===p.id);if(i<0)return true;
- const add=had?k.qty:k.qty-1;if(add>0)lineEdit(i,'qty',String(Math.round((pos.lines[i].qty+add)*1000)/1000).replace('.',','));return true;}
+ const add=had?k.qty:k.qty-1;if(add>0)lineEdit(i,'qty',String(Math.round((pos.lines[i].qty+add)*1000)/1000).replace('.',','));if(typeof posFocusSearch==='function')posFocusSearch();return true;}
 A.wsAddPres=el=>{const p=prod(el.dataset.id);if(!p)return;wsAddPres(p,wsPres(p).find(x=>x.lv===el.dataset.lv));};
 function wsAddByPack(code){if(!wsOn()||!code)return false;
  for(const p of S.products){if(!p.active)continue;const k=wsPres(p).find(x=>x.barcode&&x.barcode===code);if(k)return wsAddPres(p,k);}return false;}
