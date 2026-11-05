@@ -6,6 +6,8 @@ Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. 
 
 ## Versión: SISTEMA VB 26F (`SISTEMA_VB_26F`)
 
+**V26.49 (2026-11-04):** **recargo o descuento por medio de pago** (efectivo, débito, crédito, transferencia, QR, MODO; % o monto; sólo el administrador; aviso legal de la Ley 25.065), **balanzas Systel y Kretz con reconocimiento automático** (pide el peso, estable 400 ms, anti-duplicado), **etiquetas EAN-13 de balanza corregidas** (prefijo de 2 cifras y dígito verificador), **Fiado y Cuenta corriente separados**, **cortes X y Z** numerados, **apertura del cajón** y corte del papel, y **pantalla del cliente** para un segundo monitor. Migraciones `supabase/16-ajustes-medios-pago.sql` y `17-fiado-cc-cortes.sql` (**correrlas en Supabase antes de activar los recargos y de usar el corte X**). Detalle y pruebas: anexo S de `fuente/SISTEMA_VB_26F.md`.
+
 **Prompt V26.4 (2026-10-19):** `fuente/SISTEMA_VB_26F.md` suma la especificación del módulo **Mayorista / Minorista (sección 4.22)** y el **Anexo E** (punto de reanudación con prompt de arranque). Es sólo documentación: el sistema publicado no cambió y 4.22 todavía no está construido.
 
 **V26.3 (2026-10-19) · Club RAVE:** el cliente escanea el QR del menú, se anota (DNI opcional) y **recibe su tarjeta en el celular**; el negocio la importa sola y en el mostrador se suma el sello por **QR, código, DNI o NFC** (migración `supabase/09-club-tarjeta.sql`; pruebas `fuente/pruebas/c18.py`, `c19.py`, SQL 16). Wallet de Apple/Google: no implementado.

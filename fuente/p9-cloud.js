@@ -116,7 +116,7 @@ function collectAll(){const out=[];
  for(const [k,ts] of Object.entries(S.loyalty.usedOtp||{}))if(k.length<=80)out.push({c:'otp',id:k,w:{ts}});
  for(const cp of S.coupons)for(const u of(cp.uses||[]))if(u.sale)out.push({c:'cusos',id:(cp.id+':'+u.sale).slice(0,80),w:{cp:cp.id,ts:u.ts,sale:u.sale,cust:u.cust||''}});
  for(const k of S.closures)for(const n of(k.notes||[]))out.push({c:'cnotas',id:(k.id+':'+cyrb(canon(n))).slice(0,80),w:Object.assign({cl:k.id},n)});
- for(const id of CFGIDS)out.push({c:'cfg',id,w:cfgWire(id)});
+ for(const id of CFGIDS){if(id==='payadj'&&!(S.payadj&&S.payadj.saved))continue; /* V26.49: sólo después de que el administrador la guardó */ out.push({c:'cfg',id,w:cfgWire(id)});}
  if(cl.clubPriv&&cl.clubPriv.new)out.push({c:'cfg',id:'clubkey',w:{pub:cl.clubPriv.pub,priv:cl.clubPriv.priv},raw:1});
  return out;}
 async function sealPii(col,id,w){if(!col||!col.pii||!col.pii.length)return w;const d=Object.assign({},w),p={};let any=false;for(const k of col.pii)if(d[k]!==undefined){p[k]=d[k];delete d[k];any=true;}

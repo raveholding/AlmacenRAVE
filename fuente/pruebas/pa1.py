@@ -87,7 +87,7 @@ with sync_playwright() as p:
     chk(ev("(()=>{const u=user;user=Object.assign({},u,{role:'supervisor'});const h=paCfgCard();user=u;return h})()")=='','el supervisor no ve ni edita los recargos')
     chk(ev("(()=>{const u=user;user=Object.assign({},u,{role:'supervisor'});const before=JSON.stringify(S.payadj);A.paSave();user=u;return JSON.stringify(S.payadj)===before})()"),'el supervisor no puede guardar aunque llame la acción')
     # nube: viaja como documento propio
-    chk(ev("CFGIDS.includes('payadj')&&cfgWire('payadj').rules.efectivo.v===1000"),'nube: documento cfg/payadj')
+    chk(ev("CFGIDS.includes('payadj')&&cfgWire('payadj').rules.efectivo.v===1000&&S.payadj.saved===true&&collectAll().some(x=>x.c==='cfg'&&x.id==='payadj')"),'nube: documento cfg/payadj (viaja recién después de guardarlo)')
     # apagado = igual que antes
     ev("S.payadj.on=false")
     chk(ev("commitSale('efectivo',false,'local',mk(),{}).sale.total")==1000000,'apagado → $10.000 como siempre')

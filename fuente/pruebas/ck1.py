@@ -87,7 +87,8 @@ with sync_playwright() as p:
     pg.fill('#ck-d','10');pg.uncheck('#ck-on');pg.click('[data-act=ckSave]');pg.wait_for_timeout(200)
     chk(ev("S.cfg.credit.split===false&&S.cfg.credit.fiadoDays===10"),'guardado: apagado, 10 días')
     r=ev("(()=>{const r=commitSale('fiado',false,'local',mk(100000),{custId:C.id,ck:'fiado'});return r.err||[r.sale.ck||'',r.sale.due?dkey(r.sale.due):'']})()")
-    chk(r==['','2026-12-04'],'apagado: como antes (sin tipo; el plazo mayorista sigue): %s'%r)
+    exp=['','2026-12-04'] if ev("wsOn()") else ['','']
+    chk(r==exp,'apagado: como antes (sin tipo; el plazo mayorista sigue si el mayorista está encendido): %s'%r)
     print('errores:',errs[:5]);chk(not errs,'sin errores de consola')
     b.close()
 print('%d OK / %d FALLAN de %d'%(sum(res),len(res)-sum(res),len(res)))

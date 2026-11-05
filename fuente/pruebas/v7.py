@@ -43,6 +43,7 @@ with sync_playwright() as p:
     box=pg.locator('#mx-sum .vuelto')
     chk(box.count()==1 and '10.000' in box.inner_text() and 'VUELTO A ENTREGAR' in box.inner_text(),'alerta visual de VUELTO $ 10.000 (recibe 50.000, imputa 40.000)')
     chk(pg.locator('#mx-sum .vuelto').get_attribute('role')=='alert','la alerta es role=alert (lectores de pantalla)')
+    if pg.locator('[data-act=cbck][data-k=cc]').count(): pg.click('[data-act=cbck][data-k=cc]');pg.wait_for_timeout(150)  # V26.49: Fiado / Cta. cte. obligatorio
     pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(500)
     s=ev("S.sales.filter(s=>s.method==='mixto').slice(-1)[0]")
     chk(s and s['total']==6000000 and s['paid']==4000000 and s['balance']==2000000,'venta guardada: total 60.000, cobrado 40.000, saldo 20.000')
@@ -65,6 +66,7 @@ with sync_playwright() as p:
     pg.select_option('#mx-m0','fiado');pg.wait_for_timeout(150)
     pg.select_option('#mx-m1','efectivo');pg.wait_for_timeout(150)
     pg.fill('#mx-a0','40000');pg.click('[data-act=cbrest][data-i="1"]');pg.wait_for_timeout(100)
+    if pg.locator('[data-act=cbck][data-k=cc]').count(): pg.click('[data-act=cbck][data-k=cc]');pg.wait_for_timeout(150)  # V26.49: así el rechazo es por el límite, no por el tipo
     pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(300)
     chk(ev("S.sales.filter(s=>s.method==='mixto').length")==1,'cta cte 40.000 + deuda 20.000 supera el límite de 50.000: rechazada')
     pg.keyboard.press('Escape');pg.wait_for_timeout(200)

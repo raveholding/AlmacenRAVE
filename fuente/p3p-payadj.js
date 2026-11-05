@@ -45,6 +45,7 @@ function paCfgCard(){if(!isAdm())return'';const c=paConf();const R=c.rules||{};
   <td><select id="pa-k-${m}" aria-label="Porcentaje o monto para ${esc(MET[m]||m)}"><option value="pct" ${r.kind!=='fixed'?'selected':''}>%</option><option value="fixed" ${r.kind==='fixed'?'selected':''}>$ fijo</option></select></td></tr>`;};
  return `<div class="card" id="pa-cfg" style="margin-top:1rem"><h3 style="margin-top:0">Recargos y descuentos por medio de pago</h3>
  <p class="sm mut">Se aplican al cobrar, sobre el total después del cupón o la membresía. En un cobro mixto, cada medio lleva su propio ajuste. La parte a cuenta corriente no lleva ajuste. Sólo el administrador los cambia y cada cambio queda en Auditoría.</p>
+ ${typeof CLOUD!=='undefined'&&CLOUD.on?'<div class="warnbox sm"><b>Con la nube:</b> antes de activarlo, corré <code>16-ajustes-medios-pago.sql</code> en Supabase (SQL Editor). Sin esa migración la nube rechaza esta configuración y las otras cajas no reciben las reglas. Si ya lo guardaste antes de correrla, guardalo de nuevo después.</div>':''}
  <label class="chk"><input type="checkbox" id="pa-on" ${c.on?'checked':''}> Aplicar recargos y descuentos por medio de pago</label>
  <div class="tw"><table><thead><tr><th>Medio</th><th>Ajuste</th><th>Valor</th><th>Tipo</th></tr></thead><tbody>${PA_METHODS.map(row).join('')}</tbody></table></div>
  <label class="chk"><input type="checkbox" id="pa-st" ${c.stack?'checked':''}> Sumar el descuento por medio de pago al cupón o membresía (si no, se aplica sólo el beneficio)</label>
@@ -59,7 +60,7 @@ A.paSave=()=>{if(!isAdm())return toast('Sólo el administrador cambia los recarg
   else{v=cents(raw);if(!(v>0))return toast('El monto de '+(MET[m]||m)+' tiene que ser mayor a cero.',1);}
   const old=c.rules[m];const r={sign:t==='rec'?1:-1,kind:k==='pct'?'pct':'fixed',v};r.ver=old&&old.sign===r.sign&&old.kind===r.kind&&old.v===r.v?(old.ver||1):((old&&old.ver)||0)+1;nr[m]=r;
   if(r.sign>0&&PA_LEGAL.includes(m))legal=true;}
- const save2=()=>{c.rules=nr;c.on=$('#pa-on').checked;c.stack=$('#pa-st').checked;S.payadj=c;
+ const save2=()=>{c.rules=nr;c.on=$('#pa-on').checked;c.stack=$('#pa-st').checked;c.saved=true;delete c.example;S.payadj=c;
   audit('CONFIG_RECARGOS',prev+' → '+JSON.stringify({on:c.on,stack:c.stack,rules:c.rules}));save();toast('Recargos y descuentos guardados');rerender();};
  if(legal&&!c.legalAck){confirmBox('Aviso legal','Cargaste un recargo para débito, crédito, QR o transferencia. La Ley 25.065 (art. 37 inc. c) prohíbe la diferencia de precio entre contado y tarjeta en un solo pago. ¿Confirmás que lo consultaste y querés guardarlo igual?',()=>{c.legalAck={user:user.name,ts:now()};audit('RECARGO_AVISO_LEGAL','aceptado por '+user.name);save2();},'Sí, guardar');return;}
  save2();};

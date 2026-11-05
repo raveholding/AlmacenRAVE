@@ -72,7 +72,7 @@ function buildReportOwner(a,dayKey,who,inp){const L=[];const P=(t,cls)=>L.push({
  if(inp.detailAll){ownCats(a).forEach(c=>{P('');P(c.name+' — vendido '+money(c.sold),'h');});}
  return L;}
 function arqOwnerHTML(s){const d=arqDraft(s);
- return`<div class="row"><h1 class="sp">Arqueo y cierre</h1><span class="tag warn">Vista previa · todavía no cierra la caja</span></div>
+ return`<div class="row"><h1 class="sp">Arqueo y cierre</h1><span class="tag warn">Vista previa · todavía no cierra la caja</span><button class="btn" data-act="corteX" title="Guarda e imprime una foto del turno sin cerrar la caja">Corte X</button></div>
  <div class="grid g2" style="align-items:start"><div class="card"><h3>Efectivo contado</h3>
  <p class="sm mut">Negocio de un solo dueño: todo el dinero es del negocio. Los gastos y retiros se cargan como <b>egresos</b> en Caja; el dinero que pasa a la caja principal, con <b>Traspasar fondos</b>.</p>
  <label for="aq-d">Efectivo contado en caja ($)</label><input id="aq-d" data-aq="declared" inputmode="decimal" placeholder="Escribí el número" value="${esc(d.declared||'')}" autocomplete="off">
@@ -81,7 +81,7 @@ function arqOwnerHTML(s){const d=arqDraft(s);
  <label for="aq-n">Observaciones del cierre</label><input id="aq-n" data-aq="notes" maxlength="200" value="${esc(d.notes||'')}"></div>
  <div><div class="card" id="arq-tabs"></div><div class="card"><div class="row"><h3 class="sp">Texto para WhatsApp</h3></div><div class="rep" id="arq-prev" aria-live="polite"></div><div id="arq-warn"></div>
  <div class="row" style="margin-top:.8rem"><button class="btn" data-act="arqCopy">Copiar</button><button class="btn" data-act="arqWa">WhatsApp</button><button class="btn" data-act="arqWeb">WhatsApp Web</button><button class="btn" data-act="arqMail">Correo</button></div>
- <button class="btn gold" style="width:100%;margin-top:.8rem;min-height:52px" data-act="arqClose">Confirmar cierre de caja</button></div></div></div>`;}
+ <button class="btn gold" style="width:100%;margin-top:.8rem;min-height:52px" data-act="arqClose">Confirmar cierre de caja</button></div></div></div>${typeof corteXListHTML==='function'&&openSess()?corteXListHTML(openSess().id):''}`;}
 /* ---------- aviso en la demo: qué tipo de negocio se está viendo ---------- */
 function bizDemoBanner(){if(IS_CLIENT||!user||user.role!=='admin')return'';
  if(bizLocked())return`<div class="card" style="margin-bottom:1rem"><span>Demo de evaluación: <b>${typeof isSoloBuild==='function'&&isSoloBuild()?'comercio de un solo dueño':'mayorista de un solo dueño'}</b>. Los datos son de ejemplo; en Configuración → Datos de la demo podés vaciarla y cargar los tuyos.</span></div>`;
