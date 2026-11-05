@@ -223,6 +223,9 @@ html[data-theme=dark] .cm-card,html[data-theme=dark] .cm-card *{color-scheme:lig
 .ckbtn.selected{border:3px solid var(--gold);background:color-mix(in srgb,var(--gold) 16%,transparent);box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 35%,transparent)}
 .ckbtn:active{transform:translateY(1px)}
 @media(max-width:420px){.ckrow{grid-template-columns:1fr}}
+/* V26.50 · línea seleccionada del ticket: el fondo acompaña el modo claro/oscuro (antes era un claro fijo y en oscuro no se leía) */
+.cline.sel{background:var(--selbg,#fbf5e8);border-radius:10px;padding:.5rem;box-shadow:inset 3px 0 0 var(--gold)}
+html[data-theme=dark]{--selbg:#2f2921}
 </style>
 </head>
 <body>

@@ -28,7 +28,7 @@ function ckPickHTML(){if(!ckNeeded())return'';const cust=custById(pos.cust);cons
  const b=(k,t,sub)=>`<button type="button" class="ckbtn ${pos.ck===k?'selected':''}" data-act="cbck" data-k="${k}" aria-pressed="${pos.ck===k?'true':'false'}"><b>${pos.ck===k?'✔ ':''}${t}</b><small>${sub}</small></button>`;
  return `<div class="card" id="ckpick" style="margin:.5rem 0"><h3 style="margin:0 0 .4rem">¿Cómo queda la deuda? <span class="tag warn">obligatorio</span></h3><div class="ckrow">
   ${b('fiado','Mandar a Fiado','Vence el '+d+' ('+creditConf().fiadoDays+' días)')}${b('cc','Mandar a Cuenta Corriente',cd?'Vence el '+dmy(dkey(cd))+' (plazo del cliente: '+cust.term+' días)':'Según el plazo del cliente'+(cust?' (sin plazo cargado)':''))}</div>
-  ${pos.ck?'':'<p class="sm" style="margin:.4rem 0 0;color:var(--bad,#b42318)">Elegí una de las dos opciones para poder cobrar.</p>'}</div>`;}
+  ${pos.ck?'':'<p class="sm" style="margin:.4rem 0 0;color:var(--red)">Elegí una de las dos opciones para poder cobrar.</p>'}</div>`;}
 A.cbck=el=>{pos.ck=el.dataset.k==='fiado'?'fiado':'cc';cobroRender();};
 
 /* ---- Configuración ---- */

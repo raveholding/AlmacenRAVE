@@ -189,7 +189,7 @@ function pdFieldHTML(medio,f,ent,ph){
  else if(f.t==='num4'||f.t==='cuotas')inp=`<input id="${id}" inputmode="numeric" autocomplete="off" maxlength="${f.t==='num4'?30:2}" placeholder="${f.t==='num4'?'0000':'1'}" ${at} value="${esc(v)}">`;
  else if(f.t==='dest'&&cfg.accounts.length)inp=`<input id="${id}" list="${id}-l" maxlength="60" autocomplete="off" ${at} value="${esc(v)}"><datalist id="${id}-l">${cfg.accounts.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`;
  else inp=`<input id="${id}" maxlength="${f.t==='id'?70:(f.max||60)}" autocomplete="off" ${f.pii?'data-pii="1"':''} ${at} value="${esc(v)}">`;
- return `<div>${lab}${inp}${f.hint?`<div class="sm mut">${esc(f.hint)}</div>`:''}<div class="sm" style="color:var(--bad,#b3261e)" id="${id}-e" role="alert"></div></div>`;}
+ return `<div>${lab}${inp}${f.hint?`<div class="sm mut">${esc(f.hint)}</div>`:''}<div class="sm" style="color:var(--red)" id="${id}-e" role="alert"></div></div>`;}
 function pdBlockHTML(medio,ent,amt){
  const cfgNote=medio==='debito'||medio==='credito'?'Datos del cupón de la terminal. Nunca cargues el número de tarjeta completo.':medio==='transferencia'?'Datos del comprobante que muestra el cliente.':'Datos del cobro según la app del proveedor.';
  return `<div class="card pdblk" data-pdm="${medio}" style="margin:.6rem 0"><h3 style="margin-top:0">Datos del comprobante · ${esc(MET[medio])}</h3><p class="sm mut">${esc(cfgNote)} Queda como <b>declarado</b>: lo cargado a mano no acredita el cobro.</p>

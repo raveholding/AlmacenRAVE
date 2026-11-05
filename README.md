@@ -6,6 +6,8 @@ Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. 
 
 ## Versión: SISTEMA VB 26F (`SISTEMA_VB_26F`)
 
+**V26.50 (2026-11-05):** modo oscuro y claro revisados pantalla por pantalla: la línea seleccionada del ticket ya no queda con fondo claro y letra clara, y los avisos en rojo se leen en los dos modos.
+
 **V26.50 (2026-11-05):** cobro en efectivo con **importe recibido obligatorio**, ubicado debajo del total y arriba de los medios de pago; F12 deja el cursor ahí, Enter cobra y «Justo» completa el total exacto.
 
 **V26.50 (2026-11-04):** en Vender, después de sumar un artículo el cursor vuelve solo a «Buscar artículo» para seguir cargando sin tocar el mouse; corregido el doble conteo al leer un código de barras con el cursor en el buscador.

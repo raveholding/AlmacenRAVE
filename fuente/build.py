@@ -100,6 +100,8 @@ def solo_brand(h,v3=False):
     h=h.replace('#side a.on{background:var(--gold);color:#1b1100;','#side a.on{background:var(--gold);color:#000;',1)
     # raveV3: el Centro Inteligente usa una variante más clara del mismo verde para cumplir contraste 4,5:1 sobre su fondo oscuro
     if v3: h=h.replace('--ci-acc:var(--gold,#c9963e)','--ci-acc:#45ad92',1)
+    # V26.50 · contraste 4,5:1 con el verde de la marca: texto negro en botones dorados (también «F12») y verde más claro sobre el fondo oscuro
+    h=h.replace('</style>','.btn.gold,.fk.gold,.fk.gold small,.cmp .btn.gold,html[data-theme=dark] .btn.gold,html[data-theme=dark] .fk.gold,html[data-theme=dark] .fk.gold small{color:#000!important}html[data-theme=dark] .cmp-tab.on{color:#45ad92}\n</style>',1)
     return h
 vbj='const VB_BANNER="data:image/webp;base64,'+base64.b64encode(open('assets/vb-banner.webp','rb').read()).decode()+'";\n'
 html=head+'\n'+vbj+B('build/p0-data.js')+B('build/p0-pub.js')+"const SOCIAL_ICONS_OK=1;\n"+B('build/qr.js')+'\n'+'\n'.join(B(p) for p in parts)+'\n</script>\n</body></html>\n'

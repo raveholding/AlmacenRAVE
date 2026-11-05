@@ -35,7 +35,7 @@ function paCalcFor(parts){const c=paConf();if(!paOn())return{pays:parts.map(p=>(
 function posFinal(m){const b=posTotal();return paCalcFor([{m:m||pos.method,b}]).total;}
 function paFinalOf(m,b){return paCalcFor([{m,b}]).pays[0].a;}
 function paChipTag(m){const r=paConf().on?paConf().rules[m]:null;if(!paRuleOk(r))return'';return ' '+(r.sign>0?'+':'−')+(r.kind==='pct'?String(r.v/100).replace('.',',')+'%':money(r.v));}
-function paRowsHTML(R){return R.adj.map(a=>`<div class="row sm" style="color:${a.amt<0?'var(--ok)':'var(--bad,#b42318)'}"><span class="sp">${esc(a.label)}</span><b>${a.amt<0?'− ':'+ '}${money(Math.abs(a.amt))}</b></div>`).join('')+(R.skip.length?`<div class="warnbox sm">El descuento por ${esc(R.skip.map(m=>MET[m]||m).join(', '))} no se suma al cupón o membresía.</div>`:'');}
+function paRowsHTML(R){return R.adj.map(a=>`<div class="row sm" style="color:${a.amt<0?'var(--ok)':'var(--red)'}"><span class="sp">${esc(a.label)}</span><b>${a.amt<0?'− ':'+ '}${money(Math.abs(a.amt))}</b></div>`).join('')+(R.skip.length?`<div class="warnbox sm">El descuento por ${esc(R.skip.map(m=>MET[m]||m).join(', '))} no se suma al cupón o membresía.</div>`:'');}
 
 /* ---- Configuración → Recargos y descuentos por medio de pago (sólo administrador) ---- */
 function paCfgCard(){if(!isAdm())return'';const c=paConf();const R=c.rules||{};
