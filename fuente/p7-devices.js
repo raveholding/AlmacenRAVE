@@ -42,6 +42,7 @@ function ticketModel(sale,W){const T=S.tenant,cfg=S.cfg.ticket;const B=[];const 
  add('sep');
  const gross=sale.items.reduce((a,i)=>a+Math.round(i.qty*i.price),0);
  if(sale.benefit){add('l',{l:'Subtotal',r:money(gross)});add('l',{l:sale.benefit.label,r:'- '+money(sale.benefit.disc).replace(/^- /,'')});}
+ if(sale.adj&&sale.adj.length){if(!sale.benefit)add('l',{l:'Subtotal',r:money(gross)});sale.adj.forEach(a=>add('l',{l:a.label,r:(a.amt<0?'- ':'+ ')+money(Math.abs(a.amt)).replace(/^- /,'')}));} /* V26.49 · recargo/descuento por medio de pago */
  if(cb&&cb.letra==='A'&&cb.neto!=null){add('l',{l:'Neto gravado',r:money(cb.neto)});add('l',{l:'IVA',r:money(cb.iva)});}
  add('l',{l:'TOTAL',r:money(sale.total),b:1,big:1});
  if(cb&&cb.letra==='B'&&cb.iva>0)add('t',{s:'Régimen de Transparencia Fiscal (Ley 27.743) — IVA contenido: '+money(cb.iva)+' [VERIFICAR texto]'});

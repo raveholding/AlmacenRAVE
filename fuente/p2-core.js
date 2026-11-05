@@ -65,7 +65,7 @@ function seedProducts(){return SEED_PRODS.map((p,i)=>({id:p.id,name:p.nom,sub:p.
  .concat([{id:'granel-1',name:'Maní con cáscara a granel',sub:'ejemplo para probar la balanza',grupo:'',rubro:'promo',price:850000,cost:610000,stock:12.5,unit:'kg',barcode:'',plu:'12',menu:false,active:true,desc:'',demo:true}]);}
 const BUILD_VER=(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.ver)||'sin dato';
 const IS_CLIENT=!!(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente');
-const DEF=()=>{const d=DEF0();if(IS_CLIENT)return clientClean(d);const r=wsDemoSeed(d);if(typeof comboDemoSeed==='function')comboDemoSeed(r);if(typeof isKiniBuild==='function'&&isKiniBuild())kiniBase(r);if(typeof isSoloBuild==='function'&&isSoloBuild())soloBase(r);return r;};
+const DEF=()=>{const d=DEF0();if(IS_CLIENT)return clientClean(d);const r=wsDemoSeed(d);if(typeof paDemoSeed==='function')paDemoSeed(r);if(typeof comboDemoSeed==='function')comboDemoSeed(r);if(typeof isKiniBuild==='function'&&isKiniBuild())kiniBase(r);if(typeof isSoloBuild==='function'&&isSoloBuild())soloBase(r);return r;};
 /* DEMO: canal mayorista encendido con datos rotulados «ejemplo» (el sistema del cliente nace apagado y sin esto) */
 function wsDemoSeed(d){d.cfg=d.cfg||{};if(!d.cfg.wholesale)d.cfg.wholesale={on:true,example:true,allowClub:false,grace:0,levels:[{id:'d',name:'Display'},{id:'f',name:'Fardo'},{id:'p',name:'Pallet'}]};
  wsDemoPres(d.products);d.cfg.wholesale.seeded=1;return wsDemoCust(d);}
@@ -93,6 +93,7 @@ function clientClean(d){d.products=d.products.filter(p=>!/granel-1/.test(p.id)).
 const DEF0=()=>({v:3,
  tenant:{name:'RAVE',legal:'Almacén y Licorería RAVE',slogan:'Almacén y Licorería · Salta',wa:'5493874574892',address:'Urquiza 1052, Salta, Argentina',phone:'(387) 4 57 48 92',cuit:'',iva:'',caja:1,ig:'RAVE_LICORERIA',fb:'LICORERIA_RAVE'},
  rubros:SEED_RUBROS.map(r=>({...r})),branches:[],registers:[],transfers:[],transferEvents:[],payDetails:[],
+ payadj:{on:false,stack:false,rules:{}},
  cfg:{biz:'rubros',permNotice:{ack:true},xfer:{strict:true,closedMode:'transito',approvalOver:0,transitAlertH:0,selfAuth:true,ownerV:1},cashProfile:'simple',negStock:true,tax:{promo:3000000,vino:3000000},fee:{qr:0,modo:0,debito:0,credito:0,pedidosya:0},movAffectProfit:true,payFromCash:true,scaleMode:'peso',ticket:{w:80,msg:'¡Gracias por tu compra! Seguinos en Instagram @rave_licoreria',showLogo:true,legal:true}},
  products:seedProducts(),
  sales:[],sessions:[],movs:[],closures:[],seq:{},
@@ -215,7 +216,7 @@ const stockTxt=p=>{const v=(typeof isKit==='function'&&isKit(p))?kitStock(p):p.s
 const empName=id=>(S.employees.find(e=>e.id===id)||{name:'—'}).name;
 const openSess=()=>S.sessions.find(s=>!s.closedAt&&(s.caja===undefined||s.caja===S.tenant.caja)); /* la sesión abierta de ESTE equipo (otros equipos tienen la suya) */
 const saleOk=s=>s.status==='ok';
-const lineTotal=it=>(it.tr&&it.amt>0?it.amt:Math.round(it.qty*it.price))-(it.disc||0);
+const lineTotal=it=>(it.tr&&it.amt>0?it.amt:Math.round(it.qty*it.price))-(it.disc||0)+(it.pa||0); /* V26.49: pa = recargo(+)/descuento(−) por medio de pago repartido */
 const lineCost=it=>Math.round(it.qty*it.cost);
 const initial=n=>(String(n||'?').trim()[0]||'?').toUpperCase();
 

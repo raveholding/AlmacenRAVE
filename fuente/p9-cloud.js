@@ -94,7 +94,7 @@ const COLS=[
  {c:'cexcu',key:'creditUse',once:1}];
 const BYC=Object.fromEntries(COLS.map(x=>[x.c,x]));
 const DELC=new Set(COLS.filter(x=>x.del).map(x=>x.c));
-const CFGIDS=['tenant','cfg','menu','loyalty','roles','integ','legal'];
+const CFGIDS=['tenant','cfg','menu','loyalty','roles','integ','legal','payadj'];
 const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado']);
 const r3=n=>Math.round(n*1000)/1000;
 function stripOf(col,it){const d=JSON.parse(JSON.stringify(it));(col.strip||[]).forEach(k=>delete d[k]);return d;}
@@ -105,7 +105,8 @@ function cfgWire(id){switch(id){
  case'loyalty':return{goal:S.loyalty.goal,reward:S.loyalty.reward};
  case'roles':return JSON.parse(JSON.stringify(S.roles));
  case'integ':{const x=JSON.parse(JSON.stringify(S.integ));return x;}
- case'legal':return JSON.parse(JSON.stringify(S.legal));}return null;}
+ case'legal':return JSON.parse(JSON.stringify(S.legal));
+ case'payadj':return JSON.parse(JSON.stringify(S.payadj||{on:false,stack:false,rules:{}}));}return null;}
 /* todo lo que hoy existe en este equipo, en el formato que viaja */
 function collectAll(){const out=[];
  for(const col of COLS){const arr=S[col.key]||[];for(const it of arr){if(!it)continue;const id=col.synth?col.synth(it):it.id;if(!id||String(id).length>80)continue;const w=stripOf(col,it);if(col.c==='clientes')w.pfp=custPfp(it);out.push({c:col.c,id:String(id),w,col});}}
@@ -159,7 +160,7 @@ async function applyRec(r){const c=r.coleccion,id=r.id,key=c+'|'+id;
   if(id==='clubkey'){if(d&&d.priv&&d.pub&&cl.dek){try{cl.clubPriv={pub:d.pub,priv:d.priv,jwk:await openJ(d.priv,cl.dek,'clubkey|'+cl.comercio.id)};}catch(e){}}return;}
   const h=cyrb(canon(d));const loc=cfgWire(id);if(cl.fp[key]!==undefined&&cyrb(canon(loc))!==cl.fp[key])return; // cambio local sin subir: gana el local
   if(id==='tenant'){const caja=S.tenant.caja,regId=S.tenant.regId;S.tenant=Object.assign({},d,{caja,regId});}
-  else if(id==='cfg')S.cfg=d;else if(id==='menu')S.menu=d;else if(id==='roles')S.roles=rolesMigrate(d);else if(id==='integ')S.integ=d;else if(id==='legal')S.legal=d;
+  else if(id==='cfg')S.cfg=d;else if(id==='menu')S.menu=d;else if(id==='roles')S.roles=rolesMigrate(d);else if(id==='integ')S.integ=d;else if(id==='legal')S.legal=d;else if(id==='payadj')S.payadj=d;
   else if(id==='loyalty'){S.loyalty.goal=d.goal;S.loyalty.reward=d.reward;}
   cl.fp[key]=h;return;}
  const col=BYC[c];if(!col)return;const arr=arrOf(col);

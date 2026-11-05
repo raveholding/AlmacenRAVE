@@ -173,8 +173,8 @@ async function pdApproveModal(o){
 let pdTmp={};                                   /* entradas de los modales «Confirmar cobro del QR» y «Completar detalle» */
 const pdEnts=host=>host&&host.dataset.k==='cobro'?(pos.pdet=pos.pdet||{}):pdTmp;
 function pdCobroMedios(){if(!pdOn())return[];
- if(pos.mix)return mixParsed().filter(p=>PD_COBRO.includes(p.m)).map(p=>({medio:p.m,amt:isNaN(p.a)?0:p.a,opt:!(p.a>0)}));
- return PD_COBRO.includes(pos.method)?[{medio:pos.method,amt:posTotal()}]:[];}
+ if(pos.mix)return mixParsed().filter(p=>PD_COBRO.includes(p.m)).map(p=>({medio:p.m,amt:isNaN(p.a)?0:(typeof paFinalOf==='function'?paFinalOf(p.m,p.a):p.a),opt:!(p.a>0)}));
+ return PD_COBRO.includes(pos.method)?[{medio:pos.method,amt:typeof posFinal==='function'?posFinal(pos.method):posTotal()}]:[];}
 function pdHostMedios(host){const k=host.dataset.k;
  if(k==='cobro')return pdCobroMedios();
  const s=S.sales.find(x=>x.id===host.dataset.sale);if(!s)return[];const i=+host.dataset.idx;const p=salePays(s)[i];return p?[{medio:p.m,amt:p.a,idx:i,sale:s}]:[];}
