@@ -176,6 +176,14 @@ function modal(title,body,opt={}){const root=$('#modal-root');const w=document.c
  return w;}
 function confirmBox(title,msg,onYes,okText='Confirmar'){return modal(title,`<p>${msg}</p>`,{okText,onOk:()=>{onYes();}});}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const o=$$('#modal-root .ov');if(o.length)o[o.length-1].remove();}});
+/* V26.51 · con una ventana abierta, Tab y Mayús+Tab recorren SÓLO los campos y botones de esa ventana (la de más arriba)
+   y vuelven al primero: el cursor nunca se va a la pantalla de atrás, donde se podría escribir sin querer */
+const modalFocusables=w=>[...w.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')].filter(el=>!el.disabled&&el.tabIndex>=0&&el.type!=='hidden'&&!el.closest('[hidden],[inert]')&&(el.offsetWidth||el.offsetHeight||el.getClientRects().length));
+document.addEventListener('keydown',e=>{if(e.key!=='Tab')return;const o=$$('#modal-root .ov');if(!o.length)return;const top=o[o.length-1];const f=modalFocusables(top);
+ if(!f.length){e.preventDefault();return;}const first=f[0],last=f[f.length-1],a=document.activeElement;
+ if(!top.contains(a)){e.preventDefault();(e.shiftKey?last:first).focus();return;}
+ if(!e.shiftKey&&a===last){e.preventDefault();first.focus();}else if(e.shiftKey&&a===first){e.preventDefault();last.focus();}},true);
+document.addEventListener('focusin',e=>{const o=$$('#modal-root .ov');if(!o.length)return;const top=o[o.length-1];if(!top.contains(e.target)&&e.target.closest&&e.target.closest('#app')){ /* sólo la pantalla de atrás; no el Asistente ni ayudas temporales */const f=modalFocusables(top);if(f.length)f[0].focus();}});
 document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el||el.disabled)return;const f=A[el.dataset.act];if(f){e.preventDefault();f(el,e);}});
 /* campos numéricos: todo seleccionado al entrar (también con mouse) */
 let _md=false;
