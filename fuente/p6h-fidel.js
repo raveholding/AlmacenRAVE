@@ -20,7 +20,13 @@ const FID_DEF={
   trivia:[{q:'¿Cuántos sellos necesitás para tu premio?',o:['5','La meta del Club','Ninguno'],ok:1},{q:'¿Con qué podés pagar en el local además de efectivo?',o:['Sólo efectivo','Con el saldo de tu monedero','Con fichas'],ok:1}]}};
 const fidCfg=()=>{const c=(S.cfg&&S.cfg.fid)||{};const o={};for(const k in FID_DEF)o[k]=Object.assign({},FID_DEF[k],c[k]||{});return o;};
 function fidSet(k,v){S.cfg.fid=S.cfg.fid||{};S.cfg.fid[k]=Object.assign({},(S.cfg.fid[k]||{}),v);}
-const fidSqlNote=()=>typeof CLOUD!=='undefined'&&CLOUD.on?'<div class="warnbox sm">Con la nube: estas funciones necesitan que el administrador haya pegado una vez <b>20-fidelizacion-operacion.sql</b> en Supabase (si no, el servidor rechaza los movimientos y lo vas a ver en Nube → rechazos).</div>':'';
+/* el aviso de la migración sólo aparece si el servidor REALMENTE rechazó algo de estas funciones (antes se mostraba siempre) */
+const FID_COLS=['fidmov','giftmov','gift','juego','devol','merma','presup'];
+const fidSqlNote=()=>{if(typeof CLOUD==='undefined'||!CLOUD.on||typeof cl==='undefined'||!cl.rejects)return'';const R=cl.rejects.filter(r=>FID_COLS.includes(String(r.key||'').split('|')[0])&&/colecci|no permit|desconocid|no v[aá]lid/i.test(String(r.m||'')));
+ return R.length?'<div class="warnbox sm">El servidor rechazó '+R.length+' movimiento(s) de estas funciones: el administrador tiene que pegar <b>20-fidelizacion-operacion.sql</b> en Supabase (SQL Editor) y después tocar «Reenviar lo rechazado».<div class="row" style="margin-top:.4rem"><button class="btn sm" data-act="fidResend">Reenviar lo rechazado</button></div></div>':'';};
+/* reenvío: olvida la huella de lo rechazado para que la próxima sincronización lo vuelva a mandar */
+A.fidResend=async()=>{const R=cl.rejects.filter(r=>FID_COLS.includes(String(r.key||'').split('|')[0]));R.forEach(r=>{delete cl.fp[r.key];});cl.rejects=cl.rejects.filter(r=>!R.includes(r));
+ try{await cloudMetaSave();}catch(e){}await cloudSync(true);toast(cl.lastErr?cl.lastErr:'Reenviado. Si el SQL ya está en Supabase, el aviso no vuelve a aparecer.',!!cl.lastErr);rerender();};
 const fidOff=()=>typeof CLOUD!=='undefined'&&CLOUD.on&&typeof cl!=='undefined'&&!(cl.ready&&cl.online);
 const fidMov=()=>S.fidmov||(S.fidmov=[]);
 const giftL=()=>S.gifts||(S.gifts=[]);
