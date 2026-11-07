@@ -67,7 +67,7 @@ function saleDetailHTML(s,o){o=o||{};
  h+=`<h3 style="margin-top:.8rem">Línea de tiempo de auditoría</h3>${au.length?`<ul class="sdtl">${au.map(e=>`<li><span class="sm mut">${fmtDT(e.ts)} · ${esc(e.user)}</span> <b>${esc(e.action)}</b> <span class="sm">${esc(e.detail)}</span></li>`).join('')}</ul>`:'<p class="sm mut">Sin eventos de auditoría para esta operación.</p>'}`;
  return h;}
 function saleDetailOpen(id,opts){opts=opts||{};const s=S.sales.find(x=>x.id===id);if(!s)return toast('La operación ya no está disponible.',1);
- const w=modal('Detalle de la operación '+s.n,`<div id="sd-body">${saleDetailHTML(s)}</div><div class="row noprint" style="margin-top:.6rem"><button class="btn" data-act="saleDetPrint">Imprimir (A4)</button>${typeof expBtn==='function'?expBtn('venta',s.id):''}${opts.ro?'<span class="tag">Sólo lectura</span>':''}</div>`,{wide:true,okText:'Cerrar',noCancel:true});
+ const w=modal('Detalle de la operación '+s.n,`<div id="sd-body">${saleDetailHTML(s)}</div><div class="row noprint" style="margin-top:.6rem"><button class="btn" data-act="saleDetPrint">Imprimir (A4)</button>${typeof expBtn==='function'?expBtn('venta',s.id):''}${opts.ro?'<span class="tag">Sólo lectura</span>':(typeof devBtn==='function'?devBtn(s):'')}</div>`,{wide:true,okText:'Cerrar',noCancel:true});
  w.querySelector('.dlg').classList.add('saledet');return w;}
 A.saleDet=el=>saleDetailOpen(el.dataset.id,{ro:!!el.dataset.ro});
 A.saleDetPrint=()=>{document.body.classList.add('pm');try{window.print();}finally{setTimeout(()=>document.body.classList.remove('pm'),500);}};

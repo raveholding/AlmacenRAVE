@@ -18,7 +18,9 @@ function arqueoCalc(sess,inp){
  const byMethod={};let total=0;
  let aCtaCte=0,vueltoTot=0,aFiado=0,aCC=0;
  sales.forEach(s=>{const L=salePays(s);L.forEach(pp=>{const m=byMethod[pp.m]||(byMethod[pp.m]={n:0,gross:0,fee:0});m.n++;m.gross+=pp.a;m.fee+=(L.length>1?(pp.fee||0):(s.fee||0));});total+=s.total;{const fa=saleFiadoAmt(s);aCtaCte+=fa;if(fa){if(typeof saleCk==='function'&&s.ck==='fiado')aFiado+=fa;else aCC+=fa;}}vueltoTot+=s.vuelto||0;});
- const cobrado=total-aCtaCte;
+ /* V26.54: lo pagado con monedero o gift card ya entró cuando se cargó/vendió: no es dinero nuevo del turno */
+ const aPrep=sales.reduce((a,s)=>a+salePays(s).filter(p=>p.m==='monedero'||p.m==='giftcard').reduce((x,p)=>x+p.a,0),0);
+ const cobrado=total-aCtaCte-aPrep;
  const R={};S.rubros.forEach(r=>R[r.id]={sold:0,profit:0,fees:0,mov:0,items:{},cash:0,dig:0,fia:0,ing:0,egr:0,cing:0,cegr:0,adj:0});
  sales.forEach(s=>{const fees=allocFees(s);s.items.forEach((it,i)=>{const q=R[it.rubro];if(!q)return;const t=lineTotal(it);q.sold+=t;q.profit+=t-lineCost(it);q.fees+=fees[i];const e=q.items[it.name]||(q.items[it.name]={qty:0,total:0});e.qty+=it.qty;e.total+=t;});
   {const tots=s.items.map(lineTotal);const T=tots.reduce((a,b)=>a+b,0);
@@ -51,7 +53,7 @@ function arqueoCalc(sess,inp){
  const expectedCash=sess.opening+cashSales+ing-egr-paid+tr.tin-tr.tout;
  const declared=inp.declared;const diff=isNaN(declared)?0:declared-expectedCash;
  const fondo=sess.opening+tr.tin-tr.tout;const fisSum=reparte.concat(otros).reduce((a,r)=>a+r.fis,0);const resto=expectedCash-fondo-fisSum;
- return{owner:ownerMode(),sessId:sess.id,accts:(typeof accArq==='function'?accArq(sess):null),total,cobrado,aCtaCte,aFiado,aCC,vueltoTot,count:sales.length,byMethod,pend:{n:pend.length,total:pend.reduce((a,s)=>a+s.total,0)},rub:R,ing,egr,gAuto,gManual:inp.gastosManual,gastos,sueldo,merienda:mer,
+ return{aPrep,owner:ownerMode(),sessId:sess.id,accts:(typeof accArq==='function'?accArq(sess):null),total,cobrado,aCtaCte,aFiado,aCC,vueltoTot,count:sales.length,byMethod,pend:{n:pend.length,total:pend.reduce((a,s)=>a+s.total,0)},rub:R,ing,egr,gAuto,gManual:inp.gastosManual,gastos,sueldo,merienda:mer,
   detMissing:typeof pdMissingCount==='function'?pdMissingCount(sess):0,empName:inp.emp?inp.emp.name:'',hours:inp.hours,rate:inp.rate,reparte,otros,pool,netSum,fondo,resto,cashSales,paid,opening:sess.opening,tin:tr.tin,tout:tr.tout,transfers:tr.list,expectedCash,declared:isNaN(declared)?null:declared,diff,
   movs:movs.map(m=>({ts:m.ts,type:m.type,rubro:m.rubroName||rubName(m.rubro),concept:m.concept,amount:m.amount,user:m.user}))};}
 function buildReport(a,dayKey,who,inp){if(a.owner&&typeof buildReportOwner==='function')return buildReportOwner(a,dayKey,who,inp);
@@ -295,9 +297,9 @@ A.prest=el=>{if(!canDelItems())return toast('Sólo el Administrador',1);const p=
  const dp=p.plu&&S.products.some(x=>x!==p&&!x.archived&&x.plu&&String(+x.plu)===String(+p.plu));if(dp)return toast('No se puede restaurar: otro artículo usa el mismo PLU.',1);
  p.archived=false;p.active=true;delete p.archivedAt;audit('INV_RESTAURAR',p.name);save();rerender();toast('Artículo restaurado');};
 A.padj=el=>{const p=prod(el.dataset.id);if(isKit(p))return toast('Un combo no tiene stock propio: se ajusta el stock de cada artículo ('+kitTxt(p)+').',1);const PR=wsOn()?wsPres(p):[];
- const w=modal('Ajustar stock · '+p.name,`<p>Stock actual: <b class="${p.stock<0?'negs':''}">${esc(stockTxt(p))}</b>${wsStockSub(p)}</p>${PR.length?`<label for="aj-u">Contar en</label><select id="aj-u"><option value="1">Unidad</option>${PR.map(k=>`<option value="${k.qty}">${esc(wsLvName(k.lv))} (${numAR(k.qty,3)} u)</option>`).join('')}</select>`:''}<label for="aj-d">Cantidad a sumar o restar (use - para restar)</label><input id="aj-d" inputmode="decimal" placeholder="0" autocomplete="off"><p class="sm mut" id="aj-eq"></p><label for="aj-m">Motivo</label><input id="aj-m" maxlength="100">`,
- {onOk:w=>{const mul=PR.length?(+val('aj-u')||1):1;const d0=parseNum(val('aj-d'));const d=Math.round(d0*mul*1000)/1000;if(isNaN(d)||d===0)return w._err('Ingresá una cantidad distinta de cero.'),false;if(val('aj-m').trim().length<3)return w._err('El motivo es obligatorio.'),false;if(p.stock+d<0&&!canOver(p))return w._err('El stock no puede quedar negativo (este producto exige stock o la venta sin stock está bloqueada).'),false;
-  stockAdjust(p,d,val('aj-m')+(mul>1?' ('+d0+' × '+numAR(mul,3)+' u)':''));rerender();}});
+ const w=modal('Ajustar stock · '+p.name,`<p>Stock actual: <b class="${p.stock<0?'negs':''}">${esc(stockTxt(p))}</b>${wsStockSub(p)}</p>${PR.length?`<label for="aj-u">Contar en</label><select id="aj-u"><option value="1">Unidad</option>${PR.map(k=>`<option value="${k.qty}">${esc(wsLvName(k.lv))} (${numAR(k.qty,3)} u)</option>`).join('')}</select>`:''}<label for="aj-d">Cantidad a sumar o restar (use - para restar)</label><input id="aj-d" inputmode="decimal" placeholder="0" autocomplete="off"><p class="sm mut" id="aj-eq"></p><label for="aj-t">Tipo de movimiento</label><select id="aj-t">${Object.entries(typeof MERMA_T!=='undefined'?MERMA_T:{ajuste:'Ajuste / recuento'}).map(([k,v])=>`<option value="${k}">${esc(v)}${k==='ajuste'?'':' (resta stock y queda como pérdida)'}</option>`).join('')}</select><label for="aj-m">Motivo</label><input id="aj-m" maxlength="100">`,
+ {onOk:w=>{const tipo=val('aj-t')||'ajuste';const mul=PR.length?(+val('aj-u')||1):1;let d0=parseNum(val('aj-d'));if(tipo!=='ajuste'&&!isNaN(d0))d0=-Math.abs(d0);const d=Math.round(d0*mul*1000)/1000;if(isNaN(d)||d===0)return w._err('Ingresá una cantidad distinta de cero.'),false;if(val('aj-m').trim().length<3)return w._err('El motivo es obligatorio.'),false;if(p.stock+d<0&&!canOver(p))return w._err('El stock no puede quedar negativo (este producto exige stock o la venta sin stock está bloqueada).'),false;
+  const mot=(tipo!=='ajuste'&&typeof MERMA_T!=='undefined'?MERMA_T[tipo]+' · ':'')+val('aj-m')+(mul>1?' ('+d0+' × '+numAR(mul,3)+' u)':'');if(typeof mermaRecord==='function')mermaRecord(p,d,tipo,val('aj-m'));stockAdjust(p,d,mot);rerender();}});
  const eq=()=>{const e=$('#aj-eq',w);if(!e||!PR.length)return;const mul=+val('aj-u')||1,d=parseNum(val('aj-d'));e.textContent=(!isNaN(d)&&d!==0&&mul>1)?'= '+(d>0?'+':'')+numAR(d*mul,3)+' unidades':'';};
  w.addEventListener('input',eq);w.addEventListener('change',eq);};
 /* núcleo único del ajuste de stock (lo usan la pantalla y el asistente) */
@@ -320,7 +322,7 @@ reg('caja','Caja','cash','cash_mov',()=>{const s=openSess();
 A.openCaja=()=>{if(openSess())return;const v=cents(val('ap'));if(isNaN(v)||v<0)return toast('Ingresá el efectivo inicial (si es cero, escribí 0).',1);
  const ck=cashOpenCheck();if(ck.err)return toast(ck.err,1);const xo=xfOpenCheck(v,ck.extra);if(xo.err)return toast(xo.err,1);
  const ns=Object.assign({id:uid(),caja:S.tenant.caja,openedBy:user.name,openedAt:now(),opening:v,closedAt:0},ck.extra,xo.extra||{});S.sessions.push(ns);audit('APERTURA_CAJA',money(v)+(ck.extra.regName?' · '+ck.extra.regName:''));if(xo.audit)audit(xo.audit,xo.detail);xfAfterOpen(ns);save();rerender();};
-function voidCore(s,reason){if(s.status==='ok'||s.status==='pendiente'){restock(s);}if(s.coupon){S.coupons.forEach(c=>{c.uses=c.uses.filter(u=>u.sale!==s.id);});}if(s.stamped&&typeof stampReverse==='function')stampReverse(s);s.status='anulada';s.voidReason=reason;audit('ANULAR_VENTA',s.n+' · '+reason);emit('sale.voided',{sale:s.n});save();rerender();}
+function voidCore(s,reason){if(s.status==='ok'||s.status==='pendiente'){restock(s);}if(s.coupon){S.coupons.forEach(c=>{c.uses=c.uses.filter(u=>u.sale!==s.id);});}if(s.stamped&&typeof stampReverse==='function')stampReverse(s);if(typeof fidVoid==='function')fidVoid(s);s.status='anulada';s.voidReason=reason;audit('ANULAR_VENTA',s.n+' · '+reason);emit('sale.voided',{sale:s.n});save();rerender();}
 A.voidsale=el=>{const s=S.sales.find(x=>x.id===el.dataset.id);if(!s)return;modal('Anular venta '+s.n,`<p>Se restituye el stock y la venta deja de sumar. Queda en auditoría.</p><label for="vm">Motivo (obligatorio)</label><input id="vm" maxlength="100">`,{onOk:w=>{if(val('vm').trim().length<3)return w._err('Escribí el motivo.'),false;voidCore(s,val('vm'));}});};
 
 /* ===== Arqueo ===== */

@@ -202,7 +202,7 @@ const vbWa=txt=>'https://wa.me/'+VB.wa+(txt?'?text='+encodeURIComponent(txt):'')
 const vbBanner=(st)=>`<div class="vbb" style="position:relative;max-width:${st||'520px'};margin:0 auto"><img src="${VB_BANNER}" alt="Vincular Business · Digitalización, software de gestión y fidelización para comercios y servicios de Argentina · Único celular ${VB.phone} · ${VB.mail}" loading="lazy" width="1200" height="669" style="display:block;width:100%;height:auto;border-radius:12px"><a class="vbb-a" href="${vbWa('Hola Vincular Business! Quiero consultar por el Sistema RAVE.')}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp ${VB.phone}" style="position:absolute;left:5.2%;top:85%;width:24.9%;height:8.5%;border-radius:999px"></a><a class="vbb-a" href="mailto:${VB.mail}" aria-label="Correo ${VB.mail}" style="position:absolute;left:31.8%;top:85%;width:44%;height:8.5%;border-radius:999px"></a></div>`;
 const vbButtons=()=>`<div class="vbbtns" style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-top:.6rem"><a class="btn sm" style="background:#0f7a3f;color:#fff;min-height:48px;display:inline-flex;align-items:center;text-decoration:none" href="${vbWa('Hola Vincular Business! Quiero consultar por el Sistema RAVE.')}" target="_blank" rel="noopener noreferrer">💬 WhatsApp ${VB.phone}</a><a class="btn sm" style="min-height:48px;display:inline-flex;align-items:center;text-decoration:none" href="tel:+${VB.wa}">📞 Llamar</a><a class="btn sm" style="min-height:48px;display:inline-flex;align-items:center;text-decoration:none" href="mailto:${VB.mail}">✉️ Correo</a></div>`;
 const vbFooter=(withBanner)=>`<div class="vbcred" style="margin-top:1rem">${withBanner?vbBanner()+vbButtons():''}<p class="sm mut" style="margin:.5rem 0 0;text-align:center">Desarrollado por <b>${VB.name}</b> · Único celular ${VB.phone} · ${VB.mail}<br><i>“${VB.lema}”</i></p></div>`;
-const MET={efectivo:'Efectivo',fiado:'Cta. cte. / Fiado',mixto:'Pago mixto',debito:'Débito',credito:'Crédito',transferencia:'Transferencia',qr:'QR / Mercado Pago',modo:'MODO',pedidosya:'PedidosYa'};
+const MET={efectivo:'Efectivo',fiado:'Cta. cte. / Fiado',mixto:'Pago mixto',debito:'Débito',credito:'Crédito',transferencia:'Transferencia',qr:'QR / Mercado Pago',modo:'MODO',pedidosya:'PedidosYa',monedero:'Monedero (saldo)',giftcard:'Gift card / voucher'};
 const rubName=id=>(S.rubros.find(r=>r.id===id)||{name:'(sin rubro)'}).name;
 const rub=id=>S.rubros.find(r=>r.id===id);
 const UNITS={u:'und',kg:'kg',l:'lt'};const unitLbl=u=>UNITS[u]||u;
@@ -264,8 +264,8 @@ function route(){const h=location.hash||'#menu';
  else{showMenu();}}
 window.addEventListener('hashchange',route);
 
-const NAV=[['inicio','Resumen'],['vender','Operación'],['pedidos','Operación'],['caja','Operación'],['cajasx','Operación'],['arqueo','Operación'],['cierres','Operación'],['inventario','Operación'],['proveedores','Operación'],
- ['clientes','Clientes y fidelización'],['fidel','Clientes y fidelización'],['cupones','Clientes y fidelización'],
+const NAV=[['inicio','Resumen'],['vender','Operación'],['pedidos','Operación'],['caja','Operación'],['cajasx','Operación'],['arqueo','Operación'],['cierres','Operación'],['inventario','Operación'],['presup','Operación'],['mermas','Operación'],['proveedores','Operación'],
+ ['clientes','Clientes y fidelización'],['fidel','Clientes y fidelización'],['fidplus','Clientes y fidelización'],['monedero','Clientes y fidelización'],['cupones','Clientes y fidelización'],
  ['personal','Equipo'],['tareas','Equipo'],['menuadmin','Menú y web'],['legal','Menú y web'],
  ['nube','Sistema'],['dispositivos','Sistema'],['impex','Sistema'],['integ','Sistema'],['roles','Sistema'],['auditoria','Sistema'],['config','Sistema']];
 function showPanel(id){if(!SCREENS[id]||(SCREENS[id].perm&&!can(SCREENS[id].perm))||(SCREENS[id].show&&!SCREENS[id].show()))id='inicio';curScreen=id;$('#panel').hidden=false;

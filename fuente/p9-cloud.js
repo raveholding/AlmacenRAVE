@@ -92,11 +92,19 @@ const COLS=[
  {c:'cdet',key:'payDetails',once:1,pii:['ordName','ordDoc']},
  {c:'acuer',key:'agreements',del:1},
  {c:'cexc',key:'creditOv'},
- {c:'cexcu',key:'creditUse',once:1}];
+ {c:'cexcu',key:'creditUse',once:1},
+ /* V26.54 · 20-fidelizacion-operacion.sql */
+ {c:'fidmov',key:'fidmov',once:1},
+ {c:'giftmov',key:'giftmov',once:1},
+ {c:'gift',key:'gifts'},
+ {c:'juego',key:'games'},
+ {c:'devol',key:'returns',once:1},
+ {c:'merma',key:'mermas',once:1},
+ {c:'presup',key:'quotes'}];
 const BYC=Object.fromEntries(COLS.map(x=>[x.c,x]));
 const DELC=new Set(COLS.filter(x=>x.del).map(x=>x.c));
 const CFGIDS=['tenant','cfg','menu','loyalty','roles','integ','legal','payadj'];
-const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado','cortesx']);
+const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado','cortesx','fidmov','giftmov','devol','merma','juego']);
 const r3=n=>Math.round(n*1000)/1000;
 function stripOf(col,it){const d=JSON.parse(JSON.stringify(it));(col.strip||[]).forEach(k=>delete d[k]);return d;}
 function cfgWire(id){switch(id){

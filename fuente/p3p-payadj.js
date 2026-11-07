@@ -9,7 +9,7 @@
    Guardado: pays[] = {m, a: importe final, b: base, adj}; sale.sub, sale.adj[] (foto de la regla) e items[].pa
    (ajuste repartido por línea con el método del mayor resto) → lineTotal, rubros, arqueo y ARCA cierran al centavo.
    Aviso legal (no bloquea): Ley 25.065 art. 37 inc. c (diferencias de precio contado / tarjeta) [VERIFICAR con asesor]. */
-const PA_METHODS=['efectivo','debito','credito','transferencia','qr','modo'];
+const PA_METHODS=['efectivo','debito','credito','transferencia','qr','modo','monedero'];
 const PA_LEGAL=['debito','credito','transferencia','qr','modo'];
 function paConf(){const c=(typeof S!=='undefined'&&S&&S.payadj)||null;return c&&typeof c==='object'?c:{on:false,stack:false,rules:{}};}
 function paRuleOk(r){return !!(r&&r.v>0&&Number.isInteger(r.v)&&(r.sign===1||r.sign===-1)&&(r.kind==='pct'||r.kind==='fixed')&&(r.kind!=='pct'||r.v<=5000));}
