@@ -283,8 +283,11 @@
   function mtWa(){ var s=mtSite(); return String(s.wa||window.RAVE_WA||'').replace(/\D/g,''); }
   function mtClose(){ clearInterval(mtTick); mtTick=null; var o=$('#mt-full'); if(o) o.remove(); try{ var pw=window.parent; if(pw.location.hash==='#mitarjeta') pw.history.replaceState(null,'',pw.location.href.split('#')[0]+'#menu'); }catch(e){} }
   function mtMenuUrl(){ var b=mtBrand(); return String(b.url||'').split('#')[0]; }
-  function mtOpen(){
-    mtStyle(); var old=$('#mt-full'); if(old) old.remove(); clearInterval(mtTick); mtTick=null;
+  var mtCodeOn=false;
+  function mtOpen(keep){
+    mtStyle(); var old=$('#mt-full'), sc=old&&keep?old.scrollTop:0; if(old) old.remove(); clearInterval(mtTick); mtTick=null; if(!keep) mtCodeOn=false;
+    /* V26.58: al abrir, pedir YA los sellos y el saldo al servidor (antes se mostraba la tarjeta vacía hasta el próximo sondeo) */
+    if(!keep){ try{ if(window.parent.cardPoll) window.parent.cardPoll(); }catch(e){} }
     var id=cardId(), c=id?API.card(id):null, s=mtSite(), b=mtBrand(), title=s.title||b.name||'', wa=mtWa();
     var o=document.createElement('div'); o.id='mt-full'; o.setAttribute('role','dialog'); o.setAttribute('aria-label',L('Mi tarjeta del Club','My Club card'));
     var top='<div class="mt-top">'+(b.logo?'<img src="'+esc(b.logo)+'" alt="">':'')+'<b>'+esc(title)+'</b><button type="button" class="mt-x" id="mt-x" aria-label="'+L('Cerrar y ver el menú','Close and see the menu')+'">✕</button></div>';
@@ -298,7 +301,7 @@
     var bal=(c.saldo!==null&&c.saldo!==undefined)?'<div class="mt-bal"><span>👛 '+L('Tu crédito en el local','Your credit at the shop')+'</span><b>'+money(c.saldo/100)+'</b></div>':'';
     o.innerHTML='<div class="mt-w">'+top
       +'<div class="mt-card"><div class="mt-k">'+L('Tarjeta del Club','Club card')+'</div><div class="mt-n">'+esc(c.name||'')+'</div>'
-      +'<div class="mt-s">'+(c.pending?L('Socio N.º en trámite · el local la activa en unos segundos','Member # pending · the shop activates it shortly'):L('Socio N.º ','Member # ')+esc(c.num))+'</div>'
+      +'<div class="mt-s">'+(c.pending?L('Buscando tus sellos… (si recién te sumaste, el local la activa en unos segundos)','Loading your stamps… (if you just joined, the shop activates it shortly)'):L('Socio N.º ','Member # ')+esc(c.num))+'</div>'
       +(c.tier?'<span class="mt-chip">'+({bronce:'🥉',plata:'🥈',oro:'🥇'}[c.tier.k]||'⭐')+' '+L('Nivel ','Level ')+esc(c.tier.name)+(c.tier.pct?' · '+c.tier.pct+' %':'')+'</span>':'')
       +(c.member?'<span class="mt-chip">⭐ '+esc(c.member.name)+'</span>':'')
       +'<div class="mt-st" style="grid-template-columns:repeat('+Math.min(g,5)+',1fr)">'+dots+'</div>'
@@ -316,16 +319,17 @@
       +'<button type="button" class="mt-b" id="mt-home">📌 '+L('Tenerla en mi inicio','Keep it on my home screen')+'</button></div>'
       +'<div class="mt-tip" id="mt-msg" role="status"></div>'
       +'<p class="mt-tip">'+L('Esta tarjeta es personal y queda guardada en este celular. Si cambiás de celular, pedile al local el enlace de tu tarjeta. En el mostrador también te suman sellos con tu DNI.','This card is personal and is kept on this phone. If you change phones, ask the shop for your card link. At the counter they can also add stamps with your ID number.')+'</p></div>';
-    document.body.appendChild(o); o.scrollTop=0;
+    document.body.appendChild(o); o.scrollTop=sc;
     function say(t){ var m=$('#mt-msg'); if(m) m.textContent=t; }
     $('#mt-x').addEventListener('click',mtClose);
     $('#mt-menu').addEventListener('click',mtClose);
-    $('#mt-code').addEventListener('click',function(){
-      var box=$('#mt-codebox'); function draw(){ var k=API.cardCode(id); if(!k){box.innerHTML='';clearInterval(mtTick);return;}
+    function mtShowCode(){
+      var box=$('#mt-codebox'); mtCodeOn=true; function draw(){ var k=API.cardCode(id); if(!k){box.innerHTML='';clearInterval(mtTick);return;}
         box.innerHTML='<div class="mt-code">'+k.qr+'<div class="n">'+(k.pending?esc(k.otp):esc(k.socio)+' · '+esc(k.otp))+'</div><div style="font-size:.85rem;color:#444">'+L('Mostralo en el mostrador · cambia en ','Show it at the counter · changes in ')+'<b id="mt-t">'+k.secs+'</b> s</div></div>'; }
       draw(); clearInterval(mtTick); mtTick=setInterval(function(){ var t=$('#mt-t'); if(!t){clearInterval(mtTick);return;} var x=+t.textContent-1; if(x<=0) draw(); else t.textContent=x; },1000);
-      box.scrollIntoView({behavior:'smooth',block:'center'});
-    });
+    }
+    $('#mt-code').addEventListener('click',function(){ mtShowCode(); $('#mt-codebox').scrollIntoView({behavior:'smooth',block:'center'}); });
+    if(mtCodeOn) mtShowCode();
     $('#mt-inv').addEventListener('click',function(){
       var url=mtMenuUrl()+'#menu', txt=L('¡Sumate al Club de '+title+'! Juntás sellos y tenés premios. Mirá el menú acá:','Join the '+title+' Club! Collect stamps and get rewards. See the menu here:');
       if(navigator.share){ navigator.share({title:title,text:txt,url:url}).catch(function(){}); }
@@ -360,7 +364,7 @@
   }
   window.RAVE_OPEN_MYCARD=mtOpen;
   try{ if(window.parent.location.hash==='#mitarjeta') setTimeout(mtOpen,60); }catch(e){}
-  window.RAVE_CARD_REFRESH=function(){renderCard();renderCoupons();};
+  window.RAVE_CARD_REFRESH=function(){renderCard();renderCoupons();if($('#mt-full'))mtOpen(true);};
   var rb=$('#loy-recover');
   if(rb) rb.addEventListener('click',function(){
     var id=API.cardLogin($('#loy-wa').value,$('#loy-bd').value), er=$('#loy-err');
