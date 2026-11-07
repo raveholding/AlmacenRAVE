@@ -11,6 +11,7 @@ with sync_playwright() as p:
     ev=pg.evaluate
     pg.goto('file:///tmp/rave/index.html#acceso');pg.wait_for_timeout(600)
     pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(400)
+    ev("if(S.cfg.fid){S.cfg.fid.tiers&&(S.cfg.fid.tiers.on=false);S.cfg.fid.bday&&(S.cfg.fid.bday.on=false);save()}")  # V26.54: esta prueba es de pagos mixtos, sin beneficios del Club
     ev("location.hash='#panel/caja'");pg.wait_for_timeout(300)
     if pg.locator('#ap').count():
         pg.fill('#ap','50000');pg.click('[data-act=openCaja]');pg.wait_for_timeout(300)
