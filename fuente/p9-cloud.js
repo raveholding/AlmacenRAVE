@@ -70,7 +70,7 @@ const COLS=[
  {c:'movs',key:'movs'},
  {c:'cierres',key:'closures',strip:['notes'],once:1},
  {c:'rubros',key:'rubros',del:1},
- {c:'clientes',key:'customers',pii:['name','last','birth','wa','email','secret','notes','dni','cardSecrets','taxid'],del:1},
+ {c:'clientes',key:'customers',pii:['name','last','birth','wa','email','secret','notes','dni','cardSecrets','taxid','razon','domFis'],del:1},
  {c:'fiado',key:'fiadoPays',once:1},
  {c:'cortesx',key:'cortesX',once:1},
  {c:'emp',key:'employees',pii:['pin','dni'],del:1},

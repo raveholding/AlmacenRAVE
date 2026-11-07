@@ -202,10 +202,10 @@ with sync_playwright() as p:
     # ---- 15) ficha del cliente ----
     ev("location.hash='#panel/clientes'");pg.wait_for_timeout(400)
     ev("A.cuEdit({dataset:{id:'cwh1'}})");pg.wait_for_timeout(300)
-    chk(pg.locator('#wc-tx').count()==1 and pg.locator('#wc-ch').count()==1 and pg.locator('#wc-li').count()==0,'la ficha muestra el bloque Mayorista y crédito (sin lista de precios)')
-    pg.fill('#wc-tx','20123456780');pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(250)
+    chk(pg.locator('#fc-tx').count()==1 and pg.locator('#wc-ch').count()==1 and pg.locator('#wc-li').count()==0,'la ficha muestra el bloque Mayorista y crédito (sin lista de precios)')
+    pg.fill('#fc-tx','20123456780');pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(250)
     chk(ev("custById('cwh1').taxid")=='20123456786','CUIT con dígito verificador inválido se rechaza')
-    pg.fill('#wc-tx','20123456786');pg.fill('#wc-tm','30');pg.fill('#wc-zn','Zona Norte')
+    pg.fill('#fc-tx','20123456786');pg.fill('#wc-tm','30');pg.fill('#wc-zn','Zona Norte')
     pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(300)
     chk(ev("custById('cwh1').term")==30 and ev("custById('cwh1').zone")=='Zona Norte' and ev("S.audit.some(e=>e.action==='CLIENTE_MAYORISTA')"),'plazo/zona guardados y auditados')
     # ---- 16) configuración: presentaciones de venta ----

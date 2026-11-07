@@ -20,9 +20,9 @@ async function arcaEstado(force){if(!arcaOn())return null;if(!force&&ARC.st&&Dat
 /* ---------- receptor de la factura (en el cobro) ---------- */
 const ARC_DOC=[['99','Consumidor final (sin identificar)'],['96','DNI'],['80','CUIT'],['86','CUIL']];
 const ARC_COND=[['5','Consumidor final'],['1','IVA Responsable Inscripto'],['6','Responsable Monotributo'],['4','IVA Sujeto Exento'],['13','Monotributista Social']];
-function arcaRcpHtml(){if(!pos.arca)return'';const r=pos.rcp||(pos.rcp={t:'99',n:'',c:'5',nm:''});
+function arcaRcpHtml(){if(!pos.arca)return'';if(typeof arcaRcpAuto==='function')arcaRcpAuto();const r=pos.rcp||(pos.rcp={t:'99',n:'',c:'5',nm:''});
  const ident=r.t!=='99';
- return `<div class="card" style="margin:.5rem 0"><b class="sm">Receptor de la factura</b> <span class="sm mut">(si no se identifica, sale a Consumidor final)</span>
+ return `<div class="card" style="margin:.5rem 0"><b class="sm">Receptor de la factura</b> <span class="sm mut">${r.from?'(cargado de la ficha del cliente: revisalo)':'(si no se identifica, sale a Consumidor final)'}</span>${r.hint?`<div class="warnbox sm" style="margin:.3rem 0">${esc(r.hint)}</div>`:''}
  <div class="grid g2"><div><label for="rc-t">Documento</label><select id="rc-t">${ARC_DOC.map(([k,t])=>`<option value="${k}" ${r.t===k?'selected':''}>${t}</option>`).join('')}</select></div>
  <div><label for="rc-n">Número</label><input id="rc-n" inputmode="numeric" maxlength="13" autocomplete="off" placeholder="${r.t==='80'||r.t==='86'?'CUIT / CUIL (11 dígitos)':'DNI'}" value="${esc(r.n)}" ${ident?'':'disabled'}></div>
  <div><label for="rc-c">Condición frente al IVA</label><select id="rc-c">${ARC_COND.map(([k,t])=>`<option value="${k}" ${r.c===k?'selected':''}>${t}</option>`).join('')}</select></div>

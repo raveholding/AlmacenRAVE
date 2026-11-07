@@ -2197,3 +2197,11 @@ Pedido del dueño del 2026-11-03. El número de caja ocupado y la tarjeta del Cl
 **T.4 Pruebas.** SQL **624/624** (12 nuevas en `tests/28-sql-tests.sql`: libro sólo-agregar, importes, tipos, venta con monedero + gift card, medio inventado rechazado, RLS A/B). Navegador `fx1.py` **48/48** (pantallas, carga, pago, saldo insuficiente, anulación, cashback, gift card al portador/nominativa/parcial, mixto, niveles, cumpleaños una vez por año, ruleta con premio y reversión, trivia con cupón, bloqueo sin conexión, presupuesto → venta, devolución parcial, merma, 360 px).
 
 **T.5 Límites declarados.** Apple/Google Wallet siguen sin implementar (requieren cuentas y certificados). No hay envío automático de WhatsApp (sólo enlace). Las alertas de Telegram no incluyen todavía mermas ni devoluciones (requiere cambiar la función del servidor). La sincronización de dos equipos contra la nube real con las colecciones nuevas no se probó contra Supabase (sólo SQL local).
+
+## ANEXO U — V26.55 · DATOS PARA FACTURAR DE CADA CLIENTE Y PRECARGA EN EL COBRO CON ARCA (2026-11-07)
+
+**Pedido del dueño:** al vender con factura electrónica y elegir el cliente, no se cargaban sus datos; cada cliente tiene que tener su condición frente a ARCA; tocar el logo / «Sistema RAVE» tiene que ir al Resumen.
+- **Ficha del cliente → «Datos para facturar (ARCA)»** (parte `p6i-fiscal.js`): condición frente al IVA (`ivaCond`: Consumidor final, Responsable Inscripto, Monotributo, Exento, Monotributista Social), CUIT/CUIL (`taxid`, el mismo campo que usa Mayorista, que ya no lo repite), razón social (`razon`) y domicilio fiscal (`domFis`). CUIT con dígito verificador; Responsable Inscripto exige CUIT. Cambios auditados (`CLIENTE_FISCAL`); CUIT, razón social y domicilio viajan cifrados a la nube. Los datos ya cargados los cambia el administrador.
+- **Cobro con ARCA:** al identificar al cliente se precargan documento (CUIT o DNI), número, condición y razón social, con el aviso «cargado de la ficha»; si falta la condición o no hay CUIT/DNI lo avisa. Lo que se complete en el cobro se guarda en la ficha **sólo donde estaba vacío** (no pisa datos cargados). Quitar el cliente vuelve a Consumidor final.
+- **Logo / «Sistema RAVE» de la barra lateral:** lleva al Resumen.
+- Pruebas: `fc1.py` 14/14; `ws1` y `kn2` actualizadas (el CUIT se carga en el bloque fiscal).

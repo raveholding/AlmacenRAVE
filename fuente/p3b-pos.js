@@ -100,6 +100,7 @@ function commitSale(method,arca,channel,lines,opts){
  if(cr.ov){(S.creditUse=S.creditUse||[]).push({id:uid(),ov:cr.ov,sale:sale.id,amt:fiadoAmt,ts:now(),user:user?user.name:'sistema'});audit('EXCEPCION_CREDITO_USO',sale.n+' · '+custFull(cust)+' · '+money(fiadoAmt)+' (supera '+cr.probs.join(' ').slice(0,120)+')');}
  if(ben.kind==='coupon'&&ben.couponId){const cp=S.coupons.find(x=>x.id===ben.couponId);if(cp)cp.uses.push({ts:now(),sale:sale.id,cust:cust?cust.id:''});}
  if(opts.receptor&&arca&&typeof arcaRcpStore==='function')arcaRcpStore(sale.id,opts.receptor);
+ if(arca&&cust&&typeof arcaRcpToCust==='function')arcaRcpToCust(cust);
  if(stampRes&&stampRes.ok){commitStamp(cust.id,stampRes,'venta '+sale.n);sale.stamped=true;}
  audit('VENTA',sale.n+' · '+salePayLabel(sale)+' · '+money(total)+(sale.benefit?' · '+ben.label+' -'+money(ben.disc):'')+' · '+(arca?'Con ARCA (pend. CAE)':'Sin ARCA')+(cust?' · cliente '+cust.num:'')+(pc.vuelto?' · vuelto '+money(pc.vuelto):''));
  if(fiadoAmt>0)audit('CTA_CTE_DEBITO',sale.n+' · '+custFull(cust)+' · débito '+money(fiadoAmt)+' · estado '+PSTATE_TXT[sale.pstate]);

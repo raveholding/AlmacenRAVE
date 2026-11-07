@@ -106,8 +106,8 @@ with sync_playwright() as p:
     chk(ev("S.suppliers[0].saldo")==s0-3000000,'el dueño paga $ 30.000 al proveedor desde la caja principal')
     # ---------- 8. cliente mayorista nuevo, sin Club ----------
     ev("go('clientes')");pg.wait_for_timeout(250);ev("A.cuEdit({dataset:{id:''}})");pg.wait_for_timeout(300)
-    chk(pg.locator('#wc-tx').count()==1 and not pg.locator('#cu-c1').is_checked(),'el alta de cliente pide CUIT y plazo y el Club viene destildado')
-    pg.fill('#cu-n','Despensa San Martín');pg.fill('#cu-w','387 4111222');pg.fill('#wc-tx','30709998885');pg.fill('#wc-tm','15');pg.fill('#cu-lim','400000')
+    chk(pg.locator('#fc-tx').count()==1 and not pg.locator('#cu-c1').is_checked(),'el alta de cliente pide CUIT y plazo y el Club viene destildado')
+    pg.fill('#cu-n','Despensa San Martín');pg.fill('#cu-w','387 4111222');pg.fill('#fc-tx','30709998885');pg.fill('#wc-tm','15');pg.fill('#cu-lim','400000')
     last_ok()
     c=ev("S.customers.find(c=>c.name==='Despensa San Martín')")
     chk(c and c['channel']=='mayorista' and c['taxid']=='30709998885' and c['term']==15 and c['limit']==40000000 and c['consent']['club']==False,'se crea como cliente mayorista con CUIT, plazo y límite, sin fecha de nacimiento ni Club')

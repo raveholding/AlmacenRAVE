@@ -162,7 +162,7 @@ function wsCustCard(c){if(!wsOn()||!c)return'';const ed=custAdm()?'':'disabled';
  return`<div class="card" style="margin:.6rem 0"><h3 style="margin-top:0">Mayorista y crédito</h3>
  <div class="grid g2" ${wsOnly()?'hidden':''}><div><label for="wc-ch">Canal habitual</label><select id="wc-ch" ${ed}><option value="minorista" ${!wsIsWh(c)?'selected':''}>Minorista</option><option value="mayorista" ${wsIsWh(c)?'selected':''}>Mayorista</option></select></div>
  </div>
- <div class="grid g2"><div><label for="wc-tx">CUIT ${wsOnly()?'(opcional)':'(obligatorio para vender como mayorista)'}</label><input id="wc-tx" inputmode="numeric" maxlength="13" autocomplete="off" placeholder="20-12345678-6" value="${esc(c.taxid||'')}" ${ed}></div>
+ <div class="grid g2"><div><p class="sm mut" style="margin-top:1.6rem">CUIT ${wsOnly()?'(opcional)':'(obligatorio para vender como mayorista)'}: se carga en «Datos para facturar (ARCA)».</p></div>
  <div><label for="wc-tm">Plazo máximo de pago (días)</label><input id="wc-tm" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="Sin plazo" value="${c.term>0?esc(String(c.term)):''}" ${ed}></div></div>
  <div class="grid g2"><div><label for="wc-zn">Zona de cobranza</label><input id="wc-zn" maxlength="30" autocomplete="off" value="${esc(c.zone||'')}" ${ed}></div><div><label for="wc-sl">Vendedor asignado</label><input id="wc-sl" maxlength="30" autocomplete="off" value="${esc(c.seller||'')}" ${ed}></div></div>
  <p class="sm mut">Antigüedad de saldos: ${ag.map(b=>`${b.k} d: <b>${money(b.t)}</b>`).join(' · ')}</p>
@@ -170,7 +170,7 @@ function wsCustCard(c){if(!wsOn()||!c)return'';const ed=custAdm()?'':'disabled';
  ${wsReview(c.id).length?`<div class="warnbox sm">${wsReview(c.id).length} venta(s) a cuenta corriente marcadas para revisión por el servidor (${esc(wsReview(c.id).map(s=>s.n).slice(-5).join(', '))}).</div>`:''}
  ${can('credit_ov')?`<button class="btn sm" type="button" data-act="wsCredOv" data-id="${c.id}" data-need="0">Autorizar excepción de crédito</button>`:''}</div>`;}
 function wsCustSave(c,w){if(!wsOn()||!$('#wc-ch',w)||$('#wc-ch',w).disabled)return'';
- const ch=(wsOnly()||val('wc-ch')==='mayorista')?'mayorista':'minorista',tx=val('wc-tx').replace(/\D/g,''),tm=val('wc-tm').trim()===''?0:Math.round(parseNum(val('wc-tm'))),zn=val('wc-zn').trim().slice(0,30),sl=val('wc-sl').trim().slice(0,30);
+ const ch=(wsOnly()||val('wc-ch')==='mayorista')?'mayorista':'minorista',tx=($('#fc-tx',w)&&!$('#fc-tx',w).disabled?val('fc-tx'):(c.taxid||'')).replace(/\D/g,''),tm=val('wc-tm').trim()===''?0:Math.round(parseNum(val('wc-tm'))),zn=val('wc-zn').trim().slice(0,30),sl=val('wc-sl').trim().slice(0,30);
  if(tx&&!arcaCuitOk(tx))return'El CUIT no es válido (11 dígitos con dígito verificador correcto).';
  if(ch==='mayorista'&&!tx&&!wsOnly())return'Para marcar al cliente como mayorista cargá su CUIT.';
  if(isNaN(tm)||tm<0||tm>365)return'El plazo va de 1 a 365 días (o vacío).';
