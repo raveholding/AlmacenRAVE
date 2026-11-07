@@ -447,16 +447,16 @@ async function cloudClubJoin(f){const en=()=>window.RAVE_LANG&&window.RAVE_LANG(
 /* ---------- tarjeta del Club en el celular del cliente (nube): la clave de la tarjeta nace y vive en ese celular ---------- */
 const LS={get(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
 const cardEst={};
-function cardEstGet(id){if(cardEst[id])return cardEst[id];try{const o=JSON.parse(LS.get('rave.cardest')||'null');if(o&&o.id===id){cardEst[id]={socio:!!o.socio,num:o.num,sellos:o.sellos};return cardEst[id];}}catch(e){}return {socio:false};}
+function cardEstGet(id){if(cardEst[id])return cardEst[id];try{const o=JSON.parse(LS.get('rave.cardest')||'null');if(o&&o.id===id){cardEst[id]={socio:!!o.socio,num:o.num,sellos:o.sellos,saldo:o.saldo===undefined?null:o.saldo};return cardEst[id];}}catch(e){}return {socio:false};}
 function cardFrameRefresh(){try{const fr=document.getElementById('pubframe');if(fr&&fr.contentWindow&&fr.contentWindow.RAVE_CARD_REFRESH)fr.contentWindow.RAVE_CARD_REFRESH();}catch(e){}}
 async function cardPoll(){const id=LS.get('rave.card');if(!CLOUD.on||!id||!CLOUD.slug||document.hidden)return;
  try{const r=await rpc('club_estado',{p_slug:CLOUD.slug,p_cid:id},{auth:false});
-  if(r&&r.ok){const e={socio:!!r.socio,num:r.num,sellos:+r.sellos||0};const old=JSON.stringify(cardEstGet(id));cardEst[id]=e;LS.set('rave.cardest',JSON.stringify(Object.assign({id},e)));if(JSON.stringify(e)!==old)cardFrameRefresh();}}catch(e){}}
+  if(r&&r.ok){const e={socio:!!r.socio,num:r.num,sellos:+r.sellos||0,saldo:(r.saldo===undefined||r.saldo===null)?null:Math.round(+r.saldo)||0};const old=JSON.stringify(cardEstGet(id));cardEst[id]=e;LS.set('rave.cardest',JSON.stringify(Object.assign({id},e)));if(JSON.stringify(e)!==old)cardFrameRefresh();}}catch(e){}}
 if(CLOUD.on&&typeof setInterval==='function')setInterval(cardPoll,15000);
 function pubCloudCard(id){if(!id||id!==LS.get('rave.card')||!LS.get('rave.cardsec'))return null;
  let info={};try{info=JSON.parse(LS.get('rave.cardinfo')||'{}');}catch(e){}
  const e=cardEstGet(id),lo=(snapC()&&snapC().loyalty)||{goal:S.loyalty.goal,reward:S.loyalty.reward};const g=lo.goal||8,st=e.socio?Math.max(0,+e.sellos||0):0;
- return{name:(info.name||'').split(' ')[0]||'',num:e.socio?pad4(+e.num):'—',stamps:Math.min(st,g),goal:g,rewards:Math.floor(st/g),rewardText:lo.reward||'',member:null,pending:!e.socio};}
+ return{name:(info.name||'').split(' ')[0]||'',num:e.socio?pad4(+e.num):'—',stamps:Math.min(st,g),goal:g,rewards:Math.floor(st/g),rewardText:lo.reward||'',member:null,pending:!e.socio,saldo:e.socio&&e.saldo!==null&&e.saldo!==undefined?e.saldo:null};}
 function pubCloudCode(id){const sec=LS.get('rave.cardsec');if(!id||!sec||id!==LS.get('rave.card'))return null;
  const w=otpWin(now()),otp=otpFor({id,secret:sec},w,id),e=cardEstGet(id);
  return{socio:e.socio?pad4(+e.num):'----',otp,secs:Math.max(1,Math.ceil(((w+1)*OTP_MS-now())/1000)),qr:QR.svg('RAVE2|'+id+'|'+otp,4,2),pending:!e.socio};}
@@ -469,7 +469,7 @@ function cloudApiWrap(local){if(!CLOUD.on)return local;
   site:pick(local.site,()=>{const c=snapC();return c?c.site:{title:'',sub:{es:'',en:''},pitch:{es:'',en:''},promo:{on:false,es:'',en:''},address:'',social:[],icons:{},footer:{es:'',en:''},wa:'',alcFrom:7,alcTo:24,hideTeamBtn:false,clubOn:false,wifi:{on:false}};}),
   catalog:pick(local.catalog,()=>{const c=snapC();return c?c.catalog:{secciones:[],productos:[]};}),
   clubJoin:pick(local.clubJoin,cloudClubJoin),
-  card:id=>pub()?pubCloudCard(id):(local.card(id)||pubCloudCard(id)),cardCode:id=>pub()?pubCloudCode(id):(local.cardCode(id)||pubCloudCode(id)),cardLogin:pick(local.cardLogin,()=>null),cardPortable:id=>local.cardPortable(id),wallet:(id,k)=>pub()?{mode:'pending'}:local.wallet(id,k),walletMode:()=>pub()?'pending':(local.walletMode?local.walletMode():'pending'),canRecover:()=>!pub(),
+  card:id=>pub()?pubCloudCard(id):(local.card(id)||pubCloudCard(id)),cardCode:id=>pub()?pubCloudCode(id):(local.cardCode(id)||pubCloudCode(id)),cardLogin:pick(local.cardLogin,()=>null),cardPortable:id=>local.cardPortable(id),brand:()=>local.brand(),qr:t=>local.qr(t),wallet:(id,k)=>pub()?{mode:'pending'}:local.wallet(id,k),walletMode:()=>pub()?'pending':(local.walletMode?local.walletMode():'pending'),canRecover:()=>!pub(),
   coupons:(id)=>{if(!pub())return local.coupons(id);const c=snapC();const me=id&&id===LS.get('rave.card')?cardEstGet(id):null;let bw=false;try{const inf=JSON.parse(LS.get('rave.cardinfo')||'{}');bw=isBirthWeek({birth:inf.birth});}catch(e){}
    return((c&&c.coupons)||[]).filter(cp=>cpOk(cp)&&((cp.aud||'todos')==='todos'||(cp.aud==='club'&&me&&me.socio)||(cp.aud==='cumple'&&me&&me.socio&&bw))).map(cp=>({code:cp.code,desc:cp.note||(cp.type==='pct'?cp.value+' % de descuento':money(cp.value)+' de descuento'),cond:(cp.min?'Compra mínima '+money(cp.min)+' · ':'')+(cp.aud==='club'?'Sólo socios del Club · ':cp.aud==='cumple'?'Semana del cumpleaños · ':'')+'Excluye tabaco'}));},
   couponInfo:pick(local.couponInfo,(code,total)=>{code=String(code||'').trim().toUpperCase();const c=snapC();const cp=((c&&c.coupons)||[]).find(x=>x.code===code);

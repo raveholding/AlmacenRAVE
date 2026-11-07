@@ -143,7 +143,9 @@ function clubJoin(f){const en=()=>window.RAVE_LANG&&window.RAVE_LANG()==='en';co
 
 /* ---------- API que ve el menú público (nunca devuelve secretos ni datos de terceros) ---------- */
 function pubCard(id){const c=custByCard(id);if(!c||c.status==='baja')return null;const st=stampsOf(c.id);const g=S.loyalty.goal;const mb=memberActive(c);
- return{name:c.name,num:pad4(c.num),stamps:Math.min(st,g),goal:g,rewards:Math.floor(st/g),rewardText:S.loyalty.reward,member:mb?{name:mb.name,until:mb.until,pct:mb.pct}:null};}
+ return{name:c.name,num:pad4(c.num),stamps:Math.min(st,g),goal:g,rewards:Math.floor(st/g),rewardText:S.loyalty.reward,member:mb?{name:mb.name,until:mb.until,pct:mb.pct}:null,
+  saldo:typeof walBal==='function'&&typeof fidCfg==='function'&&(fidCfg().wallet.on||walBal(c.id))?walBal(c.id):null,
+  tier:typeof custTier==='function'&&custTier(c)?{name:custTier(c).t.name,k:custTier(c).t.k,pct:custTier(c).t.pct,next:custTier(c).next?custTier(c).next.name:'',missing:custTier(c).missing}:null};}
 function pubCardCode(id){const c=custByCard(id);if(!c||c.status==='baja'||!cardSecret(c,id))return null;const k=cardCode(c);const otp=otpFor(c,k.win,id);return{socio:k.socio,otp,secs:k.secs,qr:QR.svg('RAVE2|'+id+'|'+otp,4,2)};}
 function pubCardLogin(wa,bd){const w=normWA(wa);const b=parseBirth(bd);if(!w||!b)return null;
  const c=S.customers.find(x=>normWA(x.wa)===w&&x.status!=='baja'&&x.birth===b.y+'-'+String(b.mo).padStart(2,'0')+'-'+String(b.d).padStart(2,'0'));return c?c.id:null;}

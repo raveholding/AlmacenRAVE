@@ -25,7 +25,7 @@ function pubCardPortable(id){if(!id)return null;let secret='',name='',birth='';
  return{link,qr:QR.svg(link,3,3),name:(name||'').split(' ')[0]};}
 /* Importar desde el enlace (#tarjeta=…): valida todo, guarda en el celular y limpia la dirección */
 function cardImportFromHash(){const h=location.hash||'';const m=/^#tarjeta=([A-Za-z0-9_-]{20,1500})$/.exec(h);
- const clean=()=>{try{history.replaceState(null,'',location.href.split('#')[0]+'#menu');}catch(e){location.hash='#menu';}};
+ const clean=()=>{try{history.replaceState(null,'',location.href.split('#')[0]+'#mitarjeta');}catch(e){location.hash='#mitarjeta';}};
  if(!m){clean();return false;}
  const o=cardUnB64(m[1]);clean();
  if(!o||o.v!==1||!CARD_RE_ID.test(String(o.i||''))||!CARD_RE_SEC.test(String(o.s||'')))return toast('El enlace de la tarjeta no es válido. Pedí uno nuevo en el local.',1),false;
@@ -49,7 +49,7 @@ A.cuCardLink=el=>{const c=custById(el.dataset.id);if(!c)return;
  if(!cid){cid=uid()+uid();c.cards=Array.isArray(c.cards)?c.cards:[];c.cards.push(cid);c.cardSecrets=c.cardSecrets||{};c.cardSecrets[cid]=c.secret;}
  const link=cardLinkFor(cid,cardSecret(c,cid),(c.name||''),c.birth||'');if(!link)return toast('No se pudo armar el enlace de la tarjeta.',1);
  audit('TARJETA_ENLACE','enlace de tarjeta emitido · socio '+pad4(c.num),{ent:'cliente',eid:c.id});save();
- const wa=normWA(c.wa),msg='Hola '+(c.name||'')+'! Este es el enlace de tu tarjeta del Club. Abrilo desde tu celular y guardá la página en tu pantalla de inicio. No lo compartas con nadie: es tu tarjeta personal.'+(walletMode()!=='pending'?' Desde ese enlace también podés guardarla en Apple Wallet o Google Wallet.':'')+'\n'+link;
+ const wa=normWA(c.wa),msg='¡Hola '+(c.name||'')+'! 🎉 Esta es tu tarjeta digital del Club de '+S.tenant.name+'. Abrila desde tu celular: ahí ves tus sellos'+(typeof fidCfg==='function'&&fidCfg().wallet.on?', tu saldo':'')+' y tu código para sumar sellos, y desde la misma tarjeta nos escribís, consultás o hacés tu pedido. Tip: guardala en la pantalla de inicio para tenerla siempre a mano. Es personal: no compartas este enlace (para invitar amigos usá el botón «Invitar amigos» de tu tarjeta).'+(walletMode()!=='pending'?' Desde ese enlace también podés guardarla en Apple Wallet o Google Wallet.':'')+'\n'+link;
  const w=modal('Enviar tarjeta · '+custFull(c),`<p class="sm">Quien abra este enlace tiene la tarjeta de <b>${esc(c.name||'')}</b> en su celular. Mandáselo sólo al cliente, por un medio que sea suyo. El secreto de la tarjeta viaja en la parte del enlace que no llega a ningún servidor.</p>
   <label for="cl-l">Enlace</label><input id="cl-l" readonly value="${esc(link)}" onfocus="this.select()">
   <div class="row" style="margin-top:.5rem"><button class="btn sm" type="button" id="cl-copy">Copiar enlace</button>${wa?`<a class="btn sm gold" id="cl-wa" target="_blank" rel="noopener noreferrer" href="https://wa.me/${encodeURIComponent(waFull(wa).replace(/\D/g,''))}?text=${encodeURIComponent(msg)}">Abrir WhatsApp con el mensaje</a>`:''}</div>

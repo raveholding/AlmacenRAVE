@@ -92,6 +92,7 @@
      +'<div class="loy-meta"><span>'+c.stamps+' / '+c.goal+' '+L('sellos','stamps')+'</span><span>'+(left?L('Te faltan '+left,left+' to go'):L('¡Tenés un premio!','You have a reward!'))+'</span></div>'
      +(c.rewards?'<div class="loy-reward">🎁 '+L('Premio disponible: ','Reward available: ')+esc(c.rewardText)+(c.rewards>1?' (x'+c.rewards+')':'')+'</div>':'')
      +(c.member?'<div class="loy-member">⭐ '+esc(c.member.name)+' · '+L('hasta ','until ')+esc(c.member.until)+(c.member.pct?' · '+c.member.pct+'% '+L('de descuento en el mostrador','off at the counter'):'')+'</div>':'')
+     +'<button type="button" class="loy-btn" id="loy-full">'+L('Abrir mi tarjeta digital','Open my digital card')+'</button>'
      +'<div id="loy-codebox"></div>'
      +'<button type="button" class="loy-btn" id="loy-show">'+L('Mostrar mi código para sumar sello','Show my code to get a stamp')+'</button>'
      +'<p class="loy-tip">'+L('Tip: agregá esta página a la pantalla de inicio de tu celular para tener tu tarjeta siempre a mano. Si la perdés, en el mostrador te pueden sumar los sellos con tu DNI.','Tip: add this page to your phone home screen to keep your card at hand. If you lose it, the counter can add your stamps with your ID number.')+'</p>'
@@ -99,6 +100,7 @@
      +'<button type="button" class="loy-btn loy-alt" id="loy-save">'+L('Guardar mi tarjeta (por si cambio de celular)','Save my card (in case I change phones)')+'</button><div id="loy-savebox" hidden></div>'
      +'<button type="button" class="loy-link" id="loy-out">'+L('No soy yo / quitar tarjeta de este dispositivo','Not me / remove card from this device')+'</button></div>';
     $('#loy-show').addEventListener('click',showCode);
+    $('#loy-full').addEventListener('click',function(){ try{ var pw=window.parent; pw.history.replaceState(null,'',pw.location.href.split('#')[0]+'#mitarjeta'); }catch(e){} mtOpen(); });
     $('#loy-save').addEventListener('click',toggleSave);
     $('#loy-apple').addEventListener('click',function(){walletGo('apple');});
     $('#loy-google').addEventListener('click',function(){walletGo('google');});
@@ -255,6 +257,109 @@
     var cb=$('#cart-bar'); if(cb) cb.addEventListener('click',function(){ setTimeout(render,0); });
     window.RAVE_SHIP_REFRESH=render; render();
   })();
+  /* ===== V26.57 · TARJETA DIGITAL a pantalla completa (#mitarjeta) =====
+     Mientras Apple/Google Wallet no estén contratados: la tarjeta se abre como una «app» propia, con los datos del socio,
+     sellos, saldo del monedero, código para sumar sellos, y accesos para escribir al local, hacer un pedido e invitar amigos.
+     «Invitar amigos» comparte el MENÚ, nunca el enlace personal (que es la tarjeta). */
+  var mtTick=null;
+  function mtStyle(){ if($('#mt-style')) return; var st=document.createElement('style'); st.id='mt-style';
+    st.textContent='#mt-full{position:fixed;inset:0;z-index:2147483000;overflow:auto;background:radial-gradient(circle at 20% 0,#3a3020,#121110 70%);color:#fff;font-family:Poppins,Arial,sans-serif;-webkit-overflow-scrolling:touch}'
+     +'#mt-full .mt-w{max-width:440px;margin:0 auto;padding:16px 16px 40px}'
+     +'#mt-full .mt-top{display:flex;align-items:center;gap:10px;margin-bottom:14px}#mt-full .mt-top img{width:52px;height:30px;object-fit:cover;border-radius:6px}#mt-full .mt-top b{flex:1;font:700 1.05rem Georgia,serif;color:#e8c98d}'
+     +'#mt-full .mt-x{background:rgba(255,255,255,.1);border:0;color:#fff;border-radius:999px;min-width:44px;min-height:44px;font-size:1.1rem;cursor:pointer}'
+     +'#mt-full .mt-card{position:relative;border-radius:20px;padding:20px;background:linear-gradient(135deg,#c9963e,#7a5a22 55%,#2d2418);box-shadow:0 12px 40px rgba(0,0,0,.5);overflow:hidden}'
+     +'#mt-full .mt-card:after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.08)}'
+     +'#mt-full .mt-k{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85}#mt-full .mt-n{font:700 1.6rem Georgia,serif;margin:.2rem 0}#mt-full .mt-s{opacity:.9;font-size:.9rem}'
+     +'#mt-full .mt-st{display:grid;gap:8px;margin:16px 0 8px}#mt-full .mt-st i{aspect-ratio:1;border-radius:50%;border:2px dashed rgba(255,255,255,.55);display:grid;place-items:center;font-style:normal;font-size:1.1rem}#mt-full .mt-st i.on{background:#fff;color:#7a5a22;border-style:solid}'
+     +'#mt-full .mt-row{display:flex;justify-content:space-between;gap:8px;font-size:.9rem}#mt-full .mt-chip{display:inline-block;background:rgba(0,0,0,.28);border-radius:999px;padding:4px 10px;font-size:.82rem;margin:8px 6px 0 0}'
+     +'#mt-full .mt-bal{margin-top:14px;background:rgba(0,0,0,.3);border-radius:14px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center}#mt-full .mt-bal b{font-size:1.35rem}'
+     +'#mt-full .mt-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}#mt-full .mt-b{min-height:56px;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;font:600 .92rem Poppins,Arial,sans-serif;cursor:pointer;padding:8px;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px}'
+     +'#mt-full .mt-b.big{grid-column:1/-1;background:#e8c98d;color:#1b1100;border:0;font-size:1rem}#mt-full .mt-b.wa{background:#1f8f4e;border:0}'
+     +'#mt-full .mt-code{background:#fff;color:#111;border-radius:16px;padding:14px;text-align:center;margin-top:14px}#mt-full .mt-code svg{width:210px;height:210px;max-width:100%}#mt-full .mt-code .n{font:700 1.4rem monospace;letter-spacing:.1em}'
+     +'#mt-full .mt-tip{font-size:.82rem;opacity:.8;margin-top:14px;line-height:1.4}#mt-full .mt-rw{margin-top:10px;background:rgba(255,255,255,.95);color:#5a3d0c;border-radius:12px;padding:8px 12px;font-weight:600;font-size:.9rem}';
+    document.head.appendChild(st); }
+  function mtSite(){ try{return API.site()||{};}catch(e){return {};} }
+  function mtBrand(){ try{return (API.brand&&API.brand())||{};}catch(e){return {};} }
+  function mtWa(){ var s=mtSite(); return String(s.wa||window.RAVE_WA||'').replace(/\D/g,''); }
+  function mtClose(){ clearInterval(mtTick); mtTick=null; var o=$('#mt-full'); if(o) o.remove(); try{ var pw=window.parent; if(pw.location.hash==='#mitarjeta') pw.history.replaceState(null,'',pw.location.href.split('#')[0]+'#menu'); }catch(e){} }
+  function mtMenuUrl(){ var b=mtBrand(); return String(b.url||'').split('#')[0]; }
+  function mtOpen(){
+    mtStyle(); var old=$('#mt-full'); if(old) old.remove(); clearInterval(mtTick); mtTick=null;
+    var id=cardId(), c=id?API.card(id):null, s=mtSite(), b=mtBrand(), title=s.title||b.name||'', wa=mtWa();
+    var o=document.createElement('div'); o.id='mt-full'; o.setAttribute('role','dialog'); o.setAttribute('aria-label',L('Mi tarjeta del Club','My Club card'));
+    var top='<div class="mt-top">'+(b.logo?'<img src="'+esc(b.logo)+'" alt="">':'')+'<b>'+esc(title)+'</b><button type="button" class="mt-x" id="mt-x" aria-label="'+L('Cerrar y ver el menú','Close and see the menu')+'">✕</button></div>';
+    if(!c){
+      o.innerHTML='<div class="mt-w">'+top+'<div class="mt-card"><div class="mt-k">'+L('Club','Club')+'</div><div class="mt-n">'+L('No hay una tarjeta en este celular','No card on this phone')+'</div><div class="mt-s">'+L('Sumate al Club desde el menú o pedile al local el enlace de tu tarjeta.','Join the Club from the menu or ask the shop for your card link.')+'</div></div>'
+        +'<div class="mt-btns"><button type="button" class="mt-b big" id="mt-menu">'+L('Ir al menú y sumarme','Go to the menu and join')+'</button>'+(wa?'<a class="mt-b wa" style="grid-column:1/-1" target="_blank" rel="noopener noreferrer" href="https://wa.me/'+wa+'?text='+encodeURIComponent(L('Hola! Ya soy socio del Club pero no veo mi tarjeta en este celular. ¿Me mandan el enlace de mi tarjeta? Mi nombre es: ','Hi! I am a Club member but I cannot see my card on this phone. Could you send me my card link? My name is: '))+'">💬 '+L('Pedir mi tarjeta por WhatsApp','Ask for my card on WhatsApp')+'</a>':'')+'</div></div>';
+      document.body.appendChild(o); $('#mt-x').addEventListener('click',mtClose); $('#mt-menu').addEventListener('click',function(){mtClose(); var j=document.querySelector('#club,#loy,.loy-join'); if(j) j.scrollIntoView({behavior:'smooth'});}); return;
+    }
+    var g=c.goal||8, n=Math.min(c.stamps||0,g), dots=''; for(var i=0;i<g;i++) dots+='<i class="'+(i<n?'on':'')+'">'+(i<n?'★':'')+'</i>';
+    var left=Math.max(0,g-n), hello=L('Hola, soy ','Hi, I am ')+(c.name||'')+(c.pending?'':L(', socio N.º ',', member #')+c.num)+L(' del Club. ',' from the Club. ');
+    var bal=(c.saldo!==null&&c.saldo!==undefined)?'<div class="mt-bal"><span>👛 '+L('Tu crédito en el local','Your credit at the shop')+'</span><b>'+money(c.saldo/100)+'</b></div>':'';
+    o.innerHTML='<div class="mt-w">'+top
+      +'<div class="mt-card"><div class="mt-k">'+L('Tarjeta del Club','Club card')+'</div><div class="mt-n">'+esc(c.name||'')+'</div>'
+      +'<div class="mt-s">'+(c.pending?L('Socio N.º en trámite · el local la activa en unos segundos','Member # pending · the shop activates it shortly'):L('Socio N.º ','Member # ')+esc(c.num))+'</div>'
+      +(c.tier?'<span class="mt-chip">'+({bronce:'🥉',plata:'🥈',oro:'🥇'}[c.tier.k]||'⭐')+' '+L('Nivel ','Level ')+esc(c.tier.name)+(c.tier.pct?' · '+c.tier.pct+' %':'')+'</span>':'')
+      +(c.member?'<span class="mt-chip">⭐ '+esc(c.member.name)+'</span>':'')
+      +'<div class="mt-st" style="grid-template-columns:repeat('+Math.min(g,5)+',1fr)">'+dots+'</div>'
+      +'<div class="mt-row"><span>'+n+' / '+g+' '+L('sellos','stamps')+'</span><span>'+(left?L('Te faltan '+left,left+' to go'):L('¡Tenés un premio!','You have a reward!'))+'</span></div>'
+      +(c.rewardText&&!/a definir/i.test(c.rewardText)?'<div class="mt-rw">🎁 '+(c.rewards?L('Premio disponible: ','Reward available: '):L('Con '+g+' sellos: ','With '+g+' stamps: '))+esc(c.rewardText)+'</div>':'')
+      +(c.tier&&c.tier.next?'<div class="mt-s" style="margin-top:8px">'+L('Te faltan ','')+money((c.tier.missing||0)/100)+L(' de compras para '+esc(c.tier.next),' in purchases to reach '+esc(c.tier.next))+'</div>':'')
+      +bal+'</div>'
+      +'<div id="mt-codebox"></div>'
+      +'<div class="mt-btns"><button type="button" class="mt-b big" id="mt-code">📲 '+L('Mostrar mi código para sumar sellos','Show my code to get a stamp')+'</button>'
+      +(wa?'<a class="mt-b wa" target="_blank" rel="noopener noreferrer" href="https://wa.me/'+wa+'?text='+encodeURIComponent(hello)+'">💬 '+L('Escribir al local','Message the shop')+'</a>':'')
+      +(wa?'<a class="mt-b" target="_blank" rel="noopener noreferrer" href="https://wa.me/'+wa+'?text='+encodeURIComponent(hello+L('Quería consultar / reservar: ','I would like to ask / book: '))+'">📅 '+L('Consultar o reservar','Ask or book')+'</a>':'')
+      +'<button type="button" class="mt-b" id="mt-menu">🛒 '+L('Ver el menú y pedir','See the menu and order')+'</button>'
+      +'<button type="button" class="mt-b" id="mt-inv">🎉 '+L('Invitar amigos al Club','Invite friends to the Club')+'</button>'
+      +'<button type="button" class="mt-b" id="mt-img">🖼️ '+L('Imagen para mostrar','Image to show')+'</button>'
+      +'<button type="button" class="mt-b" id="mt-home">📌 '+L('Tenerla en mi inicio','Keep it on my home screen')+'</button></div>'
+      +'<div class="mt-tip" id="mt-msg" role="status"></div>'
+      +'<p class="mt-tip">'+L('Esta tarjeta es personal y queda guardada en este celular. Si cambiás de celular, pedile al local el enlace de tu tarjeta. En el mostrador también te suman sellos con tu DNI.','This card is personal and is kept on this phone. If you change phones, ask the shop for your card link. At the counter they can also add stamps with your ID number.')+'</p></div>';
+    document.body.appendChild(o); o.scrollTop=0;
+    function say(t){ var m=$('#mt-msg'); if(m) m.textContent=t; }
+    $('#mt-x').addEventListener('click',mtClose);
+    $('#mt-menu').addEventListener('click',mtClose);
+    $('#mt-code').addEventListener('click',function(){
+      var box=$('#mt-codebox'); function draw(){ var k=API.cardCode(id); if(!k){box.innerHTML='';clearInterval(mtTick);return;}
+        box.innerHTML='<div class="mt-code">'+k.qr+'<div class="n">'+(k.pending?esc(k.otp):esc(k.socio)+' · '+esc(k.otp))+'</div><div style="font-size:.85rem;color:#444">'+L('Mostralo en el mostrador · cambia en ','Show it at the counter · changes in ')+'<b id="mt-t">'+k.secs+'</b> s</div></div>'; }
+      draw(); clearInterval(mtTick); mtTick=setInterval(function(){ var t=$('#mt-t'); if(!t){clearInterval(mtTick);return;} var x=+t.textContent-1; if(x<=0) draw(); else t.textContent=x; },1000);
+      box.scrollIntoView({behavior:'smooth',block:'center'});
+    });
+    $('#mt-inv').addEventListener('click',function(){
+      var url=mtMenuUrl()+'#menu', txt=L('¡Sumate al Club de '+title+'! Juntás sellos y tenés premios. Mirá el menú acá:','Join the '+title+' Club! Collect stamps and get rewards. See the menu here:');
+      if(navigator.share){ navigator.share({title:title,text:txt,url:url}).catch(function(){}); }
+      else { window.open('https://wa.me/?text='+encodeURIComponent(txt+' '+url),'_blank','noopener'); }
+    });
+    $('#mt-home').addEventListener('click',function(){
+      var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+      say(ios?L('En iPhone: tocá el botón Compartir (el cuadrado con la flecha) y elegí «Agregar a pantalla de inicio». Así abrís tu tarjeta como una app.','On iPhone: tap Share (square with arrow) and choose “Add to Home Screen”. Your card opens like an app.')
+             :L('En Android: tocá el menú ⋮ del navegador y elegí «Agregar a la pantalla principal» (o «Instalar»). Así abrís tu tarjeta como una app.','On Android: tap the browser menu ⋮ and choose “Add to Home screen” (or “Install”). Your card opens like an app.'));
+    });
+    $('#mt-img').addEventListener('click',function(){ mtPng(c,title,function(ok){ say(ok?L('Listo: se descargó la imagen de tu tarjeta para mostrarla (no sirve para sumar sellos).','Done: your card image was downloaded to show it (it cannot be used to get stamps).'):L('No se pudo generar la imagen en este navegador.','The image could not be created in this browser.')); }); });
+  }
+  /* imagen «para mostrar»: sellos y nivel, con un QR al MENÚ (no al enlace personal) */
+  function mtPng(c,title,cb){
+    try{
+      var W=720,H=440,cv=document.createElement('canvas'); cv.width=W; cv.height=H; var g=cv.getContext('2d');
+      var gr=g.createLinearGradient(0,0,W,H); gr.addColorStop(0,'#c9963e'); gr.addColorStop(.55,'#7a5a22'); gr.addColorStop(1,'#2d2418'); g.fillStyle=gr; g.fillRect(0,0,W,H);
+      g.fillStyle='#fff'; g.font='600 20px Poppins,Arial,sans-serif'; g.fillText(String(title||'').slice(0,34),36,52);
+      g.font='700 40px Georgia,serif'; g.fillText(String(c.name||'').slice(0,18),36,112);
+      g.font='500 18px Poppins,Arial,sans-serif'; g.fillText((c.pending?L('Socio del Club','Club member'):L('Socio N.º ','Member # ')+c.num)+(c.tier?'  ·  '+L('Nivel ','Level ')+c.tier.name:''),36,144);
+      var gl=c.goal||8, n=Math.min(c.stamps||0,gl), per=Math.min(gl,5), r=24;
+      for(var i=0;i<gl;i++){ var x=60+(i%per)*62, y=200+Math.floor(i/per)*62; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); if(i<n){g.fillStyle='#fff';g.fill();g.fillStyle='#7a5a22';g.font='700 22px Arial';g.textAlign='center';g.fillText('★',x,y+8);g.textAlign='left';} else {g.strokeStyle='rgba(255,255,255,.7)';g.lineWidth=3;g.setLineDash([5,5]);g.stroke();g.setLineDash([]);} }
+      g.fillStyle='#fff'; g.font='600 18px Poppins,Arial,sans-serif'; g.fillText(n+' / '+gl+' '+L('sellos','stamps'),36,H-60);
+      g.font='500 15px Poppins,Arial,sans-serif'; g.fillText(L('¡Sumate vos también! Escaneá el QR','Join too! Scan the QR'),36,H-32);
+      var qs=''; try{ qs=API.qr?API.qr(mtMenuUrl()+'#menu'):''; }catch(e){}
+      var fin=function(){ cv.toBlob(function(bl){ if(!bl) return cb(false); var a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download='mi-tarjeta-club.png'; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500); cb(true); },'image/png'); };
+      if(!qs) return fin();
+      var img=new Image(), u=URL.createObjectURL(new Blob([qs],{type:'image/svg+xml'}));
+      img.onload=function(){ g.fillStyle='#fff'; g.fillRect(W-230,H-250,200,200); g.drawImage(img,W-222,H-242,184,184); URL.revokeObjectURL(u); fin(); };
+      img.onerror=function(){ fin(); }; img.src=u;
+    }catch(e){ cb(false); }
+  }
+  window.RAVE_OPEN_MYCARD=mtOpen;
+  try{ if(window.parent.location.hash==='#mitarjeta') setTimeout(mtOpen,60); }catch(e){}
   window.RAVE_CARD_REFRESH=function(){renderCard();renderCoupons();};
   var rb=$('#loy-recover');
   if(rb) rb.addEventListener('click',function(){

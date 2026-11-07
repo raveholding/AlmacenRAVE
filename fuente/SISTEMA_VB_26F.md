@@ -2205,3 +2205,12 @@ Pedido del dueño del 2026-11-03. El número de caja ocupado y la tarjeta del Cl
 - **Cobro con ARCA:** al identificar al cliente se precargan documento (CUIT o DNI), número, condición y razón social, con el aviso «cargado de la ficha»; si falta la condición o no hay CUIT/DNI lo avisa. Lo que se complete en el cobro se guarda en la ficha **sólo donde estaba vacío** (no pisa datos cargados). Quitar el cliente vuelve a Consumidor final.
 - **Logo / «Sistema RAVE» de la barra lateral:** lleva al Resumen.
 - Pruebas: `fc1.py` 14/14; `ws1` y `kn2` actualizadas (el CUIT se carga en el bloque fiscal).
+
+## ANEXO V — V26.57 · TARJETA DIGITAL DEL CLIENTE A PANTALLA COMPLETA (alternativa a Wallet) (2026-11-07)
+
+**Pedido del dueño:** mientras no se paguen Apple/Google Wallet, que la tarjeta que se envía no sea «un link que abre el menú», sino una tarjeta en el celular con sus datos, sellos y crédito, que permita escribir al comercio, pedir/reservar o comprar, y que se pueda mostrar a los amigos.
+- **Ruta `#mitarjeta`** (parte del menú público, `pub/post.js`): pantalla completa tipo app con logo y nombre del comercio; tarjeta con nombre, N.º de socio, nivel del Club, sellos, premio, lo que falta para el próximo nivel y **crédito del monedero**; botones **Mostrar mi código** (QR que rota, para sumar sellos), **Escribir al local** y **Consultar o reservar** (WhatsApp con «Hola, soy …, socio N.º …»), **Ver el menú y pedir**, **Invitar amigos al Club** (comparte el MENÚ, nunca el enlace personal), **Imagen para mostrar** (PNG con sellos y QR al menú; no sirve para sellar) y **Tenerla en mi inicio** (instrucciones iPhone/Android).
+- El enlace que manda el negocio (`#tarjeta=…`) guarda la tarjeta en el celular y **abre directamente esta pantalla**; el acceso guardado en la pantalla de inicio vuelve a abrirla. En el menú, la tarjeta tiene «Abrir mi tarjeta digital». Se abre por encima del aviso +18 (la tarjeta no muestra el catálogo).
+- Mensaje de envío por WhatsApp renovado (qué puede hacer con la tarjeta; es personal; para invitar usar «Invitar amigos»).
+- **Nube — `21-tarjeta-digital.sql`:** `club_estado` devuelve además `saldo` (suma del libro del monedero), sin datos personales; sin esa migración la tarjeta funciona igual, sólo no muestra el crédito. SQL 627/627 (`tests/29`). Navegador `mt1.py` 15/15.
+- Límites: el nivel del Club se muestra en la demo/equipo del local; en el celular del cliente con la nube sólo se ven sellos y crédito (el nivel depende de las ventas, que no se publican). Apple/Google Wallet siguen sin contratar.

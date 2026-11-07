@@ -47,7 +47,7 @@ with sync_playwright() as p:
     pg.goto('file:///tmp/rave/index.html#menu');pg.wait_for_timeout(600)
     pg.goto(link);pg.wait_for_timeout(1500)
     chk(ev("localStorage.getItem('rave.card')")==cid,'abrir el enlace restaura el id de la tarjeta')
-    chk('tarjeta' not in ev("location.hash"),'el enlace (con el secreto) se borra de la barra de direcciones: '+ev("location.hash"))
+    chk('#tarjeta=' not in ev("location.hash"),'el enlace (con el secreto) se borra de la barra de direcciones: '+ev("location.hash"))
     chk(ev("document.getElementById('pubframe')")is not None,'y se muestra el menú')
     pg.wait_for_timeout(500)
     chk(pg.frame_locator('#pubframe').locator('#loy-card .loy-card').count()==1,'la tarjeta se ve en el menú tras abrir el enlace')
