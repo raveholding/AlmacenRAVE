@@ -289,6 +289,7 @@ function showLogin(){if(CLOUD_HOOK||(window.RAVE_BUILD&&window.RAVE_BUILD.varian
  <label for="lp">PIN</label><input id="lp" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN">
  <div class="merr" id="lerr" role="alert"></div>
  <div class="row" style="margin-top:.8rem"><button class="btn gold sp" data-act="login">Ingresar</button><a class="btn" href="#menu">Volver al menú</a></div>
+ <p class="sm mut" style="margin-top:.6rem">¿Olvidaste tu PIN? Pedíselo al <b>administrador del sistema</b>: lo cambia en Usuarios y permisos.</p>
  ${vbFooter(true)}</div>`;
  $('#lp').addEventListener('keydown',e=>{if(e.key==='Enter')A.login();});}
 A.login=()=>{const err=$('#lerr');if(now()<lockUntil){err.textContent='Demasiados intentos. Esperá '+Math.ceil((lockUntil-now())/1000)+' s.';return;}

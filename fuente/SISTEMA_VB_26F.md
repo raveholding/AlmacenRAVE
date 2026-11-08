@@ -2214,3 +2214,11 @@ Pedido del dueño del 2026-11-03. El número de caja ocupado y la tarjeta del Cl
 - Mensaje de envío por WhatsApp renovado (qué puede hacer con la tarjeta; es personal; para invitar usar «Invitar amigos»).
 - **Nube — `21-tarjeta-digital.sql`:** `club_estado` devuelve además `saldo` (suma del libro del monedero), sin datos personales; sin esa migración la tarjeta funciona igual, sólo no muestra el crédito. SQL 627/627 (`tests/29`). Navegador `mt1.py` 15/15.
 - Límites: el nivel del Club se muestra en la demo/equipo del local; en el celular del cliente con la nube sólo se ven sellos y crédito (el nivel depende de las ventas, que no se publican). Apple/Google Wallet siguen sin contratar.
+
+## ANEXO W — V26.59 · OLVIDO DE CLAVE: SE LE PIDE AL ADMINISTRADOR DEL COMERCIO (2026-11-08)
+
+**Pedido del dueño (para todos los sistemas):** cuando un usuario olvida la clave se la pide al **administrador del sistema**, no al soporte del desarrollador. Reemplaza lo dicho en 4.11 («Necesito ayuda → solicitud al desarrollador»).
+- Acceso con nube: la pestaña «Necesito ayuda» pasa a ser **«Olvidé mi clave»** y ya **no envía pedidos al soporte** (`pedir_soporte` deja de usarse desde el ingreso). Explica: pedírsela al administrador del comercio, que le vuelve a dar acceso desde Usuarios y permisos → Equipo (quitar e invitar con código nuevo); probar «Olvidé mi contraseña» (correo) o «Ingresar con Google»; y, si es el administrador, correo + código de recuperación.
+- «Olvidé mi contraseña» ya no remite a «Necesito ayuda» sino al administrador. La tarjeta Equipo le recuerda al administrador que los olvidos se resuelven con él.
+- Demos sin nube: «¿Olvidaste tu PIN? Pedíselo al administrador del sistema (Usuarios y permisos)».
+- Los créditos de Vincular Business se mantienen donde siempre (regla 11). Prueba `cl1.py` 5/5.
