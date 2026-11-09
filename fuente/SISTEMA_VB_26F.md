@@ -89,7 +89,7 @@ Convenciones: identificadores de código en inglés; textos de interfaz y respue
 | Contabilidad (4.22.8) | `[NO / SÍ]` · contador `[NOMBRE]` · método de valuación `[PPP / FIFO]` · percepciones y alícuotas `[PENDIENTE — VERIFICAR con el contador]` |
 | ¿Lectura de facturas de proveedores con IA en la nube? | `[SÍ/NO]` (cuesta por uso) |
 | Modalidad | Solo menú QR / Sistema completo con nube / + instalador Windows |
-| Desarrollador (créditos obligatorios) | **VINCULAR BUSINESS** · Único celular **(387) 4484132** (`wa.me/5493874484132`) · **vincularbusiness@gmail.com** · lema “Tu idea, en buenas manos.” (datos oficiales: se mantienen en TODOS los productos; ver regla 11 y 7.12) |
+| Desarrollador (créditos obligatorios) | **VINCULAR BUSINESS** · Celular **(387) 4484132** (`wa.me/5493874484132`) · página **www.vincularbusiness.com.ar** · **vincularbusiness@gmail.com** · lema “Tu idea, en buenas manos.” (datos oficiales: se mantienen en TODOS los productos; ver regla 11 y 7.12) |
 
 ---
 
@@ -109,7 +109,7 @@ Actuá como un equipo senior liderado por un **Arquitecto de Software y Líder T
 8. **Hacé el trabajo completo** (código, pruebas, subidas): no pases pasos manuales que puedas hacer vos. Si falta un dato, consultá **una sola vez y junto**, antes de suponer.
 9. **Una sola pasada de correcciones.** Revisá todas las correcciones pendientes antes de dar algo por terminado y antes de armar instaladores. No hagas entregas parciales que dejen arreglos para después.
 10. **Todo queda probado** con pruebas automáticas de flujos reales con datos reales (no sólo "carga la pantalla") y, para trabajo de alto riesgo, revisado por un agente independiente.
-11. **Créditos (datos oficiales, no se cambian sin pedido del titular).** Desarrollado por **VINCULAR BUSINESS** · Único celular **(387) 4484132** · **vincularbusiness@gmail.com** · lema **“Tu idea, en buenas manos.”**. El **banner oficial final** (imagen `assets/vb-banner.webp`, texto alternativo con los mismos datos) acompaña al ingreso y al menú público **con botones reales**: áreas clicables sobre las píldoras del banner (WhatsApp `wa.me/5493874484132` y correo `mailto:`) y una fila de botones de al menos 48 px (**WhatsApp · Llamar `tel:+5493874484132` · Correo**); el resto de los lugares lleva la línea de texto. Los usuarios tienen que saber quién desarrolló el sistema en ingreso, asistente, barra lateral, tickets, pantalla del cliente, menú, páginas de producto e instalador. Se puede cambiar la presentación (completa, corta, ícono), no eliminar.
+11. **Créditos (datos oficiales, no se cambian sin pedido del titular).** Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · página **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** (V26.60: se quitó la palabra «Único»; el lema se mantiene) · lema **“Tu idea, en buenas manos.”**. El **banner oficial final** (imagen `assets/vb-banner.webp`, texto alternativo con los mismos datos) acompaña al ingreso y al menú público **con botones reales**: áreas clicables sobre las píldoras del banner (WhatsApp `wa.me/5493874484132` y correo `mailto:`) y una fila de botones de al menos 48 px (**WhatsApp · Llamar `tel:+5493874484132` · Página web · Correo**); el resto de los lugares lleva la línea de texto. Los usuarios tienen que saber quién desarrolló el sistema en ingreso, asistente, barra lateral, tickets, pantalla del cliente, menú, páginas de producto e instalador. Se puede cambiar la presentación (completa, corta, ícono), no eliminar.
 12. **Entrega honesta.** Al final, en pocas líneas: qué quedó, qué tiene que hacer el dueño, qué no se pudo probar. Prohibido afirmar "100 % funcional", "sin errores" o "compatible con todo" sin evidencia reproducible.
 13. **El Core no conoce ningún rubro ni marca de hardware.** Lo específico vive en módulos, configuración o adaptadores (orden de dependencia: Adaptador → Módulo → Core).
 14. **Demos:** los datos inventados (costos, stock, códigos de barras, cupones, planes, Wi-Fi, clientes, ventas) se rotulan "ejemplo" en pantalla y no se presentan como reales.
@@ -2222,3 +2222,20 @@ Pedido del dueño del 2026-11-03. El número de caja ocupado y la tarjeta del Cl
 - «Olvidé mi contraseña» ya no remite a «Necesito ayuda» sino al administrador. La tarjeta Equipo le recuerda al administrador que los olvidos se resuelven con él.
 - Demos sin nube: «¿Olvidaste tu PIN? Pedíselo al administrador del sistema (Usuarios y permisos)».
 - Los créditos de Vincular Business se mantienen donde siempre (regla 11). Prueba `cl1.py` 5/5.
+
+
+## ANEXO X — V26.60 · CRM OMNICANAL (FASE 1, SIN COSTOS) Y CRÉDITOS (2026-11-09)
+
+**Pantalla:** Clientes y fidelización → **Conversaciones** (`p6j-crm.js`, permiso nuevo `crm`: administrador, supervisor y mostrador por defecto; operador no).
+- **Bandeja única** con prioridad por reglas (palabras configurables, minutos sin responder, deuda), filtros (estado, canal, «mías», búsqueda), estados *Abierta / Esperando al cliente / Resuelta*, asignación («Tomar»), etiquetas, notas internas (el cliente nunca las ve) y respuestas rápidas con `{nombre}`.
+- **Panel del ERP:** ficha vinculada (vincular/desvincular), N.º de socio, nivel, sellos, deuda, monedero, últimas compras, presupuestos vigentes y turnos.
+- **Asistente por reglas (sin IA paga):** resumen, temas, ánimo del cliente, productos mencionados (con precio y stock del inventario) y respuestas sugeridas.
+- **Acciones rápidas:** cobro asistido (alias/CBU/titular configurados + total del presupuesto, deuda o importe libre; **no mueve la caja**: «Llegó el pago» sólo lo anota y recuerda registrarlo en Vender/Caja), enviar presupuesto, nuevo presupuesto (lleva a Vender con el cliente), turno (sólo demos) y encuesta de satisfacción 1–5.
+- **Avisos sugeridos:** deuda, presupuesto por vencer, recordatorio de turno (24–36 h) y encuesta; nada se envía solo.
+- **Canales:** chat web del menú público («Escribinos»; el celular genera el identificador y la clave del chat; en la nube el mensaje viaja cifrado con la llave pública del comercio y la respuesta con la clave del chat: el servidor no lee nada) y WhatsApp asistido (`wa.me` + registro). Teléfono y local se registran a mano.
+- **Demos (raveV2, raveV3, Kini):** CRM completo y genérico: además Instagram, Messenger, Telegram y correo **rotulados de demostración** (sin conexión real), turnos y botón «Simular mensaje entrante». **Almacén RAVE:** chat web + WhatsApp + teléfono + local, **apagado** hasta que el administrador lo active en Conversaciones → Ajustes.
+- **Nube:** `22-crm.sql` (colecciones `conv` mutable y `cmsg` de una sola escritura con texto cifrado; tablas `crm_entrantes`/`crm_salientes`; RPC `crm_web_enviar`, `crm_web_leer` anónimas con límites por IP/chat/comercio, `crm_web_responder` y `crm_entrantes_marcar` sólo del equipo). Pruebas SQL `30-sql-tests.sql` (16), suite 643/643.
+- **Pruebas:** `crm1.py` 27/27 en demo, raveV2, raveV3 y Kini.
+- **Límites:** Instagram/Messenger/Telegram/correo reales y WhatsApp Business API requieren cuentas y conexión de cada comercio (no implementado); no hay WebSockets (consulta cada 8 s); si dos equipos importan el mismo mensaje web a la vez puede repetirse (raro); el cliente pierde su chat si borra los datos del navegador; sin retención automática de mensajes [VERIFICAR plazo con asesor legal].
+
+**Créditos:** se quitó «Único celular» (queda «Celular»), se agregó la página **https://www.vincularbusiness.com.ar/** en barra lateral, pie, botones, ticket y menú público; el lema se mantiene. La imagen del banner (`vb-banner.webp`) puede seguir mostrando el texto viejo dentro del dibujo.

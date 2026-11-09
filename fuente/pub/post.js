@@ -393,4 +393,47 @@
   renderCoupons(); renderCard(); renderLegal();
   /* si el panel cambia datos (cupones, sellos) el menú se redibuja */
   window.RAVE_PUB_REFRESH=function(){renderCoupons();renderCard();renderLegal();try{if(window.RAVE_SHIP_REFRESH)window.RAVE_SHIP_REFRESH();}catch(e){}};
+
+  /* --- V26.60 · chat «Escribinos» (CRM): el celular guarda su chat; en la nube viaja cifrado de punta a punta --- */
+  (function(){
+    if(typeof API.chatOn!=='function') return;
+    var st=document.createElement('style');
+    st.textContent='#rv-chat-fab{position:fixed;right:16px;bottom:76px;z-index:56;min-width:52px;height:52px;border-radius:26px;padding:0 16px;border:1px solid var(--gold,#c9963e);background:var(--charcoal,#222);color:var(--gold-deep,#e6c27a);font:700 14px Poppins,sans-serif;display:none;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}'+
+     '#rv-chat-fab .d{width:9px;height:9px;border-radius:50%;background:#e74c3c;display:none}#rv-chat-fab.new .d{display:inline-block}'+
+     '#rv-chat{position:fixed;right:12px;bottom:12px;width:min(380px,calc(100vw - 24px));height:min(560px,calc(100vh - 24px));z-index:12000;background:#fffaf2;color:#2b2216;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.4);display:none;flex-direction:column;overflow:hidden;font-family:Poppins,sans-serif}'+
+     '#rv-chat header{display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--charcoal,#222);color:#fff}#rv-chat header b{flex:1}#rv-chat header button{background:none;border:0;color:#fff;font-size:22px;min-width:44px;min-height:44px;cursor:pointer}'+
+     '#rv-chat .th{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px}#rv-chat .m{max-width:85%;padding:8px 11px;border-radius:12px;white-space:pre-wrap;word-break:break-word;font-size:14px}'+
+     '#rv-chat .m.in{align-self:flex-end;background:#e7d5b0}#rv-chat .m.out{align-self:flex-start;background:#fff;border:1px solid #e6dccb}#rv-chat .m.sys{align-self:center;font-size:12px;opacity:.75;background:none}'+
+     '#rv-chat .m small{display:block;opacity:.6;font-size:11px;margin-top:3px}#rv-chat form{padding:10px;border-top:1px solid #e6dccb;display:flex;flex-direction:column;gap:6px}'+
+     '#rv-chat input,#rv-chat textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d8ccb5;border-radius:10px;font:14px Poppins,sans-serif;background:#fff;color:#2b2216}'+
+     '#rv-chat .snd{min-height:46px;border:0;border-radius:10px;background:linear-gradient(135deg,#b8862f,#e6c27a);color:#2b2216;font-weight:700;cursor:pointer}#rv-chat .err{color:#b0302a;font-size:12.5px;min-height:1em}'+
+     '#rv-chat .cs{display:flex;gap:6px;justify-content:center}#rv-chat .cs button{min-width:44px;min-height:44px;border-radius:10px;border:1px solid #d8ccb5;background:#fff;font-size:16px;cursor:pointer}#rv-chat .note{font-size:11.5px;opacity:.7}';
+    document.head.appendChild(st);
+    var fab=document.createElement('button');fab.id='rv-chat-fab';fab.type='button';fab.setAttribute('aria-label',L('Escribinos por chat','Chat with us'));
+    fab.innerHTML='<span aria-hidden="true">💬</span><span class="t"></span><span class="d" aria-hidden="true"></span>';document.body.appendChild(fab);
+    var box=document.createElement('div');box.id='rv-chat';box.setAttribute('role','dialog');box.setAttribute('aria-modal','false');box.setAttribute('aria-label',L('Chat con el comercio','Chat with the shop'));
+    document.body.appendChild(box);var open=false,timer=null,seen=0;
+    function paint(keep){var s=API.chatState();var greet=API.chatGreet()||L('¡Hola! Escribinos y te respondemos por acá.','Hi! Write to us and we will answer here.');
+      var msgs=s?s.msgs:[];var th='<div class="m out">'+esc(greet)+'</div>'+msgs.map(function(m){return '<div class="m '+(m.d==='in'?'in':m.d==='sys'?'sys':'out')+'">'+esc(m.x)+(m.d!=='sys'?'<small>'+(m.d==='out'&&m.u?esc(m.u)+' · ':'')+new Date(m.ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})+'</small>':'')+'</div>';}).join('');
+      if(s&&s.csat) th+='<div class="m sys">'+L('¿Cómo te atendimos?','How did we do?')+'</div><div class="cs">'+[1,2,3,4,5].map(function(v){return '<button type="button" data-cs="'+v+'" aria-label="'+v+' de 5">'+v+'★</button>';}).join('')+'</div>';
+      var draft=keep&&box.querySelector('#rv-ct')?box.querySelector('#rv-ct').value:'';
+      box.innerHTML='<header><span aria-hidden="true">💬</span><b>'+L('Escribinos','Chat with us')+'</b><button type="button" data-x aria-label="'+L('Cerrar','Close')+'">×</button></header><div class="th" aria-live="polite">'+th+'</div>'+
+       '<form novalidate>'+(s?'':'<input id="rv-cn" maxlength="60" autocomplete="name" placeholder="'+L('Tu nombre','Your name')+'" aria-label="'+L('Tu nombre','Your name')+'"><input id="rv-cw" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="'+L('WhatsApp (opcional)','WhatsApp (optional)')+'" aria-label="WhatsApp">')+
+       '<textarea id="rv-ct" rows="2" maxlength="1500" placeholder="'+L('Escribí tu mensaje…','Type your message…')+'" aria-label="'+L('Mensaje','Message')+'"></textarea><div class="err" role="alert"></div><button class="snd" type="submit">'+L('Enviar','Send')+'</button>'+
+       (s?'':'<div class="note">'+L('Usamos tus datos sólo para responderte. La conversación queda guardada en este celular.','We only use your details to reply. The chat is saved on this phone.')+'</div>')+'</form>';
+      var ta=box.querySelector('#rv-ct');if(draft)ta.value=draft;var t=box.querySelector('.th');t.scrollTop=t.scrollHeight;seen=msgs.length;fab.classList.remove('new');}
+    function poll(){return API.chatPoll().then(function(n){if(n>0){if(open)paint(true);else fab.classList.add('new');}}).catch(function(){});}
+    function show(v){open=v;box.style.display=v?'flex':'none';fab.style.display=v?'none':(API.chatOn()?'flex':'none');clearInterval(timer);
+      if(v){paint();poll();timer=setInterval(poll,8000);var f=box.querySelector(API.chatState()?'#rv-ct':'#rv-cn');if(f)f.focus();}else{timer=setInterval(poll,60000);}}
+    box.addEventListener('click',function(e){if(e.target.closest('[data-x]')){show(false);fab.focus();return;}
+      var c=e.target.closest('[data-cs]');if(c){API.chatCsat(+c.dataset.cs).then(function(r){if(r&&r.ok)paint(true);else toast((r&&r.msg)||L('No se pudo enviar.','Could not send.'));});}});
+    box.addEventListener('keydown',function(e){if(e.key==='Escape'){show(false);fab.focus();}});
+    box.addEventListener('submit',function(e){e.preventDefault();var ta=box.querySelector('#rv-ct'),er=box.querySelector('.err'),b=box.querySelector('.snd');var n=box.querySelector('#rv-cn'),w=box.querySelector('#rv-cw');
+      b.disabled=true;er.textContent='';API.chatSend(ta.value,n?n.value:'',w?w.value:'').then(function(r){b.disabled=false;if(!r||!r.ok){er.textContent=(r&&r.msg)||L('No se pudo enviar.','Could not send.');return;}ta.value='';paint();}).catch(function(){b.disabled=false;er.textContent=L('No se pudo enviar.','Could not send.');});});
+    fab.addEventListener('click',function(){show(true);});
+    function tick(){var on=API.chatOn();fab.querySelector('.t').textContent=L('Escribinos','Chat');if(!open)fab.style.display=on?'flex':'none';if(!on&&open)show(false);
+      var cb=document.getElementById('cart-bar');var lift=cb&&getComputedStyle(cb).display!=='none';fab.style.bottom=lift?'150px':'76px';}
+    tick();setInterval(tick,1500);if(API.chatState()){poll();timer=setInterval(poll,60000);}
+    window.RAVE_CHAT_OPEN=function(){show(true);};
+  })();
 })();

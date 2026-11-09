@@ -100,11 +100,14 @@ const COLS=[
  {c:'juego',key:'games'},
  {c:'devol',key:'returns',once:1},
  {c:'merma',key:'mermas',once:1},
- {c:'presup',key:'quotes'}];
+ {c:'presup',key:'quotes'},
+ /* V26.60 · 22-crm.sql · CRM omnicanal: conversaciones y mensajes (texto y clave del chat cifrados) */
+ {c:'conv',key:'convs',pii:['k','name','wa','lastTxt']},
+ {c:'cmsg',key:'cmsgs',once:1,pii:['text']}];
 const BYC=Object.fromEntries(COLS.map(x=>[x.c,x]));
 const DELC=new Set(COLS.filter(x=>x.del).map(x=>x.c));
 const CFGIDS=['tenant','cfg','menu','loyalty','roles','integ','legal','payadj'];
-const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado','cortesx','fidmov','giftmov','devol','merma','juego']);
+const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado','cortesx','fidmov','giftmov','devol','merma','juego','cmsg']);
 const r3=n=>Math.round(n*1000)/1000;
 function stripOf(col,it){const d=JSON.parse(JSON.stringify(it));(col.strip||[]).forEach(k=>delete d[k]);return d;}
 function cfgWire(id){switch(id){
@@ -345,6 +348,7 @@ async function cloudSync(force){if(!cl.ready||cl.busy||!CLOUD.on)return;cl.busy=
   cl.lastOk=Date.now();cl.lastErr='';cl.online=true;
   if(cl.rol==='admin')autoPublish();
   if(Date.now()-(cl.lastAltas||0)>20000){cl.lastAltas=Date.now();try{await importAltas();}catch(e){}}
+  if(typeof crmImport==='function'){try{await crmImport();}catch(e){}}
   if(typeof arcaTick==='function'){try{await arcaTick();}catch(e){}}
   await cloudMetaSave();await cloudPersistNow();
  }catch(e){

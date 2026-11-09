@@ -105,7 +105,7 @@ function tgSimAns(cmd){const ok=s=>s&&s.status==='ok';const hoy=dkey(now());
 function tgSimCard(head){
  const chat=TGC.sim.slice(-12).map(m=>`<div class="tgb ${m.yo?'yo':'bot'}">${esc(m.t)}${m.k?'<div>'+m.k.map(k=>`<span class="tgk">${esc(k)}</span>`).join('')+'</div>':''}</div>`).join('')||'<p class="sm mut" style="margin:.4rem">Tocá un comando para ver qué responde el bot con los datos de esta demo.</p>';
  return `<div class="card" id="tg-card" style="margin-top:1rem">${head('<span class="tag sim">SIMULADO</span>')}
- <div class="warnbox sm"><b>Demostración.</b> El bot real funciona en Almacén RAVE, sólo para administradores. Acá no hay conexión con Telegram: las respuestas se calculan con los datos de ejemplo de esta demo y no se cambia nada.</div>
+ <div class="warnbox sm"><b>Demostración.</b> El bot real se activa en cada comercio, sólo para sus administradores. Acá no hay conexión con Telegram: las respuestas se calculan con los datos de ejemplo de esta demo y no se cambia nada.</div>
  <div class="tgchat" aria-live="polite">${chat}</div>
  <div class="row" style="flex-wrap:wrap;gap:.4rem;margin-top:.5rem">${['/resumen','/ventas hoy','/bajo_stock','/fiado','/corregir_stock','/ayuda'].map(c=>`<button class="btn sm" data-act="tgSim" data-c="${c}">${c}</button>`).join('')}</div>
  <p class="sm mut">En el sistema real: cada administrador vincula su Telegram con un código de un solo uso; las correcciones de stock se habilitan por 1, 4, 8 o 24 horas, con límites (24 unidades, $ 50.000 a costo, 10 por día) y confirmación en dos pasos; las alertas van a un grupo.</p></div>`;}

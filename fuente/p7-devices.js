@@ -61,7 +61,7 @@ function ticketModel(sale,W){const T=S.tenant,cfg=S.cfg.ticket;const B=[];const 
  add('c',{s:'Instagram @'+(T.ig||'').toLowerCase()+' · Facebook '+(T.fb||'')});
  if(!(cb&&cb.qr)){add('qr',{data:menuUrl()});add('c',{s:'Escaneá: menú, Club y sellos'});}else add('c',{s:'Menú y Club: '+menuUrl(),sm:1});
  if(cfg.legal){add('sep');wrapTxt('Defensa del Consumidor: reclamos en el local. Ventas a distancia: botón de arrepentimiento en el menú digital. Prohibida la venta de alcohol y tabaco a menores de 18 años. Beber con moderación.',W).forEach(l=>add('c',{s:l,sm:1}));}
- add('c',{s:'Sistema RAVE · desarrollado por',sm:1});add('c',{s:VB.name,sm:1,b:1});add('c',{s:'Cel. '+VB.phone,sm:1});add('c',{s:VB.mail,sm:1});add('c',{s:VB.lema,sm:1});
+ add('c',{s:'Sistema RAVE · desarrollado por',sm:1});add('c',{s:VB.name,sm:1,b:1});add('c',{s:'Cel. '+VB.phone,sm:1});add('c',{s:VB.mail,sm:1});add('c',{s:VB.lema,sm:1});if(VB.web)add('c',{s:VB.web.replace(/^https?:\/\//,''),sm:1});
  return B;}
 function ticketText(sale,W){W=W||(S.cfg.ticket.w===58?32:42);const L=[];ticketModel(sale,W).forEach(b=>{
  if(b.t==='sep')L.push('-'.repeat(W));else if(b.t==='c')L.push(' '.repeat(Math.max(0,Math.floor((W-b.s.length)/2)))+b.s);else if(b.t==='l')L.push(lr(b.l,b.r,W));else if(b.t==='t')L.push(b.s);else if(b.t==='logo')L.push('[ LOGO '+String(S.tenant.name||'').toUpperCase()+' ]');else if(b.t==='qr')L.push('[ QR: '+b.data+' ]');});return L.join('\n');}
