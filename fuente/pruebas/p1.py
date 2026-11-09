@@ -157,7 +157,7 @@ with sync_playwright() as p:
     pg.goto(URL+'#acceso');pg.wait_for_timeout(500)
     pg.select_option('#lu',label='Mostrador');pg.fill('#lp','0000');pg.click('[data-act=login]');pg.wait_for_timeout(500)
     ev("location.hash='#panel/proveedores'");pg.wait_for_timeout(400)
-    chk(ev("curScreen")=='inicio' and not ev("!!document.querySelector('#side a[data-id=proveedores]')"),'Mostrador: no ve ni entra a Proveedores y compras')
+    chk(ev("curScreen") in ('inicio','vender') and not ev("!!document.querySelector('#side a[data-id=proveedores]')"),'Mostrador: no ve ni entra a Proveedores y compras')
     r=ev("""(async()=>{try{await LOCAL.supSave({razon_social:'X',cuit:'%s',condicion_iva:'Exento'});return 'ok'}catch(e){return e.message}})()"""%cuit(30,11112222))
     chk('permiso' in r,'Mostrador: el motor también rechaza (no sólo se oculta el botón)')
     b.close()

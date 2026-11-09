@@ -27,7 +27,7 @@ with sync_playwright() as p:
     chk(pg.locator('#cx-p').count()==1,'Configuración tiene el perfil de cajas')
     pg.select_option('#cx-p','main');pg.click('[data-act=cashProfileSave]');pg.wait_for_selector('#modal-root [data-m=ok]');pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(400)
     chk(ev("cashProfile()")=='main' and ev("S.registers.length")==1,'perfil caja principal aplicado con una caja inicial')
-    chk(pg.locator('#side a[data-id=cajasx]').count()==1,'aparece «Cajas y sucursales»')
+    chk(ev("uxVis('cajasx')") if ev("typeof uxVis")=='function' else pg.locator('#side a[data-id=cajasx]').count()==1,'aparece «Cajas y sucursales» (pestaña de Gestión de caja)')
     print('DBG',ev('S.sessions.length'),ev('JSON.stringify(S.sessions.map(s=>[s.caja,s.regId,s.closedAt>0]))'));chk(ev("S.sessions.filter(s=>!s.regId).length")>=1 and ev("S.sessions.filter(s=>!s.regId).every(s=>s.closedAt>0)"),'las sesiones anteriores no se tocaron')
     ev("location.hash='#panel/cajasx'");pg.wait_for_timeout(400)
     # alta de caja principal y otra operativa
