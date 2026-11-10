@@ -10,7 +10,7 @@ with sync_playwright() as p:
     pg.goto(URL);pg.wait_for_timeout(1500)
     chk(ev("RAVE_BUILD.profile")=='v3' and ev("RAVE_BUILD.db")=='rave-v3-demo-v2','perfil v3 con base local nueva')
     pg.wait_for_timeout(1500);vis=' '.join(f.inner_text('body') for f in pg.frames if f.url!='about:blank' or True)
-    chk('Mi Comercio' in vis and not re.search(r'Urquiza|4574892|457 4892|Licorer[ií]a RAVE|Almac[eé]n y Licorer',vis),'el menú que se ve no tiene nombre, dirección ni WhatsApp de Almacén RAVE')
+    chk('Corporación Demo' in vis and not re.search(r'Urquiza|4574892|457 4892|Licorer[ií]a RAVE|Almac[eé]n y Licorer',vis),'el menú que se ve no tiene nombre, dirección ni WhatsApp de Almacén RAVE')
     pg.goto(URL+'#acceso');pg.wait_for_timeout(800)
     pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(500)
     chk(ev("S.cfg.biz")=='owner','un solo dueño (sin socios ni rubros por persona)')

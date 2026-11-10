@@ -2255,3 +2255,15 @@ Pedido del dueño («Prompt maestro de rediseño UX»), adaptado: no se cambia a
 - **Pruebas:** `crm1.py` 27/27, `crm2.py` 34/34 (32 en Kini) en los cuatro perfiles, `ux1.py` 29/29; regresión completa.
 - **Límites:** Meta/Telegram/correo reales, link de pago dinámico con webhook, plantillas HSM, WebSockets e IA paga dependen de cuentas y credenciales del comercio; el bot sólo responde cuando un equipo del comercio importa el mensaje (en la nube) o al instante (sin nube).
 - Prompt base actualizado: `PROMPT_ESQUELETO_VB.md` V27.1 (7.0 diseño aprobado y 7-bis Atención al cliente).
+
+## ANEXO AA — V26.63 · DISEÑO DINÁMICO EN TODOS LOS MÓDULOS, raveV2 GENÉRICO Y raveV3 EMPRESARIAL (2026-11-10)
+
+- **Diseño (`p2c-ux.js`, `p1-head.html`):** línea de ayuda debajo del título de cada pantalla (`UX_DESC`); **tablero del turno** en Caja actual, Arqueo/cierre e Historial (estado con indicador vivo, 4 pasos Abrir → Vender → Ingresos/egresos → Arqueo y cierre con el paso actual marcado y atajos `uxHeroGo`, indicadores complementarios: ticket promedio, última venta, ingresos y egresos del turno, duración); tarjetas con relieve, tablas con encabezado fijo, filas alternadas y resaltado, transición suave entre pantallas (sin animación con «reducir movimiento»).
+- **Venta restringida configurable (`S.cfg.restricted`, `restrOn()`):** encendida por defecto (cliente, demo RAVE, Kini). Apagada: sin control de edad ni aviso de horario en el menú (`window.RAVE_NORESTR`), sin «Excluye tabaco» en cupones, sin texto de tabaco en Club/fidelización, sin leyenda de alcohol/tabaco en el ticket, sin documento legal ni filas de verificación de alcohol/tabaco, campos de alcohol/+18 ocultos en categorías, menú y tienda.
+- **raveV2 «Mi Negocio»:** genérico sin rubro (Productos · Servicios · Accesorios · Insumos · Paquetes, 19 artículos genéricos), verde comercial `#2e8b74`, venta restringida apagada.
+- **raveV3 «Corporación Demo»:** visión empresarial (casa central + Sucursal Norte + Tesorería; líneas Equipamiento, Software y licencias, Servicios profesionales, Insumos corporativos, Logística, Mantenimiento; 23 ítems corporativos; personal corporativo), azul `#3b82f6` con letra negra, `--ci-acc #60a5fa`, venta restringida apagada.
+- **Atención al cliente:** mensajes de ejemplo genéricos (sin productos de rubro).
+- **Corrección:** `isV3Build` pasó a función declarada (se usaba antes de inicializarse y la demo raveV2 no arrancaba).
+- **Pruebas:** `gen1.py` (menú + todas las pantallas de raveV2 y raveV3 sin palabras de rubro chico/bebidas, tablero del turno y línea de ayuda); `sv1.py` y `v3b.py` actualizados a los nombres nuevos; regresión completa de los cuatro perfiles.
+- **Prompts finales por versión:** `PROMPT_FINAL_ALMACENRAVE.md`, `PROMPT_FINAL_RAVEV2.md`, `PROMPT_FINAL_RAVEV3.md`, `PROMPT_FINAL_KINI.md`; esqueleto `PROMPT_ESQUELETO_VB.md` V27.2 (§3 perfiles y venta restringida, §7.9 diseño dinámico).
+

@@ -257,6 +257,31 @@ html[data-theme=dark]{--selbg:#2f2921}
 .ux-today{margin:0 0 1.2rem}.ux-k span{font-size:.85rem;color:var(--mut)}.ux-k b{font-size:1.7rem;color:var(--gold2)}.ux-k small{color:var(--mut)}[data-theme=dark] .ux-k b{color:var(--gold)}
 .ux-today-g{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:.8rem;margin-top:.8rem}@media(max-width:900px){.ux-today-g{grid-template-columns:minmax(0,1fr)}}
 .ux-last{list-style:none;padding:0;margin:0;max-height:360px;overflow:auto}.ux-last li{display:flex;justify-content:space-between;gap:.5rem;align-items:center;padding:.45rem 0;border-bottom:1px solid var(--line)}
+
+/* V26.63 · diseño dinámico: ayuda en contexto, tablero del turno de caja, transiciones y tablas más legibles */
+.ux-desc{margin:-.3rem 0 1rem;color:var(--mut);font-size:.95rem;max-width:72ch;line-height:1.45}
+.ux-hero{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--gold);border-radius:18px;padding:1rem 1.1rem;margin:0 0 1.1rem;box-shadow:0 6px 24px rgba(0,0,0,.06)}
+.ux-hero.closed{border-left-color:var(--mut)}.ux-hero.warn{border-left-color:var(--red)}
+.ux-hero-h{display:flex;flex-wrap:wrap;gap:.8rem;align-items:center}.ux-hero-h>div:nth-child(2){flex:1 1 220px;min-width:0}
+.ux-hero-a{display:flex;flex-wrap:wrap;gap:.5rem}.ux-hero-a .btn{min-height:48px}
+.ux-dot{width:14px;height:14px;border-radius:50%;flex:0 0 auto;background:var(--mut)}.ux-dot.on{background:#1f9d55;box-shadow:0 0 0 0 rgba(31,157,85,.5);animation:uxPulse 2s infinite}
+@keyframes uxPulse{0%{box-shadow:0 0 0 0 rgba(31,157,85,.45)}70%{box-shadow:0 0 0 10px rgba(31,157,85,0)}100%{box-shadow:0 0 0 0 rgba(31,157,85,0)}}
+.ux-steps{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.4rem;margin:.9rem 0 0;padding:0;counter-reset:none}
+.ux-steps a{display:flex;align-items:center;gap:.5rem;min-height:48px;padding:.45rem .6rem;border-radius:12px;border:1px solid var(--line);color:var(--ink);text-decoration:none;cursor:pointer;font-size:.92rem}
+.ux-steps a:hover,.ux-steps a:focus-visible{border-color:var(--gold);outline:none}
+.ux-sn{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);font-weight:700;flex:0 0 auto}
+.ux-steps .done .ux-sn{background:#1f9d55;border-color:#1f9d55;color:#fff}.ux-steps .cur a{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,transparent)}.ux-steps .cur .ux-sn{border-color:var(--gold)}
+.ux-hero-k{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.6rem;margin-top:.9rem}
+.ux-hero-k>div{background:color-mix(in srgb,var(--ink) 4%,transparent);border-radius:12px;padding:.6rem .7rem;min-width:0}
+.ux-hero-k span{display:block;font-size:.8rem;color:var(--mut)}.ux-hero-k b{display:block;font-size:1.3rem;overflow-wrap:anywhere}.ux-hero-k small{color:var(--mut)}
+@media(max-width:760px){.ux-steps,.ux-hero-k{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#view .card{transition:box-shadow .18s ease,transform .18s ease}#view .card:hover{box-shadow:0 8px 26px rgba(0,0,0,.08)}
+#view table tbody tr:nth-child(even){background:color-mix(in srgb,var(--ink) 3%,transparent)}
+#view table tbody tr:hover{background:color-mix(in srgb,var(--gold) 9%,transparent)}
+#view thead th{position:sticky;top:0;background:var(--card);z-index:1}
+#view .empty,#view td.mut[colspan]{padding:1.1rem;text-align:center}
+#view.ux-in{animation:uxIn .22s ease-out}@keyframes uxIn{from{opacity:.0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#view.ux-in,.ux-dot.on{animation:none}#view .card{transition:none}}
 </style>
 </head>
 <body>

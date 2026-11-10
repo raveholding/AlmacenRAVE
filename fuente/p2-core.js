@@ -4,6 +4,7 @@ const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const restrOn=()=>!(typeof S!=='undefined'&&S&&S.cfg&&S.cfg.restricted===false); /* V26.63: venta restringida por edad (alcohol/tabaco) */
 const now=()=>window.__now?window.__now():Date.now();
 const A={}; // acciones (data-act)
 

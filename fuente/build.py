@@ -80,30 +80,39 @@ def kini_brand(h):
 
     return h
 def solo_brand(h,v3=False):
-    # Demo raveV2 «Mi Comercio» (un solo dueño): marca genérica, sin nada de Almacén RAVE. Los créditos de Vincular Business no se tocan.
-    svg='<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><rect width="320" height="180" rx="22" fill="#1f2a37"/><text x="160" y="92" font-family="Arial,Helvetica,sans-serif" font-size="46" font-weight="700" fill="#ffffff" text-anchor="middle">MI COMERCIO</text><text x="160" y="136" font-family="Arial,Helvetica,sans-serif" font-size="20" letter-spacing="4" fill="#5cc2a8" text-anchor="middle">DEMO</text></svg>'
+    # V26.63 · raveV2 = «Mi Negocio»: sistema genérico, sin rubro de negocio (verde comercial).
+    #           raveV3 = «Corporación Demo»: visión empresarial, gestión integral (azul corporativo).
+    # Nada de Almacén RAVE ni de bebidas/kiosco. Los créditos de Vincular Business no se tocan.
+    if v3:
+        NM,NMU,TAG,c1,c2,c3,lt='Corporación Demo','CORPORACIÓN DEMO','GESTIÓN INTEGRAL','#0f172a','#3b82f6','#1d4ed8','#60a5fa'
+        LOC='Corporación Demo · Casa central · demo'
+    else:
+        NM,NMU,TAG,c1,c2,c3,lt='Mi Negocio','MI NEGOCIO','DEMO','#1f2a37','#2e8b74','#23695a','#5cc2a8'
+        LOC='Mi Negocio · demo'
+    fs='27' if v3 else '46'
+    svg='<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><rect width="320" height="180" rx="22" fill="%s"/><text x="160" y="92" font-family="Arial,Helvetica,sans-serif" font-size="%s" font-weight="700" fill="#ffffff" text-anchor="middle">%s</text><text x="160" y="136" font-family="Arial,Helvetica,sans-serif" font-size="20" letter-spacing="4" fill="%s" text-anchor="middle">%s</text></svg>'%(c1,fs,NMU,lt,TAG)
     uri='data:image/svg+xml;base64,'+base64.b64encode(svg.encode()).decode()
     h=re.sub(r'const LOGO_MENU="[^"]*"','const LOGO_MENU="%s"'%uri,h,count=1)
     h=re.sub(r'const LOGO_TICKET="[^"]*"','const LOGO_TICKET="%s"'%uri,h,count=1)
-    c1,c2,c3='#1f2a37','#2e8b74','#23695a'
     h=h.replace('--ink:#242220;','--ink:%s;'%c1,1).replace('--gold:#c9963e;','--gold:%s;'%c2,1).replace('--gold2:#a87a28;','--gold2:%s;'%c3,1)
     h=h.replace('style="width:48px;height:27px;object-fit:cover;border-radius:6px"','style="width:48px;height:27px;object-fit:contain;border-radius:6px"')
-    h=h.replace('Sistema RAVE','Sistema VB').replace('alt="RAVE"','alt="Mi Comercio"')
-    h=re.sub(r'<title>[^<]*</title>','<title>Mi Comercio · %s · Sistema VB</title>'%('Demo con asistentes inteligentes' if v3 else 'Demo de un solo dueño'),h,count=1)
+    h=h.replace('Sistema RAVE','Sistema VB').replace('alt="RAVE"','alt="%s"'%NM)
+    h=re.sub(r'<title>[^<]*</title>','<title>%s · %s · Sistema VB</title>'%(NM,'Gestión empresarial integral' if v3 else 'Sistema de gestión genérico'),h,count=1)
     h=re.sub(r'(class=\\"logo\\" src=\\")data:image/[a-z]+;base64,[A-Za-z0-9+/=]+',lambda m:m.group(1)+uri,h,count=1)
-    for o,n in [('Almacén y Licorería RAVE, Urquiza 1052, Salta, Argentina. Contacto: WhatsApp 387 4574892.','Mi Comercio (demo de evaluación, datos de ejemplo).'),
-                ('Almacén y Licorería · Urquiza 1052 · Salta, Argentina','Mi Comercio · demo'),
-                ('Mirá el menú de Almacén y Licorería RAVE (Urquiza 1052, Salta): vinos, bebidas, cigarrillos y combos. Pedí por WhatsApp 👇','Mirá el catálogo de Mi Comercio. Pedí por WhatsApp 👇'),
-                ('Check out the menu of Almacén y Licorería RAVE (Urquiza 1052, Salta): wines, drinks, cigarettes and combos. Order via WhatsApp 👇','Check out the Mi Comercio catalog. Order via WhatsApp 👇'),
-                ('Almacén y Licorería RAVE','Mi Comercio'),('Almacén y Licorería · Salta','Almacén y kiosco · demo'),('RAVE DIGITAL','MI COMERCIO'),('Club RAVE','Club Mi Comercio'),('class=\\"foot-brand\\">RAVE<','class=\\"foot-brand\\">MI COMERCIO<'),('alt=\\"RAVE','alt=\\"Mi Comercio'),('que RAVE guarde','que Mi Comercio guarde'),('RAVE Club','Mi Comercio Club'),('<title>RAVE','<title>Mi Comercio'),('Este menú incluye bebidas alcohólicas y tabaco.','Este catálogo incluye bebidas alcohólicas.'),('This menu includes alcoholic beverages and tobacco.','This catalog includes alcoholic beverages.')]:
+    CAT='nuestro catálogo' if not v3 else 'el catálogo corporativo'
+    for o,n in [('Almacén y Licorería RAVE, Urquiza 1052, Salta, Argentina. Contacto: WhatsApp 387 4574892.','%s (demo de evaluación, datos de ejemplo).'%NM),
+                ('Almacén y Licorería · Urquiza 1052 · Salta, Argentina',LOC),
+                ('Mirá el menú de Almacén y Licorería RAVE (Urquiza 1052, Salta): vinos, bebidas, cigarrillos y combos. Pedí por WhatsApp 👇','Mirá %s de %s. Consultas y pedidos por WhatsApp 👇'%(CAT,NM)),
+                ('Check out the menu of Almacén y Licorería RAVE (Urquiza 1052, Salta): wines, drinks, cigarettes and combos. Order via WhatsApp 👇','Check out the %s catalog. Questions and orders via WhatsApp 👇'%NM),
+                ('Almacén y Licorería RAVE',NM),('Almacén y Licorería · Salta',LOC),('RAVE DIGITAL',NMU),('Club RAVE','Club '+NM),('class=\\"foot-brand\\">RAVE<','class=\\"foot-brand\\">%s<'%NMU),('alt=\\"RAVE','alt=\\"'+NM),('que RAVE guarde','que %s guarde'%NM),('RAVE Club',NM+' Club'),('<title>RAVE','<title>'+NM),
+                ('Este menú incluye bebidas alcohólicas y tabaco.',''),('This menu includes alcoholic beverages and tobacco.','')]:
         h=h.replace(o,n)
     h=h.replace('--gold:#c9963e','--gold:%s'%c2).replace('--gold-deep:#dba854','--gold-deep:%s'%c2)
-    # menú lateral: el ítem activo sobre el verde de la marca lleva texto negro (5,0:1; con #1b1100 daba 4,49:1)
+    # menú lateral: el ítem activo sobre el color de la marca lleva texto negro (contraste ≥ 4,5:1 en verde y en azul)
     h=h.replace('#side a.on{background:var(--gold);color:#1b1100;','#side a.on{background:var(--gold);color:#000;',1)
-    # raveV3: el Centro Inteligente usa una variante más clara del mismo verde para cumplir contraste 4,5:1 sobre su fondo oscuro
-    if v3: h=h.replace('--ci-acc:var(--gold,#c9963e)','--ci-acc:#45ad92',1)
-    # V26.50 · contraste 4,5:1 con el verde de la marca: texto negro en botones dorados (también «F12») y verde más claro sobre el fondo oscuro
-    h=h.replace('</style>','.btn.gold,.fk.gold,.fk.gold small,.cmp .btn.gold,html[data-theme=dark] .btn.gold,html[data-theme=dark] .fk.gold,html[data-theme=dark] .fk.gold small{color:#000!important}html[data-theme=dark] .cmp-tab.on{color:#45ad92}\n</style>',1)
+    # Centro Inteligente: variante más clara del acento para 4,5:1 sobre su fondo oscuro
+    h=h.replace('--ci-acc:var(--gold,#c9963e)','--ci-acc:%s'%('#60a5fa' if v3 else '#45ad92'),1)
+    h=h.replace('</style>','.btn.gold,.fk.gold,.fk.gold small,.cmp .btn.gold,html[data-theme=dark] .btn.gold,html[data-theme=dark] .fk.gold,html[data-theme=dark] .fk.gold small{color:#000!important}html[data-theme=dark] .cmp-tab.on{color:%s}html[data-theme=dark]{--gold2:%s}\n</style>'%(lt,lt),1)
     return h
 vbj='const VB_BANNER="data:image/webp;base64,'+base64.b64encode(open('assets/vb-banner.webp','rb').read()).decode()+'";\n'
 html=head+'\n'+vbj+B('build/p0-data.js')+B('build/p0-pub.js')+"const SOCIAL_ICONS_OK=1;\n"+B('build/qr.js')+'\n'+'\n'.join(B(p) for p in parts)+'\n</script>\n</body></html>\n'

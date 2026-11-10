@@ -20,7 +20,10 @@ assert body.count(p2)==1
 body=body.replace(p2,"setTimeout(function(){ okMsg.style.display = 'none'; }, 5000);\n    }).catch(function(){ errMsg.style.display = 'block'; });\n  });")
 # horario de alcohol desde el panel
 a="var ALCOHOL_RESTRICTION = { enabled:true, from:7, to:24,"
-assert a in body; body=body.replace(a,"var ALCOHOL_RESTRICTION = { enabled:true, from:(window.RAVE_ALCH?window.RAVE_ALCH.from:7), to:(window.RAVE_ALCH?window.RAVE_ALCH.to:24),")
+assert a in body; body=body.replace(a,"var ALCOHOL_RESTRICTION = { enabled:!window.RAVE_NORESTR, from:(window.RAVE_ALCH?window.RAVE_ALCH.from:7), to:(window.RAVE_ALCH?window.RAVE_ALCH.to:24),")
+# V26.63: sin venta restringida no se abre el control de edad
+g="  if(!ok()) open();"
+assert g in body; body=body.replace(g,"  if(window.RAVE_NORESTR){ /* sin control de edad */ } else if(!ok()) open();",1)
 # pre.js antes del script de idioma
 k="var lang = 'es';\n  window.RAVE_LANG"
 i=body.index(k); j=body.rindex('<script>',0,i)

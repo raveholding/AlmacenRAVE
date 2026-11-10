@@ -1,6 +1,6 @@
 # SISTEMA VINCULAR BUSINESS — PROMPT ESQUELETO (base genérica para cualquier comercio)
 
-Versión de esqueleto **V27.1** · construido a partir de `SISTEMA_VB_26F.md` (revisión V26.62) · 2026-11-09
+Versión de esqueleto **V27.2** · construido a partir de `SISTEMA_VB_26F.md` (revisión V26.63) · 2026-11-10
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · lema **“Tu idea, en buenas manos.”**
 
 > Este documento es el **esqueleto**: describe el producto genérico que se vende a cualquier comercio (minorista, gastronomía, mayorista/distribuidora, servicios, profesionales, ONG). **No contiene datos de ningún cliente.** Lo propio de cada negocio se carga en la **Ficha del negocio (sección 2)** y en una **capa de particularidades (sección 12)**, nunca en el núcleo. El detalle técnico de cada módulo vive en `SISTEMA_VB_26F.md` (secciones 4.x y anexos); acá está el orden, las reglas y el estado.
@@ -61,10 +61,12 @@ Tres piezas con el mismo código:
 
 | Perfil | Uso | Datos | Nube |
 |---|---|---|---|
-| `solo` | Demo genérica «comercio de un solo dueño» (raveV2) | Ejemplo rotulado | Sin configurar |
-| `v3` | Demo genérica + Centro Inteligente con asistentes (raveV3) | Ejemplo rotulado | Sin configurar |
-| `kini` | Demo genérica «distribuidora sólo mayorista» (KiniDistribuidoraDemo) | Ejemplo rotulado | Sin configurar |
+| `solo` | **raveV2 · «Mi Negocio»**: sistema **genérico, sin rubro** (sirve para cualquier negocio de un dueño) | Ejemplo rotulado: Productos · Servicios · Accesorios · Insumos · Paquetes | Sin configurar |
+| `v3` | **raveV3 · «Corporación Demo»**: **gestión integral empresarial** (casa central + sucursal, tesorería, áreas corporativas, Centro Inteligente con asistentes) | Ejemplo rotulado: Equipamiento · Software y licencias · Servicios profesionales · Insumos corporativos · Logística · Mantenimiento | Sin configurar |
+| `kini` | **KiniDistribuidoraDemo**: distribuidora **sólo mayorista** (presentaciones, tramos, crédito) | Ejemplo rotulado (bebidas y almacén mayorista) | Sin configurar |
 | `cliente` | Sistema real de un comercio | Reales | URL + clave publicable |
+
+**Venta restringida por edad (`S.cfg.restricted`).** Encendida por defecto (comercios con alcohol o tabaco: control de edad en el menú, horario de alcohol, exclusión de tabaco en promociones, leyendas del ticket y textos legales). **raveV2 y raveV3 la apagan**: no aparece ninguna leyenda de bebidas, tabaco ni «+18» en el menú, el panel, el ticket ni los legales (prueba `gen1.py`). raveV3 además no usa rubros de comercio chico: su vocabulario y datos son de empresa.
 
 **Reglas de las demos:** son **genéricas** («Sistema Vincular Business», sin nombre, dirección, redes ni catálogo de ningún cliente); muestran los módulos **completos** con datos «ejemplo»; las integraciones sin cuenta real se rotulan «demostración» y nunca simulan un cobro, un CAE o un envío reales. **Regla del cliente:** todo módulo nuevo nace **apagado** hasta que el administrador lo activa; la variante cliente nunca dice «demo» ni «simulado».
 
@@ -98,7 +100,7 @@ Estructura del repositorio: `fuente/` (partes `p*.js`, `p1-head.html`, `build.py
 
 ---
 
-## 6. CATÁLOGO DE MÓDULOS (estado real al 2026-11-09)
+## 6. CATÁLOGO DE MÓDULOS (estado real al 2026-11-10)
 
 Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no construido · **D** = depende de terceros.
 
@@ -134,7 +136,7 @@ Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no c
 
 **7.3 Navegación por roles.**
 - **Administrador / supervisor (modo gestión):** todos los módulos permitidos, agrupados por sección.
-- **Mostrador / operador (modo mostrador):** entra directo a **Vender** y la barra muestra sólo Vender, Pedidos, Gestión de caja y —si tiene el permiso— Club, Conversaciones y Tareas. Es simplificación visual: los permisos los valida el sistema (y el servidor en la nube). El administrador puede desactivarlo (`S.cfg.ux.fullNav`).
+- **Mostrador / operador (modo mostrador):** entra directo a **Vender** y la barra muestra sólo Vender, Pedidos, Gestión de caja y —si tiene el permiso— Club, Atención al cliente y Tareas. Es simplificación visual: los permisos los valida el sistema (y el servidor en la nube). El administrador puede desactivarlo (`S.cfg.ux.fullNav`).
 
 **7.4 Pestañas horizontales en lugar de listas largas.** Grupos que son **una sola entrada** en la barra y llevan pestañas arriba (`role=tablist`, flechas del teclado, ≥ 44 px): **Gestión de caja** y **Club**. Un grupo nuevo se declara en `UX_GROUPS` (`p2c-ux.js`); las rutas individuales siguen funcionando.
 
@@ -145,6 +147,12 @@ Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no c
 **7.7 Atajos visibles.** **F1 → Vender** desde cualquier pantalla (con la tecla impresa en la barra); dentro de Vender rigen F1–F12 (F1 Efectivo … F12 Cobrar), cada botón con su tecla. **Ctrl + K** impreso en el botón Buscar.
 
 **7.8 Ergonomía táctil.** Todo control ≥ 44 px (teclas del POS ≥ 48 px, teclado numérico ≥ 56 px), separación ≥ 8 px, nada depende sólo del mouse; campos numéricos sin «0» precargado; 320–1440 px sin desbordes.
+
+**7.9 Diseño dinámico e intuitivo en todos los módulos (V26.63).**
+- **Ayuda en contexto:** cada pantalla abre con **una línea** que dice para qué sirve y qué conviene hacer primero (`UX_DESC` en `p2c-ux.js`). Una pantalla nueva no se publica sin su línea.
+- **Tablero del turno en Gestión de caja** (Caja actual · Arqueo/cierre · Historial): estado de la caja con indicador vivo (verde abierta, gris cerrada, rojo si es de un día anterior), **4 pasos del día** (Abrir caja → Vender y cobrar → Ingresos y egresos → Arqueo y cierre) con el paso actual marcado y cada paso como atajo, e indicadores complementarios (ticket promedio, última venta, ingresos y egresos del turno, duración del turno) sin repetir los totales que ya muestra la pantalla. El mismo patrón (estado + pasos + indicadores + acción principal) se aplica a todo flujo de varias etapas.
+- **Estilo general:** tarjetas con relieve al pasar el mouse, tablas con encabezado fijo, filas alternadas y resaltado al pasar, transición suave entre pantallas, estados vacíos centrados; todo con las variables de la marca y respetando «reducir movimiento».
+- **Contraste del acento:** si el color de marca no da 4,5:1 con letra blanca, la letra sobre el acento es negra (verde de raveV2, azul de raveV3) y en modo oscuro se usa una variante más clara para textos. Verificado por `kc1`, `tm1`, `ci6`.
 
 ---
 
@@ -185,7 +193,7 @@ OWASP/ASVS: escapar todo dato al mostrarlo (incluido lo que llega de IA, OCR, QR
 
 ## 9. NUBE (referencia Supabase)
 
-Scripts numerados, aditivos e idempotentes (`01`…`22` al 2026-11-09; `INSTALAR-TODO.sql` los reúne). Una colección nueva exige: lista de `sincronizar()`, permiso en `rave_puede_escribir`, lectura, exportación, importación, respaldo y prueba SQL. El navegador **no envía saldos ni stock**: envía movimientos. Sin conexión se trabaja igual y nunca se muestra como confirmado lo que el servidor no confirmó. «Confirm email» desactivado. Recuperación con código de 20 caracteres (sin clave ni código, los datos cifrados no se recuperan, por diseño).
+Scripts numerados, aditivos e idempotentes (`01`…`22` al 2026-11-10; `INSTALAR-TODO.sql` los reúne). Una colección nueva exige: lista de `sincronizar()`, permiso en `rave_puede_escribir`, lectura, exportación, importación, respaldo y prueba SQL. El navegador **no envía saldos ni stock**: envía movimientos. Sin conexión se trabaja igual y nunca se muestra como confirmado lo que el servidor no confirmó. «Confirm email» desactivado. Recuperación con código de 20 caracteres (sin clave ni código, los datos cifrados no se recuperan, por diseño).
 
 ---
 

@@ -142,3 +142,56 @@ function uxTodayHTML(){const T=uxToday();const st=s=>s.fiado&&s.pstate&&s.pstate
  <div><div class="card"><h3 style="margin-top:0">Tendencia de ventas (semana)</h3>${uxSpark(T.days,T.wk,T.prev)}<p class="sm mut" style="margin:0">Línea de color: últimos 7 días · línea punteada: semana anterior.</p>
   <table class="sr-only" style="position:absolute;left:-9999px"><caption>Ventas por día</caption><tbody>${T.days.map((d,i)=>`<tr><th>${dmy(dkey(d))}</th><td>${money(T.wk[i])}</td><td>${money(T.prev[i])}</td></tr>`).join('')}</tbody></table></div>
  ${T.cv?`<div class="card" style="margin-top:.8rem"><h3 style="margin-top:0">Proveedores pendientes</h3>${T.sup.length?`<table><thead><tr><th>Proveedor</th><th>Saldo</th><th>Estado</th></tr></thead><tbody>${T.sup.map(x=>`<tr><td>${esc(x.razon||x.name||'')}</td><td>${money(x.saldo)}</td><td><span class="crm-st crm-st-w">Pendiente</span></td></tr>`).join('')}</tbody></table>`:'<p class="sm mut">No hay deudas con proveedores.</p>'}</div>`:''}</div></div></section>`;}
+
+/* ---------- V26.63 · diseño dinámico e intuitivo en todos los módulos ----------
+   · Cada pantalla abre con una línea que dice para qué sirve y qué conviene hacer primero (ayuda en contexto).
+   · Gestión de caja con «tablero de turno»: estado de la caja, pasos del día (abrir → vender → movimientos → arqueo y cierre),
+     indicadores en vivo y acciones grandes. Arqueo e Historial muestran el mismo recorrido.
+   · Estilo general: tarjetas con relieve al pasar, tablas con encabezado fijo y filas alternadas, transición suave entre
+     pantallas (respeta «reducir movimiento»), estados vacíos más claros. Todo con variables de la marca. */
+const UX_DESC={inicio:'Cómo viene el negocio hoy: ventas, órdenes, stock y alertas. Tocá cualquier indicador para ir al detalle.',
+ vender:'Cargá productos con el lector, la búsqueda o un toque, y cobrá con F12. Cada tecla de función está impresa en su botón.',
+ pedidos:'Pedidos que entran por PedidosYa: aceptalos, preparalos y marcá la entrega.',
+ caja:'Tablero del turno: abrí la caja, vendé, registrá ingresos y egresos, y terminá con el arqueo.',
+ cajasx:'Cajas operativas, caja principal y sucursales. Traspasos de dinero con comprobante.',
+ arqueo:'Contá el efectivo y los comprobantes, compará con lo esperado y cerrá el turno con el sello de integridad.',
+ cierres:'Historial de cierres sellados: verificá la integridad, imprimí la planilla o exportá.',
+ inventario:'Stock, precios y costos por categoría. Los avisos marcan lo que hay que reponer.',
+ presup:'Cotizaciones que no mueven stock ni caja hasta que el cliente las acepta.',
+ mermas:'Roturas, vencimientos y devoluciones valorizadas, con motivo y responsable.',
+ proveedores:'Órdenes de compra, ingreso de mercadería y cuenta corriente con cada proveedor.',
+ clientes:'Fichas de clientes con compras, saldo, datos para facturar y consentimientos.',
+ fidel:'Sellos y premios del Club: sumá sellos por QR, código, DNI o NFC.',
+ fidplus:'Niveles, cumpleaños, juegos y reglas de beneficios del Club.',
+ monedero:'Saldo a favor, cashback y gift cards de cada cliente.',
+ cupones:'Cupones y membresías con vigencia, tope y audiencia.',
+ crm:'Todos los canales en una bandeja: respondé, cobrá, cotizá y agendá sin salir del chat.',
+ personal:'Equipo, fichadas y horas trabajadas.',tareas:'Organigrama y tareas por puesto, diarias o semanales.',
+ menuadmin:'Lo que ve tu cliente en el menú o la tienda: catálogo, textos, envíos y publicación.',
+ legal:'Textos legales y lista de verificación de cumplimiento.',dispositivos:'Impresoras, balanzas, lectores y diseño del ticket.',
+ impex:'Importá o exportá artículos, clientes, ventas y cierres en CSV o Excel.',integ:'Conexiones con otros servicios y su estado.',
+ roles:'Personas con acceso y qué puede hacer cada rol.',auditoria:'Registro de todo lo que se hizo, por quién y cuándo, con verificación de integridad.',
+ config:'Datos del negocio, módulos que se activan y preferencias.',nube:'Sincronización entre equipos, copias y estado de la conexión.',
+ centro:'Visión integral: mapa del negocio, asistentes y alertas inteligentes.'};
+function uxDescHTML(id){const d=UX_DESC[id];return d?`<p class="ux-desc">${esc(d)}</p>`:'';}
+const UX_STEPS=[['caja','1','Abrir caja'],['vender','2','Vender y cobrar'],['caja','3','Ingresos y egresos'],['arqueo','4','Arqueo y cierre']];
+function uxCashHero(id){if(!['caja','arqueo','cierres'].includes(id))return'';const s=typeof openSess==='function'?openSess():null;
+ const sold=s&&S.sales.some(x=>x.sessId===s.id),moved=s&&S.movs.some(m=>m.sessId===s.id);
+ const step=!s?0:id==='arqueo'?3:!sold?1:!moved?2:3;
+ const steps=`<ol class="ux-steps" aria-label="Pasos del turno">${UX_STEPS.map(([to,n,t],i)=>{const dn=i<step&&(i===0||(i===1&&sold)||(i===2&&moved));return `<li class="${dn?'done':i===step?'cur':''}"${i===step?' aria-current="step"':''}><a data-act="uxHeroGo" data-id="${!s&&i>0?'caja':to}" tabindex="0" role="link"><span class="ux-sn">${dn?'✓':n}</span><span>${t}</span></a></li>`;}).join('')}</ol>`;
+ if(!s){const last=S.sessions.filter(x=>x.closedAt).sort((a,b)=>b.closedAt-a.closedAt)[0];
+  return `<section class="ux-hero closed" aria-label="Estado de la caja"><div class="ux-hero-h"><span class="ux-dot off" aria-hidden="true"></span><div><b>Caja cerrada</b><br><span class="sm">${last?'Último cierre: '+fmtDT(last.closedAt)+' · '+esc(last.closedBy||last.openedBy||''):'Todavía no hay cierres.'}</span></div>${id!=='caja'?'<div class="ux-hero-a"><button class="btn gold" data-act="uxHeroGo" data-id="caja">Abrir caja →</button></div>':''}</div>${steps}
+   <p class="sm" style="margin:.4rem 0 0">Para empezar el día, cargá el efectivo inicial y tocá <b>Abrir caja</b>.</p></section>`;}
+ const ss=S.sales.filter(x=>x.sessId===s.id&&x.status==='ok'),tot=ss.reduce((a,x)=>a+x.total,0),lastS=ss.reduce((a,x)=>Math.max(a,x.ts),0);
+ const ms=S.movs.filter(m=>m.sessId===s.id);const inA=ms.filter(m=>m.type==='ingreso').reduce((x,m)=>x+m.amount,0),outA=ms.filter(m=>m.type==='egreso').reduce((x,m)=>x+m.amount,0);
+ const ago=t=>{const d=Math.max(0,now()-t),h=Math.floor(d/3600e3),mi=Math.floor(d%3600e3/60000);return (h?h+' h ':'')+mi+' min';};const old=dkey(s.openedAt)!==dkey(now());
+ return `<section class="ux-hero${old?' warn':''}" aria-label="Estado de la caja"><div class="ux-hero-h"><span class="ux-dot on" aria-hidden="true"></span><div><b>Caja ${esc(String(s.caja||S.tenant.caja))} abierta</b><br><span class="sm">desde ${fmtDT(s.openedAt)} · ${esc(s.openedBy||'')} · turno de ${ago(s.openedAt)}${old?' · <b>es de un día anterior: cerrala</b>':''}</span></div>
+  <div class="ux-hero-a"><button class="btn${id==='caja'?' gold':''}" data-act="uxHeroGo" data-id="vender">Vender <kbd class="ux-kbd">F1</kbd></button>${id!=='caja'?'<button class="btn" data-act="uxHeroGo" data-id="caja">Ver caja</button>':''}</div></div>
+  ${steps}<div class="ux-hero-k"><div><span>Ticket promedio</span><b>${ss.length?money(Math.round(tot/ss.length)):'—'}</b><small>${ss.length} venta(s)</small></div><div><span>Última venta</span><b>${lastS?'hace '+ago(lastS):'—'}</b></div>
+  <div><span>Ingresos de caja</span><b>${money(inA)}</b></div><div><span>Egresos de caja</span><b>${money(outA)}</b><small>${ms.length} movimiento(s)</small></div></div></section>`;}
+A.uxHeroGo=el=>go(el.dataset.id);
+document.addEventListener('keydown',e=>{const a=e.target.closest&&e.target.closest('.ux-steps a');if(a&&(e.key==='Enter'||e.key===' ')){e.preventDefault();A.uxHeroGo(a);}});
+const uxAfterBase=uxAfter;
+uxAfter=function(id){uxAfterBase(id);try{const v=$('#view');const row=[...v.children].find(x=>x.querySelector&&(x.matches('h1')||x.querySelector(':scope > h1')));
+ const ins=(html)=>{if(!html)return;if(row)row.insertAdjacentHTML('afterend',html);else v.insertAdjacentHTML('afterbegin',html);};
+ ins(uxCashHero(id));ins(uxDescHTML(id));v.classList.remove('ux-in');void v.offsetWidth;v.classList.add('ux-in');}catch(e){}};

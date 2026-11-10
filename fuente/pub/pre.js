@@ -31,6 +31,8 @@
   var S=API.site();
   window.RAVE_WA=S.wa;
   window.RAVE_ALCH={from:S.alcFrom,to:S.alcTo};
+  /* V26.63: sin venta restringida (demos genérica y empresarial) no hay control de edad ni aviso de horario de alcohol */
+  if(S.restr===false){ window.RAVE_NORESTR=1; try{ var st=document.createElement('style'); st.textContent='#age-gate,#alc-notice{display:none!important}'; document.head.appendChild(st); }catch(e){} }
   function esc(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function md(t){return esc(t).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');}
   var $=function(s){return document.querySelector(s);};
