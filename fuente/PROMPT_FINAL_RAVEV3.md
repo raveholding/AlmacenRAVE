@@ -1,6 +1,6 @@
 # SISTEMA VINCULAR BUSINESS · PROMPT FINAL — raveV3 «Corporación Demo» (gestión empresarial integral)
 
-**Versión:** V26.63 · 2026-11-10 · **Repositorio y publicación:** `raveV3` → `https://raveholding.github.io/raveV3/` · **Perfil:** `v3` · **Base local:** `rave-v3-demo-v2`
+**Versión:** V26.64 · 2026-11-10 · **Repositorio y publicación:** `raveV3` → `https://raveholding.github.io/raveV3/` · **Perfil:** `v3` · **Base local:** `rave-v3-demo-v2`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
 > Orden de lectura: **principio rector (§0)** → este prompt → `PROMPT_ESQUELETO_VB.md` V27.2 → `SISTEMA_VB_26F.md` (anexo P: Centro Inteligente). Si hay conflicto manda ese orden.
@@ -41,6 +41,7 @@ raveV3 es el **Sistema Vincular Business con visión empresarial**: la demo para
 | Catálogo | 23 ítems corporativos (servidor de rack 1U, notebook corporativa, multifunción láser, monitor 27", switch administrable, licencia de gestión integral, consultoría, implementación, logística, contratos de soporte…) + «Kit puesto de trabajo» |
 | Equipo | Ejecutivo de cuentas, analista administrativo y técnico de soporte (ejemplo); organigrama y tareas por área |
 | Usuarios | ADMIN · 1234 / Supervisor · 1111 / Mostrador · 0000 |
+| Resumen (dashboard) | Sólo el administrador (ADMIN); el administrador puede habilitarlo para otro rol en Usuarios y permisos. Claves olvidadas: se piden al administrador |
 | Club | Programa de fidelización de clientes corporativos con premio genérico |
 | Venta restringida | **Apagada** |
 

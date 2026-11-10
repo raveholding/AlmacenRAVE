@@ -1,6 +1,6 @@
 # SISTEMA VINCULAR BUSINESS · PROMPT FINAL — KiniDistribuidoraDemo (distribuidora sólo mayorista)
 
-**Versión:** V26.63 · 2026-11-10 · **Repositorio:** `KiniDistribuidoraDemo` → `https://raveholding.github.io/KiniDistribuidoraDemo/` · **Perfil:** `kini` · **Base local:** `rave-kini-demo-v2`
+**Versión:** V26.64 · 2026-11-10 · **Repositorio:** `KiniDistribuidoraDemo` → `https://raveholding.github.io/KiniDistribuidoraDemo/` · **Perfil:** `kini` · **Base local:** `rave-kini-demo-v2`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
 > Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.2 → `SISTEMA_VB_26F.md` (4.22 mayorista y anexos F, S). Si difieren, para esta demo manda este prompt.
@@ -21,6 +21,7 @@ La demo para **distribuidoras y mayoristas**: muestra el Sistema Vincular Busine
 | Catálogo | 29 artículos genéricos con presentaciones y precios por tramo |
 | Cajas | Caja 1 · Caja 2 · **Caja principal** (perfil `main`, traspasos con comprobante) |
 | Equipo | Depósito y vendedor de mostrador (ejemplo); ADMIN · 1234 / Supervisor · 1111 / Mostrador · 0000 |
+| Resumen (dashboard) | Sólo el administrador (ADMIN); el administrador puede habilitarlo para otro rol en Usuarios y permisos. Claves olvidadas: se piden al administrador |
 | Clientes | 5 clientes mayoristas con CUIT, crédito, plazo y acuerdos de ejemplo |
 | Venta restringida | **Encendida** (vende bebidas con alcohol: control de edad, horario configurable, tabaco sin promociones) |
 

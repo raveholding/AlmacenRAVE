@@ -1,6 +1,6 @@
 # SISTEMA VINCULAR BUSINESS · PROMPT FINAL — raveV2 «Mi Negocio» (sistema genérico, sin rubro)
 
-**Versión:** V26.63 · 2026-11-10 · **Repositorio y publicación:** `raveV2` → `https://raveholding.github.io/raveV2/` · **Perfil de compilación:** `solo` · **Base local del navegador:** `rave-solo-demo-v1`
+**Versión:** V26.64 · 2026-11-10 · **Repositorio y publicación:** `raveV2` → `https://raveholding.github.io/raveV2/` · **Perfil de compilación:** `solo` · **Base local del navegador:** `rave-solo-demo-v1`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
 > Orden de lectura: **este prompt** (qué es y qué lleva raveV2) → `PROMPT_ESQUELETO_VB.md` V27.2 (reglas, UX, módulos) → `SISTEMA_VB_26F.md` (detalle técnico de cada módulo y anexos). Si difieren, para esta demo manda este prompt.
@@ -37,6 +37,7 @@ Una sola fuente de código (`AlmacenRAVE/fuente`); las versiones son **perfiles 
 | Catálogo | 19 artículos genéricos sin marca (estándar, premium, económico, a granel, de temporada, servicios, accesorios, insumos) + «Paquete inicial» (kit) |
 | Cajas | Perfil **simple** (se pueden sumar cajas, caja principal y sucursales desde «Cajas y sucursales») |
 | Equipo | ADMIN · 1234 / Supervisor · 1111 / Mostrador · 0000; un colaborador de ejemplo con fichaje |
+| Resumen (dashboard) | Sólo el administrador (ADMIN); el administrador puede habilitarlo para otro rol en Usuarios y permisos. Claves olvidadas: se piden al administrador |
 | Clientes y Club | 3 clientes con consentimiento, sellos, membresía, cupón `BIENVENIDA10`; premio genérico |
 | Venta | Minorista (el canal mayorista está en la demo Kini) |
 | Venta restringida | **Apagada** |

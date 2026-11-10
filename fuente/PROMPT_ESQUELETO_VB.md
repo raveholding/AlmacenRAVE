@@ -1,6 +1,6 @@
 # SISTEMA VINCULAR BUSINESS — PROMPT ESQUELETO (base genérica para cualquier comercio)
 
-Versión de esqueleto **V27.2** · construido a partir de `SISTEMA_VB_26F.md` (revisión V26.63) · 2026-11-10
+Versión de esqueleto **V27.2** · construido a partir de `SISTEMA_VB_26F.md` (revisión V26.64) · 2026-11-10
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · lema **“Tu idea, en buenas manos.”**
 
 > Este documento es el **esqueleto**: describe el producto genérico que se vende a cualquier comercio (minorista, gastronomía, mayorista/distribuidora, servicios, profesionales, ONG). **No contiene datos de ningún cliente.** Lo propio de cada negocio se carga en la **Ficha del negocio (sección 2)** y en una **capa de particularidades (sección 12)**, nunca en el núcleo. El detalle técnico de cada módulo vive en `SISTEMA_VB_26F.md` (secciones 4.x y anexos); acá está el orden, las reglas y el estado.
@@ -96,7 +96,7 @@ Estructura del repositorio: `fuente/` (partes `p*.js`, `p1-head.html`, `build.py
 7. Entrega honesta: qué quedó, qué tiene que hacer el dueño, qué no se pudo probar.
 8. Créditos de Vincular Business **en todos los productos** (ingreso, barra lateral, ticket, menú público, tarjeta, instalador): nombre, **Celular (387) 4484132**, **página https://www.vincularbusiness.com.ar/**, correo y lema. Se puede cambiar la presentación, no eliminarlos.
 9. Acciones con efecto externo (enviar mensajes, pagar, aceptar términos, publicar) sólo con el «sí» explícito del dueño para esa acción.
-10. Olvido de clave: se le pide al **administrador del comercio**, no al soporte del desarrollador.
+10. Olvido de clave: **siempre** se le pide al **administrador del comercio**, nunca al desarrollador. Todos los textos de ingreso, ayuda e invitación lo dicen así.
 
 ---
 
@@ -135,6 +135,7 @@ Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no c
 **7.2 Tema claro / oscuro / automático.** Un solo juego de estilos: el tema se aplica con un atributo en la raíz (`document.documentElement[data-theme]`) que cambia **sólo variables CSS** (`--ink`, `--bg`, `--card`, `--line`, `--mut`…). Prohibido duplicar hojas de estilo. Botón visible en la barra superior (Automático → Claro → Oscuro), preferencia guardada en `localStorage` (`rave.theme`). Cambio medido < 100 ms. Contraste mínimo 4,5:1 (3:1 letra grande) en ambos temas, verificado por prueba automática en todas las pantallas.
 
 **7.3 Navegación por roles.**
+- **El Resumen (dashboard) es exclusivo del administrador o dueño** (permiso `dashboard`). El administrador puede dárselo a otro rol en Usuarios y permisos; nadie más lo otorga. Sin ese permiso la pantalla no aparece en la barra ni en Ctrl + K, no se abre por enlace y el usuario entra a Vender (o a la primera pantalla que tenga permitida).
 - **Administrador / supervisor (modo gestión):** todos los módulos permitidos, agrupados por sección.
 - **Mostrador / operador (modo mostrador):** entra directo a **Vender** y la barra muestra sólo Vender, Pedidos, Gestión de caja y —si tiene el permiso— Club, Atención al cliente y Tareas. Es simplificación visual: los permisos los valida el sistema (y el servidor en la nube). El administrador puede desactivarlo (`S.cfg.ux.fullNav`).
 

@@ -2268,3 +2268,12 @@ Pedido del dueño («Prompt maestro de rediseño UX»), adaptado: no se cambia a
 - **Límite:** el tablero del turno resume la caja de este equipo (`openSess`); con «todas las cajas» unificadas el detalle sigue en el Arqueo.
 - **Prompts finales por versión:** `PROMPT_FINAL_ALMACENRAVE.md`, `PROMPT_FINAL_RAVEV2.md`, `PROMPT_FINAL_RAVEV3.md`, `PROMPT_FINAL_KINI.md`; esqueleto `PROMPT_ESQUELETO_VB.md` V27.2 (§3 perfiles y venta restringida, §7.9 diseño dinámico).
 
+## ANEXO AB — V26.64 · RESUMEN (DASHBOARD) EXCLUSIVO DEL ADMINISTRADOR (2026-11-10)
+
+- **Pedido del dueño:** el Resumen es sólo del administrador o dueño, aunque puede elegir quién más lo ve; la clave olvidada se pide siempre al administrador, no al desarrollador.
+- **Construido:** permiso nuevo `dashboard` («Ver el Resumen (dashboard del negocio)»), sólo del administrador por defecto (`rolesMigrate` se lo agrega al administrador en instalaciones existentes; **a ningún otro rol se le da en silencio**). El administrador lo tilda para otro rol en Usuarios y permisos. Sin el permiso: la pantalla no figura en la barra ni en Ctrl + K, no se abre por enlace ni llamándola, y el usuario entra a Vender (o a la primera pantalla permitida; si no tiene ninguna, ve «Pedíselos al administrador de tu comercio» y «Salir»). El Centro Inteligente ya era sólo del administrador o de roles habilitados.
+- **Efecto en Almacén RAVE:** después de publicar, un supervisor que antes veía el Resumen deja de verlo hasta que el administrador le dé el permiso.
+- **Clave olvidada:** los textos de ingreso, ayuda («Olvidé mi clave»), invitación y recuperación ya indican pedirla al administrador del comercio (anexo W); sin cambios.
+- **Límite:** es un control de pantalla y de navegación; los datos que el equipo ya sincroniza para operar siguen en ese equipo (los costos siguen protegidos por `view_cost`).
+- **Pruebas:** `dash1.py` 13/13 (administrador entra al Resumen; supervisor y mostrador no lo ven ni por la barra, ni por Ctrl + K, ni llamándolo; con el permiso otorgado, el supervisor sí).
+

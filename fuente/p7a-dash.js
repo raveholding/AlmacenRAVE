@@ -8,7 +8,7 @@ function dbData(){const[a,b]=dbRange();
  return{a,b,sales,rows};}
 const sumT=a=>a.reduce((x,s)=>x+s.total,0);
 function dbBars(items,fmt,color){const mx=Math.max(1,...items.map(i=>i[1]));return `<div class="tw"><table><tbody>${items.map(([l,v,x])=>`<tr><td style="white-space:nowrap">${esc(l)}</td><td style="width:50%"><div class="bar" aria-hidden="true"><i style="width:${Math.round(v/mx*100)}%;${color?'background:'+color:''}"></i></div></td><td class="r">${fmt(v)}</td>${x!==undefined?`<td class="r mut">${x}</td>`:''}</tr>`).join('')}</tbody></table></div>`;}
-reg('inicio','Resumen','home',null,()=>{const D=dbData();const cv=can('view_cost');const today=dkey(now());
+reg('inicio','Resumen','home','dashboard',()=>{const D=dbData();const cv=can('view_cost');const today=dkey(now());
  const retT=(S.returns||[]).filter(r=>D.sales.some(x=>x.id===r.sale)).reduce((a,r)=>a+r.total,0); /* V26.54: devoluciones parciales de esas ventas */
  const tot=sumT(D.sales)-retT,n=D.sales.length;const disc=D.sales.reduce((a,s)=>a+s.items.reduce((x,i)=>x+(i.disc||0),0),0);
  const prof=D.rows.reduce((a,r)=>a+lineTotal(r.it)-lineCost(r.it),0)-D.sales.reduce((a,s)=>a+(s.fee||0),0);

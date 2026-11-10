@@ -1,6 +1,6 @@
 # SISTEMA VINCULAR BUSINESS · PROMPT FINAL — Cliente ALMACÉN RAVE (producción)
 
-**Versión:** V26.63 · 2026-11-10 · **Repositorio y publicación:** `AlmacenRAVE` → `https://raveholding.github.io/AlmacenRAVE/` · **Perfil:** `cliente` (con nube) · **Base local:** `rave-almacenrave-v1` · **Comercio en la nube:** slug `almacen-rave`
+**Versión:** V26.64 · 2026-11-10 · **Repositorio y publicación:** `AlmacenRAVE` → `https://raveholding.github.io/AlmacenRAVE/` · **Perfil:** `cliente` (con nube) · **Base local:** `rave-almacenrave-v1` · **Comercio en la nube:** slug `almacen-rave`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
 > Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.2 → `SISTEMA_VB_26F.md` (secciones 4.x y anexos A–Z, AA). **Este es el sistema en uso de un negocio real: no se rompe.** Si algo de este prompt choca con las reglas de seguridad del esqueleto, mandan las reglas.
@@ -15,10 +15,10 @@ El sistema real de **Almacén y Licorería RAVE** (Salta). Es la única versión
 
 1. **No romper lo que está en uso.** Toda novedad nace **apagada** hasta que el administrador la activa; la variante cliente nunca dice «demo» ni «simulado».
 2. **Base de producción:** cambios sólo con **autorización expresa del dueño**; el SQL se entrega para que lo pegue el dueño y se verifica después por consulta. Nunca claves secretas en el chat, el código ni el HTML (sólo URL del proyecto y clave publicable).
-3. Sólo el **administrador** otorga o quita permisos y da de baja o desactiva socios.
+3. Sólo el **administrador** otorga o quita permisos y da de baja o desactiva socios. El **Resumen (dashboard)** es sólo del administrador/dueño; el administrador decide si otro rol lo ve (permiso `dashboard`).
 4. Enviar mensajes, aceptar términos o enviar formularios con efecto externo: «sí» explícito del dueño para cada acción.
 5. El **instalador de Windows** no se modifica salvo pedido.
-6. Olvido de clave: lo resuelve el administrador del comercio.
+6. Olvido de clave: **siempre** lo resuelve el administrador del comercio, nunca el desarrollador.
 7. Regresión completa de los cuatro perfiles antes de publicar.
 
 ## 3. Ficha del cliente
