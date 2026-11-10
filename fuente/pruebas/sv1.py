@@ -34,15 +34,15 @@ with sync_playwright() as p:
     ev("go('caja')");pg.wait_for_timeout(300)
     if not ev("!!openSess()"):
         ev("S.sessions.push({id:'sv1',caja:S.tenant.caja,openedBy:'ADMIN',openedAt:now(),opening:500000,closedAt:0});save()")
-    ev("go('vender');pos.lines=[];A.padd({dataset:{id:'s-yerba'}});A.padd({dataset:{id:'s-gas'}})")
-    st0=ev("S.products.find(p=>p.id==='s-yerba').stock")
+    ev("go('vender');pos.lines=[];A.padd({dataset:{id:'g-p1'}});A.padd({dataset:{id:'g-p2'}})")
+    st0=ev("S.products.find(p=>p.id==='g-p1').stock")
     r=ev("(()=>{const r=commitSale('efectivo',false,'local',pos.lines,{});return r.err||{t:r.sale.total}})()")
-    chk(isinstance(r,dict) and r['t']==420000+290000,'se vende: yerba + gaseosa = $ 7.100 (%s)'%r)
-    chk(ev("S.products.find(p=>p.id==='s-yerba').stock")==st0-1,'descuenta stock')
+    chk(isinstance(r,dict) and r['t']==850000+1590000,'se vende: producto estándar + premium = $ 24.400 (%s)'%r)
+    chk(ev("S.products.find(p=>p.id==='g-p1').stock")==st0-1,'descuenta stock')
     m=ev("(()=>{const rb=S.rubros.find(r=>r.id==='sys-gen');return !!rb})()")
     chk(m,'el dinero va a la caja del negocio (concepto interno, sin rubros por persona)')
     ev("go('arqueo')");pg.wait_for_timeout(300)
-    chk('7.100' in pg.inner_text('#view'),'el arqueo muestra la venta')
+    chk('24.400' in pg.inner_text('#view'),'el arqueo muestra la venta')
     # menú público
     pg.goto('file://'+F+'#menu');pg.wait_for_timeout(1500)
     f=[x for x in pg.frames if x!=pg.main_frame][0]
@@ -50,7 +50,7 @@ with sync_playwright() as p:
     except Exception: pass
     t=f.inner_text('body')
     chk(not RAVE.search(t) and 'MI NEGOCIO' in t.upper(),'el menú público es de «Mi Negocio», sin nada de Almacén RAVE')
-    chk(f.locator('[data-id="s-yerba"]').count()>=1,'el menú muestra el catálogo genérico')
+    chk(f.locator('[data-id="g-p1"]').count()>=1,'el menú muestra el catálogo genérico')
     pg.set_viewport_size({'width':360,'height':780});pg.wait_for_timeout(300)
     chk(ev("document.documentElement.scrollWidth")<=362,'menú a 360 px sin desborde')
     b.close()

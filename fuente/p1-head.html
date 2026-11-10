@@ -280,6 +280,7 @@ html[data-theme=dark]{--selbg:#2f2921}
 #view table tbody tr:hover{background:color-mix(in srgb,var(--gold) 9%,transparent)}
 #view thead th{position:sticky;top:0;background:var(--card);z-index:1}
 #view .empty,#view td.mut[colspan]{padding:1.1rem;text-align:center}
+#view .ci-root thead th{position:static;background:transparent}#view .ci-root table tbody tr:nth-child(even),#view .ci-root table tbody tr:hover{background:transparent}
 #view.ux-in{animation:uxIn .22s ease-out}@keyframes uxIn{from{opacity:.0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){#view.ux-in,.ux-dot.on{animation:none}#view .card{transition:none}}
 </style>

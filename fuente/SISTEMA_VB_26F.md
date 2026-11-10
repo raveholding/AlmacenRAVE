@@ -2264,6 +2264,7 @@ Pedido del dueño («Prompt maestro de rediseño UX»), adaptado: no se cambia a
 - **raveV3 «Corporación Demo»:** visión empresarial (casa central + Sucursal Norte + Tesorería; líneas Equipamiento, Software y licencias, Servicios profesionales, Insumos corporativos, Logística, Mantenimiento; 23 ítems corporativos; personal corporativo), azul `#3b82f6` con letra negra, `--ci-acc #60a5fa`, venta restringida apagada.
 - **Atención al cliente:** mensajes de ejemplo genéricos (sin productos de rubro).
 - **Corrección:** `isV3Build` pasó a función declarada (se usaba antes de inicializarse y la demo raveV2 no arrancaba).
-- **Pruebas:** `gen1.py` (menú + todas las pantallas de raveV2 y raveV3 sin palabras de rubro chico/bebidas, tablero del turno y línea de ayuda); `sv1.py` y `v3b.py` actualizados a los nombres nuevos; regresión completa de los cuatro perfiles.
+- **Pruebas:** `gen1.py` 11/11 (menú + 27 pantallas de raveV2 y 29 de raveV3 sin palabras de rubro chico/bebidas, tablero del turno y línea de ayuda); `sv1.py` 18/18 y `v3b.py` 17/17 actualizados a los datos nuevos; `ux1` 29/29 en los cuatro perfiles; contraste `kc1` 39/39, `tm1` 4/4, `ci6` 61/61; SQL 643/643; regresión completa de los cuatro perfiles.
+- **Límite:** el tablero del turno resume la caja de este equipo (`openSess`); con «todas las cajas» unificadas el detalle sigue en el Arqueo.
 - **Prompts finales por versión:** `PROMPT_FINAL_ALMACENRAVE.md`, `PROMPT_FINAL_RAVEV2.md`, `PROMPT_FINAL_RAVEV3.md`, `PROMPT_FINAL_KINI.md`; esqueleto `PROMPT_ESQUELETO_VB.md` V27.2 (§3 perfiles y venta restringida, §7.9 diseño dinámico).
 
