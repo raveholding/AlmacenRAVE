@@ -1,6 +1,6 @@
 # SISTEMA VINCULAR BUSINESS — PROMPT ESQUELETO (base genérica para cualquier comercio)
 
-Versión de esqueleto **V27.0** · construido a partir de `SISTEMA_VB_26F.md` (revisión V26.61) · 2026-11-09
+Versión de esqueleto **V27.1** · construido a partir de `SISTEMA_VB_26F.md` (revisión V26.62) · 2026-11-09
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · lema **“Tu idea, en buenas manos.”**
 
 > Este documento es el **esqueleto**: describe el producto genérico que se vende a cualquier comercio (minorista, gastronomía, mayorista/distribuidora, servicios, profesionales, ONG). **No contiene datos de ningún cliente.** Lo propio de cada negocio se carga en la **Ficha del negocio (sección 2)** y en una **capa de particularidades (sección 12)**, nunca en el núcleo. El detalle técnico de cada módulo vive en `SISTEMA_VB_26F.md` (secciones 4.x y anexos); acá está el orden, las reglas y el estado.
@@ -114,7 +114,7 @@ Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no c
 | Operación | Pedidos del menú y PedidosYa | P | PedidosYa real: D |
 | Clientes | **Club** (pestañas): Clientes · Sellos · Niveles y cumpleaños · Monedero · Cupones y membresías | H | Tarjeta digital a pantalla completa (alternativa a Wallet), sellos por QR/código/DNI/NFC, gift cards, cashback, ruleta/trivia |
 | Clientes | Datos para facturar (condición frente al IVA) con precarga en el cobro | H | |
-| Clientes | **CRM omnicanal (Conversaciones)** | H | Chat web cifrado + WhatsApp asistido; asistente por reglas; cobro asistido; turnos y canales Meta/Telegram/correo sólo de demostración (D) |
+| Clientes | **Atención al cliente** (CRM omnicanal + ERP, sección 7-bis) | H | Bandeja con estados, colas, agentes, transferencia con resumen, bot de preguntas frecuentes, ruteo, copiloto por reglas, turnos, cobros con link fijo, CSAT/NPS, analíticas, alertas ERP y campañas asistidas. API de Meta, bot de Telegram para clientes, correo, links dinámicos con webhook, plantillas HSM e IA: D |
 | Equipo | Personal y fichaje, tareas y organigrama | H | Huellas: E (revisión legal) |
 | Menú y web | Menú público (local o tienda con envíos), legales, SEO | H | Cobro online y transportistas por API: D |
 | Inteligencia | Centro Inteligente (mapa del local, asistentes R2AVE, bot de Telegram para administradores) | H | Apagado en cliente hasta activarlo |
@@ -126,7 +126,9 @@ Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no c
 
 ## 7. SISTEMA DE EXPERIENCIA DE USO (UX) — obligatorio en todos los perfiles
 
-**7.1 Identidad.** Logo, iconografía y paleta del cliente se respetan. El **color de acento** (`--gold` u otro definido en la ficha) es el elemento jerárquico dominante (botón Vender, pestaña activa, foco) y **no cambia con el tema**.
+**7.0 Diseño aprobado (referencia visual del dueño).** Barra lateral oscura con el **botón dorado «Vender POS [F1]»** arriba y secciones plegables (Operación comercial · Logística e inventario · Clientes y Club · Equipo · Menú y web · Sistema); barra superior con **búsqueda global**, **campana de avisos** y **avatar** del usuario; Resumen que empieza con **«Hoy»**: Ventas hoy (con % contra ayer), Órdenes abiertas, Pedidos delivery, Stock alerta, Últimas ventas (POS) con estado, Tendencia de ventas de la semana (contra la semana anterior) y Proveedores pendientes. Atención al cliente sigue la referencia del CRM: lista de conversaciones con filtros y colas, conversación activa con barra Transferir · Notas internas · Etiquetar · Cerrar, columna derecha con ficha 360°, copiloto, gestión de turnos, gestión de cobros y reportes/fidelización, y abajo CRM Analytics y Alertas del ERP.
+
+**7.1 Identidad.** Logo, iconografía y paleta del cliente se respetan **siempre**; si el comercio no tiene marca definida, se usa una paleta de ejemplo atractiva para la venta (contraste AA verificado) y se reemplaza cuando la entregue. El **color de acento** (`--gold` u otro definido en la ficha) es el elemento jerárquico dominante (botón Vender, pestaña activa, foco) y **no cambia con el tema**.
 
 **7.2 Tema claro / oscuro / automático.** Un solo juego de estilos: el tema se aplica con un atributo en la raíz (`document.documentElement[data-theme]`) que cambia **sólo variables CSS** (`--ink`, `--bg`, `--card`, `--line`, `--mut`…). Prohibido duplicar hojas de estilo. Botón visible en la barra superior (Automático → Claro → Oscuro), preferencia guardada en `localStorage` (`rave.theme`). Cambio medido < 100 ms. Contraste mínimo 4,5:1 (3:1 letra grande) en ambos temas, verificado por prueba automática en todas las pantallas.
 
@@ -143,6 +145,35 @@ Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no c
 **7.7 Atajos visibles.** **F1 → Vender** desde cualquier pantalla (con la tecla impresa en la barra); dentro de Vender rigen F1–F12 (F1 Efectivo … F12 Cobrar), cada botón con su tecla. **Ctrl + K** impreso en el botón Buscar.
 
 **7.8 Ergonomía táctil.** Todo control ≥ 44 px (teclas del POS ≥ 48 px, teclado numérico ≥ 56 px), separación ≥ 8 px, nada depende sólo del mouse; campos numéricos sin «0» precargado; 320–1440 px sin desbordes.
+
+---
+
+## 7-bis. ATENCIÓN AL CLIENTE (CRM OMNICANAL + ERP INTEGRADO)
+
+**Nombre en pantalla: «Atención al cliente»** (sección Clientes). Sirve a cualquier rubro: comercio, gastronomía, spa, canchas y centros deportivos, profesionales, e-commerce. Permiso `crm`; roles: **Agente** (mostrador: ve sus chats y los sin asignar), **Supervisor** y **Administrador** (todas las colas, panel de supervisión, transferencias); Ajustes sólo con `config`.
+
+**Bloque 1 · Canales e inbox unificado.**
+- Estado real: chat web del menú público (cifrado de punta a punta: identificador y clave nacen en el celular del cliente; el servidor no lee nada), WhatsApp asistido (`wa.me` con texto listo + registro manual de lo recibido), teléfono y local. Las demos muestran además Instagram, Messenger, Telegram y correo **rotulados de demostración**.
+- Requiere cuentas del comercio [D]: WhatsApp Business API, Instagram Direct y Messenger por **Meta Graph API** (webhooks verificados, tokens en servidor), bot de Telegram para clientes, correo entrante. Tiempo real por **WebSockets/Realtime** cuando haya servidor; hoy se consulta cada 8 s.
+- Bandeja con filtros por **canal, estado (Nuevo · En proceso · Pendiente · Cerrado), agente y cola**, búsqueda, prioridad y **colas de espera** por departamento.
+
+**Bloque 2 · Acciones ERP en el chat.**
+- Presupuesto: se envía el detalle y se abre el **PDF** para guardarlo/adjuntarlo (WhatsApp asistido no adjunta solo); nuevo presupuesto lleva a Vender con el cliente cargado.
+- **Turnos**: reservar, confirmar, reprogramar y cancelar desde el chat, calendario de 7 días, choque de horario ±15 min, recordatorio 24–36 h.
+- **Cobros**: datos de transferencia y **link de pago fijo** del comercio (sólo https de Mercado Pago o Stripe). El link **por importe** y la confirmación automática por **webhook** que actualiza el pedido y factura necesitan credenciales y servidor [D]; hasta entonces «Llegó el pago» se confirma a mano y **no mueve la caja**.
+- **Ficha 360°** en el lateral: socio, nivel, sellos, saldo deudor, monedero, historial de compras y presupuestos, etiquetas y **notas internas** (el cliente nunca las ve).
+
+**Bloque 3 · Copiloto y automatización.** Por reglas, sin costo (IA paga: [D], opcional): respuestas sugeridas con datos del ERP (precio y stock del producto mencionado, deuda, datos de pago), **resumen automático al transferir** entre departamentos, **ánimo** del cliente (Positivo · Neutro · Urgente/enojado) que sube la prioridad, **bot de primer nivel** con preguntas frecuentes editables (responde una sola vez por tema, sólo en canales que admiten respuesta automática), **calificación de leads** y **ruteo** manual, por departamento según el tema o por turnos entre agentes (**round robin**).
+
+**Bloque 4 · Analíticas, alertas y crecimiento.**
+- Analíticas (sin datos personales, con fórmula visible): **FRT** (primera respuesta humana − primer mensaje), **AHT** (cierre − primer mensaje), **CSAT** (4–5 de 5 ÷ respuestas), **NPS** (% 9–10 − % 0–6), **conversión a venta** (venta del cliente en los 3 días siguientes) y ventas atribuidas, por canal, por día y por agente (panel de supervisión).
+- **Alertas del ERP**: stock crítico, deudas y pagos vencidos, presupuestos por vencer, cobros sin confirmar > 48 h, turnos sin confirmar.
+- **Campañas** segmentadas (con consentimiento comercial; el aviso de saldo es operativo), hasta 300 destinatarios, envío **asistido uno por uno**; plantillas **HSM** aprobadas por Meta para envío masivo automático: [D].
+- **Encuesta postventa** CSAT automática al cerrar un chat web; NPS a pedido.
+
+**Modelo de datos.** Equipo: colecciones `conv` (conversación: canal, cliente, estado, cola, agente, etiquetas, turnos, cobro, CSAT, NPS, marcas de tiempo; clave del chat cifrada) y `cmsg` (mensajes, notas y eventos; se escriben una vez; texto cifrado). Servidor (`22-crm.sql`): `crm_entrantes` (mensajes del cliente cifrados con la llave pública del comercio) y `crm_salientes` (respuestas cifradas con la clave del chat), RPC anónimas con límites por IP, chat y comercio, y RPC del equipo con rol. Equivalencia con el esquema relacional pedido: **Conversaciones** = `conv`; **Mensajes** = `cmsg` + `crm_entrantes`/`crm_salientes`; **Canales** = configuración `S.cfg.crm.chans` (+ tabla `crm_canales` con credenciales en servidor cuando se conecte Meta/Telegram) [E]; **Webhooks** = tabla de eventos con firma verificada e idempotencia [E, con proveedores]; **Alertas** = calculadas del ERP en vivo (no se duplican); **Métricas** = calculadas de `conv` (snapshot diario opcional [E]).
+
+**Componentes (frontend).** `p6j-crm.js`: bandeja (lista, filtros, colas), conversación (barra de acciones, mensajes, redacción con respuestas rápidas y nota interna), lateral (ficha 360°, copiloto, turnos, cobros, reportes), pestañas Analíticas · Campañas · Alertas ERP, ajustes. Menú público: botón «Escribinos» con encuestas CSAT (1–5) y NPS (0–10). Pruebas: `crm1.py`, `crm2.py`; SQL `30-sql-tests.sql`.
 
 ---
 
@@ -168,7 +199,7 @@ Scripts numerados, aditivos e idempotentes (`01`…`22` al 2026-11-09; `INSTALAR
 
 ## 11. CRITERIOS DE ACEPTACIÓN COMERCIAL
 
-1. Cualquier acción crítica (vender, cobrar, abrir/cerrar caja, buscar cliente o artículo, responder un mensaje) en **≤ 3 acciones** desde el inicio.
+1. Cualquier acción crítica (vender, cobrar, abrir/cerrar caja, buscar cliente o artículo, responder un mensaje, reservar un turno) en **≤ 3 acciones** desde el inicio; la pantalla respeta el diseño aprobado (7.0) y la marca del cliente.
 2. Cambio de tema **< 100 ms** con el acento de marca fijo y contraste AA en ambos temas.
 3. Navegación sin recargas ni saltos de diseño; pestañas y barra estables.
 4. Modo mostrador: ≤ 7 entradas en la barra.

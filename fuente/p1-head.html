@@ -241,6 +241,22 @@ html[data-theme=dark]{--selbg:#2f2921}
 .ux-pal input{width:100%;min-height:48px;font-size:1.05rem}#ux-res{max-height:55vh;overflow:auto;margin-top:.4rem}
 .ux-it{display:flex;gap:.6rem;align-items:center;min-height:48px;padding:.45rem .6rem;border-radius:10px;cursor:pointer}.ux-it:hover{background:var(--selbg,rgba(201,150,62,.12))}.ux-it.on{background:var(--selbg,rgba(201,150,62,.18));outline:2px solid var(--gold)}
 @media(prefers-reduced-motion:reduce){.ux-bd.pulse{animation:none}}
+
+/* V26.62 · diseño aprobado: Vender POS dorado, secciones plegables, búsqueda global, avisos, Resumen «Hoy» */
+:root{--crm-a:#a8261b;--crm-m:#7a4f00;--crm-n:#1d6234}[data-theme=dark]{--crm-a:#ff9b91;--crm-m:#f2c96b;--crm-n:#8fe0a2}@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--crm-a:#ff9b91;--crm-m:#f2c96b;--crm-n:#8fe0a2}}
+.crm-st{font-size:.72rem;font-weight:700;padding:.1rem .45rem;border-radius:999px;white-space:nowrap;border:1px solid currentColor}.crm-st-n{color:var(--crm-a)}.crm-st-p{color:var(--crm-n)}.crm-st-w{color:var(--crm-m)}.crm-st-c{color:var(--mut)}
+#side a.ux-pos-btn{background:var(--gold);color:#000;font-weight:800;min-height:50px;margin:.2rem 0 .6rem;justify-content:flex-start;box-shadow:0 4px 14px rgba(201,150,62,.25)}
+#side a.ux-pos-btn .ux-kbd{border-color:#000}#side a.ux-pos-btn.on{outline:3px solid #f3d79c;outline-offset:1px}
+.ux-sec{display:flex;width:100%;align-items:center;gap:.4rem;min-height:44px;background:none;border:0;color:#d8d1c3;font:600 .82rem inherit;text-transform:none;letter-spacing:.2px;padding:.3rem .7rem;margin-top:.35rem;cursor:pointer;border-radius:10px;text-align:left}
+.ux-sec:hover{background:rgba(255,255,255,.05)}.ux-sec .ux-chev{transition:transform .15s}.ux-sec[aria-expanded=false] .ux-chev{transform:rotate(-90deg)}
+.ux-sec-b a{padding-left:1.1rem!important}.ux-sec-top a{padding-left:.7rem!important}
+.ux-search{display:inline-flex;align-items:center;gap:.45rem;min-height:44px;min-width:min(260px,40vw);padding:.35rem .7rem;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--mut);cursor:pointer;font:inherit}
+.ux-search .ux-sph{flex:1;text-align:left}@media(max-width:700px){.ux-search{min-width:0}.ux-search .ux-sph{display:none}}
+.ux-bell{position:relative}.ux-bell .ux-bd{position:absolute;top:-6px;right:-6px}
+.ux-av{display:inline-flex;align-items:center;gap:.4rem}.ux-av-i{width:32px;height:32px;border-radius:50%;background:var(--gold);color:#1b1100;display:inline-flex;align-items:center;justify-content:center;font-weight:800}
+.ux-today{margin:0 0 1.2rem}.ux-k span{font-size:.85rem;color:var(--mut)}.ux-k b{font-size:1.7rem;color:var(--gold2)}.ux-k small{color:var(--mut)}[data-theme=dark] .ux-k b{color:var(--gold)}
+.ux-today-g{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:.8rem;margin-top:.8rem}@media(max-width:900px){.ux-today-g{grid-template-columns:minmax(0,1fr)}}
+.ux-last{list-style:none;padding:0;margin:0;max-height:360px;overflow:auto}.ux-last li{display:flex;justify-content:space-between;gap:.5rem;align-items:center;padding:.45rem 0;border-bottom:1px solid var(--line)}
 </style>
 </head>
 <body>

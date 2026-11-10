@@ -416,6 +416,7 @@
     function paint(keep){var s=API.chatState();var greet=API.chatGreet()||L('¡Hola! Escribinos y te respondemos por acá.','Hi! Write to us and we will answer here.');
       var msgs=s?s.msgs:[];var th='<div class="m out">'+esc(greet)+'</div>'+msgs.map(function(m){return '<div class="m '+(m.d==='in'?'in':m.d==='sys'?'sys':'out')+'">'+esc(m.x)+(m.d!=='sys'?'<small>'+(m.d==='out'&&m.u?esc(m.u)+' · ':'')+new Date(m.ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})+'</small>':'')+'</div>';}).join('');
       if(s&&s.csat) th+='<div class="m sys">'+L('¿Cómo te atendimos?','How did we do?')+'</div><div class="cs">'+[1,2,3,4,5].map(function(v){return '<button type="button" data-cs="'+v+'" aria-label="'+v+' de 5">'+v+'★</button>';}).join('')+'</div>';
+      if(s&&s.nps) th+='<div class="m sys">'+L('Del 0 al 10, ¿nos recomendarías?','From 0 to 10, would you recommend us?')+'</div><div class="cs" style="flex-wrap:wrap">'+[0,1,2,3,4,5,6,7,8,9,10].map(function(v){return '<button type="button" data-np="'+v+'" aria-label="'+v+' de 10">'+v+'</button>';}).join('')+'</div>';
       var draft=keep&&box.querySelector('#rv-ct')?box.querySelector('#rv-ct').value:'';
       box.innerHTML='<header><span aria-hidden="true">💬</span><b>'+L('Escribinos','Chat with us')+'</b><button type="button" data-x aria-label="'+L('Cerrar','Close')+'">×</button></header><div class="th" aria-live="polite">'+th+'</div>'+
        '<form novalidate>'+(s?'':'<input id="rv-cn" maxlength="60" autocomplete="name" placeholder="'+L('Tu nombre','Your name')+'" aria-label="'+L('Tu nombre','Your name')+'"><input id="rv-cw" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="'+L('WhatsApp (opcional)','WhatsApp (optional)')+'" aria-label="WhatsApp">')+
@@ -426,7 +427,8 @@
     function show(v){open=v;box.style.display=v?'flex':'none';fab.style.display=v?'none':(API.chatOn()?'flex':'none');clearInterval(timer);
       if(v){paint();poll();timer=setInterval(poll,8000);var f=box.querySelector(API.chatState()?'#rv-ct':'#rv-cn');if(f)f.focus();}else{timer=setInterval(poll,60000);}}
     box.addEventListener('click',function(e){if(e.target.closest('[data-x]')){show(false);fab.focus();return;}
-      var c=e.target.closest('[data-cs]');if(c){API.chatCsat(+c.dataset.cs).then(function(r){if(r&&r.ok)paint(true);else toast((r&&r.msg)||L('No se pudo enviar.','Could not send.'));});}});
+      var c=e.target.closest('[data-cs]');if(c){API.chatCsat(+c.dataset.cs).then(function(r){if(r&&r.ok)paint(true);else toast((r&&r.msg)||L('No se pudo enviar.','Could not send.'));});}
+      var n=e.target.closest('[data-np]');if(n&&API.chatNps){API.chatNps(+n.dataset.np).then(function(r){if(r&&r.ok)paint(true);else toast((r&&r.msg)||L('No se pudo enviar.','Could not send.'));});}});
     box.addEventListener('keydown',function(e){if(e.key==='Escape'){show(false);fab.focus();}});
     box.addEventListener('submit',function(e){e.preventDefault();var ta=box.querySelector('#rv-ct'),er=box.querySelector('.err'),b=box.querySelector('.snd');var n=box.querySelector('#rv-cn'),w=box.querySelector('#rv-cw');
       b.disabled=true;er.textContent='';API.chatSend(ta.value,n?n.value:'',w?w.value:'').then(function(r){b.disabled=false;if(!r||!r.ok){er.textContent=(r&&r.msg)||L('No se pudo enviar.','Could not send.');return;}ta.value='';paint();}).catch(function(){b.disabled=false;er.textContent=L('No se pudo enviar.','Could not send.');});});
