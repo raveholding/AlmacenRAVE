@@ -195,3 +195,28 @@ const uxAfterBase=uxAfter;
 uxAfter=function(id){uxAfterBase(id);try{const v=$('#view');const row=[...v.children].find(x=>x.querySelector&&(x.matches('h1')||x.querySelector(':scope > h1')));
  const ins=(html)=>{if(!html)return;if(row)row.insertAdjacentHTML('afterend',html);else v.insertAdjacentHTML('afterbegin',html);};
  ins(uxCashHero(id));ins(uxDescHTML(id));v.classList.remove('ux-in');void v.offsetWidth;v.classList.add('ux-in');}catch(e){}};
+
+/* ---------- V26.65 · navegador de secciones en pantallas largas (Configuración, Menú público, Integraciones, Periféricos…) ----------
+   Arriba de la pantalla: buscador «¿Qué querés configurar?» que filtra las tarjetas por su texto (sin tildes) y una fila de
+   accesos fija con cada sección («Todas» primero). Nada se esconde al entrar: por defecto se ven todas, así que nada deja de
+   funcionar. La sección elegida y la búsqueda se recuerdan mientras se use la pantalla (también después de guardar). */
+const uxNavState={};
+const uxNorm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+function uxSecCards(v){const out=[];[...v.children].forEach(c=>{if(c.id==='ux-secnav')return;if(c.classList.contains('card')&&c.querySelector('h2,h3'))out.push(c);else if(c.classList.contains('grid'))[...c.children].forEach(k=>{if(k.classList&&k.classList.contains('card')&&k.querySelector('h2,h3'))out.push(k);});});return out;}
+function uxSecApply(id){const v=$('#view');if(!v)return;const st=uxNavState[id]||{sec:'all',q:''};const cards=uxSecCards(v);const q=uxNorm(st.q).trim();let shown=0;
+ cards.forEach((c,i)=>{const okS=st.sec==='all'||st.sec===String(i);const okQ=!q||q.split(/\s+/).every(w=>uxNorm(c.textContent).includes(w)||[...c.querySelectorAll('input,select,textarea')].some(x=>uxNorm(x.placeholder||x.value||'').includes(w)));const vis=okS&&okQ;c.classList.toggle('ux-hid',!vis);if(vis)shown++;});
+ [...v.children].forEach(c=>{if(c.classList&&c.classList.contains('grid')&&c.querySelector(':scope>.card')){const any=[...c.children].some(k=>!k.classList.contains('ux-hid'));c.classList.toggle('ux-hid',!any);}});
+ const nav=$('#ux-secnav');if(!nav)return;nav.querySelectorAll('[data-sec]').forEach(b=>{const on=b.dataset.sec===st.sec;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');});
+ const r=$('#ux-sec-res');if(r)r.textContent=(q||st.sec!=='all')?(shown?shown+' de '+cards.length+' secciones':'No hay opciones con «'+st.q+'». Probá con otra palabra.'):cards.length+' secciones';}
+function uxSecBuild(){const v=$('#view');if(!v||!curScreen)return;const id=curScreen;const cards=uxSecCards(v);const old=$('#ux-secnav');
+ if(cards.length<5||id==='crm'||id==='centro'){if(old)old.remove();return;}
+ const sig=id+'|'+cards.map(c=>(c.querySelector('h2,h3').textContent||'').trim()).join('|');if(old&&old.dataset.sig===sig){uxSecApply(id);return;}if(old)old.remove();
+ const st=uxNavState[id]||(uxNavState[id]={sec:'all',q:''});
+ const chips=cards.map((c,i)=>{const t=(c.querySelector('h2,h3').textContent||'').replace(/\s+/g,' ').trim();return `<button type="button" class="ux-chip" data-sec="${i}" title="${esc(t)}">${esc(t.length>34?t.slice(0,32)+'…':t)}</button>`;}).join('');
+ const nav=document.createElement('div');nav.id='ux-secnav';nav.dataset.sig=sig;nav.setAttribute('role','search');
+ nav.innerHTML=`<div class="ux-secq"><label for="ux-sec-q" class="sr-only">Buscar en esta pantalla</label><input id="ux-sec-q" type="search" autocomplete="off" placeholder="¿Qué querés configurar? Ej.: ticket, alias, cuotas, horario…" value="${esc(st.q)}"><span id="ux-sec-res" class="sm mut" aria-live="polite"></span></div><div class="ux-chips" role="group" aria-label="Secciones de esta pantalla"><button type="button" class="ux-chip" data-sec="all">Todas</button>${chips}</div>`;
+ const first=[...v.children].find(c=>c.classList&&(c.classList.contains('card')||c.classList.contains('grid')||c.classList.contains('warnbox')));v.insertBefore(nav,first||null);
+ nav.addEventListener('click',e=>{const b=e.target.closest('[data-sec]');if(!b)return;st.sec=b.dataset.sec;uxSecApply(id);if(st.sec!=='all'){const c=uxSecCards(v)[+st.sec];if(c){c.classList.add('ux-flash');setTimeout(()=>c.classList.remove('ux-flash'),900);}}window.scrollTo({top:Math.max(0,v.getBoundingClientRect().top+window.scrollY-70),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});});
+ const q=nav.querySelector('#ux-sec-q');q.addEventListener('input',()=>{st.q=q.value;if(st.q)st.sec='all';uxSecApply(id);});q.addEventListener('keydown',e=>{if(e.key==='Escape'){q.value='';st.q='';uxSecApply(id);}});
+ uxSecApply(id);}
+(()=>{let t=0;const mo=new MutationObserver(m=>{if(m.every(r=>r.target.closest&&r.target.closest('#ux-secnav')))return;clearTimeout(t);t=setTimeout(uxSecBuild,60);});const hook=()=>{const v=document.getElementById('view');if(v)mo.observe(v,{childList:true});else setTimeout(hook,300);};hook();})();

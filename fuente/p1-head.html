@@ -314,6 +314,17 @@ html[data-theme=dark]{--selbg:#2f2921}
 .hk-pin{display:flex;flex-direction:column;align-items:center;gap:.8rem}.hk-dots{display:flex;gap:.8rem}.hk-dots i{width:22px;height:22px;border-radius:50%;border:2px solid var(--ink)}.hk-dots i.on{background:var(--ink)}
 .hk-pad{display:grid;grid-template-columns:repeat(3,88px);gap:.6rem}.hk-pad button{min-height:72px;font-size:1.8rem;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
 @media(max-width:760px){.hr-kb{grid-template-columns:repeat(6,minmax(150px,1fr))}.hk-pad{grid-template-columns:repeat(3,72px)}}
+
+/* V26.65 · navegador de secciones */
+#ux-secnav{position:sticky;top:0;z-index:5;background:var(--bg,var(--card));padding:.55rem 0 .5rem;margin:0 0 1rem;border-bottom:1px solid var(--line)}
+.ux-secq{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}.ux-secq input{flex:1 1 260px;min-width:0;min-height:44px;font-size:1rem}
+.ux-chips{display:flex;gap:.4rem;overflow-x:auto;padding:.5rem 0 .1rem;scrollbar-width:thin}
+.ux-chip{flex:0 0 auto;min-height:44px;padding:.35rem .8rem;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;font:inherit;font-size:.9rem;white-space:nowrap}
+.ux-chip:hover,.ux-chip:focus-visible{border-color:var(--gold);outline:none}.ux-chip.on{background:var(--gold);border-color:var(--gold);color:#000;font-weight:600}
+.ux-hid{display:none!important}.ux-flash{box-shadow:0 0 0 3px var(--gold)!important;transition:box-shadow .3s}
+.sr-only{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(max-width:900px){#ux-secnav{position:static}}
+.hr-off{max-width:760px;border-left:6px solid var(--gold)}
 </style>
 </head>
 <body>
