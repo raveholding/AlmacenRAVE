@@ -153,6 +153,7 @@ function alerts(d){const A=[];const t=nowT();const tn=(S.tenant&&S.tenant.name)|
  if(dv.length)add({key:'dev:'+dv.map(x=>x.id).join(','),pri:'importante',by:'m2argoth',orig:'Periféricos',tit:dv.length+' dispositivo(s) desconectado(s)',ev:dv.map(x=>E(x.name)).join(', '),rec:'Revisar el cable o la conexión y reconectar.',resp:'Mostrador',go:'dispositivos'});
  const py=(S.integ&&S.integ.pya&&S.integ.pya.on?(S.pya||[]):[]).filter(o=>o.status==='recibido');
  if(py.length)add({key:'pya:'+py.length,pri:'info',by:'t2uluz',orig:'Despacho',tit:py.length+' pedido(s) de PedidosYa sin preparar',ev:py.slice(0,5).map(o=>E(o.ref)).join(', '),rec:'Preparar y marcar el estado en Pedidos.',resp:'Despacho',go:'pedidos'});
+ if(typeof window.secAlertsForCI==='function')window.secAlertsForCI().forEach(a=>add(a));   /* V26.46: seguridad (sólo raveV3) */
  return A.sort((a,b)=>PRI[a.pri].o-PRI[b.pri].o||b.ts-a.ts);}
 CI.r2.alerts=()=>CI.safe(()=>alerts(CI.data()),[],'alertas');
 

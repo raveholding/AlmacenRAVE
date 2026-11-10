@@ -1,6 +1,6 @@
 # SISTEMA VB · PROMPT DE VERSIÓN — DEMO «CON ASISTENTES INTELIGENTES SVB R2AVE» (repositorio `raveV3`)
 
-**Versión:** V26.44 · 2026-11-02 · **Producto:** SISTEMA VB de **VINCULAR BUSINESS** · **Publicación:** `https://raveholding.github.io/raveV3/`
+**Versión:** V26.63 · 2026-11-10 · **Producto:** SISTEMA VB de **VINCULAR BUSINESS** · **Publicación:** `https://raveholding.github.io/raveV3/`
 **Para qué es:** la demo «como Almacén RAVE» (rubros por persona, socios, reparto y cierre por rubro, Club, mayorista/minorista) **más el Centro Inteligente con el equipo oficial SVB R2AVE** y su centro de operaciones vivo. Acá se desarrolla y se prueba todo lo de asistentes antes de decidir si se lleva a Almacén RAVE.
 
 > Los requisitos de cada módulo están en el prompt maestro genérico `SISTEMA_VB_26F.md`. Este prompt agrega lo propio de esta versión: el equipo SVB R2AVE (especificación del 2026-11-01), el **centro inteligente vivo** (especificación del 2026-11-02) y el **principio rector de integridad**, que manda sobre todo lo demás. Si hay conflicto, el orden es: **principio rector → este prompt → maestro**.
@@ -127,12 +127,62 @@ Jerarquía: dueño → R2AVE → M2ARGOTH, T2ULUZ y S2HAKIRA. El dueño tiene si
 
 Detalle completo en el **Anexo P** del maestro.
 
+## 4b. Seguridad integrada al sistema de gestión (V26.63, sólo raveV3)
+
+Pedido del dueño (2026-11-10): integrar el «Sistema Vincular Business — Soluciones de Seguridad» (cámaras, accesos, timbre/portero, pánico y coacción) **dentro** del sistema de gestión, unido a la caja, el turno y la venta. Se construyó en `fuente/p11-seguridad.js` (sólo entra en la compilación `v3`), pantalla **Equipo → Seguridad**.
+
+**Qué es real en la demo:**
+- Reglas de acceso por grupo × puerta × horario.
+- Credenciales firmadas con HMAC-SHA-256 y una llave por comercio, y validación en la terminal de acceso: firma, vigencia, persona activa, puerta, horario y usos.
+- Credenciales **heredadas**: el personal activo y los socios del Club con membresía activa tienen acceso sin carga manual. Si alguien queda inactivo o le vence la membresía, su QR deja de abrir en el acto.
+- Pases temporales para visitas y proveedores: máximo 7 días, de 1 a 20 usos, revocables.
+- **Pánico silencioso** en Vender: botón «Asistencia» que se mantiene 2 segundos, o Ctrl+Alt+P. No muestra nada en la caja.
+- **PIN de coacción por usuario** (sin un 9999 fijo): entra como siempre y registra `CRITICAL_DURESS_EVENT`. Se guarda sólo la huella y se rechazan los PIN obvios.
+- **Foto de evidencia**, sólo si el permiso de cámara ya estaba dado. El navegador muestra su indicador.
+- La **cámara de este equipo** con detección de movimiento sostenido (8 s).
+- Avisos flotantes, sólo para lo crítico y el timbre, que nunca muestran el pánico ni la coacción.
+- «Recibido» en cada alerta.
+- Registro unificado: cada evento queda en la auditoría encadenada con la caja, el turno, el usuario y la última venta. Exportación CSV con fórmulas neutralizadas.
+- M2ARGOTH, el guardián del Centro Inteligente, recibe las alertas sin atender.
+- Permisos nuevos: `sec_view`, `sec_doors` y `sec_admin`. El mostrador no ve el módulo.
+
+**Qué es simulación (rotulado en pantalla):** las 4 cámaras IP de la grilla 2×2, los relés de las puertas, el timbre y la puerta forzada.
+
+**Qué NO está y por qué:**
+- **Cámaras IP:** un navegador no puede abrir RTSP. Hace falta un **gateway de video** local (RTSP → WebRTC) con usuario por comercio. La clave de la cámara nunca llega al navegador.
+- **Relés y porteros (ESP32 / placa de relés):** hace falta un **gateway local** (MQTT o puerto serie → servidor) que firme cada apertura.
+- **Avisos a otros equipos y al celular del supervisor:** necesitan la nube (WebSocket o Realtime). La demo no tiene nube: el pánico queda registrado en este equipo.
+- **Reconocimiento facial y huellas:** no implementados. Son datos biométricos sensibles y requieren revisión legal previa (6.7) [VERIFICAR Ley 25.326].
+- **Electron o Tauri:** el instalador de Windows actual abre el sistema en una ventana propia del navegador; un empaquetado nativo es una etapa aparte.
+- **Esquema de base de datos:** `supabase/propuestas/S1-seguridad-esquema.sql` es una **propuesta**. No está en `INSTALAR-TODO.sql` ni aplicada en ningún proyecto. Incluye:
+  - Las tablas `seg_dispositivos`, `seg_reglas`, `seg_pases`, `seg_eventos` (sólo-agregar, con hora del servidor y cadena de hash), `seg_recibidos` y `seg_coaccion` (huella que nadie lee).
+  - RLS por comercio y rol.
+  - Las funciones `seg_registrar_evento`, `seg_usar_pase` y `seg_coaccion_coincide`.
+  - Probado sólo en Postgres local, aplicado dos veces: `S1-seguridad-tests.sql` da 23 de 23.
+
+**Correcciones al pedido original (regla 2 del maestro):**
+- **PIN de coacción:** un «9999» fijo no protege si todos lo conocen; cada usuario configura el suyo.
+- **Foto de evidencia:** no puede ser invisible porque el navegador muestra el indicador de cámara.
+- **«Cifrado de extremo a extremo» del video:** lo da el gateway con WebRTC (DTLS-SRTP), no el navegador sobre RTSP.
+- **Botón de pánico:** se mantiene presionado 2 segundos para evitar disparos accidentales.
+- **Stack:** el sistema ya funciona con Supabase (Postgres, RLS y funciones). Se propone el gateway local como pieza nueva en lugar de un segundo backend Node que duplique la autoridad.
+
+**Prueba `sg1.py` (52 verificaciones):**
+- Cámaras: menú; grilla 2×2; simulaciones rotuladas; cámara real y detección de movimiento con una cámara falsa del navegador.
+- Credenciales: válida, alterada, de otro comercio, vencida, empleado inactivo, fuera de horario, número de tarjeta pegado, socio con y sin membresía, socio sin permiso en el depósito.
+- Pases: emitir, usar, no reutilizar, revocar.
+- Puertas: timbre y apertura desde el aviso, puerta forzada en Vender, «Recibido».
+- Pánico: un toque corto no dispara; mantener 2 s sí; silencioso; `CRITICAL_DURESS_EVENT` con la caja; Ctrl+Alt+P.
+- PIN de coacción: 9999 y el PIN normal se rechazan; se guarda la huella; el ingreso bajo coacción no muestra nada en pantalla; el PIN normal no registra coacción; el supervisor ve el evento.
+- Integración y forma: M2ARGOTH recibe la alerta, el CSV sale neutralizado, 390 px sin desborde, botones de 44 px.
+- Aislamiento: las otras versiones (raveV2, Kini, Almacén RAVE y la demo interna) no llevan el módulo.
+
 ## 5. Compilar, probar y publicar
 
 ```bash
 cd AlmacenRAVE/fuente           # rama centro-r2ave
 python3 build.py v3 /tmp/rave/v3.html && rm -f all.js
-cd pruebas && python3 vv1.py && python3 ci6.py     # 43 + 63 verificaciones del equipo y del centro vivo
+cd pruebas && python3 vv1.py && python3 ci6.py && python3 sg1.py   # 43 + 63 + 52 (equipo, centro vivo y seguridad)
 # regresión: ci1–ci5 v1 v2 v4–v7 d1 p1 ws1 h1 h3 g1–g3 k1–k4 kc1 kn2 kn3 resp4 pq1 sv1
 cp /tmp/rave/v3.html ../../../ravev3/index.html     # commit y push en raveV3
 ```
@@ -166,4 +216,5 @@ Qué cubre `vv1`:
 - **Resuelto en V26.44:** los «diez asistentes» y QUANTUM salen de la imagen guía. **Pendiente:** la imagen tiene una figura extra (encapuchada, entre NÉBULA y R2AVE) con el rótulo ilegible «NÉRULA / Investing», que sería el integrante número 11. No se agregó: el dueño tiene que decir si es un error del dibujo o un integrante más (nombre, rol e imagen).
 - **Funciones de los especialistas:** hoy sólo consultan. Si el dueño quiere que alguno haga algo (por ejemplo, NÉBULA enviando promociones), hace falta la autorización, la integración real (WhatsApp Business o correo) y pruebas.
 - **Modelos 3D reales con esqueleto:** los puntos 2 y 3 de la sección 3.
-- **Llevar R2AVE y el centro vivo a Almacén RAVE:** sólo con la demostración aprobada en raveV3.
+- **Llevar R2AVE y el centro vivo a Almacén RAVE:** aprobado y hecho en V26.45.
+- **Seguridad (V26.63):** sólo en raveV3. Para pasar a producción hacen falta: marca y modelo de las cámaras (con RTSP u ONVIF), la placa de relés (ESP32 u otra) y los porteros; dónde corre el gateway local (una PC del local o una placa); la aplicación del esquema S1 en la nube con autorización; y la revisión legal de la foto de evidencia y la conservación de las grabaciones.
