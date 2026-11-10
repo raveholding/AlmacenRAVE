@@ -117,7 +117,8 @@ Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no c
 | Clientes | **Club** (pestañas): Clientes · Sellos · Niveles y cumpleaños · Monedero · Cupones y membresías | H | Tarjeta digital a pantalla completa (alternativa a Wallet), sellos por QR/código/DNI/NFC, gift cards, cashback, ruleta/trivia |
 | Clientes | Datos para facturar (condición frente al IVA) con precarga en el cobro | H | |
 | Clientes | **Atención al cliente** (CRM omnicanal + ERP, sección 7-bis) | H | Bandeja con estados, colas, agentes, transferencia con resumen, bot de preguntas frecuentes, ruteo, copiloto por reglas, turnos, cobros con link fijo, CSAT/NPS, analíticas, alertas ERP y campañas asistidas. API de Meta, bot de Telegram para clientes, correo, links dinámicos con webhook, plantillas HSM e IA: D |
-| Equipo | Personal y fichaje, tareas y organigrama | H | Huellas: E (revisión legal) |
+| Equipo | Personal y fichaje, tareas y organigrama | H | |
+| Equipo | **Recursos Humanos** con Plan Micro (≤ 10 legajos activos) / Plan Completo (11 o más), sección 7-ter | H | Rostro y huella: D (dispositivo + revisión legal); firma digital legal, WhatsApp Business API, recibo de haberes legal y archivos oficiales de bancos/ministerios: D |
 | Menú y web | Menú público (local o tienda con envíos), legales, SEO | H | Cobro online y transportistas por API: D |
 | Inteligencia | Centro Inteligente (mapa del local, asistentes R2AVE, bot de Telegram para administradores) | H | Apagado en cliente hasta activarlo |
 | Sistema | Nube y sincronización, periféricos y ticket, importar/exportar (CSV/XLSX real), integraciones, usuarios y permisos, auditoría, configuración | H | |
@@ -183,6 +184,24 @@ Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no c
 **Modelo de datos.** Equipo: colecciones `conv` (conversación: canal, cliente, estado, cola, agente, etiquetas, turnos, cobro, CSAT, NPS, marcas de tiempo; clave del chat cifrada) y `cmsg` (mensajes, notas y eventos; se escriben una vez; texto cifrado). Servidor (`22-crm.sql`): `crm_entrantes` (mensajes del cliente cifrados con la llave pública del comercio) y `crm_salientes` (respuestas cifradas con la clave del chat), RPC anónimas con límites por IP, chat y comercio, y RPC del equipo con rol. Equivalencia con el esquema relacional pedido: **Conversaciones** = `conv`; **Mensajes** = `cmsg` + `crm_entrantes`/`crm_salientes`; **Canales** = configuración `S.cfg.crm.chans` (+ tabla `crm_canales` con credenciales en servidor cuando se conecte Meta/Telegram) [E]; **Webhooks** = tabla de eventos con firma verificada e idempotencia [E, con proveedores]; **Alertas** = calculadas del ERP en vivo (no se duplican); **Métricas** = calculadas de `conv` (snapshot diario opcional [E]).
 
 **Componentes (frontend).** `p6j-crm.js`: bandeja (lista, filtros, colas), conversación (barra de acciones, mensajes, redacción con respuestas rápidas y nota interna), lateral (ficha 360°, copiloto, turnos, cobros, reportes), pestañas Analíticas · Campañas · Alertas ERP, ajustes. Menú público: botón «Escribinos» con encuestas CSAT (1–5) y NPS (0–10). Pruebas: `crm1.py`, `crm2.py`; SQL `30-sql-tests.sql`.
+
+---
+
+## 7-ter. RECURSOS HUMANOS (PLAN MICRO / PLAN COMPLETO)
+
+**Pantalla «Recursos Humanos»** (sección Equipo, permiso `hr`; tablero con `hr_dash`, aprobaciones con `hr_approve`, portal con `portal`). Convive con «Personal y fichaje» (mismos legajos y fichadas: no hay una segunda base de empleados). Apagado por defecto en el cliente; completo con datos «ejemplo» en las demos.
+
+**Plan por cantidad de legajos activos (sin configuración manual).** `hrTier()`: 0–10 activos = **Plan Micro**; 11 o más = **Plan Completo**. El **único disparador** es el cambio de estado de un legajo (alta, baja, reactivación); cada transición queda en `hrPlanLog` (colección `hrplan`, sólo-agregar) y en auditoría `RRHH_PLAN` para facturar. Middleware `hrHas(f)` / `hrNeed(f)`: las funciones del Plan Completo se bloquean **en la acción**, no sólo ocultando botones (en la pantalla se ven con candado y explicación).
+
+**Fichaje omnicanal (configurable por modalidad).** PIN de 4 dígitos en **modo kiosco** (terminal compartida, sin correo por persona; 5 PIN incorrectos bloquean 5 minutos y se audita; salida con PIN de administrador), **QR** estático o dinámico (código de 6 cifras que rota, lector USB o cámara), **NFC** (Web NFC, Chrome Android), **celular con geocerca** (ubicación del navegador y radio configurable). Repetidas en 60 s se rechazan. **Rostro y huella:** adaptador preparado, **pendiente de dispositivo y revisión legal** (datos biométricos): nunca se simulan. **Wi-Fi local:** el navegador no puede leer la red; se declara el límite (alternativa: geocerca o IP desde servidor, [E]).
+
+**Plan Micro:** kiosco, legajo esencial (datos, contacto de emergencia, documentación digitalizada), calendario de turnos y licencias, **reporte de horas y ausencias para el contador** (CSV, impresión y envío asistido), tablero, alertas y avisos. Sin portal ni nómina avanzada.
+
+**Plan Completo (además):** **portal del empleado** (rol `empleado`: ve su fichaje, recibos internos, solicitudes y justificantes), **aprobaciones en varios niveles** configurables (Supervisor → RR. HH. → Administración), **nómina interna** (horas, extras con factor configurable, domingo, tardanzas, ausencias, comisiones, deducciones; liquidación cerrada como foto, rectificable; CSV para el contador y archivo genérico para el banco — no reemplaza el recibo de haberes legal ni el Libro de Sueldos Digital: todo [VERIFICAR] con el contador y el convenio), **gestión documental** con vencimientos de contratos y conformidad electrónica con huella SHA-256 (no es firma digital legal), entregas de uniformes y herramientas, **reclutamiento (Kanban)** y **vacaciones** con saldo por antigüedad (tabla editable [VERIFICAR]).
+
+**Analítica, alertas y comunicación:** tablero (ausentismo, rotación, horas y extras, tardanzas, productividad como ventas por hora trabajada y costo de personal por área estimado) sólo con `hr_dash`; alertas por vencimientos, contratos por finalizar, fichadas incompletas y desvíos; **avisos al personal** internos y por **WhatsApp asistido** (`wa.me`, cada envío lo confirma una persona; WhatsApp Business API: [D]).
+
+**Datos y nube** (`23-rrhh.sql`): colecciones `hrshift`, `hrreq`, `hrdoc` (sólo la descripción: el archivo queda en el equipo y el respaldo), `hrpay`, `hrjob`, `hrcand` (datos del candidato cifrados), `hritem`, `hrmsg` y `hrplan` (sólo-agregar). Del legajo viajan cifrados PIN, DNI, clave de la credencial QR/NFC, CBU, teléfono, domicilio y contacto de emergencia. Escriben: administrador todo; supervisor turnos, solicitudes y avisos; mostrador y operador nada. Pruebas `hr1.py` y `31-sql-tests.sql`.
 
 ---
 

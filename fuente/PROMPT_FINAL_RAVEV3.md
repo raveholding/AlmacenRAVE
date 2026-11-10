@@ -51,6 +51,11 @@ Todo lo de raveV2 (completo) **más**: multisucursal y tesorería con traspasos 
 
 **Atención al cliente** completa (canales de demostración rotulados, colas por departamento Ventas · Soporte · Cobranzas, turnos, cobros con link fijo validado, CSAT/NPS, analíticas, alertas ERP, campañas asistidas) con mensajes de ejemplo genéricos (sin productos de rubro chico).
 
+
+## Recursos Humanos (V26.64)
+
+Módulo de la sección 7-ter del esqueleto. **En esta demo: Plan Completo** (14 legajos activos de ejemplo): portal del empleado, aprobaciones Supervisor → RR. HH. → Administración, nómina interna, documentos con vencimientos, reclutamiento Kanban, vacaciones y tablero por área. El plan lo decide sola la cantidad de legajos activos (0–10 Micro, 11 o más Completo); el botón «+ Personal de ejemplo» / «Dar de baja el de ejemplo» de la pestaña *Plan y resumen* muestra la transición automática. Fichaje en kiosco con PIN (bloqueo tras 5 intentos), QR, NFC y geocerca; rostro y huella figuran como **pendientes de dispositivo y revisión legal**. Usuario de prueba del portal del empleado: **Empleado (portal) · 2222**. Nómina, firma y archivos bancarios son internos y se rotulan [VERIFICAR] (no reemplazan el recibo legal ni la firma digital).
+
 ## 5. Diseño
 
 Sección 7 del esqueleto completa (barra oscura, «Vender POS [F1]» azul con letra negra, Ctrl + K, campana, avatar, pestañas, línea de ayuda por pantalla, **tablero del turno** en caja con estado, 4 pasos e indicadores, tablas con encabezado fijo, transición suave, tema claro/oscuro, ≥ 44 px, 320–1440 px). El Centro Inteligente conserva su estética oscura con el acento azul claro.

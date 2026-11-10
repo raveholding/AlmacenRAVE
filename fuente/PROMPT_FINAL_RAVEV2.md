@@ -48,6 +48,11 @@ Resumen «Hoy» · Vender (F1–F12, pagos mixtos, cuenta corriente) · PedidosY
 
 No lleva: socios ni rubros por persona, cierre por rubro, Centro Inteligente ni asistentes R2AVE (eso es raveV3), nada de Almacén RAVE.
 
+
+## Recursos Humanos (V26.64)
+
+Módulo de la sección 7-ter del esqueleto. **En esta demo: Plan Micro** (1 legajos activos de ejemplo) — el visitante ve con candado qué suma el Plan Completo. El plan lo decide sola la cantidad de legajos activos (0–10 Micro, 11 o más Completo); el botón «+ Personal de ejemplo» / «Dar de baja el de ejemplo» de la pestaña *Plan y resumen* muestra la transición automática. Fichaje en kiosco con PIN (bloqueo tras 5 intentos), QR, NFC y geocerca; rostro y huella figuran como **pendientes de dispositivo y revisión legal**. Usuario de prueba del portal del empleado: **Empleado (portal) · 2222**. Nómina, firma y archivos bancarios son internos y se rotulan [VERIFICAR] (no reemplazan el recibo legal ni la firma digital).
+
 ## 5. Diseño (sección 7 del esqueleto, obligatoria)
 
 Barra lateral oscura con «Vender POS [F1]» en el acento, secciones plegables, búsqueda global Ctrl + K, campana y avatar; pestañas en Caja y Club; **línea de ayuda** debajo de cada título; **tablero del turno** en caja (estado, 4 pasos, indicadores, acción principal); tarjetas con relieve, tablas con encabezado fijo y filas alternadas, transición suave; tema claro/oscuro/automático; ≥ 44 px; 320–1440 px sin desbordes.

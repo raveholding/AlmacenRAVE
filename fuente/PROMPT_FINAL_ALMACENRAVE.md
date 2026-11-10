@@ -44,6 +44,11 @@ Apagados hasta que el administrador los active: **Atención al cliente** (chat w
 
 **Pendiente de verificar con el dueño:** que `22-crm.sql` esté aplicado en Supabase antes de encender el chat web en la nube (consulta de control: existencia de `crm_entrantes` y de la función `crm_web_enviar`). Sin ese script el resto del sistema funciona igual.
 
+
+## Recursos Humanos (V26.64)
+
+Módulo de la sección 7-ter del esqueleto, **apagado** hasta que el administrador lo active (*Recursos Humanos → Ajustes*). Con el personal actual el comercio queda en **Plan Micro** (kiosco con PIN, legajo esencial, calendario de turnos y licencias, reporte de horas y ausencias para el contador, alertas y avisos); el **Plan Completo** se habilita solo si llega a 11 legajos activos, y el cambio queda registrado para facturar. Rostro y huella: pendientes de dispositivo y revisión legal. Antes de usarlo con la nube, el dueño tiene que pegar `supabase/23-rrhh.sql` en Supabase (lo entrega el desarrollador; sin ese script las colecciones de RR. HH. no se sincronizan). «Personal y fichaje» sigue funcionando igual.
+
 ## 5. Diseño
 
 Sección 7 del esqueleto con la marca RAVE (dorado sobre negro cálido): «Vender POS [F1]» dorado, secciones plegables, Ctrl + K, campana, avatar, pestañas en Caja y Club, **línea de ayuda por pantalla**, **tablero del turno en caja**, tablas con encabezado fijo y filas alternadas, transición suave (respeta «reducir movimiento»), tema claro/oscuro/automático, modo mostrador (entra a Vender, ≤ 7 entradas).

@@ -33,6 +33,11 @@ Todos completos: Resumen «Hoy», Vender mayorista (tramos, presentaciones, cód
 
 Sección 7 del esqueleto con la paleta Kini (contraste AA verificado por `kc1`): línea de ayuda por pantalla, tablero del turno en caja, tablas con encabezado fijo, pestañas, Ctrl + K, tema claro/oscuro, ≥ 44 px.
 
+
+## Recursos Humanos (V26.64)
+
+Módulo de la sección 7-ter del esqueleto. **En esta demo: Plan Micro** (2 legajos activos de ejemplo) — el visitante ve con candado qué suma el Plan Completo. El plan lo decide sola la cantidad de legajos activos (0–10 Micro, 11 o más Completo); el botón «+ Personal de ejemplo» / «Dar de baja el de ejemplo» de la pestaña *Plan y resumen* muestra la transición automática. Fichaje en kiosco con PIN (bloqueo tras 5 intentos), QR, NFC y geocerca; rostro y huella figuran como **pendientes de dispositivo y revisión legal**. Usuario de prueba del portal del empleado: **Empleado (portal) · 2222**. Nómina, firma y archivos bancarios son internos y se rotulan [VERIFICAR] (no reemplazan el recibo legal ni la firma digital).
+
 ## 5. Compilar, probar y publicar
 
 ```bash

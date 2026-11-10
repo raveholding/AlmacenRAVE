@@ -73,7 +73,7 @@ const COLS=[
  {c:'clientes',key:'customers',pii:['name','last','birth','wa','email','secret','notes','dni','cardSecrets','taxid','razon','domFis'],del:1},
  {c:'fiado',key:'fiadoPays',once:1},
  {c:'cortesx',key:'cortesX',once:1},
- {c:'emp',key:'employees',pii:['pin','dni'],del:1},
+ {c:'emp',key:'employees',pii:['pin','dni','qk','cbu','phone','addr','emerg'],del:1},
  {c:'fich',key:'punches'},
  {c:'puestos',key:'puestos',del:1},
  {c:'tareas',key:'tasks',del:1},
