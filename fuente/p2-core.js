@@ -54,7 +54,7 @@ const dowOfKey=k=>new Date(k+'T12:00:00Z').getUTCDay();
 const addDays=(k,n)=>{const d=new Date(k+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
 
 /* ---------- Estado + persistencia (IndexedDB; demo sin cifrado) ---------- */
-const PERMS={dashboard:'Ver el Resumen (dashboard del negocio)',sell:'Vender',cash_mov:'Ingresos/egresos de caja',close_cash:'Arqueo y cierre de caja',view_cost:'Ver costos y ganancias',edit_products:'Editar inventario',void:'Anular ventas',impex:'Importar / exportar',staff:'Personal y fichaje (admin)',tasks:'Tareas del personal',integrations:'Integraciones',audit:'Ver auditoría',roles:'Usuarios y permisos',menu_admin:'Administrar menú público',config:'Configuración',customers:'Clientes, fidelización y cupones',devices:'Periféricos y ticket',purchases:'Proveedores y compras',price_lists:'Listas de precio, escalones y acuerdos',credit_ov:'Autorizar excepciones de crédito',transfer_funds:'Traspasar fondos entre cajas y sucursales',audit_read:'Expediente digital de la transacción',pay_detail_edit:'Corregir el detalle de cobros digitales',customers_admin:'Clientes: datos sensibles, baja y eliminación',crm:'Conversaciones con clientes (CRM)'};
+const PERMS={dashboard:'Ver el Resumen (dashboard del negocio) — sólo el administrador lo otorga',hr:'Recursos Humanos (legajos, turnos, licencias, reportes)',hr_dash:'Tablero de Recursos Humanos — sólo el administrador lo otorga',hr_approve:'Aprobar solicitudes del personal',portal:'Portal del empleado (autoservicio)',sell:'Vender',cash_mov:'Ingresos/egresos de caja',close_cash:'Arqueo y cierre de caja',view_cost:'Ver costos y ganancias',edit_products:'Editar inventario',void:'Anular ventas',impex:'Importar / exportar',staff:'Personal y fichaje (admin)',tasks:'Tareas del personal',integrations:'Integraciones',audit:'Ver auditoría',roles:'Usuarios y permisos',menu_admin:'Administrar menú público',config:'Configuración',customers:'Clientes, fidelización y cupones',devices:'Periféricos y ticket',purchases:'Proveedores y compras',price_lists:'Listas de precio, escalones y acuerdos',credit_ov:'Autorizar excepciones de crédito',transfer_funds:'Traspasar fondos entre cajas y sucursales',audit_read:'Expediente digital de la transacción',pay_detail_edit:'Corregir el detalle de cobros digitales',customers_admin:'Clientes: datos sensibles, baja y eliminación',crm:'Conversaciones con clientes (CRM)'};
 const SEED_RUBROS=[
  {id:'promo',name:'Combos y promos',owner:'',reparte:false,alcohol:true,kind:'rubro',color:'#c9963e',mNom:'Promos',mTitle:'Menú de Promos de Bebidas',mHint:'',layout:'grid'},
  {id:'vino',name:'Vinos',owner:'',reparte:false,alcohol:true,kind:'rubro',color:'#7b2d3b',mNom:'Vinos',mTitle:'Vinos',mHint:'Por bodega y variedad',layout:'bodegas'},
@@ -66,7 +66,7 @@ function seedProducts(){return SEED_PRODS.map((p,i)=>({id:p.id,name:p.nom,sub:p.
  .concat([{id:'granel-1',name:'Maní con cáscara a granel',sub:'ejemplo para probar la balanza',grupo:'',rubro:'promo',price:850000,cost:610000,stock:12.5,unit:'kg',barcode:'',plu:'12',menu:false,active:true,desc:'',demo:true}]);}
 const BUILD_VER=(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.ver)||'sin dato';
 const IS_CLIENT=!!(typeof window!=='undefined'&&window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente');
-const DEF=()=>{const d=DEF0();if(IS_CLIENT)return clientClean(d);const r=wsDemoSeed(d);if(typeof paDemoSeed==='function')paDemoSeed(r);if(typeof comboDemoSeed==='function')comboDemoSeed(r);if(typeof isKiniBuild==='function'&&isKiniBuild())kiniBase(r);if(typeof isSoloBuild==='function'&&isSoloBuild())soloBase(r);return r;};
+const DEF=()=>{const d=DEF0();if(IS_CLIENT)return clientClean(d);const r=wsDemoSeed(d);if(typeof paDemoSeed==='function')paDemoSeed(r);if(typeof comboDemoSeed==='function')comboDemoSeed(r);if(typeof isKiniBuild==='function'&&isKiniBuild())kiniBase(r);if(typeof isSoloBuild==='function'&&isSoloBuild())soloBase(r);if(typeof hrDemoSeed==='function')hrDemoSeed(r);return r;};
 /* DEMO: canal mayorista encendido con datos rotulados «ejemplo» (el sistema del cliente nace apagado y sin esto) */
 function wsDemoSeed(d){d.cfg=d.cfg||{};if(!d.cfg.wholesale)d.cfg.wholesale={on:true,example:true,allowClub:false,grace:0,levels:[{id:'d',name:'Display'},{id:'f',name:'Fardo'},{id:'p',name:'Pallet'}]};
  wsDemoPres(d.products);d.cfg.wholesale.seeded=1;return wsDemoCust(d);}
@@ -110,7 +110,7 @@ const DEF0=()=>({v:3,
   {id:'t5',title:'Limpieza profunda de freezer',puestoId:'pu_dep',freq:'monthly',dom:1,active:true}],
  taskLogs:[],
  users:[{id:'u1',name:'ADMIN',role:'admin',pin:'1234'},{id:'u2',name:'Supervisor',role:'supervisor',pin:'1111'},{id:'u3',name:'Mostrador',role:'mostrador',pin:'0000'}],
- roles:{admin:Object.keys(PERMS),supervisor:['sell','cash_mov','close_cash','view_cost','edit_products','void','impex','tasks','audit','customers','devices','purchases','price_lists','credit_ov','audit_read','pay_detail_edit','crm'].concat(IS_CLIENT?[]:['transfer_funds']),mostrador:['sell','cash_mov','tasks','customers','crm'],operador:['sell']},
+ roles:{admin:Object.keys(PERMS),supervisor:['sell','cash_mov','close_cash','view_cost','edit_products','void','impex','tasks','audit','customers','devices','purchases','price_lists','credit_ov','audit_read','pay_detail_edit','crm'].concat(IS_CLIENT?[]:['transfer_funds','hr_approve']),mostrador:['sell','cash_mov','tasks','customers','crm'],operador:['sell'],empleado:['portal']},
  audit:[],arqDraft:{},batches:[],
  pya:[],events:[],seenEvents:{},simOffline:false,
  arcaRcp:{},
@@ -146,9 +146,9 @@ function idb(){return new Promise((res,rej)=>{if(typeof indexedDB==='undefined')
 async function loadState(){try{const db=await idb();return await new Promise(res=>{const q=db.transaction('kv').objectStore('kv').get('state');q.onsuccess=()=>res(q.result);q.onerror=()=>res(null);});}catch(e){return null;}}
 let saveT;function save(){if(CLOUD_HOOK){CLOUD_HOOK.persist();return;}clearTimeout(saveT);saveT=setTimeout(async()=>{try{const db=await idb();db.transaction('kv','readwrite').objectStore('kv').put(JSON.parse(JSON.stringify(S)),'state');}catch(e){}},300);}
 /* "Proveedores y compras" es un permiso nuevo: si ningún rol lo tiene todavía (datos anteriores), lo reciben administrador y supervisor; si ya existe, se respeta lo que el dueño decidió */
-function rolesMigrate(r){if(!r)return r;if(Array.isArray(r.admin))for(const p of['transfer_funds','customers_admin','dashboard'])if(!r.admin.includes(p))r.admin.push(p); /* transfer_funds y customers_admin NUNCA se otorgan en silencio a otros roles (4.23.1 / 4.24.3) */
+function rolesMigrate(r){if(!r)return r;if(Array.isArray(r.admin))for(const p of['transfer_funds','customers_admin','dashboard','hr','hr_dash','hr_approve','portal'])if(!r.admin.includes(p))r.admin.push(p);if(!r.empleado)r.empleado=['portal']; /* V26.64: el rol «empleado» sólo ve su portal; Resumen y tablero de RR. HH. nunca se otorgan solos a otro rol */ /* transfer_funds y customers_admin NUNCA se otorgan en silencio a otros roles (4.23.1 / 4.24.3) */
  for(const perm of['purchases','price_lists','credit_ov','audit_read','pay_detail_edit']){const any=Object.values(r).some(a=>Array.isArray(a)&&a.includes(perm));if(!any){if(Array.isArray(r.supervisor))r.supervisor.push(perm);if(Array.isArray(r.admin))r.admin.push(perm);}}return r;}
-function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);if(st.cfg&&st.cfg.permNotice===undefined)st.cfg.permNotice={ack:false};if(!IS_CLIENT&&st.cfg&&st.cfg.wholesale===undefined)wsDemoSeed(st);wsMigrate(st);bizMigrate(st);if(!IS_CLIENT&&typeof comboDemoSeed==='function')comboDemoSeed(st);return st;}
+function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);if(st.cfg&&st.cfg.permNotice===undefined)st.cfg.permNotice={ack:false};if(!IS_CLIENT&&st.cfg&&st.cfg.wholesale===undefined)wsDemoSeed(st);wsMigrate(st);bizMigrate(st);if(!IS_CLIENT&&typeof comboDemoSeed==='function')comboDemoSeed(st);if(!IS_CLIENT&&typeof hrDemoSeed==='function')hrDemoSeed(st);return st;}
 /* V26.14: el viejo «perfil sin rubros» de traspasos pasa a ser el tipo de negocio; el dueño (administrador) mueve fondos con su propia autorización */
 function bizMigrate(st){if(!st.cfg)return;if(typeof isSoloBuild==='function'&&isSoloBuild()){st.cfg.biz='owner';st.cfg.bizLocked=1;}if(typeof isKiniBuild==='function'&&isKiniBuild()){st.cfg.biz='owner';st.cfg.bizLocked=1;if(!st.cfg.kiniOnlyV&&st.cfg.wholesale){st.cfg.wholesale.only=true;(st.customers||[]).forEach(c=>{c.channel='mayorista';});st.cfg.kiniOnlyV=1;}}if(!st.cfg.biz)st.cfg.biz=(st.cfg.xfer&&st.cfg.xfer.noRubro)?'owner':'rubros';
  st.cfg.xfer=st.cfg.xfer||{};if(!st.cfg.xfer.ownerV){st.cfg.xfer.selfAuth=true;st.cfg.xfer.ownerV=1;}}
@@ -269,7 +269,7 @@ window.addEventListener('hashchange',route);
 
 const NAV=[['inicio','Resumen'],['vender','Operación'],['pedidos','Operación'],['caja','Operación'],['cajasx','Operación'],['arqueo','Operación'],['cierres','Operación'],['inventario','Operación'],['presup','Operación'],['mermas','Operación'],['proveedores','Operación'],
  ['clientes','Clientes y fidelización'],['fidel','Clientes y fidelización'],['fidplus','Clientes y fidelización'],['crm','Clientes y fidelización'],['monedero','Clientes y fidelización'],['cupones','Clientes y fidelización'],
- ['personal','Equipo'],['tareas','Equipo'],['menuadmin','Menú y web'],['legal','Menú y web'],
+ ['personal','Equipo'],['rrhh','Equipo'],['portal','Equipo'],['tareas','Equipo'],['menuadmin','Menú y web'],['legal','Menú y web'],
  ['nube','Sistema'],['dispositivos','Sistema'],['impex','Sistema'],['integ','Sistema'],['roles','Sistema'],['auditoria','Sistema'],['config','Sistema']];
 /* V26.64: el Resumen (dashboard) es del administrador/dueño; otro rol lo ve sólo si el administrador le da el permiso «dashboard». Sin él, la pantalla de inicio es Vender (o la primera permitida). */
 const scrOk=k=>!!SCREENS[k]&&(!SCREENS[k].perm||can(SCREENS[k].perm))&&(!SCREENS[k].show||SCREENS[k].show());
@@ -289,12 +289,12 @@ document.addEventListener('keydown',e=>{const a=e.target.closest&&e.target.close
 /* ---------- Login ---------- */
 let loginFails=0,lockUntil=0;
 function showLogin(){if(CLOUD_HOOK||(window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente')){cloudLogin();return;}const L=$('#login');L.hidden=false;
- L.innerHTML=`<div class="lbox"><div style="text-align:center"><img src="${LOGO_MENU}" alt="RAVE" style="width:150px;border-radius:12px"><h1>Acceso del equipo</h1><p class="mut sm">Demo de evaluación. Usuarios de prueba: ADMIN · 1234 / Supervisor · 1111 / Mostrador · 0000</p></div>
+ L.innerHTML=`<div class="lbox"><div style="text-align:center"><img src="${LOGO_MENU}" alt="RAVE" style="width:150px;border-radius:12px"><h1>Acceso del equipo</h1><p class="mut sm">Demo de evaluación. Usuarios de prueba: ADMIN · 1234 / Supervisor · 1111 / Mostrador · 0000${S.users.some(u=>u.role==='empleado'&&u.pin==='2222')?' / Empleado (portal) · 2222':''}</p></div>
  <label for="lu">Usuario</label><select id="lu">${S.users.map(u=>`<option value="${esc(u.id)}">${esc(u.name)}</option>`).join('')}</select>
  <label for="lp">PIN</label><input id="lp" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN">
  <div class="merr" id="lerr" role="alert"></div>
  <div class="row" style="margin-top:.8rem"><button class="btn gold sp" data-act="login">Ingresar</button><a class="btn" href="#menu">Volver al menú</a></div>
- <p class="sm mut" style="margin-top:.6rem">¿Olvidaste tu PIN? Pedíselo al <b>administrador del sistema</b>: lo cambia en Usuarios y permisos.</p>
+ <p class="sm mut" style="margin-top:.6rem">¿Olvidaste tu PIN? Pedíselo al <b>administrador del comercio</b> (no al desarrollador): lo cambia en Usuarios y permisos.</p>
  ${vbFooter(true)}</div>`;
  $('#lp').addEventListener('keydown',e=>{if(e.key==='Enter')A.login();});}
 A.login=()=>{const err=$('#lerr');if(now()<lockUntil){err.textContent='Demasiados intentos. Esperá '+Math.ceil((lockUntil-now())/1000)+' s.';return;}

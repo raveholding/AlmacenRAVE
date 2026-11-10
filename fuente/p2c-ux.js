@@ -33,7 +33,7 @@ function uxEntryBadge(k){const B=uxLast;const g=UX_GROUPS[k];if(!g)return B[k];
 const UX_SEC_ORDER=['Resumen','Operación comercial','Logística e inventario','Clientes','Equipo','Menú y web','Sistema','Otros'];
 const UX_SEC_OF={inicio:'Resumen',centro:'Resumen',pedidos:'Operación comercial',caja:'Operación comercial',cajasx:'Operación comercial',arqueo:'Operación comercial',cierres:'Operación comercial',
  inventario:'Logística e inventario',mermas:'Logística e inventario',presup:'Logística e inventario',proveedores:'Logística e inventario',
- clientes:'Clientes',fidel:'Clientes',fidplus:'Clientes',monedero:'Clientes',cupones:'Clientes',crm:'Clientes',personal:'Equipo',tareas:'Equipo',menuadmin:'Menú y web',legal:'Menú y web'};
+ clientes:'Clientes',fidel:'Clientes',fidplus:'Clientes',monedero:'Clientes',cupones:'Clientes',crm:'Clientes',personal:'Equipo',rrhh:'Equipo',portal:'Equipo',tareas:'Equipo',menuadmin:'Menú y web',legal:'Menú y web'};
 const UX_TITLE={inventario:'Stock e inventario',pedidos:'PedidosYa',presup:'Presupuestos',proveedores:'Proveedores',mermas:'Mermas y devoluciones'};
 const uxSecName=k=>k==='Clientes'?(IS_CLIENT?'Clientes y Club RAVE':'Clientes y fidelidad'):k;
 const uxSecOf=(k,secOf)=>{if(UX_SEC_OF[k])return UX_SEC_OF[k];const n=secOf[k]||'Otros';return n==='Operación'?'Operación comercial':n==='Clientes y fidelización'?'Clientes':UX_SEC_ORDER.includes(n)?n:(n||'Otros');};
@@ -166,7 +166,7 @@ const UX_DESC={inicio:'Cómo viene el negocio hoy: ventas, órdenes, stock y ale
  monedero:'Saldo a favor, cashback y gift cards de cada cliente.',
  cupones:'Cupones y membresías con vigencia, tope y audiencia.',
  crm:'Todos los canales en una bandeja: respondé, cobrá, cotizá y agendá sin salir del chat.',
- personal:'Equipo, fichadas y horas trabajadas.',tareas:'Organigrama y tareas por puesto, diarias o semanales.',
+ personal:'Equipo, fichadas y horas trabajadas.',rrhh:'Legajos, fichaje omnicanal, turnos y licencias, reportes para el contador y —en el Plan Completo— nómina, aprobaciones, vacaciones, documentos y reclutamiento.',portal:'Tus fichadas, turnos, solicitudes, liquidaciones y avisos.',tareas:'Organigrama y tareas por puesto, diarias o semanales.',
  menuadmin:'Lo que ve tu cliente en el menú o la tienda: catálogo, textos, envíos y publicación.',
  legal:'Textos legales y lista de verificación de cumplimiento.',dispositivos:'Impresoras, balanzas, lectores y diseño del ticket.',
  impex:'Importá o exportá artículos, clientes, ventas y cierres en CSV o Excel.',integ:'Conexiones con otros servicios y su estado.',

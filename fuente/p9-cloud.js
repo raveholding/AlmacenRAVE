@@ -103,11 +103,21 @@ const COLS=[
  {c:'presup',key:'quotes'},
  /* V26.60 · 22-crm.sql · CRM omnicanal: conversaciones y mensajes (texto y clave del chat cifrados) */
  {c:'conv',key:'convs',pii:['k','name','wa','lastTxt']},
- {c:'cmsg',key:'cmsgs',once:1,pii:['text']}];
+ {c:'cmsg',key:'cmsgs',once:1,pii:['text']},
+ /* V26.64 · 23-rrhh.sql · Recursos Humanos (los archivos NO viajan: sólo su descripción) */
+ {c:'hrshift',key:'hrShifts',del:1},
+ {c:'hrreq',key:'hrReqs',pii:['note']},
+ {c:'hrdoc',key:'hrDocs',strip:['data'],del:1},
+ {c:'hrpay',key:'hrPays'},
+ {c:'hrjob',key:'hrJobs',del:1},
+ {c:'hrcand',key:'hrCands',pii:['name','phone','email','note'],del:1},
+ {c:'hritem',key:'hrItems'},
+ {c:'hrmsg',key:'hrMsgs',once:1,pii:['txt']},
+ {c:'hrplan',key:'hrPlanLog',once:1}];
 const BYC=Object.fromEntries(COLS.map(x=>[x.c,x]));
 const DELC=new Set(COLS.filter(x=>x.del).map(x=>x.c));
 const CFGIDS=['tenant','cfg','menu','loyalty','roles','integ','legal','payadj'];
-const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado','cortesx','fidmov','giftmov','devol','merma','juego','cmsg']);
+const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado','cortesx','fidmov','giftmov','devol','merma','juego','cmsg','hrmsg','hrplan']);
 const r3=n=>Math.round(n*1000)/1000;
 function stripOf(col,it){const d=JSON.parse(JSON.stringify(it));(col.strip||[]).forEach(k=>delete d[k]);return d;}
 function cfgWire(id){switch(id){
