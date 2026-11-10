@@ -12,7 +12,7 @@ with sync_playwright() as p:
     chk('administrador de tu comercio' in t and 'Usuarios y permisos' in t,'indica pedírsela al administrador del comercio')
     chk(pg.locator('#cl-sc').count()==0 and pg.locator('#cl-go').count()==0,'ya no envía el pedido al soporte del desarrollador')
     pg2=b.new_page();pg2.goto('file:///tmp/rave/index.html#acceso');pg2.wait_for_timeout(1000)
-    chk('administrador del sistema' in pg2.inner_text('#login'),'en las demos: ¿Olvidaste tu PIN? → administrador del sistema')
+    chk('administrador del comercio' in pg2.inner_text('#login') and 'desarrollador' in pg2.inner_text('#login'),'en las demos: ¿Olvidaste tu PIN? → administrador del comercio, no el desarrollador')
     chk(not errs,'sin errores %s'%errs)
     b.close()
 print('%d/%d'%(sum(res),len(res)))
