@@ -11,7 +11,7 @@ with sync_playwright() as p:
     pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
     pg.on('console',lambda m:errs.append(m.text[:200]) if m.type=='error' and 'TUNNEL' not in m.text else None)
     ev=pg.evaluate
-    pg.goto(URL+'#acceso');pg.wait_for_timeout(700)
+    pg.add_init_script("try{localStorage.setItem('rave.ux.config','all')}catch(e){}");pg.goto(URL+'#acceso');pg.wait_for_timeout(700)
     pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(400)
     ev("location.hash='#panel/caja'");pg.wait_for_timeout(300)
     if pg.locator('#ap').count():

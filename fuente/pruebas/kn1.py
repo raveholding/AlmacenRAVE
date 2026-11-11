@@ -10,7 +10,7 @@ with sync_playwright() as p:
         pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
         pg.on('console',lambda m:errs.append(m.text[:200]) if m.type=='error' and 'TUNNEL' not in m.text else None)
         ev=pg.evaluate
-        pg.goto('file:///tmp/rave/kini.html#acceso');pg.wait_for_timeout(900)
+        pg.add_init_script("try{localStorage.setItem('rave.ux.config','all')}catch(e){}");pg.goto('file:///tmp/rave/kini.html#acceso');pg.wait_for_timeout(900)
         pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(500)
         if W==1280:
             chk(ev("S.cfg.biz")=='owner' and ev("ownerMode()"),'arranca como mayorista de un solo dueño')

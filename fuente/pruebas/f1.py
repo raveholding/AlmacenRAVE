@@ -53,10 +53,10 @@ with sync_playwright() as p:
     # tema
     ev("location.hash='#panel/inicio';rerender()");pg.wait_for_timeout(400)
     t0=ev("document.documentElement.dataset.theme")
-    pg.click('[data-act=themeCycle]');pg.wait_for_timeout(200);pg.click('[data-act=themeCycle]') if ev("themePref()")!='dark' else None;pg.wait_for_timeout(200)
+    pg.click('#top [data-act=themeSet][data-t=dark]');pg.wait_for_timeout(200)  # V26.66: selector Claro/Oscuro/Sistema
     chk(ev("themePref()")=='dark' and ev("document.documentElement.dataset.theme")=='dark','botón de tema: pasa a Oscuro')
     bg=ev("getComputedStyle(document.body).backgroundColor");chk(bg in ('rgb(23, 21, 19)',),'fondo oscuro aplicado: '+bg)
-    pg.click('[data-act=themeCycle]');pg.wait_for_timeout(200);chk(ev("themePref()")=='auto','vuelve a Automático')
+    pg.click('#top [data-act=themeSet][data-t=auto]');pg.wait_for_timeout(200);chk(ev("themePref()")=='auto','vuelve a Sistema (automático)')
     # gráficos
     ev("dbF.per='30';rerender()");pg.wait_for_timeout(400)
     chk(pg.locator('svg[aria-label*="Ventas de hoy contra la meta"]').count()==1,'tacómetro de la meta del día')

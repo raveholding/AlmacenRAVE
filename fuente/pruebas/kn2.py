@@ -142,7 +142,7 @@ with sync_playwright() as p:
     chk(not bad,'360 px sin desbordes: %s'%bad)
     pg.set_viewport_size({'width':1280,'height':900})
     # ---------- 13. vaciar y volver ----------
-    ev("go('config')");pg.wait_for_timeout(300);pg.click('[data-act=emptyDemo]');pg.wait_for_timeout(200);last_ok()
+    ev("go('config')");pg.wait_for_timeout(300);pg.click('#ux-secnav [data-sec="g:Respaldo y datos"]');pg.wait_for_timeout(200);pg.click('[data-act=emptyDemo]');pg.wait_for_timeout(200);last_ok()
     chk(ev("S.products.length")==0 and ev("S.cfg.biz")=='owner' and ev("S.rubros.filter(r=>r.kind==='rubro').map(r=>r.name)")==['General'],'vacía: sin datos, sigue siendo de un solo dueño, con una sola categoría «General»')
     ev("go('config')");pg.wait_for_timeout(300);pg.click('[data-act=resetDemo]');pg.wait_for_timeout(200);last_ok();pg.wait_for_timeout(900)
     chk(ev("S.products.length")>=29 and ev("S.suppliers.length")==3 and ev("S.customers.length")==5,'«Volver a los datos de ejemplo» recupera el catálogo, proveedores y clientes de la distribuidora')

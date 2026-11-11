@@ -214,7 +214,7 @@ const negOK=()=>S.cfg.negStock!==false;
    · 'owner'  (mayorista / un solo dueño): NO hay rubros por persona. Los productos se agrupan en «categorías» (sólo para ordenar
      inventario y menú); el dinero es todo del dueño: ningún movimiento pide rubro (se usa un concepto interno oculto, «Caja del negocio»,
      porque el servidor exige rubro en todo movimiento) y el arqueo es el de un solo dueño (sin sueldo, merienda, impuestos ni reparto). */
-const BIZ_TYPES={rubros:'Almacén con rubros por responsable (cada rubro es una persona)',owner:'Mayorista / un solo dueño (sin rubros por persona)'};
+const BIZ_TYPES={rubros:'Por rubros, cada uno con su responsable',owner:'Un solo dueño'}; /* V26.66: el tipo de negocio dice de quién es el dinero; minorista/mayorista va aparte (canales de venta) */
 const ownerMode=()=>!!(typeof S!=='undefined'&&S&&S.cfg&&S.cfg.biz==='owner');
 const RW=cap=>ownerMode()?(cap?'Categoría':'categoría'):(cap?'Rubro':'rubro');
 const RWs=cap=>ownerMode()?(cap?'Categorías':'categorías'):(cap?'Rubros':'rubros');
@@ -289,7 +289,7 @@ document.addEventListener('keydown',e=>{const a=e.target.closest&&e.target.close
 /* ---------- Login ---------- */
 let loginFails=0,lockUntil=0;
 function showLogin(){if(CLOUD_HOOK||(window.RAVE_BUILD&&window.RAVE_BUILD.variant==='cliente')){cloudLogin();return;}const L=$('#login');L.hidden=false;
- L.innerHTML=`<div class="lbox"><div style="text-align:center"><img src="${LOGO_MENU}" alt="RAVE" style="width:150px;border-radius:12px"><h1>Acceso del equipo</h1><p class="mut sm">Demo de evaluación. Usuarios de prueba: ADMIN · 1234 / Supervisor · 1111 / Mostrador · 0000${S.users.some(u=>u.role==='empleado'&&u.pin==='2222')?' / Empleado (portal) · 2222':''}</p></div>
+ L.innerHTML=`<div class="lbox"><div class="th-row">${themeBtn()}</div><div style="text-align:center"><img src="${LOGO_MENU}" alt="RAVE" style="width:150px;border-radius:12px"><h1>Acceso del equipo</h1><p class="mut sm">Demo de evaluación. Usuarios de prueba: ADMIN · 1234 / Supervisor · 1111 / Mostrador · 0000${S.users.some(u=>u.role==='empleado'&&u.pin==='2222')?' / Empleado (portal) · 2222':''}</p></div>
  <label for="lu">Usuario</label><select id="lu">${S.users.map(u=>`<option value="${esc(u.id)}">${esc(u.name)}</option>`).join('')}</select>
  <label for="lp">PIN</label><input id="lp" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN">
  <div class="merr" id="lerr" role="alert"></div>
@@ -306,6 +306,17 @@ const THEMES={auto:'Automático',light:'Claro',dark:'Oscuro'};
 function themePref(){try{const v=localStorage.getItem('rave.theme');return THEMES[v]?v:'auto';}catch(e){return 'auto';}}
 function themeEff(){const p=themePref();if(p!=='auto')return p;try{return matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}catch(e){return 'light';}}
 function themeApply(){const t=themeEff();document.documentElement.setAttribute('data-theme',t);const m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',t==='dark'?'#0f0e0c':'#242220');}
-function themeBtn(){const p=themePref(),ic={auto:'◐',light:'☀',dark:'☾'}[p];return `<button class="btn sm" data-act="themeCycle" title="Tema del panel: ${THEMES[p]} (tocá para cambiar)" aria-label="Tema del panel: ${THEMES[p]}. Tocá para cambiar">${ic} ${THEMES[p]}</button>`;}
-A.themeCycle=()=>{const o=['auto','light','dark'];const n=o[(o.indexOf(themePref())+1)%3];try{localStorage.setItem('rave.theme',n);}catch(e){}themeApply();rerender();toast('Tema del panel: '+THEMES[n]);};
-themeApply();try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto'){themeApply();if(typeof rerender==='function'&&typeof user!=='undefined'&&user)rerender();}});}catch(e){}
+/* V26.66: antes era un solo botón que rotaba Automático → Claro → Oscuro; con el equipo en claro, el primer toque (Automático → Claro)
+   no cambiaba nada y parecía roto. Ahora es un selector de tres opciones a la vista (Claro · Oscuro · Sistema) que aplica al instante. */
+const TH_ICO={light:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+ dark:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+ auto:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>'};
+const TH_LBL={light:'Claro',dark:'Oscuro',auto:'Sistema'};
+function themeBtn(){const p=themePref();return `<div class="th-seg" role="group" aria-label="Tema del panel">${['light','dark','auto'].map(k=>`<button type="button" data-act="themeSet" data-t="${k}" aria-pressed="${p===k}" title="${k==='auto'?'Seguir el tema del equipo ('+(themeEff()==='dark'?'ahora oscuro':'ahora claro')+')':'Tema '+TH_LBL[k].toLowerCase()}">${TH_ICO[k]}<span>${TH_LBL[k]}</span></button>`).join('')}</div>`;}
+function themePaint(){document.querySelectorAll('.th-seg [data-t]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.t===themePref()));if(b.dataset.t==='auto')b.title='Seguir el tema del equipo ('+(themeEff()==='dark'?'ahora oscuro':'ahora claro')+')';});}
+A.themeSet=el=>{const n=el.dataset.t;if(!THEMES[n])return;try{localStorage.setItem('rave.theme',n);}catch(e){}themeApply();themePaint();
+ if(typeof user!=='undefined'&&user&&!$('#panel').hidden&&['inicio','centro','arqueo','cierres'].includes(curScreen))rerender(); /* los gráficos toman los colores del tema al dibujarse */
+ toast('Tema: '+TH_LBL[n]+(n==='auto'?' ('+(themeEff()==='dark'?'oscuro':'claro')+', como el equipo)':''));};
+A.themeCycle=()=>{const o=['light','dark','auto'];A.themeSet({dataset:{t:o[(o.indexOf(themePref())+1)%3]}});};
+function themeCardHtml(){return `<div class="card" id="theme-card" style="margin-top:1rem"><h3>Apariencia (tema del panel)</h3><p class="sm mut">Se guarda en <b>este equipo</b>: cada computadora o celular puede tener el suyo. «Sistema» sigue al modo claro u oscuro del equipo.</p>${themeBtn()}</div>`;}
+themeApply();try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto'){themeApply();themePaint();if(typeof rerender==='function'&&typeof user!=='undefined'&&user)rerender();}});}catch(e){}

@@ -256,13 +256,11 @@ A.wsAgrOff=el=>{const a=(S.agreements||[]).find(x=>x.id===el.dataset.id);if(!a||
  confirmBox('Desactivar acuerdo','El cliente vuelve a su lista. Las ventas ya hechas no cambian.',()=>{a.active=false;audit('ACUERDO_ESPECIAL_BAJA',custFull(custById(a.cust))+' · '+(a.pid||a.rubro));save();rerender();},'Desactivar');};
 
 /* ---- Configuración → Mayorista y minorista ---- */
-function wsCfgCard(){if(!(can('config')||can('price_lists')))return'';const c=wsConf();const adm=can('config')?'':'disabled';
+function wsCfgCard(){if(!(can('config')||can('price_lists')))return'';const c=wsConf();if(!c.on)return'';const adm=can('config')?'':'disabled'; /* V26.66: con «Sólo minorista» esta tarjeta no aparece; los canales se eligen en «Modelo de negocio» */
  const ag=(S.agreements||[]).slice().reverse();const ov=(S.creditOv||[]).slice(-5).reverse();
- return`<div class="card" style="margin-top:1rem" id="ws-card"><h3>Mayorista y minorista ${c.example?'<span class="tag sim">datos de ejemplo</span>':''}</h3>
+ return`<div class="card" style="margin-top:1rem" id="ws-card"><h3>Mayorista: presentaciones, acuerdos y crédito ${c.example?'<span class="tag sim">datos de ejemplo</span>':''}</h3>
  <p class="sm mut">Precios por presentación (Unidad, Display, Fardo, Pallet…) según el volumen, acuerdos por cliente y crédito con plazo. Apagado, el sistema vende exactamente como siempre.</p>
- <label class="chk"><input type="checkbox" id="ws-on" ${c.on?'checked':''} ${adm}> Activar canal mayorista</label>
- ${c.on?`<label class="chk"><input type="checkbox" id="ws-only" ${c.only?'checked':''} ${adm}> <span><b>Sólo mayorista (distribuidora)</b> — toda venta usa precio por unidad y, al completar una presentación, su precio mayorista; no hay canal minorista ni «Cambiar canal», y no hace falta CUIT para vender (sí para cuenta corriente, un cliente identificado)</span></label>`:''}
- ${typeof CLOUD_HOOK!=='undefined'&&CLOUD_HOOK&&!c.on?'<div class="warnbox sm">Con la nube activa, antes de activarlo hay que haber corrido el archivo <b>10-mayorista-precios.sql</b> en Supabase (acuerdos, excepciones de crédito y revisión de crédito del servidor). Si no, el servidor rechaza esos registros y la barra de sincronización lo muestra.</div>':''}
+ <p class="sm">Canal: <b>${c.only?'Sólo mayorista (distribuidora)':'Minorista y mayorista'}</b> · se cambia en <a href="#" data-act="bmGo">Modelo de negocio</a>.</p>
  ${c.on?`<h4 style="margin:.8rem 0 .2rem">Presentaciones de venta</h4>
  <p class="sm mut">Son los «tipos de precio» que se cargan en cada producto según el volumen: <b>Unidad</b> (siempre; es el precio de venta) y las que definas acá. Podés renombrarlas y agregar las que necesites (Media caja, Bolsón…). En cada producto se carga cuántas unidades trae cada una y su precio.</p>
  <div id="ws-lv">${c.levels.map(l=>`<div class="row" style="margin-bottom:.3rem"><input id="ws-ln-${esc(l.id)}" maxlength="24" value="${esc(l.name)}" aria-label="Nombre de la presentación" style="max-width:240px" ${adm}>${adm===''?`<button class="btn sm red" type="button" data-act="wsLvDel" data-id="${esc(l.id)}" aria-label="Quitar ${esc(l.name)}">Quitar</button>`:''}<span class="sm mut">${(S.products||[]).filter(p=>(p.pres||[]).some(k=>k.lv===l.id)).length} producto(s) la usan</span></div>`).join('')||'<p class="sm mut">Sin presentaciones: sólo se vende por Unidad.</p>'}</div>
@@ -290,7 +288,9 @@ A.wsLvDel=el=>{if(!can('config'))return toast('Sólo el administrador',1);const 
  confirmBox('Quitar presentación','Se quita «'+l.name+'» de la lista. Ningún producto la usa.',()=>{wsLvSave(L.levels.filter(x=>x.id!==l.id),'quitada «'+l.name+'»');},'Quitar');};
 A.wsSave=()=>{if(!can('config'))return toast('Sólo el administrador',1);const cur=wsConf();const on=$('#ws-on')?$('#ws-on').checked:cur.on;
  const W=Object.assign({},S.cfg.wholesale||{},{on,allowClub:cur.allowClub,grace:cur.grace,example:cur.example,levels:cur.levels.map(l=>({...l}))});delete W.lists;
- if(on&&cur.on){W.only=!!($('#ws-only')&&$('#ws-only').checked);W.allowClub=!!($('#ws-club')&&$('#ws-club').checked);const g=val('ws-gr').trim()===''?0:Math.round(parseNum(val('ws-gr')));if(isNaN(g)||g<0||g>60)return toast('La tolerancia de mora va de 0 a 60 días.',1);W.grace=g;
+ if(on&&cur.on){W.only=$('#ws-only')?$('#ws-only').checked:!!cur.only;W.allowClub=!!($('#ws-club')&&$('#ws-club').checked);const g=val('ws-gr').trim()===''?0:Math.round(parseNum(val('ws-gr')));if(isNaN(g)||g<0||g>60)return toast('La tolerancia de mora va de 0 a 60 días.',1);W.grace=g;
   const L=wsLvRead();if(L.err)return toast(L.err,1);W.levels=L.levels;}
  const apply=()=>{const before=JSON.stringify(S.cfg.wholesale||{});S.cfg.wholesale=W;audit(on!==cur.on?(on?'MAYORISTA_ACTIVAR':'MAYORISTA_APAGAR'):'MAYORISTA_CONFIG','antes '+before.slice(0,160)+' · ahora '+JSON.stringify(W).slice(0,160));save();rerender();toast('Guardado');};
  if(on!==cur.on)confirmBox(on?'Activar canal mayorista':'Apagar canal mayorista',on?'Aparecen los precios por presentación (Unidad, Display, Fardo, Pallet…), los acuerdos por cliente y el crédito con plazo. Las ventas anteriores no cambian.':'Se vende como minorista otra vez. Las presentaciones, acuerdos y precios quedan guardados y las ventas anteriores no cambian.',apply,on?'Activar':'Apagar');else apply();};
+
+A.bmGo=()=>{const c=$('#biz-card');if(c){c.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});c.classList.add('ux-flash');setTimeout(()=>c.classList.remove('ux-flash'),900);}};

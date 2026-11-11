@@ -70,10 +70,10 @@ const COLS=[
  {c:'movs',key:'movs'},
  {c:'cierres',key:'closures',strip:['notes'],once:1},
  {c:'rubros',key:'rubros',del:1},
- {c:'clientes',key:'customers',pii:['name','last','birth','wa','email','secret','notes','dni','cardSecrets','taxid','razon','domFis'],del:1},
+ {c:'clientes',key:'customers',pii:['name','last','birth','wa','email','secret','notes','dni','cardSecrets','taxid','razon','domFis','nfc'],del:1},
  {c:'fiado',key:'fiadoPays',once:1},
  {c:'cortesx',key:'cortesX',once:1},
- {c:'emp',key:'employees',pii:['pin','dni','qk','cbu','phone','addr','emerg'],del:1},
+ {c:'emp',key:'employees',pii:['pin','dni','qk','cbu','phone','addr','emerg','nfc'],del:1},
  {c:'fich',key:'punches'},
  {c:'puestos',key:'puestos',del:1},
  {c:'tareas',key:'tasks',del:1},
@@ -236,10 +236,10 @@ function loginHtml(mode,msg,pre){const em=esc((pre&&pre.email)||(cl.meta&&cl.met
  if(mode==='ingresar')f=`${googleBtnHtml()}<label for="cl-em">Correo</label><input id="cl-em" type="email" autocomplete="username" value="${em}"><label for="cl-pw">Contraseña</label><input id="cl-pw" type="password" autocomplete="current-password">`;
  else if(mode==='crear')f=`<p class="sm mut">Para dueños. Vincular Business te da un <b>código de invitación</b> (se pide una sola vez).</p><label for="cl-nm">Nombre del comercio</label><input id="cl-nm" maxlength="80"><label for="cl-em">Correo</label><input id="cl-em" type="email" autocomplete="username" value="${em}"><label for="cl-pw">Contraseña (mínimo 10 caracteres)</label><input id="cl-pw" type="password" autocomplete="new-password"><label for="cl-co">Código de invitación de Vincular Business</label><input id="cl-co" autocomplete="off">`;
  else if(mode==='unirme')f=`<p class="sm mut">Para el equipo. El administrador te da un <b>código de acceso</b> y tu correo queda invitado.</p><label for="cl-em">Correo (el mismo con el que te invitaron)</label><input id="cl-em" type="email" autocomplete="username" value="${em}"><label for="cl-pw">Elegí tu contraseña (mínimo 10 caracteres)</label><input id="cl-pw" type="password" autocomplete="new-password"><label for="cl-co">Código de acceso</label><input id="cl-co" autocomplete="off">`;
- else f=`<div class="card sm" style="margin:.4rem 0"><p style="margin-top:0"><b>¿Olvidaste tu contraseña?</b> Pedísela al <b>administrador de tu comercio</b> (no al soporte del desarrollador): él te vuelve a dar acceso desde <b>Usuarios y permisos → Equipo</b> (te quita y te invita de nuevo con un código de acceso nuevo).</p>
+ else f=`<div class="card sm" style="margin:.4rem 0"><p style="margin-top:0"><b>¿Olvidaste tu contraseña?</b> Pedísela al <b>administrador de tu comercio</b> (no al soporte del desarrollador): en <b>Usuarios y permisos → Equipo</b> toca <b>«Restablecer acceso»</b> y te pasa una <b>clave temporal</b>. Entrás por «Ingresar» con tu correo y esa clave, y el sistema te pide elegir tu contraseña nueva. No perdés nada.</p>
  <p>También podés probar con <b>«Olvidé mi contraseña»</b> en «Ingresar»: te llega un correo para elegir otra${googleOn?', o entrá con <b>«Ingresar con Google»</b> si tu Gmail está asociado':''}.</p>
  <p style="margin-bottom:0"><b>Si sos el administrador:</b> usá «Olvidé mi contraseña» y después tu <b>código de recuperación</b> (el que guardaste al crear el comercio) para volver a abrir los datos.</p></div>`;
- return `<div class="lbox"><div style="text-align:center"><img src="${LOGO_MENU}" alt="RAVE" style="width:150px;border-radius:12px"><h1>Acceso del equipo</h1><p class="mut sm">${esc(S.tenant.legal||'Sistema RAVE')}</p></div>
+ return `<div class="lbox"><div class="th-row">${themeBtn()}</div><div style="text-align:center"><img src="${LOGO_MENU}" alt="RAVE" style="width:150px;border-radius:12px"><h1>Acceso del equipo</h1><p class="mut sm">${esc(S.tenant.legal||'Sistema RAVE')}</p></div>
  <div class="row" style="justify-content:center;gap:.4rem;margin:.4rem 0">${tab('ingresar','Ingresar')}${tab('crear','Crear comercio')}${tab('unirme','Tengo una invitación')}${tab('ayuda','Olvidé mi clave')}</div>${f}
  <div class="merr" id="lerr" role="alert">${esc(msg||'')}</div>
  <div class="row" style="margin-top:.8rem">${mode==='ayuda'?'':`<button class="btn gold sp" data-act="cloudGo" data-mode="${mode}" id="cl-go">${mode==='ingresar'?'Ingresar':'Continuar'}</button>`}<a class="btn" href="#menu">Volver al menú</a></div>
@@ -299,7 +299,9 @@ async function cloudFetchMember(email){
  return mem.find(m=>m.comercios&&m.comercios.slug===CLOUD.slug)||mem[0];}
 async function cloudSignInFlow(email,pass,opts){
  let offline=false,raw,mem=null,created=false;const meta=cl.meta||{};
- if(!opts.already){try{await signIn(email,pass);}catch(e){if(e.net&&meta.email===email&&meta.dekWrap&&meta.comercio){offline=true;}else throw e;}}
+ if(!opts.already){try{await signIn(email,pass);}catch(e){if(e.net&&meta.email===email&&meta.dekWrap&&meta.comercio){offline=true;}
+  else{const alt=normCode(pass); /* V26.66: la clave temporal se puede escribir en minúsculas o sin guiones */
+   if(!e.net&&alt.length===12&&alt!==pass){try{await signIn(email,alt);pass=alt;}catch(e2){throw e;}}else throw e;}}}
  cl.email=email;
  if(offline){cl.uid=meta.uid;cl.rol=meta.rol;cl.nombre=meta.nombre;cl.comercio=meta.comercio;cl.slug=meta.comercio.slug;cl.ses=meta.ses||null;cl.dekWrap=meta.dekWrap;
   try{raw=await unwrapDek(meta.dekWrap,pass);}catch(e){throw new Error('Correo o contraseña incorrectos.');}}
@@ -318,6 +320,10 @@ async function cloudSignInFlow(email,pass,opts){
    raw=rnd(32);const w=await wrapDek(raw,pass);await hreq('/rest/v1/llaves',{method:'POST',body:{comercio_id:cid,usuario_id:cl.uid,kdf:w.kdf,wrap:w.wrap,temporal:false},headers:{Prefer:'return=minimal'}});cl.dekWrap=w;created=true;
    const code=genCode(20,5);const rw=await wrapDek(raw,normCode(code));await hreq('/rest/v1/llaves_recuperacion',{method:'POST',body:{comercio_id:cid,kdf:rw.kdf,wrap:rw.wrap},headers:{Prefer:'return=minimal'}});
    await showSecret('Código de recuperación',code,'Este código es la <b>única forma</b> de volver a abrir los datos si olvidás la contraseña. Se muestra <b>una sola vez</b>: anotalo y guardalo (no en este equipo).');}
+  else if(kr[0].temporal&&!opts.inviteCode&&await unwrapDek(kr[0],normCode(pass)).then(r=>{raw=r;return true;},()=>false)){
+   /* V26.66 · entró con la CLAVE TEMPORAL que le dio el administrador («Restablecer acceso»): elige su contraseña nueva y listo */
+   const np=await askNewPass(email);if(!np)throw new Error('Para terminar de entrar elegí tu contraseña nueva. Volvé a ingresar con la clave temporal.');
+   await hreq('/auth/v1/user',{method:'PUT',body:{password:np}});const nw=await wrapDek(raw,np);await patch(nw);cl.dekWrap=nw;cl.passReset=true;}
   else if(kr[0].temporal){const code=opts.inviteCode||await askText('Código de acceso','Escribí el código de acceso que te dio el administrador',{});if(!code)throw new Error('Ingreso cancelado.');
    try{raw=await unwrapDek(kr[0],normCode(code));}catch(e){throw new Error('El código de acceso no es correcto.');}
    const nw=await wrapDek(raw,pass);await patch(nw);cl.dekWrap=nw;}
@@ -342,7 +348,7 @@ async function cloudSignInFlow(email,pass,opts){
  if(!offline){let ok=true;for(let i=0;i<5&&ok;i++){try{ok=!(await rpc('registrar_caja',{p_comercio:cl.comercio.id,p_nro:+S.tenant.caja||1,p_disp:cl.dev,p_nombre:cl.nombre}));}catch(e){ok=false;break;}
    if(ok){const n=await askCajaNro(+S.tenant.caja||1);if(!n){break;}S.tenant.caja=Math.min(99,Math.max(1,parseInt(n,10)||1));}}}
  await cloudMetaSave();
- audit('LOGIN','ingreso a la nube'+(offline?' (sin conexión)':''));
+ audit('LOGIN','ingreso a la nube'+(offline?' (sin conexión)':'')+(cl.passReset?' · eligió su contraseña nueva (clave temporal)':''));if(cl.passReset){cl.passReset=false;setTimeout(()=>toast('Listo: tu contraseña nueva quedó guardada.'),600);}
  startTimers();
  if(!offline){try{await cloudSync(true);}catch(e){}if(cl.rol==='admin')await ensureClubKey();}
  await cloudPersistNow();
@@ -503,16 +509,16 @@ function cloudApiWrap(local){if(!CLOUD.on)return local;
 function teamCardHtml(){return `<div class="card" id="team-card" style="margin-top:1rem"><h3>Equipo (personas con acceso)</h3><div id="nb-team" class="sm mut">Cargando…</div>
  <h4>Invitar a una persona</h4><div class="grid g2"><div><label for="nb-em">Correo</label><input id="nb-em" type="email"></div><div><label for="nb-nm">Nombre</label><input id="nb-nm" maxlength="60"></div><div><label for="nb-rl">Rol</label><select id="nb-rl"><option value="mostrador">Mostrador</option><option value="supervisor">Supervisor</option><option value="operador">Operador</option><option value="admin">Administrador</option></select></div></div>
  <div class="row" style="margin-top:.5rem"><button class="btn gold" data-act="nbInvite">Generar código de acceso</button></div>
- <p class="sm mut">La persona entra a "Tengo una invitación", escribe ese correo, elige su contraseña y pega el código. <b>Si alguien olvida su contraseña, te la pide a vos</b> (no al soporte del desarrollador): que pruebe «Olvidé mi contraseña»; si no puede, quitala de esta lista y volvé a invitarla con un código nuevo.</p>
+ <p class="sm mut">La persona entra a "Tengo una invitación", escribe ese correo, elige su contraseña y pega el código. <b>Si alguien olvida su contraseña, te la pide a vos</b> (no al soporte del desarrollador): tocá <b>«Restablecer acceso»</b> al lado de su nombre y pasale la clave temporal (por WhatsApp o en persona). Entra con su correo y esa clave, y elige su contraseña nueva: no pierde nada.</p>
  <h4>Código de recuperación</h4><p class="sm">Permite volver a abrir los datos si el administrador pierde su contraseña. Si lo perdiste, generá uno nuevo (el anterior deja de servir).</p><button class="btn" data-act="nbRecov">Generar código nuevo</button></div>`;}
 async function teamInit(){if(!CLOUD.on||cl.rol!=='admin')return;const box=document.getElementById('nb-team');if(!box)return;
   try{const [m,inv]=await Promise.all([sel(`miembros?select=usuario_id,rol,nombre,email&comercio_id=eq.${cl.comercio.id}&order=creado`),rpc('invitaciones_de',{p_comercio:cl.comercio.id})]);
-   box.innerHTML=`<div class="tw"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th></th></tr></thead><tbody>${m.map(x=>`<tr><td>${esc(x.nombre||'')}</td><td>${esc(x.email||'')}</td><td>${x.usuario_id===cl.uid?esc(ROLES_LBL[x.rol]):`<select data-act-change="nbRole" class="nb-role" data-u="${esc(x.usuario_id)}">${Object.keys(ROLES_LBL).map(r=>`<option value="${r}" ${r===x.rol?'selected':''}>${ROLES_LBL[r]}</option>`).join('')}</select>`}</td><td>${x.usuario_id===cl.uid?'(vos)':`<button class="btn sm red" data-act="nbDel" data-u="${esc(x.usuario_id)}" data-n="${esc(x.nombre||x.email||'')}">Quitar</button>`}</td></tr>`).join('')}</tbody></table></div>
+   box.innerHTML=`<div class="tw"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th></th></tr></thead><tbody>${m.map(x=>`<tr><td>${esc(x.nombre||'')}</td><td>${esc(x.email||'')}</td><td>${x.usuario_id===cl.uid?esc(ROLES_LBL[x.rol]):`<select data-act-change="nbRole" class="nb-role" data-u="${esc(x.usuario_id)}">${Object.keys(ROLES_LBL).map(r=>`<option value="${r}" ${r===x.rol?'selected':''}>${ROLES_LBL[r]}</option>`).join('')}</select>`}</td><td class="r nb-acts">${x.usuario_id===cl.uid?'(vos)':`${x.rol==='admin'?'':`<button class="btn sm" data-act="nbReset" data-u="${esc(x.usuario_id)}" data-n="${esc(x.nombre||x.email||'')}" data-e="${esc(x.email||'')}">Restablecer acceso</button>`}<button class="btn sm red" data-act="nbDel" data-u="${esc(x.usuario_id)}" data-n="${esc(x.nombre||x.email||'')}">Quitar</button>`}</td></tr>`).join('')}</tbody></table></div>
    ${inv.length?`<p class="sm"><b>Invitaciones pendientes:</b> ${inv.map(i=>esc(i.email)+' ('+esc(ROLES_LBL[i.rol]||i.rol)+')').join(', ')}</p>`:''}`;
    box.querySelectorAll('.nb-role').forEach(s=>s.addEventListener('change',async()=>{try{await rpc('cambiar_rol',{p_comercio:cl.comercio.id,p_usuario:s.dataset.u,p_rol:s.value});audit('EQUIPO_ROL',s.value);toast('Rol cambiado');}catch(e){toast(errTxt(e),1);rerender();}}));
   }catch(e){box.textContent='No se pudo cargar el equipo: '+errTxt(e);}}
 if(CLOUD.on){INV_HOOK.online=()=>!!(cl.ready&&cl.online);INV_HOOK.preview=async ids=>{const r=await rpc('inventario_vista_previa_borrado',{p_comercio:cl.comercio.id,p_ids:ids});return Array.isArray(r)?r:[];};}
-if(CLOUD.on){UI_HOOK.usersCard=()=>cl.rol==='admin'?teamCardHtml()+custodiaCardHtml():'<div class="card" style="margin-top:1rem"><h3>Equipo</h3><p class="sm mut">Sólo el administrador puede invitar o quitar personas.</p></div>';UI_HOOK.usersAfter=()=>{teamInit();custodiaPaint();};}
+if(CLOUD.on){UI_HOOK.usersCard=()=>cl.rol==='admin'?teamCardHtml()+custodiaCardHtml()+googleSetupCardHtml():'<div class="card" style="margin-top:1rem"><h3>Equipo</h3><p class="sm mut">Sólo el administrador puede invitar o quitar personas.</p></div>';UI_HOOK.usersAfter=()=>{teamInit();custodiaPaint();googleSetupPaint();};}
 /* ---------- pantalla "Nube" ---------- */
 const ROLES_LBL={admin:'Administrador',supervisor:'Supervisor',mostrador:'Mostrador',operador:'Operador'};
 reg('nube','Nube','globe','config',()=>{
@@ -536,8 +542,8 @@ reg('nube','Nube','globe','config',()=>{
  ${adm?'<div class="row"><button class="btn" data-act="nbPublish">Publicar ahora</button></div>':'<p class="sm mut">Sólo el administrador publica el menú.</p>'}
  <div class="row" style="margin-top:.4rem"><button class="btn" data-act="nbAltas">Traer altas del Club</button></div>
  <p class="sm mut">Las altas del Club llegan cifradas: sólo este comercio las puede abrir.</p></div></div>
- ${adm?cajasCardHtml()+teamCardHtml()+custodiaCardHtml():''}`;},
- ()=>{teamInit();custodiaPaint();cajasInit();},'Sistema');
+ ${adm?cajasCardHtml()+teamCardHtml()+custodiaCardHtml()+googleSetupCardHtml():''}`;},
+ ()=>{teamInit();custodiaPaint();cajasInit();googleSetupPaint();},'Sistema');
 /* V26.47 · números de caja reservados por cada equipo; el administrador libera los de equipos que ya no se usan (19-liberar-caja.sql) */
 function cajasCardHtml(){return`<div class="card" id="cajas-card" style="margin-top:1rem"><h3>Números de caja de los equipos</h3>
  <p class="sm mut">Cada navegador o equipo reserva su número de caja para que los tickets no se repitan. Si un equipo ya no se usa (otra computadora, otro navegador o datos borrados), liberá su número. Liberarlo no borra ventas ni cierres.</p>
@@ -567,6 +573,57 @@ A.nbDel=el=>confirmBox('Quitar del equipo','¿Quitar a '+esc(el.dataset.n)+'? Pi
 A.nbRecov=()=>confirmBox('Código de recuperación','Se genera uno nuevo y el anterior deja de servir. ¿Seguimos?',async()=>{try{const code=genCode(20,5);const w=await wrapDek(cl.dekRaw,normCode(code));
  await hreq('/rest/v1/llaves_recuperacion?comercio_id=eq.'+cl.comercio.id,{method:'PATCH',body:{kdf:w.kdf,wrap:w.wrap,creado:new Date().toISOString()},headers:{Prefer:'return=minimal'}});audit('RECUPERACION_NUEVA','código regenerado');
  await showSecret('Código de recuperación',code,'Anotalo y guardalo. Reemplaza al anterior.');}catch(e){toast(errTxt(e),1);}});
+/* V26.66 · «Restablecer acceso»: el administrador le da a alguien de su equipo una CLAVE TEMPORAL en un solo paso (24-restablecer-acceso.sql).
+   La llave de datos se envuelve con esa clave en ESTE navegador (el servidor nunca la ve abierta); al entrar con ella la persona elige su contraseña nueva. */
+A.nbReset=el=>{const nm=el.dataset.n||'esta persona',em=el.dataset.e||'';
+ modal('Restablecer acceso de '+nm,`<p>Se genera una <b>clave temporal</b> para <b>${esc(nm)}</b>${em?' ('+esc(em)+')':''}. Con su correo y esa clave entra por «Ingresar» y el sistema le pide elegir su contraseña nueva.</p><ul class="sm"><li>Su contraseña anterior deja de funcionar.</li><li>No se pierde nada: ventas, clientes y permisos quedan igual.</li><li>Pasale la clave por un canal seguro (en persona o WhatsApp). Se muestra una sola vez.</li></ul>`,
+ {okText:'Generar clave temporal',onOk:async w=>{const code=genCode(12,4);
+  try{const k=await wrapDek(cl.dekRaw,normCode(code));await rpc('restablecer_acceso_miembro',{p_comercio:cl.comercio.id,p_usuario:el.dataset.u,p_clave:normCode(code),p_llave:{kdf:k.kdf,wrap:k.wrap}});}
+  catch(e){const m=errTxt(e);w._err(/restablecer_acceso_miembro|PGRST202|Could not find/i.test(m)?'Falta instalar en la nube la función para restablecer el acceso (24-restablecer-acceso.sql). Avisale a Vincular Business.':m);return false;}
+  audit('EQUIPO_RESTABLECER_ACCESO',nm);const url=location.href.split('#')[0];
+  setTimeout(()=>showSecret('Clave temporal de '+nm,code,'Pasásela a <b>'+esc(nm)+'</b>. Entra en <b>Acceso del equipo → Ingresar</b> con su correo'+(em?' (<b>'+esc(em)+'</b>)':'')+' y esta clave, y elige su contraseña nueva. Se muestra <b>una sola vez</b>.',
+   'Hola '+nm+'! Te restablecí el acceso al sistema de '+cl.comercio.nombre+'. Entrá a '+url+' → "Acceso del equipo" → "Ingresar". Correo: '+(em||'el tuyo')+' · Clave temporal: '+code+'. El sistema te va a pedir que elijas tu contraseña nueva (10 caracteres o más).'),40);}});};
+function askNewPass(email){return new Promise(res=>{const w=modal('Elegí tu contraseña nueva',`<p class="sm">Entraste con la <b>clave temporal</b>${email?' como <b>'+esc(email)+'</b>':''}. Elegí tu contraseña de ahora en más (10 caracteres o más). La clave temporal deja de servir.</p>
+ <label for="np-1">Contraseña nueva</label><input id="np-1" type="password" autocomplete="new-password"><label for="np-2">Repetila</label><input id="np-2" type="password" autocomplete="new-password">`,
+ {okText:'Guardar y entrar',onOk:w2=>{const a=val('np-1'),b=val('np-2');if(a.length<10){w2._err('Mínimo 10 caracteres.');return false;}if(a!==b){w2._err('Las dos contraseñas no coinciden.');return false;}if(normCode(a).length===12&&/^[A-Z0-9-]+$/.test(a)){w2._err('Elegí una contraseña distinta de la clave temporal.');return false;}res(a);}});
+ w.addEventListener('click',e=>{if(e.target.closest('[data-m="x"]'))res(null);});});}
+
+/* V26.66 · Asistente «Ingreso con Google»: muestra qué falta y los valores exactos para Google Cloud y Supabase (todo verificable desde acá) */
+const SB_REF=()=>{const m=/^https:\/\/([a-z0-9]+)\.supabase\.co/i.exec(CLOUD.url||'');return m?m[1]:'';};
+function googleSetupCardHtml(){if(!CLOUD.on||cl.rol!=='admin')return'';const ref=SB_REF();const dash='https://supabase.com/dashboard/project/'+ref;
+ const pu=(window.RAVE_BUILD&&/^https:\/\//.test(RAVE_BUILD.publicUrl||'')&&RAVE_BUILD.publicUrl)||googleRedirectUrl();let po=location.origin;try{po=new URL(pu).origin;}catch(e){}
+ const cp=(id,v)=>`<div class="gs-val"><code id="${id}">${esc(v)}</code><button type="button" class="btn sm" data-act="gsCopy" data-t="${esc(v)}" aria-label="Copiar">Copiar</button></div>`;
+ return `<div class="card" id="gs-card" style="margin-top:1rem"><h3>Ingreso con Google (configuración)</h3>
+ <p class="sm mut">Para que el equipo entre con su Gmail y recuperar el acceso sea simple. Lo hace una sola vez quien administra Google Cloud y Supabase (Vincular Business o el dueño). Cada persona entra con el <b>mismo Gmail</b> con el que fue invitada.</p>
+ <ol class="gs-st" id="gs-st"><li>Consultando el estado…</li></ol>
+ <div class="row"><button class="btn" data-act="gsCheck">Volver a verificar</button></div>
+ <details class="gs-how"><summary><b>Paso a paso</b> (con los valores exactos de este sistema)</summary>
+ <h4>A · Google Cloud: crear la «llave» (ID y secreto de cliente OAuth)</h4>
+ <ol class="sm"><li>Abrí <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud → APIs y servicios → Credenciales</a> (con la cuenta de Google del negocio). Si te lo pide, creá un proyecto (por ejemplo «Sistema RAVE»).</li>
+ <li>Si es la primera vez: <b>Pantalla de consentimiento de OAuth</b> → tipo <b>Externo</b> → nombre de la app, correo de soporte → guardar. Después <b>Publicar la app</b> (si queda «En prueba», sólo entran los correos cargados como usuarios de prueba).</li>
+ <li><b>Crear credenciales → ID de cliente de OAuth → Aplicación web</b>.</li>
+ <li><b>Orígenes de JavaScript autorizados</b>:${cp('gs-o',po)}</li>
+ <li><b>URI de redireccionamiento autorizados</b>:${cp('gs-cb',CLOUD.url+'/auth/v1/callback')}</li>
+ <li>Crear y copiar el <b>ID de cliente</b> y el <b>Secreto del cliente</b>. El secreto no se manda por chat ni se escribe en el sistema: se pega directo en Supabase.</li></ol>
+ <h4>B · Supabase: activar Google</h4>
+ <ol class="sm"><li><a href="${dash}/auth/providers" target="_blank" rel="noopener">Authentication → Sign In / Providers → Google</a>: activar, pegar el ID de cliente y el secreto → <b>Save</b>.</li>
+ <li><a href="${dash}/auth/url-configuration" target="_blank" rel="noopener">Authentication → URL Configuration</a>: <b>Site URL</b>:${cp('gs-site',pu)}<b>Redirect URLs</b> → Add URL:${cp('gs-red',pu+'**')}</li></ol>
+ <h4>C · Supabase: la función «llave» (para «Ingreso sólo con Google», opcional)</h4>
+ <ol class="sm"><li><a href="${dash}/functions" target="_blank" rel="noopener">Edge Functions</a> → Deploy a new function → nombre <code>llave</code> → pegar <code>supabase/despliegue-panel/llave-index.ts</code> → Deploy. En sus ajustes, <b>apagar «Verify JWT»</b>.</li>
+ <li><a href="${dash}/functions/secrets" target="_blank" rel="noopener">Edge Functions → Secrets</a>: <code>LLAVE_MASTER_KEY</code> = 32 bytes al azar en base64. <button type="button" class="btn sm" data-act="gsKey">Generar un valor</button> <span id="gs-key"></span><br><code>ALLOWED_ORIGINS</code>:${cp('gs-ao',po)}</li>
+ <li>Volvé acá, tocá <b>Volver a verificar</b> y, si querés, activá «Ingreso sólo con Google» en <b>Usuarios y permisos</b>.</li></ol>
+ <p class="sm mut">Guardá <code>LLAVE_MASTER_KEY</code> en un lugar seguro: si se pierde, hay que volver a activar el ingreso sólo con Google.</p></details></div>`;}
+async function googleSetupPaint(){const box=$('#gs-st');if(!box)return;const it=(ok,t,d)=>`<li class="${ok===true?'ok':ok===false?'bad':'warn'}"><b>${ok===true?'✔':ok===false?'✖':'?'} ${t}</b>${d?'<br><span class="sm mut">'+d+'</span>':''}</li>`;
+ let g=null,ll=null;try{const r=await fetch(CLOUD.url+'/auth/v1/settings',{headers:{apikey:CLOUD.key}});const j=await r.json();g=!!(j&&j.external&&j.external.google);googleOn=g;}catch(e){g=null;}
+ try{ll=await llaveFn('estado');}catch(e){ll=null;}
+ box.innerHTML=it(g,'Proveedor Google en Supabase',g?'Activado: el botón «Ingresar con Google» aparece en el ingreso.':g===false?'Falta: pasos A y B (ID y secreto de cliente de Google cargados en Supabase).':'No se pudo consultar (¿sin conexión?).')
+  +it(g?null:false,'Direcciones de regreso',g?'Si al volver de Google cae en otra página o da «redirect_uri_mismatch», revisá los valores del paso A-4/5 y B-2.':'Se cargan en los pasos A y B.')
+  +it(ll&&ll.servidor?true:false,'Función «llave» en el servidor',ll&&ll.servidor?'Desplegada con su secreto.':'Falta el paso C (sólo para entrar con Google sin la clave del sistema).')
+  +it(ll&&ll.activa?true:null,'Ingreso sólo con Google',ll&&ll.activa?'Activado: con Google no se pide la clave del sistema.':'Opcional. Sin activarlo, la primera vez en cada equipo se pide la clave del sistema.');}
+A.gsCheck=()=>{const b=$('#gs-st');if(b)b.innerHTML='<li>Consultando…</li>';googleSetupPaint();};
+A.gsCopy=el=>{try{navigator.clipboard.writeText(el.dataset.t);toast('Copiado');}catch(e){toast('No se pudo copiar: seleccioná el texto',1);}};
+A.gsKey=()=>{const k=b64(rnd(32));const s=$('#gs-key');if(s)s.innerHTML=`<code style="user-select:all">${esc(k)}</code> <button type="button" class="btn sm" data-act="gsCopy" data-t="${esc(k)}">Copiar</button>`;};
+
 /* número de caja: en la nube cada equipo reserva el suyo */
 const _cfgSaveLocal=A.cfgSave;
 A.cfgSave=async el=>{if(CLOUD.on&&cl.ready){const c=parseNum(val('cf-c'));if(c>=1&&c!==S.tenant.caja){try{const ok=await rpc('registrar_caja',{p_comercio:cl.comercio.id,p_nro:c,p_disp:cl.dev,p_nombre:cl.nombre});if(!ok)return toast('Ese número de caja ya lo usa otro equipo',1);}catch(e){return toast(errTxt(e),1);}}}return _cfgSaveLocal(el);};
@@ -628,7 +685,7 @@ function custodiaCardHtml(){if(cl.rol!=='admin')return '';return `<div class="ca
  <p class="sm">Si lo activás, cada persona del equipo entra con <b>su cuenta de Gmail</b> en cualquier equipo, <b>sin clave del sistema</b>, y recuperar el acceso es tan fácil como recuperar su cuenta de Google.</p>
  <p class="sm mut">Cómo funciona: la llave que cifra los datos de clientes y empleados se guarda en la nube envuelta con un secreto del servidor. Una copia robada de la base no alcanza para abrirla; quien controle el proyecto de Supabase sí podría. Si no lo activás, el cifrado sigue siendo sólo con la clave de cada persona (más privado, pero si se olvida la clave hace falta el código de recuperación).</p>
  <div id="cust-st" class="sm">Consultando…</div><div class="row" style="margin-top:.5rem"><button class="btn gold" data-act="custOn">Activar ingreso sólo con Google</button><button class="btn" data-act="custOff">Desactivar</button></div></div>`;}
-async function custodiaPaint(){const el=$('#cust-st');if(!el)return;try{const j=await llaveFn('estado');el.innerHTML=j.activa?`<span class="tag ok">Activado</span> desde ${esc(fmtDT(Date.parse(j.desde)))}`:(j.servidor?'<span class="tag">Desactivado</span>':'<span class="tag warn">Falta configurar la función «llave» en el servidor</span>');}
+async function custodiaPaint(){const el=$('#cust-st');if(!el)return;try{const j=await llaveFn('estado');el.innerHTML=j.activa?`<span class="tag ok">Activado</span> desde ${esc(fmtDT(Date.parse(j.desde)))}`:(j.servidor?'<span class="tag">Desactivado</span>':'<span class="tag warn">Falta configurar la función «llave» en el servidor</span> · ver «Ingreso con Google (configuración)», paso C');}
  catch(e){el.innerHTML='<span class="tag warn">No disponible: falta desplegar la función «llave» en la nube</span>';}}
 A.custOn=()=>confirmBox('Activar ingreso sólo con Google','Cada persona del equipo va a poder entrar con su Gmail sin la clave del sistema. La llave de los datos queda guardada en la nube envuelta con un secreto del servidor. ¿Activar?',async()=>{try{await llaveFn('guardar',{dek:b64(cl.dekRaw)});audit('CUSTODIA_ACTIVADA','ingreso sólo con Google');toast('Ingreso sólo con Google activado');custodiaPaint();}catch(e){toast(errTxt(e),1);}});
 A.custOff=()=>confirmBox('Desactivar ingreso sólo con Google','Se borra la copia de la llave de la nube. Para entrar con Google en un equipo nuevo se va a pedir la clave del sistema. ¿Desactivar?',async()=>{try{await llaveFn('borrar');audit('CUSTODIA_DESACTIVADA','');toast('Desactivado');custodiaPaint();}catch(e){toast(errTxt(e),1);}});

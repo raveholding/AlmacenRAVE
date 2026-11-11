@@ -192,7 +192,7 @@ function uxCashHero(id){if(!['caja','arqueo','cierres'].includes(id))return'';co
 A.uxHeroGo=el=>go(el.dataset.id);
 document.addEventListener('keydown',e=>{const a=e.target.closest&&e.target.closest('.ux-steps a');if(a&&(e.key==='Enter'||e.key===' ')){e.preventDefault();A.uxHeroGo(a);}});
 const uxAfterBase=uxAfter;
-uxAfter=function(id){uxAfterBase(id);try{const v=$('#view');const row=[...v.children].find(x=>x.querySelector&&(x.matches('h1')||x.querySelector(':scope > h1')));
+uxAfter=function(id){uxAfterBase(id);try{const v=$('#view');v.classList.remove('cfg2');const row=[...v.children].find(x=>x.querySelector&&(x.matches('h1')||x.querySelector(':scope > h1')));
  const ins=(html)=>{if(!html)return;if(row)row.insertAdjacentHTML('afterend',html);else v.insertAdjacentHTML('afterbegin',html);};
  ins(uxCashHero(id));ins(uxDescHTML(id));v.classList.remove('ux-in');void v.offsetWidth;v.classList.add('ux-in');}catch(e){}};
 
@@ -202,21 +202,45 @@ uxAfter=function(id){uxAfterBase(id);try{const v=$('#view');const row=[...v.chil
    funcionar. La sección elegida y la búsqueda se recuerdan mientras se use la pantalla (también después de guardar). */
 const uxNavState={};
 const uxNorm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-function uxSecCards(v){const out=[];[...v.children].forEach(c=>{if(c.id==='ux-secnav')return;if(c.classList.contains('card')&&c.querySelector('h2,h3'))out.push(c);else if(c.classList.contains('grid'))[...c.children].forEach(k=>{if(k.classList&&k.classList.contains('card')&&k.querySelector('h2,h3'))out.push(k);});});return out;}
+const uxRoot=v=>v.querySelector(':scope>#cfg-main')||v;
+function uxSecCards(v){const out=[];[...uxRoot(v).children].forEach(c=>{if(c.id==='ux-secnav')return;if(c.classList.contains('card')&&c.querySelector('h2,h3'))out.push(c);else if(c.classList.contains('grid'))[...c.children].forEach(k=>{if(k.classList&&k.classList.contains('card')&&k.querySelector('h2,h3'))out.push(k);});});return out;}
+/* V26.66 · Configuración por grupos, una sección a la vez: menú lateral fijo (Negocio, Equipo y seguridad, Ventas y cobros, Clientes y NFC,
+   Herramientas, Respaldo y datos) con ícono, descripción y cantidad; al entrar se abre el último grupo usado (o «Negocio»); el buscador
+   busca en TODOS los grupos y, al borrarlo, vuelve al grupo en el que estabas. En el celular el menú pasa a una fila deslizable. */
+const UX_CG={config:[['Negocio',/modelo de negocio|tipo de negocio|^comercio|rubros|categor[ií]as|cajas y sucursales/i,'Modelo de negocio, datos del comercio, rubros y cajas','M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6'],
+ ['Ventas y cobros',/cobro|recargo|fiado|cuenta corriente|mayorista|medio de pago|precio/i,'Medios de pago, recargos, fiado y mayorista','M3 7h18v10H3zM3 11h18M7 15h3'],
+ ['Clientes y NFC',/nfc|club|fideliz|cliente/i,'Lector NFC, tarjetas y Club','M6 8.3a5.5 5.5 0 0 1 0 7.4M9.4 5.8a9.5 9.5 0 0 1 0 12.4M12.8 3.3a13.4 13.4 0 0 1 0 17.4'],
+ ['Equipo y seguridad',/ingreso|apariencia|tema del panel|seguridad|recuperaci/i,'Ingreso con Google y apariencia','M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z'],
+ ['Herramientas',/\bia\b|asistente|telegram|r2ave|centro|lectura de facturas/i,'Asistente, IA y bots','M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z'],
+ ['Respaldo y datos',/respaldo|datos de la demo|restaurar/i,'Copias de seguridad y datos','M4 7c0-2 16-2 16 0v10c0 2-16 2-16 0zM4 7c0 2 16 2 16 0M4 12c0 2 16 2 16 0']]};
+const uxCgIco=d=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d||'M4 6h16M4 12h16M4 18h10'}"/></svg>`;
+const uxCgD=g=>(typeof ownerMode==='function'&&ownerMode())?String(g[2]).replace('rubros','categorías'):g[2];
+function uxCg(id,c){const G=UX_CG[id];if(!G)return '';const t=(c.querySelector('h2,h3').textContent||'').trim();const g=G.find(x=>x[1].test(t));return g?g[0]:'Otros';}
+function uxCgSave(id,sec){if(UX_CG[id]&&(sec.startsWith('g:')||sec==='all'))try{localStorage.setItem('rave.ux.'+id,sec);}catch(e){}}
+function uxCgLoad(id){if(!UX_CG[id])return 'all';let s='';try{s=localStorage.getItem('rave.ux.'+id)||'';}catch(e){}return (s.startsWith('g:')||s==='all')?s:'g:'+UX_CG[id][0][0];}
 function uxSecApply(id){const v=$('#view');if(!v)return;const st=uxNavState[id]||{sec:'all',q:''};const cards=uxSecCards(v);const q=uxNorm(st.q).trim();let shown=0;
- cards.forEach((c,i)=>{const okS=st.sec==='all'||st.sec===String(i);const okQ=!q||q.split(/\s+/).every(w=>uxNorm(c.textContent).includes(w)||[...c.querySelectorAll('input,select,textarea')].some(x=>uxNorm(x.placeholder||x.value||'').includes(w)));const vis=okS&&okQ;c.classList.toggle('ux-hid',!vis);if(vis)shown++;});
- [...v.children].forEach(c=>{if(c.classList&&c.classList.contains('grid')&&c.querySelector(':scope>.card')){const any=[...c.children].some(k=>!k.classList.contains('ux-hid'));c.classList.toggle('ux-hid',!any);}});
- const nav=$('#ux-secnav');if(!nav)return;nav.querySelectorAll('[data-sec]').forEach(b=>{const on=b.dataset.sec===st.sec;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');});
+ if(st.sec.startsWith('g:')&&!cards.some(c=>uxCg(id,c)===st.sec.slice(2)))st.sec=UX_CG[id]?'g:'+UX_CG[id][0][0]:'all';
+ cards.forEach((c,i)=>{const cg=uxCg(id,c);if(cg)c.dataset.cg=cg;const okS=q||st.sec==='all'||st.sec===String(i)||(st.sec.startsWith('g:')&&cg===st.sec.slice(2));const okQ=!q||q.split(/\s+/).every(w=>uxNorm(c.textContent).includes(w)||[...c.querySelectorAll('input,select,textarea')].some(x=>uxNorm(x.placeholder||x.value||'').includes(w)));const vis=okS&&okQ;c.classList.toggle('ux-hid',!vis);if(vis)shown++;});
+ [...uxRoot(v).children].forEach(c=>{if(c.classList&&c.classList.contains('grid')&&c.querySelector(':scope>.card')){const any=[...c.children].some(k=>!k.classList.contains('ux-hid'));c.classList.toggle('ux-hid',!any);}});
+ const nav=$('#ux-secnav');if(!nav)return;nav.querySelectorAll('[data-sec]').forEach(b=>{const on=!q&&b.dataset.sec===st.sec;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');});
+ const hd=$('#ux-cg-head');if(hd){const g=UX_CG[id]&&st.sec.startsWith('g:')?UX_CG[id].find(x=>x[0]===st.sec.slice(2)):null;
+  hd.innerHTML=q?`<h2>Resultados de «${esc(st.q)}»</h2><p class="sm mut">${shown?'En todos los grupos · '+shown+' sección(es)':'No hay opciones con esa palabra. Probá con otra.'}</p>`:g?`<h2>${uxCgIco(g[3])} ${esc(g[0])}</h2><p class="sm mut">${esc(uxCgD(g))}</p>`:st.sec==='all'?'<h2>Toda la configuración</h2>':'';}
  const r=$('#ux-sec-res');if(r)r.textContent=(q||st.sec!=='all')?(shown?shown+' de '+cards.length+' secciones':'No hay opciones con «'+st.q+'». Probá con otra palabra.'):cards.length+' secciones';}
-function uxSecBuild(){const v=$('#view');if(!v||!curScreen)return;const id=curScreen;const cards=uxSecCards(v);const old=$('#ux-secnav');
- if(cards.length<5||id==='crm'||id==='centro'){if(old)old.remove();return;}
+function uxSecBuild(){const v=$('#view');if(!v||!curScreen)return;const id=curScreen;const G=UX_CG[id];
+ if(!G){v.classList.remove('cfg2');}
+ const cards=uxSecCards(v);const old=$('#ux-secnav');
+ if(cards.length<5||id==='crm'||id==='centro'){if(old)old.remove();v.classList.remove('cfg2');return;}
  const sig=id+'|'+cards.map(c=>(c.querySelector('h2,h3').textContent||'').trim()).join('|');if(old&&old.dataset.sig===sig){uxSecApply(id);return;}if(old)old.remove();
- const st=uxNavState[id]||(uxNavState[id]={sec:'all',q:''});
- const chips=cards.map((c,i)=>{const t=(c.querySelector('h2,h3').textContent||'').replace(/\s+/g,' ').trim();return `<button type="button" class="ux-chip" data-sec="${i}" title="${esc(t)}">${esc(t.length>34?t.slice(0,32)+'…':t)}</button>`;}).join('');
+ const st=uxNavState[id]||(uxNavState[id]={sec:uxCgLoad(id),q:''});
+ const chips=G?[...G,['Otros',null,'Otras opciones','']].map(g=>{const L=cards.filter(c=>uxCg(id,c)===g[0]);return L.length?`<button type="button" class="ux-chip cg" data-sec="g:${esc(g[0])}" title="${esc(L.map(c=>(c.querySelector('h2,h3').textContent||'').trim()).join(' · '))}">${uxCgIco(g[3])}<span class="cg-t"><b>${esc(g[0])}</b><small>${esc(uxCgD(g))}</small></span><span class="cg-n">${L.length}</span></button>`:'';}).join(''):cards.map((c,i)=>{const t=(c.querySelector('h2,h3').textContent||'').replace(/\s+/g,' ').trim();return `<button type="button" class="ux-chip" data-sec="${i}" title="${esc(t)}">${esc(t.length>34?t.slice(0,32)+'…':t)}</button>`;}).join('');
  const nav=document.createElement('div');nav.id='ux-secnav';nav.dataset.sig=sig;nav.setAttribute('role','search');
- nav.innerHTML=`<div class="ux-secq"><label for="ux-sec-q" class="sr-only">Buscar en esta pantalla</label><input id="ux-sec-q" type="search" autocomplete="off" placeholder="¿Qué querés configurar? Ej.: ticket, alias, cuotas, horario…" value="${esc(st.q)}"><span id="ux-sec-res" class="sm mut" aria-live="polite"></span></div><div class="ux-chips" role="group" aria-label="Secciones de esta pantalla"><button type="button" class="ux-chip" data-sec="all">Todas</button>${chips}</div>`;
- const first=[...v.children].find(c=>c.classList&&(c.classList.contains('card')||c.classList.contains('grid')||c.classList.contains('warnbox')));v.insertBefore(nav,first||null);
- nav.addEventListener('click',e=>{const b=e.target.closest('[data-sec]');if(!b)return;st.sec=b.dataset.sec;uxSecApply(id);if(st.sec!=='all'){const c=uxSecCards(v)[+st.sec];if(c){c.classList.add('ux-flash');setTimeout(()=>c.classList.remove('ux-flash'),900);}}window.scrollTo({top:Math.max(0,v.getBoundingClientRect().top+window.scrollY-70),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});});
- const q=nav.querySelector('#ux-sec-q');q.addEventListener('input',()=>{st.q=q.value;if(st.q)st.sec='all';uxSecApply(id);});q.addEventListener('keydown',e=>{if(e.key==='Escape'){q.value='';st.q='';uxSecApply(id);}});
+ nav.innerHTML=`<div class="ux-secq"><label for="ux-sec-q" class="sr-only">Buscar en esta pantalla</label><input id="ux-sec-q" type="search" autocomplete="off" placeholder="${G?'Buscar una opción…':'¿Qué querés configurar? Ej.: ticket, alias, cuotas, horario…'}" value="${esc(st.q)}"><span id="ux-sec-res" class="sm mut" aria-live="polite"></span></div><div class="ux-chips" role="group" aria-label="Secciones de esta pantalla">${G?'':'<button type="button" class="ux-chip" data-sec="all">Todas</button>'}${chips}${G?'<button type="button" class="ux-chip cg cg-all" data-sec="all">'+uxCgIco('M4 6h16M4 12h16M4 18h16')+'<span class="cg-t"><b>Ver todo</b></span></button>':''}</div>`;
+ if(G){/* dos columnas: menú de grupos | contenido (las tarjetas se mueven, no se vuelven a dibujar: conservan sus eventos) */
+  v.classList.add('cfg2');let main=v.querySelector(':scope>#cfg-main');if(!main){main=document.createElement('div');main.id='cfg-main';[...v.children].forEach(c=>main.appendChild(c));v.appendChild(main);}
+  v.insertBefore(nav,main);if(!main.querySelector(':scope>#ux-cg-head')){const hd=document.createElement('div');hd.id='ux-cg-head';hd.setAttribute('aria-live','polite');const first=[...main.children].find(c=>c.classList&&(c.classList.contains('card')||c.classList.contains('grid')||c.classList.contains('warnbox')));main.insertBefore(hd,first||null);}}
+ else{const first=[...v.children].find(c=>c.classList&&(c.classList.contains('card')||c.classList.contains('grid')||c.classList.contains('warnbox')));v.insertBefore(nav,first||null);}
+ nav.addEventListener('click',e=>{const b=e.target.closest('[data-sec]');if(!b)return;st.sec=b.dataset.sec;uxCgSave(id,st.sec);if(st.q){st.q='';const qi=nav.querySelector('#ux-sec-q');if(qi)qi.value='';}uxSecApply(id);if(st.sec!=='all'&&!st.sec.startsWith('g:')){const c=uxSecCards(v)[+st.sec];if(c){c.classList.add('ux-flash');setTimeout(()=>c.classList.remove('ux-flash'),900);}}window.scrollTo({top:Math.max(0,v.getBoundingClientRect().top+window.scrollY-70),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});});
+ nav.addEventListener('keydown',e=>{const b=e.target.closest('.ux-chip');if(!b||!['ArrowDown','ArrowUp'].includes(e.key))return;const L=[...nav.querySelectorAll('.ux-chip')];const k=L.indexOf(b)+(e.key==='ArrowDown'?1:-1);if(L[k]){e.preventDefault();L[k].focus();}});
+ const q=nav.querySelector('#ux-sec-q');q.addEventListener('input',()=>{st.q=q.value;if(st.q&&!G)st.sec='all';uxSecApply(id);});q.addEventListener('keydown',e=>{if(e.key==='Escape'){q.value='';st.q='';uxSecApply(id);}});
  uxSecApply(id);}
 (()=>{let t=0;const mo=new MutationObserver(m=>{if(m.every(r=>r.target.closest&&r.target.closest('#ux-secnav')))return;clearTimeout(t);t=setTimeout(uxSecBuild,60);});const hook=()=>{const v=document.getElementById('view');if(v)mo.observe(v,{childList:true});else setTimeout(hook,300);};hook();})();

@@ -17,7 +17,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(args=['--no-proxy-server'])
     # ---------------- raveV3: simulación
     pg=b.new_page(viewport={'width':1280,'height':900});pg.on('pageerror',lambda e:errs.append(str(e)[:300]));ev=pg.evaluate
-    pg.goto('file:///tmp/rave/v3.html#acceso');pg.wait_for_timeout(900);login(pg)
+    pg.add_init_script("try{localStorage.setItem('rave.ux.config','all')}catch(e){}");pg.goto('file:///tmp/rave/v3.html#acceso');pg.wait_for_timeout(900);login(pg)
     snap=ev("JSON.stringify(S.products.map(x=>[x.id,x.stock]))");na=ev("allAudit().length")
     ev("go('config')");pg.wait_for_timeout(400)
     card=pg.locator('#tg-card')

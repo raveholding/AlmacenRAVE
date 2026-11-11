@@ -47,7 +47,7 @@ with sync_playwright() as p:
     chk('Minorista' not in pg.inner_text('#view'),'el arqueo no separa minorista/mayorista (todo es mayorista)')
     # configuración: se puede apagar
     ev("go('config')");pg.wait_for_timeout(300)
-    chk(pg.locator('#ws-only').count()==1 and pg.locator('#ws-only').is_checked(),'Configuración → Mayorista muestra «Sólo mayorista (distribuidora)» activado')
+    chk(pg.locator('#biz-card input[name=chan][value=may]').count()==1 and pg.locator('#biz-card input[name=chan][value=may]').is_checked(),'Configuración → Modelo de negocio muestra «Sólo mayorista (distribuidora)» elegido (V26.66)')
     # migración: quien ya abrió la demo antes queda en sólo mayorista
     ev("S.cfg.wholesale.only=false;delete S.cfg.kiniOnlyV;S.customers[4].channel='minorista';save()")
     pg.reload();pg.wait_for_timeout(1000)

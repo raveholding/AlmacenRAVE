@@ -9,7 +9,7 @@ with sync_playwright() as p:
     pg.on('console',lambda m:errs.append(m.text[:200]) if m.type=='error' and 'TUNNEL' not in m.text else None)
     ev=pg.evaluate;M='#modal-root .ov >> nth=-1'
     ok=lambda:pg.locator(M).locator('.mf [data-m=ok]').click()
-    pg.goto('file:///tmp/rave/index.html#acceso');pg.wait_for_timeout(700)
+    pg.add_init_script("try{localStorage.setItem('rave.ux.config','all')}catch(e){}");pg.goto('file:///tmp/rave/index.html#acceso');pg.wait_for_timeout(700)
     pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(400)
     ev("""(()=>{const pr=rub('promo'),vi=rub('vino');pr.owner='Juan';pr.reparte=true;vi.owner='Nico';vi.reparte=true;S.cfg.payAcc=[];
       S.sessions.push({id:'sa',caja:S.tenant.caja,openedBy:'ADMIN',openedAt:now()-1000,opening:100000,closedAt:0});save();})()""")

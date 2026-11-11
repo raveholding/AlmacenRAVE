@@ -8,18 +8,36 @@
    · Las cajas (operativas + principal) y los traspasos siguen igual; el dueño los mueve con cajas abiertas o cerradas. */
 /* ---------- Configuración: tipo de negocio ---------- */
 const bizLocked=()=>!!(S&&S.cfg&&S.cfg.bizLocked);
-function bizCard(){const cur=ownerMode()?'owner':'rubros';const adm=!!user&&user.role==='admin';
- if(bizLocked())return`<div class="card" style="margin-bottom:1rem" id="biz-card"><h3>Tipo de negocio</h3><p><b>${typeof isSoloBuild==='function'&&isSoloBuild()?'Comercio de un solo dueño':'Mayorista / distribuidora de un solo dueño'}</b></p><p class="sm mut">Todo el dinero es del dueño. Los productos se agrupan en categorías (sólo ordenan inventario, ventas y menú). ${typeof isSoloBuild==='function'&&isSoloBuild()?'Una caja (se pueden agregar más cajas y una caja principal en Cajas y sucursales).':'Cajas operativas + caja principal con traspasos.'} Este sistema está armado para un único dueño, por eso el tipo de negocio no se cambia.</p></div>`;
- return`<div class="card" style="margin-bottom:1rem" id="biz-card"><h3>Tipo de negocio</h3>
- <p class="sm mut">Define cómo se ordena el dinero. No borra ni mueve datos: ventas, cierres sellados y movimientos anteriores quedan como estaban.</p>
- <div class="grid g2">${Object.entries(BIZ_TYPES).map(([k,t])=>`<label class="chk biz-opt ${cur===k?'on':''}" style="align-items:flex-start"><input type="radio" name="biz" value="${k}" ${cur===k?'checked':''} ${adm?'':'disabled'}> <span><b>${esc(t)}</b><br><span class="sm mut">${k==='owner'
-  ?'El dinero es todo del dueño: no hay rubros por persona ni reparto entre socios. Los productos se agrupan en categorías. Cajas operativas + caja principal con traspasos.'
-  :'Como Almacén RAVE: cada rubro es una persona (responsable), con su caja, sueldo del empleado a medias, impuesto que se separa y reparto de ganancia.'}</span></span></label>`).join('')}</div>
- ${adm?'<div class="row"><button class="btn gold" data-act="bizSave">Aplicar tipo de negocio</button></div>':'<p class="sm mut">Sólo el administrador lo cambia.</p>'}</div>`;}
+/* V26.66 · «Modelo de negocio»: una sola tarjeta con las dos decisiones que ordenan el sistema.
+   1) ¿De quién es el dinero? (rubros por responsable / un solo dueño) — antes «Tipo de negocio».
+   2) ¿A quién le vendés? (sólo minorista / minorista y mayorista / sólo mayorista) — antes casillas sueltas en «Mayorista y minorista».
+   Las presentaciones, acuerdos y crédito mayorista siguen en su propia tarjeta, que aparece sólo con el canal mayorista activo. */
+const CHANNELS={min:['Sólo minorista','Venta al consumidor final con el precio de lista. Sin presentaciones ni crédito mayorista.'],
+ both:['Minorista y mayorista','Cada cliente tiene su canal habitual. Precios por presentación (Unidad, Display, Fardo…), acuerdos por cliente y crédito con plazo.'],
+ may:['Sólo mayorista (distribuidora)','Toda venta es mayorista: precio por unidad y, al completar una presentación, su precio mayorista. No pide CUIT para vender (sí para cuenta corriente).']};
+const chanCur=()=>{const c=typeof wsConf==='function'?wsConf():{on:false,only:false};return !c.on?'min':c.only?'may':'both';};
+function bizCard(){const cur=ownerMode()?'owner':'rubros';const adm=!!user&&user.role==='admin';const ch=chanCur();const dis=adm?'':'disabled';
+ const opt=(name,k,t,d,on,ex)=>`<label class="bm-opt ${on?'on':''}"><input type="radio" name="${name}" value="${k}" ${on?'checked':''} ${dis||ex||''}><span><b>${esc(t)}</b><br><span class="sm mut">${d}</span></span></label>`;
+ const locked=bizLocked();
+ const sec1=locked?`<p><b>${typeof isSoloBuild==='function'&&isSoloBuild()?'Comercio de un solo dueño':'Un solo dueño'}</b> <span class="tag">fijo en este sistema</span></p><p class="sm mut">Todo el dinero es del dueño. Los productos se agrupan en categorías.</p>`
+  :`<div class="bm-grid">${opt('biz','rubros',BIZ_TYPES.rubros,'Como Almacén RAVE: cada rubro es una persona (responsable) con su caja, sueldo del empleado a medias, impuesto que se separa y reparto de ganancia.',cur==='rubros')}${opt('biz','owner',BIZ_TYPES.owner,'El dinero es todo del dueño: no hay rubros por persona ni reparto entre socios. Los productos se agrupan en categorías. Cajas operativas + caja principal con traspasos.',cur==='owner')}</div>${adm?'<div class="row"><button class="btn gold" data-act="bizSave">Aplicar</button></div>':''}`;
+ const sec2=`<div class="bm-grid">${Object.entries(CHANNELS).map(([k,[t,d]])=>opt('chan',k,t,d,ch===k)).join('')}</div>
+  ${typeof CLOUD_HOOK!=='undefined'&&CLOUD_HOOK&&ch==='min'?'<p class="sm mut">Con la nube activa, antes de vender como mayorista hay que haber corrido <b>10-mayorista-precios.sql</b> en Supabase.</p>':''}
+  ${adm?'<div class="row"><button class="btn gold" data-act="chanSave">Aplicar</button></div>':''}`;
+ return`<div class="card" style="margin-bottom:1rem" id="biz-card"><h3>Modelo de negocio</h3>
+ <p class="sm mut">Las dos decisiones que ordenan todo el sistema. Cambiarlas no borra ni mueve datos: ventas, cierres y movimientos anteriores quedan como estaban.${adm?'':' Sólo el administrador las cambia.'}</p>
+ <div class="bm-sum"><span class="tag ok">${esc(locked?'Un solo dueño':BIZ_TYPES[cur])}</span><span class="tag ok">${esc(CHANNELS[ch][0])}</span></div>
+ <div class="bm-sec"><h4>1 · ¿De quién es el dinero?</h4>${sec1}</div>
+ <div class="bm-sec"><h4>2 · ¿A quién le vendés?</h4>${sec2}</div></div>`;}
+document.addEventListener('change',e=>{const t=e.target;if(!t||!t.closest||!t.closest('#biz-card')||t.type!=='radio')return;t.closest('.bm-grid').querySelectorAll('.bm-opt').forEach(l=>l.classList.toggle('on',l.querySelector('input').checked));});
+A.chanSave=()=>{if(!user||user.role!=='admin')return toast('Sólo el administrador',1);const el=document.querySelector('input[name="chan"]:checked');const nv=el?el.value:'';if(!CHANNELS[nv])return;const ov=chanCur();if(nv===ov)return toast('Ya vendés así');
+ const msg={min:'Se vuelve a vender como minorista. Las presentaciones, acuerdos y precios mayoristas quedan guardados y las ventas anteriores no cambian.',both:'Aparecen el canal de cada cliente, los precios por presentación (Unidad, Display, Fardo, Pallet…), los acuerdos y el crédito con plazo. Las ventas anteriores no cambian.',may:'Toda venta pasa a ser mayorista y desaparece «Cambiar canal». Las ventas anteriores no cambian.'}[nv];
+ confirmBox('Cambiar canales de venta',`De «${CHANNELS[ov][0]}» a «${CHANNELS[nv][0]}». ${msg}`,()=>{const before=JSON.stringify(S.cfg.wholesale||{});const W=Object.assign({},S.cfg.wholesale||{});W.on=nv!=='min';W.only=nv==='may';delete W.lists;S.cfg.wholesale=W;
+  audit(nv==='min'?'MAYORISTA_APAGAR':ov==='min'?'MAYORISTA_ACTIVAR':'MAYORISTA_CONFIG','canales: '+CHANNELS[ov][0]+' → '+CHANNELS[nv][0]+' · antes '+before.slice(0,120));save();rerender();toast('Canales de venta: '+CHANNELS[nv][0]);},'Cambiar');};
 A.bizSave=()=>{if(!user||user.role!=='admin')return toast('Sólo el administrador',1);if(bizLocked())return toast('Este sistema es de un solo dueño: el tipo de negocio no se cambia.',1);const el=document.querySelector('input[name="biz"]:checked');const nv=el?el.value:'';
- if(!BIZ_TYPES[nv])return;const ov=ownerMode()?'owner':'rubros';if(nv===ov)return toast('Ya es ese tipo de negocio');
+ if(!BIZ_TYPES[nv])return;const ov=ownerMode()?'owner':'rubros';if(nv===ov)return toast('Ya está así');
  if(openSess())return toast('Cerrá la caja abierta antes de cambiar el tipo de negocio (el arqueo cambia de forma).',1);
- confirmBox('Cambiar tipo de negocio',`De «${BIZ_TYPES[ov]}» a «${BIZ_TYPES[nv]}». No se borra nada: los cierres anteriores conservan su forma.${nv==='owner'?' Los rubros pasan a mostrarse como categorías de productos; los ingresos, egresos y pagos dejan de pedir rubro.':' Vuelven a pedirse los rubros en cada ingreso o egreso.'}`,
+ confirmBox('¿De quién es el dinero?',`De «${BIZ_TYPES[ov]}» a «${BIZ_TYPES[nv]}». No se borra nada: los cierres anteriores conservan su forma.${nv==='owner'?' Los rubros pasan a mostrarse como categorías de productos; los ingresos, egresos y pagos dejan de pedir rubro.':' Vuelven a pedirse los rubros en cada ingreso o egreso.'}`,
   ()=>{S.cfg.biz=nv;if(nv==='owner')ownerRubro();audit('TIPO_NEGOCIO',BIZ_TYPES[ov]+' → '+BIZ_TYPES[nv],{ent:'cfg',eid:'biz',old:ov,nw:nv});save();rerender();toast('Tipo de negocio aplicado');},'Cambiar');};
 /* ---------- Configuración: categorías (sin responsable, sin reparto, sin impuesto) ---------- */
 function catCardOwner(){const L=S.rubros.filter(r=>r.kind==='rubro');

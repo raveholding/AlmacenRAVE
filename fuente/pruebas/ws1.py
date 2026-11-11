@@ -210,7 +210,7 @@ with sync_playwright() as p:
     chk(ev("custById('cwh1').term")==30 and ev("custById('cwh1').zone")=='Zona Norte' and ev("S.audit.some(e=>e.action==='CLIENTE_MAYORISTA')"),'plazo/zona guardados y auditados')
     # ---- 16) configuración: presentaciones de venta ----
     ev("location.hash='#panel/config'");pg.wait_for_timeout(500)
-    chk(pg.locator('#ws-card').count()==1 and pg.locator('#ws-on').is_checked(),'Configuración muestra la tarjeta Mayorista y minorista (activa)')
+    chk(pg.locator('#ws-card').count()==1 and pg.locator('#biz-card input[name=chan][value=both]').is_checked(),'Configuración: «Modelo de negocio» en «Minorista y mayorista» y la tarjeta Mayorista visible (V26.66)')
     chk(pg.locator('#ws-card table').count()==0 or 'Impuestos' not in pg.inner_text('#ws-card'),'ya no aparece la tabla Lista/Nombre/Activa/Impuestos/Desde/Hasta')
     chk(pg.locator('#ws-ln-d').count()==1 and pg.locator('#ws-ln-f').count()==1 and pg.locator('#ws-ln-p').count()==1,'Configuración permite renombrar Display, Fardo y Pallet')
     ev("A.wsLvAdd()");pg.wait_for_timeout(250);pg.fill('#lv-n','Media caja');pg.click('#modal-root [data-m=ok]');pg.wait_for_timeout(300)

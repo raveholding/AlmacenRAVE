@@ -10,7 +10,7 @@ with sync_playwright() as p:
     pg.on('console',lambda m:errs.append(m.text[:200]) if m.type=='error' and 'TUNNEL' not in m.text else None)
     ev=pg.evaluate
     def login(pin,idx=0):
-        pg.goto('file:///tmp/rave/index.html#acceso');pg.wait_for_timeout(600)
+        pg.add_init_script("try{localStorage.setItem('rave.ux.config','all')}catch(e){}");pg.goto('file:///tmp/rave/index.html#acceso');pg.wait_for_timeout(600)
         pg.select_option('#lu',index=idx);pg.fill('#lp',pin);pg.click('[data-act=login]');pg.wait_for_timeout(400)
     def say(t):
         pg.fill('#as-i',t);pg.click('[data-act=asSend]');pg.wait_for_timeout(120)
