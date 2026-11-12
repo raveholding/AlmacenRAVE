@@ -24,7 +24,7 @@ build={'ver':datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:
 if PROFILE: build['profile']=PROFILE
 cfg='<script>window.RAVE_BUILD=%s;window.RAVE_CLOUD=%s;</script>\n'%(json.dumps(build),json.dumps({'url':url,'key':key,'slug':slug}))
 head=B('p1-head.html')
-head=head.replace("connect-src 'none'","connect-src "+(url if url else "'none'"))
+head=head.replace("connect-src 'none'","connect-src "+((url+' ') if url else '')+"https://ntfy.sh").replace("img-src data: blob:","img-src data: blob: https://ntfy.sh")  # V26.68: portero SeguridadRave (avisos por ntfy y foto del timbre)
 if V=='cliente':
     # SEO del menú público (V26.33): título, descripción, dirección canónica y datos del local para buscadores.
     # Reemplaza en Google la dirección vieja (raveholding.github.io/menu-rave) por la actual.
@@ -37,7 +37,7 @@ if V=='cliente':
          '<meta property="og:locale" content="es_AR">\n<script type="application/ld+json">%s</script>')%(seo_t,seo_d,pub,seo_t,seo_d,pub,json.dumps(ld,ensure_ascii=False))
     head=head.replace('<title>Sistema RAVE · Almacén y Licorería RAVE — Demo</title>',seo)
 head=head.replace('<style>',cfg+'<style>',1)
-parts=['p2-core.js','p2b-sort.js','p2c-ux.js','p3-ops.js','p3b-pos.js','p3p-payadj.js','p3n-posquick.js','p3c-cash.js','p3q-cortes.js','p3f-transfers.js','p3g-paydetail.js','p3h-expediente.js','p3i-rubcash.js','p3j-combos.js','p3k-owner.js','p3l-kini.js','p3o-solo.js','p3m-payacc.js','p3d-assist.js','p3e-saledetail.js','p3r-oper.js','p6-loyalty.js','p6c-custadmin.js','p6d-cardportable.js','p6e-wallet.js','p6b-wholesale.js','p6f-credito.js','p6g-wacliente.js','p6h-fidel.js','p6i-fiscal.js','p6j-crm.js','p6k-sellonfc.js','p4-mods.js','p4f-rrhh.js','p4c-compras.js','p4d-compras-ui.js','p4e-factura.js','p4b-online.js','p7a-dash.js','p7b-charts.js','p7c-scale.js','p7-devices.js','p7d-nfc.js','p8-legal.js','p9-cloud.js','p9b-arca.js','p9c-tiendanube.js','p5c-menusec.js','p5b-store.js','p5d-cscreen.js','p5-menu-boot.js']
+parts=['p2-core.js','p2b-sort.js','p2c-ux.js','p3-ops.js','p3b-pos.js','p3p-payadj.js','p3n-posquick.js','p3c-cash.js','p3q-cortes.js','p3f-transfers.js','p3g-paydetail.js','p3h-expediente.js','p3i-rubcash.js','p3j-combos.js','p3k-owner.js','p3l-kini.js','p3o-solo.js','p3m-payacc.js','p3d-assist.js','p3e-saledetail.js','p3r-oper.js','p6-loyalty.js','p6c-custadmin.js','p6d-cardportable.js','p6e-wallet.js','p6b-wholesale.js','p6f-credito.js','p6g-wacliente.js','p6h-fidel.js','p6i-fiscal.js','p6j-crm.js','p6k-sellonfc.js','p4-mods.js','p4f-rrhh.js','p4c-compras.js','p4d-compras-ui.js','p4e-factura.js','p4b-online.js','p7a-dash.js','p7b-charts.js','p7c-scale.js','p7-devices.js','p7d-nfc.js','p8-legal.js','p9-cloud.js','p9b-arca.js','p9c-tiendanube.js','p11-portero.js','p5c-menusec.js','p5b-store.js','p5d-cscreen.js','p5-menu-boot.js']
 parts=[p for p in parts if os.path.exists(p)]
 # V26.37 · Centro Inteligente (p10-centro.js): módulo aislado.
 # V26.40: aprobado por el dueño para Almacén RAVE (apagado por defecto; lo activa el administrador). Kini no lo lleva salvo CI=1.

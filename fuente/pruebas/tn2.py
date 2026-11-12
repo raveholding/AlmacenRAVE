@@ -12,7 +12,7 @@ with sync_playwright() as p:
     pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
     pg.on('console',lambda m:errs.append(m.text[:200]) if m.type=='error' and 'TUNNEL' not in m.text and 'Failed to load resource' not in m.text else None)
     ev=pg.evaluate
-    h=open('/tmp/rave/index.html',encoding='utf8').read().replace("connect-src 'none'","connect-src "+BASE);open('/tmp/rave/tn2.html','w',encoding='utf8').write(h)
+    h=open('/tmp/rave/index.html',encoding='utf8').read().replace("connect-src https://ntfy.sh","connect-src "+BASE+" https://ntfy.sh").replace("connect-src 'none'","connect-src "+BASE);open('/tmp/rave/tn2.html','w',encoding='utf8').write(h)
     pg.goto('file:///tmp/rave/tn2.html#acceso');pg.wait_for_timeout(600)
     pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(400)
     ev("location.hash='#panel/caja'");pg.wait_for_timeout(300)
