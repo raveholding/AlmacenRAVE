@@ -259,6 +259,7 @@ function reg(id,t,icon,perm,render,after,sec){SCREENS[id]={t,icon,perm,render,af
 function go(id){location.hash='#panel/'+id;}
 function route(){const h=location.hash||'#menu';
  if(h.startsWith('#tarjeta')&&typeof cardImportFromHash==='function'){const ok=cardImportFromHash();if(ok)toast('Tu tarjeta del Club quedó guardada en este celular.');route();return;}
+ if(h.startsWith('#sello=')&&typeof selloRoute==='function'){selloRoute(h);return;} /* V26.67: chip NFC / QR del mostrador */
  if(h==='#mitarjeta'){$('#panel').hidden=true;$('#login').hidden=true;showMenu();setTimeout(()=>{try{const fr=$('#pubframe');if(fr&&fr.contentWindow&&fr.contentWindow.RAVE_OPEN_MYCARD)fr.contentWindow.RAVE_OPEN_MYCARD();}catch(e){}},50);return;}
  if(h.startsWith('#expediente/')&&typeof expRoute==='function'){expRoute(h);return;}
  $('#pub').hidden=true;$('#login').hidden=true;$('#panel').hidden=true;
