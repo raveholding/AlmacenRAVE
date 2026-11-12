@@ -1,6 +1,6 @@
 # PROMPT 2 · «Sistema VB · Edición Empresas» (demo raveV3)
 
-> **Requisito:** usá completo el **PROMPT 1 (Plataforma Sistema VB v4)**: rol, principios, stack, estructura, sistema de diseño, App Shell y forma de trabajo. Este prompt sólo agrega lo propio de la edición para **empresas**. No dupliques código: todo se resuelve como **módulos y perfil de tenant** sobre la misma plataforma.
+> **Requisito:** usá completo el **PROMPT 1 (Plataforma Sistema VB v4)** con sus documentos obligatorios **`0-inventario-funcional-y-paridad.md`** y **`S-seguridad-obligatoria.md`**: rol, principios, stack, estructura, sistema de diseño, App Shell y forma de trabajo. Este prompt sólo agrega lo propio de la edición para **empresas**. No dupliques código: todo se resuelve como **módulos y perfil de tenant** sobre la misma plataforma.
 
 ---
 
@@ -13,7 +13,7 @@ Sumá experiencia como **arquitecto de ERP para PyMEs y empresas medianas** (mul
 
 ## Perfil de tenant `empresas-v3`
 - Marca: «Sistema VB · Empresas» (acento ámbar de VB), empresa ficticia **«Grupo Demo S.A.»**: 3 sucursales, 1 depósito central, 40 empleados, 2 razones sociales (CUIT distintos), 1.500 productos, 400 clientes (minoristas y mayoristas), 12 meses de historial.
-- Todos los módulos del PROMPT 1 activos + los de abajo.
+- **Todos** los módulos del inventario activos (A a L, incluida seguridad física y contabilidad) + los de abajo. Paridad total con la demo raveV3 actual: Centro inteligente con mapa 2D/3D, equipo SVB R2AVE (R2AVE, M2ARGOTH, T2ULUZ, S2HAKIRA) con sus permisos y su principio rector (`raveV3/PROMPT_DEMO_RAVEV3_ASISTENTES.md`), centro de operaciones vivo, catálogo corporativo de ejemplo.
 
 ## Módulos adicionales de la edición Empresas
 1. **Estructura multiempresa:** razones sociales, sucursales, depósitos, cajas y puntos de venta ARCA por sucursal; usuario con acceso a una o varias sucursales; selector de contexto en la topbar.
@@ -27,7 +27,12 @@ Sumá experiencia como **arquitecto de ERP para PyMEs y empresas medianas** (mul
 9. **Centro inteligente + agentes SVB R2AVE:** panel de alertas accionables (quiebres de stock, caídas de venta, fraude/anomalías de caja, clientes que se van) y asistentes por área usando la **API de Claude** desde Edge Functions, con: datos mínimos y anonimizados, registro de cada consulta, límite de costo mensual por tenant y modo «sugerir, no ejecutar» salvo aprobación humana.
 10. **BI y tableros:** ventas por sucursal/canal/categoría/vendedor, margen, rotación, ticket promedio, cohortes de clientes, comparativos interanuales; exportación a Excel/CSV y envío programado por correo.
 11. **Integraciones:** Mercado Pago (cobros y conciliación), Tienda Nube (catálogo y pedidos), PedidosYa, WhatsApp/Telegram (avisos y bots), API REST pública con **claves por tenant y webhooks firmados** (`packages/api`, documentada con OpenAPI).
-12. **Seguridad empresa:** roles granulares por módulo y acción, inicio con Google Workspace, 2FA para administradores, sesiones por dispositivo con cierre remoto, política de contraseñas, registro de accesos.
+12. **Seguridad empresa:** todo `S-seguridad-obligatoria.md` + roles granulares por módulo, acción y sucursal, inicio con Google Workspace, passkeys, 2FA obligatorio para administradores, sesiones por dispositivo con cierre remoto, registro de accesos y alertas de seguridad.
+13. **Seguridad física integrada (inventario J):** cámaras de cualquier marca en vivo y grabaciones, cerraduras y portones, video portero, PIN de coacción y SOS, pases QR/NFC para personal y visitas, analítica de video (patentes, EPP, merodeo, aforo), alarmas con foto a Telegram; reglas de acceso heredadas del ERP (personal activo, socios con membresía, visitas) por puerta y horario (esquema `raveV3/propuestas/S1-seguridad-esquema.sql`); fichaje de RR. HH. y accesos unificados; credenciales sólo en el gateway local.
+14. **Contabilidad completa:** plan de cuentas configurable, asientos automáticos desde ventas, compras, caja, bancos, sueldos y ajustes; libro diario, mayor, balance de sumas y saldos, estado de resultados, centros de costo por sucursal; libro IVA ventas/compras, IIBB y Ganancias de referencia; cierre de período con bloqueo; exportación para el estudio contable (y conexión directa con el producto Estudio contable de VB, inventario E).
+15. **Cobros y bancos:** todos los medios del inventario A + cuentas bancarias por razón social, conciliación automática (Mercado Pago, MODO, extractos CSV/OFX), cheques propios y de terceros, posnet por lote y cupón, liquidaciones de tarjetas con retenciones, cuotas y costo financiero.
+16. **RR. HH. completo (inventario F):** todo lo de la demo actual (legajos, turnos, licencias, vacaciones, nómina, reclutamiento, documentos y entregas, reporte al contador, solicitudes, tablero y alertas) + evaluaciones de desempeño, metas y comisiones por tramos, capacitaciones, portal del empleado (recibos, solicitudes), integración con el fichaje y con los accesos físicos.
+17. **Plataforma y servicio (inventario K):** monitor de salud de los equipos de la empresa, gestor documental y de contratos con vencimientos, portal de autogestión.
 
 ## Diseño (además del sistema de diseño del PROMPT 1)
 - Modo **compacto** por defecto para backoffice; tablas densas con columnas configurables, filtros guardados, edición en línea y acciones masivas.
@@ -47,6 +52,9 @@ Sumá experiencia como **arquitecto de ERP para PyMEs y empresas medianas** (mul
 - **E6:** RR. HH. y aprobaciones.
 - **E7:** Centro inteligente, agentes y BI.
 - **E8:** API pública, webhooks e integraciones.
+- **E9:** contabilidad, bancos y conciliación.
+- **E10:** seguridad física integrada (gateway, cámaras, accesos).
+- **E11:** RR. HH. completo y portal del empleado.
 Cada fase con pruebas (Vitest, Playwright y pgTAP), capturas claro/oscuro y checklist de paridad contra raveV3.
 
 ## Formato de cada entrega

@@ -1,7 +1,14 @@
 # PROMPT 1 · Plataforma «Sistema VB» v4 + Demo Vincular Business (sin personalización de cliente)
 
-> Prompt base. Los prompts 2 (raveV3 · Empresas) y 3 (AlmacenRAVE) **parten de este** y sólo agregan lo suyo.
-> Usalo en Claude Code dentro del repo nuevo de la plataforma, con el repo `raveholding/AlmacenRAVE` disponible como referencia.
+> Prompt base. Los prompts 2 (raveV3 · Empresas), 3 (AlmacenRAVE) y 4 (Mayorista genérico) **parten de este** y sólo agregan lo suyo.
+> Usalo en Claude Code dentro del repo nuevo de la plataforma, con los repos de referencia disponibles (ver «Documentos obligatorios»).
+
+## Documentos obligatorios (leer antes de escribir una línea)
+1. **`0-inventario-funcional-y-paridad.md`**: TODO lo que ya existe (núcleo ERP/POS, raveV3, Kini, seguridad física, estudio contable, plataforma SaaS de VB). Es el alcance mínimo: nada de esa lista se pierde.
+2. **`S-seguridad-obligatoria.md`**: anexo de seguridad. Manda sobre el diseño y los plazos.
+3. **`AlmacenRAVE/fuente/SISTEMA_VB_26F.md`**: especificación maestra con reglas, decisiones (6.3) y lecciones aprendidas (14). Las decisiones ya tomadas no se reabren sin motivo escrito.
+4. Repos de referencia: `raveholding/AlmacenRAVE` (núcleo), `raveV3`, `KiniDistribuidoraDemo`, `SistemasVBSeguridadIntegral`, `VBContabledemo`, `SistemaIntegralSVB`, `SVBARCA` (privado).
+Si este prompt y esos documentos se contradicen, el orden es: **principio rector (S·0) → seguridad (S) → este prompt → inventario → maestro**.
 
 ---
 
@@ -19,9 +26,9 @@ Actuá como **Staff Software Architect + Principal Product Designer** con más d
 - **Este prompt entrega la plataforma + la demo genérica «Sistema VB»** (comercio ficticio, sin marcas reales), que se usa para vender.
 
 ## Principios no negociables
-1. **Paridad funcional antes que novedades.** Nada que hoy funcione puede perderse. Antes de cada módulo, listá sus reglas desde `SISTEMA_VB_26F.md` y `fuente/p*.js` y convertí cada una en una prueba.
+1. **Paridad funcional antes que novedades.** Nada que hoy funcione puede perderse. Antes de cada módulo, tomá sus líneas del inventario (`0-…`), sus reglas de `SISTEMA_VB_26F.md` y del código de origen, y convertí cada una en una prueba.
 2. **Offline-first real.** Vender, cobrar, abrir/cerrar caja y sumar sellos sin internet; sincroniza al volver, sin duplicar ventas (idempotencia por `id` de cliente + outbox).
-3. **Seguridad.** RLS en todas las tablas; operaciones sensibles sólo por RPC `security definer` con chequeo de rol; **datos personales cifrados en el navegador** (Web Crypto, AES-GCM con llave de datos envuelta por usuario, mismo modelo que hoy para poder migrar); auditoría append-only; nunca secretos en el cliente.
+3. **Seguridad según `S-seguridad-obligatoria.md`** (ASVS nivel 2, nivel 3 en llaves, pagos, fiscal y seguridad física): RLS y prueba A/B en todo, 2FA para administradores, datos personales cifrados en el navegador (compatible con el modelo actual), secretos sólo en el servidor, auditoría con hash encadenado, modelo de amenazas por módulo.
 4. **Multi-tenant por configuración, no por forks.** Cada cliente es un perfil (`tenants/<slug>`): marca, paleta, módulos activos, rubros/categorías, textos, integraciones. Cero `if (cliente === 'x')` en el código.
 5. **Accesibilidad AA y es-AR.** Contraste AA en claro y oscuro, foco visible, teclado completo, objetivos de 44 px, `Intl` es-AR (ARS, fechas, CUIT/DNI).
 6. **Rendimiento:** LCP < 2,5 s, INP < 200 ms, CLS < 0,1. Listas grandes virtualizadas. Bundle por ruta.
@@ -58,6 +65,9 @@ sistema-vb/
   apps/
     app/        # Sistema (PWA) por tenant (dominio de VB a definir) → panel, POS, módulos
     web/        # Sitio de Vincular Business + sitios públicos por cliente (menú QR, catálogo, turnos, tarjeta del Club)
+    gateway/    # Agente local (127.0.0.1): impresora ESC/POS, balanza, cajón, cámaras (go2rtc), cerraduras ESP32; emparejado y firmado
+    desktop/    # Empaquetado de escritorio (Tauri o Electron) para mostradores Windows
+    vb-admin/   # Interno de VB: tenants, suscripciones, monitor, documentos, soporte (sin acceso a datos cifrados)
   packages/
     ui/         # Design system: tokens, componentes shadcn personalizados, AppShell, íconos
     core/       # Reglas de negocio PURAS en TS (precios, recargos, vuelto, cierre, sellos, códigos de un solo uso, stock, IVA) + pruebas
@@ -91,11 +101,19 @@ Dentro de `apps/app/src/features/<módulo>/` cada módulo encapsula `components/
 ### Pantalla «Vender» (referencia visual: catálogo con fotos a la izquierda, ticket a la derecha, botón dorado «Cobrar $ total»)
 - Catálogo ≈65 %: pestañas de categorías del tenant + Favoritos (animadas), buscador instantáneo que acepta lector de código y no se confunde con el lector NFC, grilla de tarjetas (imagen, nombre en 2 líneas, precio ARS, stock y alerta de bajo stock), atajos numéricos.
 - Ticket ≈35 % fijo con scroll propio: líneas con − / +, quitar, nota; cliente del ticket (por búsqueda, QR, DNI o tarjeta NFC); sello del Club, cupón, monedero; Subtotal, Descuentos, Recargos, **Total** (`aria-live`).
-- **Cobrar** con **F9** y `Ctrl+Enter` (F12 abre las herramientas del navegador): efectivo con vuelto, transferencia/alias, QR, débito/crédito con recargo configurable, **pago mixto**, fiado/cuenta corriente con límite, factura ARCA opcional, ticket impreso o por WhatsApp.
+- **Cobrar** con los atajos actuales (**F12** al importe recibido, Enter cobra; agregar `Ctrl+Enter`; en la PWA instalada F12 no abre herramientas): efectivo con **importe recibido obligatorio**, «Justo» y vuelto, transferencia/alias, QR, débito/crédito con recargo configurable, **pago mixto**, fiado/cuenta corriente con límite, factura ARCA opcional, ticket impreso o por WhatsApp.
 - Todo funciona sin conexión.
 
-## Módulos (mapa completo; cada uno con su checklist de paridad)
-Resumen · Centro inteligente · Vender (POS) · Pedidos (WhatsApp, PedidosYa, menú) · Caja y movimientos · Cajas y sucursales · Arqueo y cierre (con sello de integridad) · Inventario (stock, mermas, devoluciones, conteos) · Proveedores y compras · Presupuestos · Clientes (ficha, CRM liviano, consentimientos) · Fidelización (Club, sellos con QR/código/DNI/NFC, **sello por chip NFC del mostrador**, cupones, premios) · Monedero y gift cards · Mayorista (presentaciones, acuerdos, crédito) · Fiado y cuenta corriente · Facturación ARCA · Personal y fichaje (QR, PIN, NFC) y RR. HH. · Menú público y web · Nube, usuarios y permisos (Google, restablecer acceso, custodia de llaves) · Configuración (agrupada, con buscador) · Auditoría · Reportes y exportaciones · Respaldo y restauración.
+## Módulos
+**El alcance es el inventario completo (`0-inventario-funcional-y-paridad.md`, secciones A a L), sin recortes.** Cada módulo es un paquete activable por tenant:
+- **Núcleo (siempre):** Resumen · Vender (POS) · Caja, cajas y sucursales, arqueo y cierres (por rubro, X/Z, traspasos, expediente) · Inventario · Proveedores y compras · Presupuestos, mermas y devoluciones · Clientes · Usuarios y permisos · Auditoría · Configuración · Importar/exportar · Respaldo · Periféricos · Legal.
+- **Comerciales:** Club y fidelización completa (sellos por QR/código/DNI/NFC y chip del mostrador, niveles, cumpleaños, juegos, cupones, membresías, monedero, cashback, gift cards, Wallet) · Fiado y cuenta corriente · Mayorista/distribuidora · CRM omnicanal · Menú público, tienda y checkout · Pedidos (WhatsApp, PedidosYa, Tiendanube).
+- **Cobros y bancos:** todos los medios actuales + cuentas de cobro por socio, detalle del cobro digital, recargos por medio, conciliación de Mercado Pago/MODO/bancos (extractos CSV/OFX), cheques.
+- **Fiscal y contable:** Facturación ARCA con **sv.arca.sdk** · **Contabilidad** (plan de cuentas, asientos automáticos desde ventas, compras, caja y bancos, libro diario y mayor, balance, libro IVA ventas/compras, IIBB, exportación al estudio) · **Estudio contable** como producto propio (inventario E).
+- **Personas:** Personal y fichaje (PIN, QR, NFC) · RR. HH. micro y completo (legajos, turnos, licencias, vacaciones, nómina, reclutamiento, documentos, reporte al contador) · Tareas y organigrama.
+- **Inteligencia:** Asistente texto/voz (ActionRegistry) · Centro inteligente y equipo SVB R2AVE · bot de Telegram · lectura de facturas con IA.
+- **Seguridad física (opcional):** cámaras, accesos, video portero, alarmas y analítica (inventario J), integrado al ERP con el esquema S1 y un **gateway local**.
+- **Plataforma VB (interno de Vincular Business):** monitor de clientes, documentos y contratos, suscripciones, CMS y portal de autogestión (inventario K).
 
 ## Sitio web (`apps/web`)
 1. **Sitio de Vincular Business:** inicio, soluciones por rubro (almacén y licorería, gastronomía, barbería, gimnasio, estudio contable, distribuidora), casos (con permiso), precios/planes, demo en vivo, contacto por WhatsApp, blog. SEO local Salta/Argentina, schema.org (`Organization`, `LocalBusiness`, `SoftwareApplication`), Open Graph, `sitemap.xml`, `robots.txt`, `llms.txt`.
@@ -109,14 +127,17 @@ Resumen · Centro inteligente · Vender (POS) · Pedidos (WhatsApp, PedidosYa, m
 
 ## Forma de trabajo (para cuidar tiempo y consumo)
 Trabajamos por **fases chicas con criterio de aceptación**. En cada fase: 1) plan corto (archivos a tocar, riesgos), 2) implementación, 3) pruebas, 4) capturas claro/oscuro y celular, 5) PR con resumen. No reescribas lo que no se pidió; no generes código de relleno.
-- **Fase 0 · Relevamiento:** leer `SISTEMA_VB_26F.md`, `fuente/p*.js` y `supabase/*.sql`; entregar `docs/mapa-modulos.md`, `docs/checklist-paridad.md` (regla → prueba) y los ADR de stack, offline y cifrado.
+- **Fase 0 · Relevamiento:** leer los documentos obligatorios y el código de origen; entregar `docs/checklist-paridad.md` (cada línea del inventario → regla → archivo de origen → prueba v4), `docs/mapa-modulos.md`, modelos de amenazas por módulo, el esquema de datos v4 y los ADR (stack, offline, cifrado, multi-tenant, hosting). **No se programa hasta aprobar la Fase 0.**
 - **Fase 1 · Base:** monorepo, CI, design system (`packages/ui`), AppShell, tema, auth (correo + Google), perfiles de tenant, permisos, demo con datos.
 - **Fase 2 · Operación:** Vender + Cobro + Caja + Arqueo **offline** con outbox y pruebas e2e sin red.
 - **Fase 3 · Clientes y Club:** clientes, Club, sellos (incluye NFC y chip del mostrador), cupones, monedero.
 - **Fase 4 · Inventario, compras, mayorista, fiado.**
-- **Fase 5 · ARCA, RR. HH., pedidos e integraciones.**
-- **Fase 6 · Web pública y sitio de VB.**
-- **Fase 7 · Migración de datos** (importador desde el respaldo del sistema actual) y salida a producción.
+- **Fase 5 · Cobros y bancos, ARCA y contabilidad.**
+- **Fase 6 · RR. HH., pedidos, CRM e integraciones.**
+- **Fase 7 · Inteligencia** (asistente, Centro inteligente, R2AVE, Telegram).
+- **Fase 8 · Seguridad física** (gateway, cámaras, accesos) — opcional por tenant.
+- **Fase 9 · Web pública, sitio de VB y plataforma interna (vb-admin).**
+- **Fase 10 · Migración de datos** (importador desde el respaldo del sistema actual), revisión de seguridad independiente y salida a producción con autorización del dueño.
 Mantené `CLAUDE.md` y `docs/` al día con cada decisión.
 
 ## Formato de cada entrega
