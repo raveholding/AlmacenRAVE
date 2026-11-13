@@ -102,7 +102,7 @@ const COLS=[
  {c:'merma',key:'mermas',once:1},
  {c:'presup',key:'quotes'},
  /* V26.60 · 22-crm.sql · CRM omnicanal: conversaciones y mensajes (texto y clave del chat cifrados) */
- {c:'conv',key:'convs',pii:['k','name','wa','lastTxt']},
+ {c:'conv',key:'convs',pii:['k','name','wa','lastTxt','ext','email']},
  {c:'cmsg',key:'cmsgs',once:1,pii:['text']},
  /* V26.64 · 23-rrhh.sql · Recursos Humanos (los archivos NO viajan: sólo su descripción) */
  {c:'hrshift',key:'hrShifts',del:1},

@@ -88,5 +88,15 @@ Lo gratis del reparto (Google Maps / Waze por enlace, OpenStreetMap, QR fijo o a
 3. En el sistema: Reparto → Configuración → **Conectores a un clic** → elegir el modo Pro → **Probar y activar** (sólo el administrador). Si la prueba falla, sigue funcionando el modo gratis.
 4. Pruebas locales: `node --experimental-strip-types functions/reparto-pro/reparto_test.mjs` (15/15).
 
+## Función `canales` · Atención al cliente integrada (Telegram, WhatsApp Business, Instagram, Messenger, correo) · opcional
+El modo **rápido** de cada canal (botones oficiales en el menú y la app del Club) no necesita esta función. El modo **integrado** sí: los mensajes entran cifrados a `crm_entrantes` (la misma tabla del chat web; no hace falta SQL nuevo) y se responden desde la Bandeja.
+1. Edge Functions → **Deploy a new function** → `canales` → pegar `functions/canales/index.ts` y `handler.ts`. **Verify JWT: APAGADO** (Telegram, Meta y el correo avisan sin sesión; cada aviso se valida con su secreto y las acciones del sistema validan sesión y rol).
+2. Secrets comunes: `CANALES_COMERCIO` (código del comercio, p. ej. `almacen-rave`), `FUNCTION_URL` (`https://<proyecto>.supabase.co/functions/v1/canales`), `ALLOWED_ORIGINS`.
+3. Por canal (el asistente de Atención al cliente → Canales muestra cada paso con enlaces y botones para copiar):
+   - Telegram: `TG_CLIENTES_TOKEN` (de @BotFather) y `TG_CLIENTES_SECRET` (botón «Generar valor») → en el sistema tocar **Conectar Telegram**.
+   - WhatsApp Business / Instagram / Messenger (una sola app de Meta): webhook `FUNCTION_URL?c=meta`, `META_VERIFY_TOKEN`, `META_APP_SECRET`; WhatsApp: `WA_TOKEN` y `WA_PHONE_ID`; Instagram y Messenger: `META_PAGE_TOKEN`.
+   - Correo: entrada por reenvío (Postmark / Mailgun / Cloudflare Email Routing) a `FUNCTION_URL?c=mail&k=<MAIL_IN_SECRET>`; salida con Resend: `RESEND_API_KEY` y `MAIL_FROM`.
+4. Pruebas locales: `node --experimental-strip-types functions/canales/canales_test.mjs` (33/33).
+
 ## Función `api` (REST de Proveedores y Compras) · opcional
 La pantalla del sistema **no la necesita** (usa las funciones SQL con la sesión del usuario). Sirve para integrar otros sistemas. Se despliega igual que `arca` (ver `despliegue-panel/LEEME.md`), **sin ningún secreto propio**: usa `SUPABASE_URL` y `SUPABASE_ANON_KEY`, que Supabase ya provee, y reenvía el JWT del usuario; la base decide qué puede hacer. Rutas y formato en la sección 4.21 de `fuente/sistema_vb_26.md`.

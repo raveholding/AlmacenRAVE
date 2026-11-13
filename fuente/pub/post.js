@@ -416,12 +416,14 @@
       else if(wa) h+='<a class="mta-btn" target="_blank" rel="noopener noreferrer" href="https://wa.me/'+wa+'?text='+encodeURIComponent(b.msg||hi)+'"><span>'+esc(b.ic)+'</span>'+esc(b.t)+'</a>'; });
     if(wa) h+='<a class="mta-btn wa" target="_blank" rel="noopener noreferrer" href="https://wa.me/'+wa+'?text='+encodeURIComponent(hi)+'"><span>💬</span>'+L('Escribir por WhatsApp','Message on WhatsApp')+'</a>';
     if(window.RAVE_CHAT_OPEN&&s.chat) h+='<button type="button" class="mta-btn" data-mta="chat"><span>🗨️</span>'+L('Chatear con el local','Chat with the shop')+'</button>';
+    var CN=(s.canales||[]).filter(function(x){return x.k!=='wa'&&/^(https:|mailto:)/.test(x.url);}); CN.forEach(function(x){ h+='<a class="mta-btn" target="_blank" rel="noopener noreferrer" href="'+esc(x.url)+'"><span>'+esc(x.ic)+'</span>'+L('Escribir por ','Message on ')+esc(x.t)+'</a>'; });
+    var cub={instagram:'ig',facebook:'fb',tiktok:'tt',telegram:'tg'};
     var g='';var tel=a.tel||(wa?'+'+wa:'');
     if(a.llamar!==false&&tel) g+='<a class="mta-btn" href="tel:'+esc(tel)+'"><span>📞</span>'+L('Llamar','Call')+'</a>';
     var mp=s.mapUrl||(s.address?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address):'');
     if(a.mapa!==false&&mp) g+='<a class="mta-btn" target="_blank" rel="noopener noreferrer" href="'+esc(mp)+'"><span>📍</span>'+L('Cómo llegar','Directions')+'</a>';
     if(a.resena!==false&&s.reviewUrl) g+='<a class="mta-btn" target="_blank" rel="noopener noreferrer" href="'+esc(s.reviewUrl)+'"><span>⭐</span>'+L('Dejar reseña','Leave a review')+'</a>';
-    if(a.redes!==false) (s.social||[]).slice(0,4).forEach(function(x){ g+='<a class="mta-btn" target="_blank" rel="noopener noreferrer" href="'+esc(x.url)+'"><span>🔗</span>'+esc(x.label||x.k)+'</a>'; });
+    if(a.redes!==false) (s.social||[]).filter(function(x){ return !CN.some(function(c){ return c.k===cub[x.k]; }); }).slice(0,4).forEach(function(x){ g+='<a class="mta-btn" target="_blank" rel="noopener noreferrer" href="'+esc(x.url)+'"><span>🔗</span>'+esc(x.label||x.k)+'</a>'; });
     if(g) h+='<div class="mta-g2">'+g+'</div>';
     if(a.horario||s.address) h+='<div class="mta-c">'+(a.horario?'🕒 '+esc(a.horario)+'<br>':'')+(s.address?'📍 '+esc(s.address):'')+'</div>';
     return h; }

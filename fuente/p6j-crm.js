@@ -17,9 +17,12 @@
    Nada se envía solo por WhatsApp; nada mueve la caja. Sin el texto de los mensajes en Auditoría. Nube: 22-crm.sql. */
 IC.chat='M21 12a8 8 0 0 1-11.7 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z';
 const CRM_FULL=!IS_CLIENT;
-const CHAN={web:'Chat web',wa:'WhatsApp',ig:'Instagram',fb:'Messenger',tg:'Telegram',mail:'Correo',tel:'Teléfono',local:'En el local'};
-const CHAN_IC={web:'💬',wa:'🟢',ig:'📸',fb:'🔵',tg:'✈️',mail:'✉️',tel:'📞',local:'🏪'};
-const CHAN_DEMO=['ig','fb','tg','mail']; // sin conexión real: sólo para mostrar en las demos
+const CHAN={web:'Chat web',wa:'WhatsApp',ig:'Instagram',fb:'Messenger',tg:'Telegram',mail:'Correo',tt:'TikTok',tel:'Teléfono',local:'En el local'};
+const CHAN_IC={web:'💬',wa:'🟢',ig:'📸',fb:'🔵',tg:'✈️',mail:'✉️',tt:'🎵',tel:'📞',local:'🏪'};
+const CHAN_DEMO=CRM_FULL?['ig','fb','tg','mail','tt']:[]; // demos: canales de demostración · cliente: se conectan en «Canales» (V26.70)
+const CHAN_EXT=['tg','wa','ig','fb','mail']; // canales que pueden entrar integrados por la función «canales»
+const chanApi=k=>typeof canEstado==='function'&&canEstado(k)==='api';
+const chanDemo=k=>CHAN_DEMO.includes(k)&&!chanApi(k)&&!(typeof canEstado==='function'&&canEstado(k)==='link');
 const CHAN_AUTO=['web'].concat(CHAN_DEMO); // canales donde el bot puede responder solo
 const CST={nuevo:'Nuevo',proceso:'En proceso',pendiente:'Pendiente',cerrado:'Cerrado'};
 const SENT_T={pos:'Positivo',neu:'Neutro',neg:'Urgente / enojado'};
@@ -121,8 +124,11 @@ const CONV_RX=/^w[A-Za-z0-9_-]{16,40}$/;
 function crmInbound(p,srv){if(!p||!CONV_RX.test(String(p.conv||'')))return false;const text=crmTxt(p.text);
  let c=convById(p.conv);const isNew=!c;
  if(!c){if(p.t==='csat'||p.t==='nps')return false;const cu=(p.card&&custByCard(p.card))||(normWA(p.wa)&&S.customers.find(x=>x.status!=='baja'&&normWA(x.wa)===normWA(p.wa)))||null;
-  c=crmNew({id:p.conv,chan:'web',cust:cu?cu.id:'',name:p.name,wa:normWA(p.wa)?'549'+normWA(p.wa):'',k:typeof p.k==='string'&&p.k.length>=40&&p.k.length<=48?p.k:''});
-  audit('CRM_NUEVA','chat web'+(cu?' · socio '+pad4(cu.num):''));}
+  const ch=CHAN_EXT.includes(p.chan)?p.chan:'web';const ext=ch==='web'?'':String(p.ext||'').slice(0,120);const em=ch==='mail'?String(p.email||'').toLowerCase().slice(0,120):'';
+  const cu2=cu||(ch==='wa'&&normWA(ext)?S.customers.find(x=>x.status!=='baja'&&normWA(x.wa)===normWA(ext)):null)||(em?S.customers.find(x=>x.status!=='baja'&&String(x.email||'').toLowerCase()===em):null)||null;
+  c=crmNew({id:p.conv,chan:ch,cust:cu2?cu2.id:'',name:p.name,wa:ch==='wa'&&/^\d{8,16}$/.test(ext)?ext:(normWA(p.wa)?'549'+normWA(p.wa):''),k:ch==='web'&&typeof p.k==='string'&&p.k.length>=40&&p.k.length<=48?p.k:''});
+  if(ext)c.ext=ext;if(em)c.email=em;
+  audit('CRM_NUEVA',(CHAN[ch]||ch)+(cu2?' · socio '+pad4(cu2.num):''));}
  else{crmFix(c);if(!c.k&&typeof p.k==='string'&&p.k.length>=40)c.k=p.k;}
  const mid='w'+(srv||String(p.mid||'').replace(/[^A-Za-z0-9]/g,'').slice(0,24));
  if(cmsgs().some(x=>x.id===mid))return null;
@@ -141,8 +147,13 @@ async function crmSend(c,text,extra){text=crmTxt(text);if(!text)throw new Error(
   if(!cl.ready||!cl.online)throw new Error('Sin conexión con la nube: la respuesta NO se envió.');
   const box=await crmAesSeal(c.k,{text,ts:now(),u:String(by).split(/\s+/)[0],survey:extra.survey||''});
   await rpc('crm_web_responder',{p_comercio:cl.comercio.id,p_conv:c.id,p_cifrado:box});}
- if(c.chan==='wa'){const d=crmWa(c);if(!d)throw new Error('La conversación no tiene un WhatsApp válido (código de área + número).');openExternal('https://wa.me/'+d+'?text='+encodeURIComponent(text));}
- const via={web:'enviado al chat',wa:'abierto en WhatsApp (el envío lo confirmás vos)',tel:'registrado (llamada)',local:'registrado (en el local)'}[c.chan]||'canal de demostración (no se envió a ninguna red)';
+ let via='';
+ if(CHAN_EXT.includes(c.chan)&&chanApi(c.chan)&&(c.ext||c.email)&&crmCloud()){if(!cl.ready||!cl.online)throw new Error('Sin conexión con la nube: la respuesta NO se envió.');
+  await hreq('/functions/v1/canales',{method:'POST',fn:true,body:{accion:'enviar',comercio:cl.comercio.id,canal:c.chan,para:c.chan==='mail'?(c.email||c.ext):c.ext,texto:text,asunto:'Re: tu consulta a '+S.tenant.name}});via='enviado por '+CHAN[c.chan];}
+ else if(c.chan==='wa'){const d=crmWa(c);if(!d)throw new Error('La conversación no tiene un WhatsApp válido (código de área + número).');openExternal('https://wa.me/'+d+'?text='+encodeURIComponent(text));}
+ else if(c.chan==='mail'&&c.email){openExternal('mailto:'+c.email+'?subject='+encodeURIComponent('Re: tu consulta a '+S.tenant.name)+'&body='+encodeURIComponent(text));via='abierto en tu correo (el envío lo confirmás vos)';}
+ else if(['ig','fb','tg','tt'].includes(c.chan)&&typeof canEstado==='function'&&canEstado(c.chan)!=='off'){try{navigator.clipboard.writeText(text).catch(()=>{});}catch(e){}openExternal(CAN_INBOX[c.chan]);via='copiado y abierto '+CHAN[c.chan]+' (pegalo en el chat del cliente)';}
+ via=via||{web:'enviado al chat',wa:'abierto en WhatsApp (el envío lo confirmás vos)',tel:'registrado (llamada)',local:'registrado (en el local)'}[c.chan]||'canal de demostración (no se envió a ninguna red)';
  const m=crmAdd(c,'out',text,Object.assign({via,user:by},extra.kind?{kind:extra.kind}:{},extra.amount?{amount:extra.amount}:{},extra.survey?{survey:extra.survey}:{}));
  if(!extra.noState&&c.state!=='cerrado')c.state='pendiente';
  if(extra.kind!=='bot')audit('CRM_RESPUESTA',(CHAN[c.chan]||c.chan)+' · '+crmWho(c)+(extra.kind&&extra.kind!=='msg'?' · '+extra.kind:''));save();return m;}
@@ -152,7 +163,7 @@ async function crmImport(){if(!crmCloud()||!crmCfg().on||!cl.ready||!cl.online||
  try{const rows=await sel(`crm_entrantes?select=id,conv,cifrado,creado&comercio_id=eq.${cl.comercio.id}&estado=eq.nueva&order=id&limit=100`);if(!rows.length)return 0;
   const ok=[],bad=[];let n=0;
   for(const r of rows){let p;try{p=await rsaOpen(cl.clubPriv.jwk,r.cifrado);}catch(e){if(Date.now()-Date.parse(r.creado||'')>3*864e5)bad.push(r.id);continue;}
-   if(!p||p.conv!==r.conv){bad.push(r.id);continue;}const res=crmInbound(p,r.id);if(res===false)bad.push(r.id);else{ok.push(r.id);if(res)n++;}}
+   if(!p||p.conv!==r.conv||(p.chan&&p.chan!=='web'&&!CHAN_EXT.includes(p.chan))){bad.push(r.id);continue;}const res=crmInbound(p,r.id);if(res===false)bad.push(r.id);else{ok.push(r.id);if(res)n++;}}
   try{if(ok.length)await rpc('crm_entrantes_marcar',{p_comercio:cl.comercio.id,p_ids:ok,p_estado:'importada'});if(bad.length)await rpc('crm_entrantes_marcar',{p_comercio:cl.comercio.id,p_ids:bad,p_estado:'rechazada'});}catch(e){}
   if(n){save();if(typeof curScreen!=='undefined'&&curScreen==='crm')crmPaint();}return n;
  }catch(e){return 0;}finally{crmImport.busy=false;}}
@@ -232,7 +243,7 @@ function crmQueuesHTML(){const C=crmCfg();const open=convs().map(crmFix).filter(
  const q=C.depts.map(d=>[d,open.filter(c=>c.dept===d&&!c.asg).length]);const none=open.filter(c=>!c.dept&&!c.asg).length;const mine=open.filter(c=>c.asg===crmMe()).length;
  return `<div class="crm-q"><b class="sm">Colas de espera</b>${q.map(([d,n])=>`<button type="button" class="btn sm ${crmF.dept===d&&crmF.ag==='__none'?'on':''}" data-act="crmQueue" data-d="${esc(d)}">${esc(d)} <b>${n}</b></button>`).join('')}${none?`<button type="button" class="btn sm" data-act="crmQueue" data-d="">Sin cola <b>${none}</b></button>`:''}<button type="button" class="btn sm ${crmF.ag==='__me'?'on':''}" data-act="crmMine">Mis chats <b>${mine}</b></button></div>`;}
 function crmThreadHTML(){const c=convById(crmSel);if(!c)return'<p class="mut" style="padding:1rem">Elegí una conversación de la lista.</p>';crmFix(c);
- const p=crmPrio(c);const demo=CHAN_DEMO.includes(c.chan);const mood=crmMood(c);
+ const p=crmPrio(c);const demo=chanDemo(c.chan);const mood=crmMood(c);
  const msgs=convMsgs(c.id).map(m=>m.dir==='sys'?`<div class="crm-m sys">${esc(m.text)} · ${crmHm(m.ts)}</div>`
   :`<div class="crm-m ${m.dir}${m.kind==='bot'?' bot':''}"><div>${esc(m.text)}</div><div class="sm mut" style="margin-top:.2rem">${m.dir==='note'?'🔒 Nota interna · '+esc(m.user)+' · ':m.dir==='out'?(m.kind==='bot'?'🤖 ':'')+esc(m.user)+' · ':''}${crmHm(m.ts)}${m.via?' · '+esc(m.via):''}${m.kind&&!['msg','bot','nota'].includes(m.kind)?' · '+esc(m.kind):''}${m.dir==='in'?' · '+SENT_T[crmSent(m.text)]:''}</div></div>`).join('');
  return `<div class="row" style="gap:.4rem;align-items:center"><b class="sp" style="font-size:1.05rem">${CHAN_IC[c.chan]||''} ${esc(crmWho(c))}</b><span class="crm-st ${ST_CLS[c.state]}">${CST[c.state]}</span>
@@ -271,7 +282,7 @@ function crmCtxHTML(){const c=convById(crmSel);if(!c)return'';crmFix(c);const cu
  return h;}
 function crmComposerHTML(){const C=crmCfg();const c=convById(crmSel);if(!c)return'';
  return `<div class="row" role="group" aria-label="Tipo" style="gap:.3rem;margin-top:.4rem"><button type="button" class="btn sm ${crmMode==='msg'?'on':''}" data-act="crmMode" data-m="msg" aria-pressed="${crmMode==='msg'}">Responder al cliente</button><button type="button" class="btn sm ${crmMode==='note'?'on':''}" data-act="crmMode" data-m="note" aria-pressed="${crmMode==='note'}">🔒 Nota interna</button>
-  ${['wa','tel','local'].includes(c.chan)||CHAN_DEMO.includes(c.chan)?'<button type="button" class="btn sm" data-act="crmLogIn">Registrar lo que escribió</button>':''}<span class="sp"></span>
+  ${c.chan!=='web'&&!chanApi(c.chan)?'<button type="button" class="btn sm" data-act="crmLogIn">Registrar lo que escribió</button>':''}<span class="sp"></span>
   <select id="crm-cn" aria-label="Respuesta rápida"><option value="">Respuestas rápidas…</option>${C.canned.map((x,i)=>`<option value="${i}">${esc(x.t)}</option>`).join('')}</select></div>
   <label for="crm-tx" style="position:absolute;left:-9999px">Mensaje</label><textarea id="crm-tx" rows="3" maxlength="1500" placeholder="${crmMode==='note'?'Nota sólo para el equipo (el cliente no la ve)':'Escribí tu respuesta…'}" style="width:100%;margin-top:.3rem"></textarea>
   <div class="row" style="justify-content:flex-end;margin-top:.3rem"><button class="btn gold" data-act="crmSendBtn">${crmMode==='note'?'Guardar nota':c.chan==='wa'?'Abrir WhatsApp y registrar':'Enviar'}</button></div>`;}
@@ -289,7 +300,7 @@ function crmAvisos(){const C=crmCfg();const out=[];const t=now();const recent=(c
  return out;}
 function crmSqlNote(){if(!crmCloud()||!cl.rejects)return'';const bad=Object.entries(cl.rejects).some(([k,v])=>/^(conv|cmsg)\|/.test(k)&&/colecci/i.test(String(v&&v.motivo||v)));
  return bad?'<div class="warnbox">La nube todavía no acepta las conversaciones: falta correr <b>22-crm.sql</b> en Supabase. Mientras tanto quedan sólo en este equipo.</div>':'';}
-function crmInboxHTML(){const C=crmCfg();const chans=C.chans.map(k=>`<option value="${k}" ${crmF.ch===k?'selected':''}>${CHAN[k]}${CHAN_DEMO.includes(k)?' (demo)':''}</option>`).join('');const ags=crmAgents();
+function crmInboxHTML(){const C=crmCfg();const chans=C.chans.map(k=>`<option value="${k}" ${crmF.ch===k?'selected':''}>${CHAN[k]}${chanDemo(k)?' (demo)':''}</option>`).join('');const ags=crmAgents();
  return `<div class="crm-wrap"><div class="card"><h3 style="margin:0 0 .4rem">Conversaciones</h3><div class="row" style="gap:.3rem"><input id="crm-q" class="sp" placeholder="Buscar" value="${esc(crmF.q)}" aria-label="Buscar conversación" autocomplete="off"></div>
   <div class="row" style="gap:.3rem;margin:.4rem 0"><select id="crm-fc" aria-label="Canales"><option value="">Canales: todos</option>${chans}</select>
   <select id="crm-fs" aria-label="Estado">${[['activas','Estado: activas'],['nuevo','Nuevo'],['proceso','En proceso'],['pendiente','Pendiente'],['cerrado','Cerrado'],['todas','Todas']].map(([k,t])=>`<option value="${k}" ${crmF.st===k?'selected':''}>${t}</option>`).join('')}</select>
@@ -324,7 +335,7 @@ function crmCampHTML(){const C=crmCfg();const camps=C.camps.slice().reverse();
   <button class="btn gold" data-act="crmCampNew">Crear campaña</button></div>
   <div class="card"><h3 style="margin-top:0">Campañas</h3>${camps.length?camps.map(k=>`<div class="crm-box"><b>${esc(CRM_SEG[k.seg]||k.seg)}</b> <span class="sm mut">· ${crmHm(k.ts)} · ${esc(k.by||'')}</span><p class="sm" style="white-space:pre-wrap;margin:.3rem 0">${esc(k.txt.slice(0,160))}</p>
    <p class="sm">Enviados ${k.done.length} de ${k.ids.length}</p>${k.done.length<k.ids.length?`<button class="btn sm gold" data-act="crmCampNext" data-id="${esc(k.id)}">Abrir WhatsApp del siguiente (${k.done.length+1}/${k.ids.length})</button>`:'<span class="crm-st crm-st-p">Terminada</span>'}</div>`).join(''):'<p class="sm mut">Todavía no hay campañas.</p>'}</div></div>`;}
-function crmBody(){return crmTab==='stats'?crmStatsHTML():crmTab==='camp'?crmCampHTML():crmTab==='alerts'?crmAlertsHTML(0)+`<div class="card" style="margin-top:.8rem"><h3 style="margin-top:0">Avisos sugeridos</h3>${crmAvisosHTML()}</div>`:crmInboxHTML();}
+function crmBody(){return crmTab==='canales'&&typeof canalesHTML==='function'?canalesHTML():crmTab==='stats'?crmStatsHTML():crmTab==='camp'?crmCampHTML():crmTab==='alerts'?crmAlertsHTML(0)+`<div class="card" style="margin-top:.8rem"><h3 style="margin-top:0">Avisos sugeridos</h3>${crmAvisosHTML()}</div>`:crmInboxHTML();}
 function crmAvisosHTML(){const av=crmAvisos();return av.length?`<table><thead><tr><th>Aviso</th><th></th></tr></thead><tbody>${av.map(a=>`<tr><td>${esc(a.t)}</td><td><button class="btn sm" data-act="crmAviso" data-k="${a.k}" data-id="${esc(a.id)}">${a.b}</button></td></tr>`).join('')}</tbody></table><p class="sm mut">Avisos de la cuenta, de pedidos, turnos o la encuesta postventa (no promociones). Se abre el mensaje y lo confirmás vos.</p>`:'<p class="sm mut">No hay avisos pendientes.</p>';}
 function crmPaint(){if(crmTab!=='inbox'){const b=$('#crm-body');if(b){b.innerHTML=crmBody();crmBindCtx();}return;}
  const l=$('#crm-list'),t=$('#crm-thread'),x=$('#crm-ctx'),k=$('#crm-kpi');if(!l)return;
@@ -336,7 +347,7 @@ function crmBindCtx(){const q=$('#crm-lq');if(q)q.addEventListener('input',()=>{
  const s=$('#crm-st');if(s)s.addEventListener('change',()=>{const c=convById(crmSel);if(!c)return;const v=s.value;if(!CST[v])return;if(v==='cerrado'){crmCloseConv(c);return;}c.state=v;crmAdd(c,'sys','Estado: '+CST[v]+' ('+crmMe()+')',{kind:'estado'});audit('CRM_ESTADO',crmWho(c)+' · '+CST[v]);save();crmPaint();});
  const dd=$('#crm-days');if(dd)dd.addEventListener('change',()=>{crmF.days=+dd.value;crmPaint();});}
 reg('crm','Atención al cliente','chat','crm',()=>{const C=crmCfg();
- const tabs=[['inbox','Bandeja'],['stats','Analíticas'],['camp','Campañas'],['alerts','Alertas ERP ('+crmAlerts().length+')']];
+ const tabs=[['inbox','Bandeja'],['canales','🔌 Canales ('+(typeof canOnList==='function'?canOnList().length:0)+'/8)'],['stats','Analíticas'],['camp','Campañas'],['alerts','Alertas ERP ('+crmAlerts().length+')']];
  return `<style>:root{--crm-a:#a8261b;--crm-m:#7a4f00;--crm-n:#1d6234}[data-theme=dark]{--crm-a:#ff9b91;--crm-m:#f2c96b;--crm-n:#8fe0a2}@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--crm-a:#ff9b91;--crm-m:#f2c96b;--crm-n:#8fe0a2}}
  .crm-wrap{display:grid;grid-template-columns:minmax(230px,1fr) minmax(0,2fr) minmax(250px,1.1fr);gap:.8rem;align-items:start}
  @media(max-width:1100px){.crm-wrap{grid-template-columns:minmax(0,1fr)}}.crm-wrap>*{min-width:0}.crm-wrap .row{flex-wrap:wrap}.crm-wrap select,.crm-wrap input{max-width:100%;min-width:0}
@@ -355,9 +366,9 @@ reg('crm','Atención al cliente','chat','crm',()=>{const C=crmCfg();
  .crm-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:.2rem;margin-bottom:.4rem}.crm-cd{display:flex;flex-direction:column;align-items:center;border:1px solid var(--line);border-radius:8px;padding:.2rem 0;min-height:44px}.crm-cd.has{border-color:var(--gold);background:rgba(201,150,62,.12)}
  .crm-ap{border-top:1px dashed var(--line);padding:.35rem 0;font-size:.9rem}.crm-al{list-style:none;padding:0;margin:0}.crm-al li{display:flex;gap:.4rem;align-items:center;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--line)}.crm-al li.crit span{color:var(--crm-a);font-weight:600}
  .crm-bars{width:100%}.crm-bars th{text-align:left;font-weight:500;width:35%}.crm-bar-f{display:block;height:12px;border-radius:6px;background:var(--gold);min-width:3px}</style>
- <div class="row"><h1 class="sp">Atención al cliente</h1>${crmSup()?'<button class="btn" data-act="crmTab" data-t="stats">Panel de supervisión</button>':''}${CRM_FULL?'<button class="btn" data-act="crmSim">Simular mensaje entrante</button>':''}<button class="btn gold" data-act="crmNewBtn">+ Nueva conversación</button>${can('config')?'<button class="btn" data-act="crmCfgOpen">Ajustes</button>':''}</div>
+ <div class="row"><h1 class="sp">Atención al cliente</h1>${crmSup()?'<button class="btn" data-act="crmTab" data-t="stats">Panel de supervisión</button>':''}${CRM_FULL?'<button class="btn" data-act="crmSim">Simular mensaje entrante</button>':''}${can('config')?'<button class="btn" data-act="crmTab" data-t="canales">🔌 Conectar canales</button>':''}<button class="btn gold" data-act="crmNewBtn">+ Nueva conversación</button>${can('config')?'<button class="btn" data-act="crmCfgOpen">Ajustes</button>':''}</div>
  ${C.on?'':'<div class="warnbox">Atención al cliente está <b>apagada</b>: el chat del menú público no se muestra. Activala en <b>Ajustes</b>.</div>'}${crmSqlNote()}
- <p class="sm mut">Canales: ${C.chans.map(k=>CHAN_IC[k]+' '+CHAN[k]+(CHAN_DEMO.includes(k)?' (demostración)':'')).join(' · ')}. Chat web cifrado de punta a punta; WhatsApp se abre con el texto listo y el envío lo confirmás vos.</p>
+ <p class="sm mut">Canales: ${C.chans.map(k=>CHAN_IC[k]+' '+CHAN[k]+(chanDemo(k)?' (demostración)':chanApi(k)&&k!=='web'?' (integrado)':'')).join(' · ')}. Chat web cifrado de punta a punta; WhatsApp se abre con el texto listo y el envío lo confirmás vos.</p>
  <div class="grid g4" id="crm-kpi" style="margin:.8rem 0">${crmKpiHTML()}</div>
  <div class="ux-tabs" role="tablist" aria-label="Atención al cliente">${tabs.map(([k,t])=>`<a role="tab" tabindex="0" data-act="crmTab" data-t="${k}" aria-selected="${crmTab===k}" class="${crmTab===k?'on':''}">${esc(t)}</a>`).join('')}</div>
  <div id="crm-body">${crmBody()}</div>`;},
@@ -404,7 +415,7 @@ A.crmUnlink=()=>{const c=crmCur();if(!c)return;confirmBox('Desvincular','La conv
 A.crmNewBtn=()=>{const C=crmCfg();const ch=C.chans.filter(k=>k!=='web');
  const w=modal('Nueva conversación',`<label for="cn-q">Cliente</label><input id="cn-q" placeholder="Nombre, WhatsApp, DNI o N.º" autocomplete="off"><div id="cn-r"></div><input type="hidden" id="cn-id">
   <p class="sm mut">O sin ficha:</p><div class="grid g2"><div><label for="cn-n">Nombre</label><input id="cn-n" maxlength="60"></div><div><label for="cn-w">WhatsApp (opcional)</label><input id="cn-w" inputmode="tel" maxlength="20" placeholder="387 4123456"></div></div>
-  <div class="grid g2"><div><label for="cn-c">Canal</label><select id="cn-c">${ch.map(k=>`<option value="${k}">${CHAN[k]}${CHAN_DEMO.includes(k)?' (demostración)':''}</option>`).join('')}</select></div><div><label for="cn-d">Cola</label><select id="cn-d">${C.depts.map(d=>`<option>${esc(d)}</option>`).join('')}</select></div></div>`,
+  <div class="grid g2"><div><label for="cn-c">Canal</label><select id="cn-c">${ch.map(k=>`<option value="${k}">${CHAN[k]}${chanDemo(k)?' (demostración)':''}</option>`).join('')}</select></div><div><label for="cn-d">Cola</label><select id="cn-d">${C.depts.map(d=>`<option>${esc(d)}</option>`).join('')}</select></div></div>`,
   {okText:'Crear',onOk:w=>{const cu=custById(val('cn-id'));const nm=val('cn-n').trim();const wa=normWA(val('cn-w'));const chan=val('cn-c');if(!CHAN[chan])return w._err('Elegí el canal.'),false;
    if(!cu&&nm.length<2)return w._err('Elegí un cliente o escribí un nombre.'),false;if(val('cn-w').trim()&&!wa)return w._err('El WhatsApp no es válido.'),false;
    const c=crmNew({chan,cust:cu?cu.id:'',name:cu?'':nm,wa:wa?'549'+wa:'',dept:val('cn-d'),asg:crmMe()});c.state='proceso';crmAdd(c,'sys','Conversación iniciada por '+crmMe(),{kind:'nueva'});audit('CRM_NUEVA',(CHAN[chan])+' · '+crmWho(c));save();crmSel=c.id;crmMode='msg';crmTab='inbox';rerender();}});
