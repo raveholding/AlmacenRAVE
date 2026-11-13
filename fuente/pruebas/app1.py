@@ -1,0 +1,85 @@
+# V26.69 · App del cliente (Club) + pedido con envío desde el menú y seguimiento · app instalable
+# Compilar antes: build.py demo /tmp/rave/index.html
+import json,subprocess,time
+from playwright.sync_api import sync_playwright
+res=[]
+def chk(c,m):print(('OK   ' if c else 'FALLA ')+m);res.append(bool(c))
+with sync_playwright() as p:
+    b=p.chromium.launch(args=['--no-proxy-server'])
+    pg=b.new_page(viewport={'width':390,'height':844});ev=pg.evaluate;errs=[];pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
+    def gate():
+        fr=pg.frame_locator('#pubframe')
+        if fr.locator('#age-gate.open').count(): fr.locator('#ag-yes').click();pg.wait_for_timeout(300)
+        return fr
+    pg.goto('file:///tmp/rave/index.html#menu');pg.wait_for_timeout(1800);fr=gate()
+    ids=fr.locator('.card[data-id]').evaluate_all("L=>L.map(e=>e.dataset.id)")
+    pid=ev("(ids=>ids.find(id=>{const p=prod(id);return p&&stockOf(p)>3}))(%s)"%json.dumps(ids))
+    chk(ev("RAVE_API.site().rep&&RAVE_API.site().rep.on")==True,'el menú publica el reparto (zonas y costos, sin datos internos)')
+    chk('reps' not in json.dumps(ev("RAVE_API.site().rep")) and 'origen' not in json.dumps(ev("RAVE_API.site().rep")),'no publica repartidores ni la ubicación del local')
+    fr.locator('.card[data-id="%s"] button'%pid).last.click();pg.wait_for_timeout(200);fr.locator('.card[data-id="%s"] button'%pid).last.click();pg.wait_for_timeout(200)
+    fr.locator('#cart-bar').click();pg.wait_for_timeout(500)
+    chk(fr.locator('#rep-box').is_visible(),'el carrito ofrece «Envío a domicilio» con seguimiento')
+    fr.locator('#rp-on').check();pg.wait_for_timeout(200)
+    fr.locator('#btn-send').click();pg.wait_for_timeout(300)
+    chk(fr.locator('#rp-err').is_visible() and 'zona' in fr.locator('#rp-err').inner_text().lower(),'valida la zona antes de enviar')
+    fr.locator('#rp-z').select_option('zc');pg.wait_for_timeout(200)
+    chk('Total estimado' in fr.locator('#rp-sum').inner_text(),'muestra el costo de envío y el total')
+    fr.locator('#rp-nm').fill('Carla Ruiz');fr.locator('#rp-tl').fill('387 5111222');fr.locator('#rp-dr').fill('Belgrano 500');fr.locator('#rp-lc').fill('Centro')
+    fr.locator('#rp-ab').fill('100000')
+    n0=ev("S.envios.length");popups=[]
+    pg.context.on('page',lambda x:popups.append(x))
+    fr.locator('#btn-send').click();pg.wait_for_timeout(1200)
+    e=ev("S.envios[S.envios.length-1]")
+    chk(ev("S.envios.length")==n0+1 and e['orig']=='menu' and e['cli']['nombre']=='Carla Ruiz' and e['cobro']['modo']=='efectivo' and e['cobro']['abona']==10000000,'el pedido entra a la bandeja del local (canal digital) con pago y vuelto')
+    chk(not popups,'no abre WhatsApp: el pedido va directo al sistema')
+    chk(fr.locator('#mt-full').count()==1 and fr.locator('[data-mtab=ped][aria-selected=true]').count()==1,'se abre la app del cliente en «Pedidos»')
+    t=fr.locator('#mt-full').inner_text()
+    chk(e['pin'] in t,'el cliente ve su código de entrega (PIN)')
+    chk('Recibido' in t or 'Confirmado' in t,'y el estado del pedido')
+    chk(fr.locator('.mta-nav [data-mtab]').count()==4,'cuatro pestañas: Tarjeta, Beneficios, Pedidos y Contacto')
+    # el local avanza el pedido → el cliente lo ve
+    ev("(()=>{const e=S.envios[S.envios.length-1];repSetEst(e,'preparando');e.pick={ts:now()};repSetEst(e,'listo');const r={id:'rT',n:'R-9',ts:now(),rep:'rp1',repNom:'Repartidor Juan',envios:[e.id],estado:'en_curso',cambio:0};S.rutas.push(r);e.rutaId='rT';repSetEst(e,'en_ruta');save();})()")
+    fr.locator('[data-mta=refresh]').click();pg.wait_for_timeout(500)
+    t=fr.locator('#mt-full').inner_text()
+    chk('En camino' in t and 'Repartidor' in t and '20-30' in t,'el cliente ve «En camino», quién lo lleva y la demora')
+    # contacto según rubro
+    fr.locator('[data-mtab=con]').click();pg.wait_for_timeout(200)
+    t=fr.locator('#mt-full').inner_text()
+    chk('Hacer un pedido' in t and 'WhatsApp' in t,'contacto: botones según el rubro (almacén) y WhatsApp')
+    chk(fr.locator('#mt-full a[href^="tel:"]').count()>=1,'botón para llamar')
+    fr.locator('[data-mtab=ben]').click();pg.wait_for_timeout(200)
+    chk('beneficios' in fr.locator('#mt-full').inner_text().lower(),'pestaña de beneficios')
+    # el rubro cambia los botones
+    ev("S.cfg.app={rubro:'gastro'};save()");fr.locator('#mt-x').click();pg.wait_for_timeout(200)
+    ev("document.getElementById('pubframe').contentWindow.RAVE_OPEN_APP('con')");pg.wait_for_timeout(300)
+    chk('Reservar mesa' in fr.locator('#mt-full').inner_text(),'en gastronomía aparece «Reservar mesa»')
+    # pedido incompleto: no se manda
+    ev("S.cfg.app={rubro:'almacen'};save()")
+    chk(not errs,'sin errores JS '+str(errs[:3]))
+    b.close()
+# ---------- app instalable: manifiestos y service worker servidos por http ----------
+srv=subprocess.Popen(['python3','-m','http.server','8765','--bind','127.0.0.1','-d','/tmp/rave'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);time.sleep(1)
+try:
+    with sync_playwright() as p:
+        b=p.chromium.launch(args=['--no-proxy-server']);pg=b.new_page();ev=pg.evaluate;errs=[];pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
+        pg.goto('http://127.0.0.1:8765/index.html#acceso');pg.wait_for_timeout(2500)
+        import urllib.request as U;m=json.load(U.urlopen('http://127.0.0.1:8765/app.webmanifest'))
+        chk(m['display']=='standalone' and m['start_url']=='./#acceso' and any(i.get('purpose')=='maskable' for i in m['icons']),'manifiesto del sistema válido (standalone, íconos, inicio)')
+        chk(any(s['url'].endswith('copiloto') for s in m['shortcuts']),'accesos directos: Vender, Reparto y Mi hoja de ruta')
+        sw=ev("navigator.serviceWorker.getRegistration().then(r=>!!(r&&(r.active||r.installing||r.waiting)))")
+        chk(sw,'el service worker se registra (abre sin señal)')
+        chk(ev("$('#pwa-man').getAttribute('href')")=='app.webmanifest','en el sistema se ofrece la app del sistema')
+        ev("location.hash='#mitarjeta'");pg.wait_for_timeout(800)
+        chk(ev("$('#pwa-man').getAttribute('href')")=='club.webmanifest','en la tarjeta del Club se ofrece la app del Club')
+        m2=json.load(U.urlopen('http://127.0.0.1:8765/club.webmanifest'))
+        chk(m2['start_url']=='./#mitarjeta' and m2['id']!=m['id'],'la app del Club abre en la tarjeta y es otra app')
+        pg.goto('http://127.0.0.1:8765/index.html#acceso');pg.wait_for_timeout(1500)
+        chk(pg.locator('#login [data-act=appInstall]').count()==1,'botón «Instalar app» en el acceso')
+        pg.click('#login [data-act=appInstall]');pg.wait_for_timeout(300)
+        chk(pg.locator('.ov').count()==1,'sin instalador del navegador, explica cómo instalar')
+        pg.context.set_offline(True);pg.reload();pg.wait_for_timeout(1500)
+        chk(pg.locator('#login').count()==1 and 'Sin conexión y sin copia' not in pg.content(),'sin conexión abre igual (desde la copia guardada)')
+        chk(not errs,'sin errores JS (http) '+str(errs[:3]))
+        b.close()
+finally: srv.terminate()
+print('\n%d/%d'%(sum(res),len(res)))

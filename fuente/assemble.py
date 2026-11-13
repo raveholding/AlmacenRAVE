@@ -24,6 +24,10 @@ assert a in body; body=body.replace(a,"var ALCOHOL_RESTRICTION = { enabled:!wind
 # V26.63: sin venta restringida no se abre el control de edad
 g="  if(!ok()) open();"
 assert g in body; body=body.replace(g,"  if(window.RAVE_NORESTR){ /* sin control de edad */ } else if(!ok()) open();",1)
+# V26.69: el reparto con seguimiento puede tomar el pedido (en vez de abrir WhatsApp) cuando el cliente eligió «envío a domicilio»
+hk="    var url = 'https://wa.me/' + (window.RAVE_WA || '5493874574892') + '?text=' + encodeURIComponent(msg);\n    window.open(url, '_blank');"
+assert body.count(hk)==1,'falta el envío por WhatsApp del carrito'
+body=body.replace(hk,"    if(window.RAVE_SEND_HOOK){ try{ if(window.RAVE_SEND_HOOK(msg, total, ids.map(function(i){ return { id:i, name:cart[i].name, price:cart[i].price, qty:cart[i].qty }; }))) return; }catch(e){} }\n"+hk)
 # pre.js antes del script de idioma
 k="var lang = 'es';\n  window.RAVE_LANG"
 i=body.index(k); j=body.rindex('<script>',0,i)

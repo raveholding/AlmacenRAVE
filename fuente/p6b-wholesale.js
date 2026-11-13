@@ -47,7 +47,7 @@ function priceResolve(p,qty,ctx){
 /* recalcula las líneas del ticket en curso (las que no tienen precio puesto a mano) */
 function wsRecalc(){if(!wsOn()||typeof pos==='undefined')return;
  const cust=custById(pos.cust),chan=wsChan();const agg={};pos.lines.forEach(l=>agg[l.pid]=(agg[l.pid]||0)+l.qty);
- pos.lines.forEach(l=>{const p=prod(l.pid);if(!p)return;
+ pos.lines.forEach(l=>{const p=prod(l.pid);if(!p||l.pid==='p_envio')return; /* V26.69: el costo de envío lo pone la zona */
   if(l.man){l.rule='MAN';l.lst='';l.why='Precio puesto a mano (queda auditado)';l.miss='';delete l.tr;delete l.amt;return;}
   const dup=pos.lines.filter(x=>x.pid===l.pid).length>1;
   const r=priceResolve(p,dup?l.qty:agg[l.pid],{cust,chan});l.tr=r.tr;l.amt=r.amt;
@@ -62,7 +62,7 @@ function wsGate(lines,cust,opts){
  if(chan==='mayorista'){
   if(!conf.allowClub){if(opts.coupon)return{err:'Los cupones del Club no se aplican a ventas mayoristas.'};if(opts.stampCode)return{err:'Los sellos del Club no se otorgan en ventas mayoristas.'};}}
   const agg={};lines.forEach(l=>agg[l.pid]=(agg[l.pid]||0)+l.qty);
- for(const l of lines){const p=prod(l.pid);if(!p)continue;
+ for(const l of lines){const p=prod(l.pid);if(!p||l.pid==='p_envio')continue;
   if(l.man){l.rule='MAN';l.lst='';delete l.tr;delete l.amt;}
   else{const dup=lines.filter(x=>x.pid===l.pid).length>1;const r=priceResolve(p,dup?l.qty:agg[l.pid],{cust,chan});l.tr=r.tr;l.amt=r.amt;if(l.price!==r.price)delete l.flrOk;l.price=r.price;l.rule=r.rule;l.lst=r.list;l.base=r.base;l.why=r.why;}
   if(p.floor>0&&Math.min(l.price,...((l.tr||[]).map(t=>t.price)))<p.floor&&!l.flrOk)return{err:'El precio de '+p.name+' ('+money(l.price)+') está por debajo del piso ('+money(p.floor)+'): lo tiene que autorizar un supervisor con motivo.'};}

@@ -1,0 +1,54 @@
+{
+ "lang": "es-AR",
+ "dir": "ltr",
+ "display": "standalone",
+ "display_override": [
+  "standalone",
+  "minimal-ui"
+ ],
+ "background_color": "#242220",
+ "theme_color": "#242220",
+ "scope": "./",
+ "icons": [
+  {
+   "src": "app-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "app-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "app-512m.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ],
+ "id": "./?app=sistema",
+ "name": "AlmacenRAVE · Sistema",
+ "short_name": "RAVE",
+ "description": "Sistema de gestión: ventas, caja, stock, clientes, reparto y seguridad.",
+ "start_url": "./#acceso",
+ "orientation": "any",
+ "categories": [
+  "business",
+  "productivity"
+ ],
+ "shortcuts": [
+  {
+   "name": "Vender",
+   "url": "./#panel/vender"
+  },
+  {
+   "name": "Reparto",
+   "url": "./#panel/reparto"
+  },
+  {
+   "name": "Mi hoja de ruta",
+   "url": "./#panel/copiloto"
+  }
+ ]
+}

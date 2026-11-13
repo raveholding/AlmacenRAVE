@@ -64,7 +64,7 @@ function commitSale(method,arca,channel,lines,opts){
  if(W)lines=wsSplit(lines);
  const ben=(W&&W.chan==='mayorista'&&!W.club)?{disc:0,kind:'',label:'',code:'',couponId:'',couponErr:'',base:0}:(typeof applyBenefit==='function')?applyBenefit(lines,cust?cust.id:'',opts.coupon||''):{disc:0,kind:''};
  if(opts.coupon&&ben.kind!=='coupon'&&ben.couponErr)return{err:'Cupón: '+ben.couponErr};
- if(opts.extraDisc>0){ben.disc+=opts.extraDisc;if(!ben.kind){ben.kind='tn';ben.label='Descuento de Tiendanube';}}   /* descuento ya aplicado por la tienda online (Tiendanube): no es un cupón del sistema */
+ if(opts.extraDisc>0){ben.disc+=opts.extraDisc;if(!ben.kind){ben.kind=opts.extraKind||'tn';ben.label=opts.extraLabel||'Descuento de Tiendanube';}}   /* descuento ya aplicado por la tienda online (Tiendanube): no es un cupón del sistema */
  const gross=lines.reduce((a,l)=>a+Math.round(l.qty*l.price),0);let total=gross-ben.disc;const alloc=allocDisc(lines,ben.disc);
  /* pagos: una sola línea (venta simple) o varias (mixta). Todo se valida ANTES de tocar stock, caja o cuenta corriente. */
  const pays=(opts.pays&&opts.pays.length?opts.pays:[{m:method,a:total}]).map(p=>({m:p.m,a:p.a}));if(typeof accStamp==='function')accStamp(pays,opts.acc);
@@ -121,7 +121,7 @@ function posCart(){const c=$('#pcart');if(!c)return;const sess=openSess();if(typ
  `${typeof wsCartBar==='function'?wsCartBar():''}<div class="row" style="margin:.7rem 0"><span class="sp mut">Total</span><span class="total">${money(posTotal())}</span></div>${typeof paCartHTML==='function'?paCartHTML():''}
  <p class="sm ${pos.arca?'':'mut'}">${pos.arca?'Documento: Factura electrónica (el CAE se pide a ARCA al cobrar)':'Documento: Ticket interno — DOCUMENTO NO VÁLIDO COMO FACTURA'}</p>
  <p class="sm mut">Medio elegido: <b>${esc(MET[pos.method]||pos.method)}</b></p>
- <button class="btn gold" style="width:100%;min-height:56px;font-size:1.1rem" data-act="cobrar" ${pos.lines.length?'':'disabled'}>Cobrar (F12)</button>${typeof qtCartBtn==='function'?qtCartBtn():''}
+ <button class="btn gold" style="width:100%;min-height:56px;font-size:1.1rem" data-act="cobrar" ${pos.lines.length?'':'disabled'}>Cobrar (F12)</button>${typeof qtCartBtn==='function'?qtCartBtn():''}${typeof repCartBtn==='function'?repCartBtn():''}
  <div class="row" style="margin-top:.6rem"><button class="btn sm sp" data-act="mov" data-type="ingreso">Ingreso de efectivo</button><button class="btn sm sp" data-act="mov" data-type="egreso">Egreso de efectivo</button>${typeof csSupported==='function'&&csSupported()?'<button class="btn sm sp" data-act="csOpen" title="Abre la vista del carrito para el segundo monitor">Pantalla del cliente</button>':''}</div>`;if(typeof csPush==='function')csPush();}
 A.padd=el=>{const p=prod(el.dataset.id);if(!p)return;const cur=qtyIn(p.id);const step=1;if(!canOver(p)&&cur+step>stockOf(p)){toast('Sin stock suficiente de '+p.name+' (este producto exige stock)',1);return;}if(cur+step>stockOf(p))toast('Sin stock: se vende igual y queda en negativo ('+p.name+')');
  const L=pos.lines.find(l=>l.pid===p.id);if(L){L.qty+=step;pos.sel=pos.lines.indexOf(L);}else{pos.lines.push({pid:p.id,name:pfull(p),rubro:p.rubro,qty:1,price:p.price,cost:p.cost,unit:p.unit,list:p.price});pos.sel=pos.lines.length-1;}posCart();posFocusSearch();};
@@ -231,7 +231,7 @@ A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin perm
   if(pos.mix){const L=mixParsed();const ef=L.find(p=>p.m==='efectivo');recv=ef?ef.r:0;}
   const r=commitSale(pos.mix?'mixto':pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv,pays,det:pg.det,acc:ag.acc,ws:wsOn()?{chan:wsChan()}:null,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null,ck:pos.ck,gift:pos.gift||'',quote:pos.quote||''});
   if(r.err){wsCommitErr(r);return false;}
-  const sale=r.sale;pos.lines=[];pos.sel=-1;pos.cust='';pos.chanSet=null;pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];pos.pdet={};pos.acc={};pos.ck='';pos.gift='';pos.quote='';posCart();posGrid();
+  const sale=r.sale;if(typeof repAfterSale==='function')repAfterSale(sale);pos.lines=[];pos.sel=-1;pos.cust='';pos.chanSet=null;pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];pos.pdet={};pos.acc={};pos.ck='';pos.gift='';pos.quote='';posCart();posGrid();
   toast('Venta '+sale.n+' registrada'+(r.stamp?' · sello sumado':''));if(typeof csPaid==='function')csPaid(sale);
   setTimeout(()=>{if(sale.status==='pendiente')payModal(sale);else if(sale.doc!=='ticket_interno'&&typeof arcaPostSale==='function')arcaPostSale(sale,r.stamp);else receiptModal(sale,r.stamp);},50);}});
  if(typeof pdBind==='function')pdBind(w);

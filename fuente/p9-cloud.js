@@ -113,11 +113,15 @@ const COLS=[
  {c:'hrcand',key:'hrCands',pii:['name','phone','email','note'],del:1},
  {c:'hritem',key:'hrItems'},
  {c:'hrmsg',key:'hrMsgs',once:1,pii:['txt']},
- {c:'hrplan',key:'hrPlanLog',once:1}];
+ {c:'hrplan',key:'hrPlanLog',once:1},
+ /* V26.69 · 26-reparto.sql · reparto: datos del cliente y de la entrega cifrados; la foto de respaldo NO viaja */
+ {c:'envio',key:'envios',pii:['cli','pin','tok','ent','aus','inc'],strip:['fotoData']},
+ {c:'ruta',key:'rutas'},
+ {c:'rendrep',key:'rendRep',once:1}];
 const BYC=Object.fromEntries(COLS.map(x=>[x.c,x]));
 const DELC=new Set(COLS.filter(x=>x.del).map(x=>x.c));
 const CFGIDS=['tenant','cfg','menu','loyalty','roles','integ','legal','payadj'];
-const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado','cortesx','fidmov','giftmov','devol','merma','juego','cmsg','hrmsg','hrplan']);
+const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado','cortesx','fidmov','giftmov','devol','merma','juego','cmsg','hrmsg','hrplan','rendrep']);
 const r3=n=>Math.round(n*1000)/1000;
 function stripOf(col,it){const d=JSON.parse(JSON.stringify(it));(col.strip||[]).forEach(k=>delete d[k]);return d;}
 function cfgWire(id){switch(id){
@@ -239,7 +243,7 @@ function loginHtml(mode,msg,pre){const em=esc((pre&&pre.email)||(cl.meta&&cl.met
  else f=`<div class="card sm" style="margin:.4rem 0"><p style="margin-top:0"><b>¿Olvidaste tu contraseña?</b> Pedísela al <b>administrador de tu comercio</b> (no al soporte del desarrollador): en <b>Usuarios y permisos → Equipo</b> toca <b>«Restablecer acceso»</b> y te pasa una <b>clave temporal</b>. Entrás por «Ingresar» con tu correo y esa clave, y el sistema te pide elegir tu contraseña nueva. No perdés nada.</p>
  <p>También podés probar con <b>«Olvidé mi contraseña»</b> en «Ingresar»: te llega un correo para elegir otra${googleOn?', o entrá con <b>«Ingresar con Google»</b> si tu Gmail está asociado':''}.</p>
  <p style="margin-bottom:0"><b>Si sos el administrador:</b> usá «Olvidé mi contraseña» y después tu <b>código de recuperación</b> (el que guardaste al crear el comercio) para volver a abrir los datos.</p></div>`;
- return `<div class="lbox"><div class="th-row">${themeBtn()}</div><div style="text-align:center"><img src="${LOGO_MENU}" alt="RAVE" style="width:150px;border-radius:12px"><h1>Acceso del equipo</h1><p class="mut sm">${esc(S.tenant.legal||'Sistema RAVE')}</p></div>
+ return `<div class="lbox"><div class="th-row">${typeof appBtn==='function'?appBtn():''}${themeBtn()}</div><div style="text-align:center"><img src="${LOGO_MENU}" alt="RAVE" style="width:150px;border-radius:12px"><h1>Acceso del equipo</h1><p class="mut sm">${esc(S.tenant.legal||'Sistema RAVE')}</p></div>
  <div class="row" style="justify-content:center;gap:.4rem;margin:.4rem 0">${tab('ingresar','Ingresar')}${tab('crear','Crear comercio')}${tab('unirme','Tengo una invitación')}${tab('ayuda','Olvidé mi clave')}</div>${f}
  <div class="merr" id="lerr" role="alert">${esc(msg||'')}</div>
  <div class="row" style="margin-top:.8rem">${mode==='ayuda'?'':`<button class="btn gold sp" data-act="cloudGo" data-mode="${mode}" id="cl-go">${mode==='ingresar'?'Ingresar':'Continuar'}</button>`}<a class="btn" href="#menu">Volver al menú</a></div>
@@ -501,13 +505,14 @@ function cloudApiWrap(local){if(!CLOUD.on)return local;
    const d=cp.type==='pct'?cp.value+' % de descuento':money(cp.value)+' de descuento';const dd=cpDisc(cp,total);
    return{ok:true,code:cp.code,desc:d+' (se valida en el mostrador)',descEn:(cp.type==='pct'?cp.value+' % off':money(cp.value)+' off')+' (validated at the counter)',total:Math.max(0,total-dd)};}),
   plans:pick(local.plans,()=>{const c=snapC();return(c&&c.plans)||[];}),
+  repOrder:pick(local.repOrder||(()=>({ok:false})),p=>repCloudOrder(p)),track:pick(local.track||(()=>[]),r=>repCloudTrack(r)),
   orderRequest:pick(local.orderRequest,o=>{rpc('menu_evento',{p_slug:CLOUD.slug,p_tipo:'pedido',p_items:(o.items||[]).length,p_total:Math.round((+o.total||0)*100)},{auth:false}).catch(()=>{});}),
   legal:pick(local.legal,()=>{const c=snapC();return(c&&c.legal)||[];}),
   logArrep:pick(local.logArrep,()=>{rpc('menu_evento',{p_slug:CLOUD.slug,p_tipo:'arrepentimiento'},{auth:false}).catch(()=>{});}),
   openPanel:local.openPanel};}
 /* ---- Equipo: invitar, roles y quitar (se usa en Nube y en Usuarios y permisos) ---- */
 function teamCardHtml(){return `<div class="card" id="team-card" style="margin-top:1rem"><h3>Equipo (personas con acceso)</h3><div id="nb-team" class="sm mut">Cargando…</div>
- <h4>Invitar a una persona</h4><div class="grid g2"><div><label for="nb-em">Correo</label><input id="nb-em" type="email"></div><div><label for="nb-nm">Nombre</label><input id="nb-nm" maxlength="60"></div><div><label for="nb-rl">Rol</label><select id="nb-rl"><option value="mostrador">Mostrador</option><option value="supervisor">Supervisor</option><option value="operador">Operador</option><option value="admin">Administrador</option></select></div></div>
+ <h4>Invitar a una persona</h4><div class="grid g2"><div><label for="nb-em">Correo</label><input id="nb-em" type="email"></div><div><label for="nb-nm">Nombre</label><input id="nb-nm" maxlength="60"></div><div><label for="nb-rl">Rol</label><select id="nb-rl"><option value="mostrador">Mostrador</option><option value="supervisor">Supervisor</option><option value="operador">Operador</option><option value="repartidor">Repartidor</option><option value="admin">Administrador</option></select></div></div>
  <div class="row" style="margin-top:.5rem"><button class="btn gold" data-act="nbInvite">Generar código de acceso</button></div>
  <p class="sm mut">La persona entra a "Tengo una invitación", escribe ese correo, elige su contraseña y pega el código. <b>Si alguien olvida su contraseña, te la pide a vos</b> (no al soporte del desarrollador): tocá <b>«Restablecer acceso»</b> al lado de su nombre y pasale la clave temporal (por WhatsApp o en persona). Entra con su correo y esa clave, y elige su contraseña nueva: no pierde nada.</p>
  <h4>Código de recuperación</h4><p class="sm">Permite volver a abrir los datos si el administrador pierde su contraseña. Si lo perdiste, generá uno nuevo (el anterior deja de servir).</p><button class="btn" data-act="nbRecov">Generar código nuevo</button></div>`;}
@@ -520,7 +525,7 @@ async function teamInit(){if(!CLOUD.on||cl.rol!=='admin')return;const box=docume
 if(CLOUD.on){INV_HOOK.online=()=>!!(cl.ready&&cl.online);INV_HOOK.preview=async ids=>{const r=await rpc('inventario_vista_previa_borrado',{p_comercio:cl.comercio.id,p_ids:ids});return Array.isArray(r)?r:[];};}
 if(CLOUD.on){UI_HOOK.usersCard=()=>cl.rol==='admin'?teamCardHtml()+custodiaCardHtml()+googleSetupCardHtml():'<div class="card" style="margin-top:1rem"><h3>Equipo</h3><p class="sm mut">Sólo el administrador puede invitar o quitar personas.</p></div>';UI_HOOK.usersAfter=()=>{teamInit();custodiaPaint();googleSetupPaint();};}
 /* ---------- pantalla "Nube" ---------- */
-const ROLES_LBL={admin:'Administrador',supervisor:'Supervisor',mostrador:'Mostrador',operador:'Operador'};
+const ROLES_LBL={admin:'Administrador',supervisor:'Supervisor',mostrador:'Mostrador',operador:'Operador',repartidor:'Repartidor'};
 reg('nube','Nube','globe','config',()=>{
  if(!CLOUD.on)return `<h1>Nube</h1><div class="card"><span class="tag warn">Pendiente de configuración</span><p>Esta copia funciona <b>sólo en este equipo</b>. Para sincronizar varios equipos y publicar el menú para el público, Vincular Business carga en el archivo la dirección del proyecto de Supabase y su clave <b>publicable</b> (nunca una clave secreta).</p></div>`;
  let n=0;try{n=pendingCount();}catch(e){}

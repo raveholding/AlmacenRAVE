@@ -1,0 +1,24 @@
+/* ===== V26.69 · App del Club (cliente): qué muestra según el rubro =====
+   La app del cliente es la tarjeta del Club a pantalla completa, con pestañas: Tarjeta (sellos, nivel, crédito y código para sumar),
+   Beneficios (cupones, premio, membresías), Pedidos (seguimiento del envío) y Contacto (botones para hablar con el local según el rubro).
+   Acá el dueño elige el rubro, el horario y qué botones se muestran. No guarda nada del cliente. */
+const CA_RUBROS={almacen:'Almacén, kiosco o licorería',gastro:'Gastronomía (bar, restaurante, delivery)',servicios:'Servicios con turnos (barbería, estética, taller)',mayorista:'Mayorista / distribuidora',otro:'Otro'};
+const CA_BTNS={
+ almacen:[['pedir','🛒','Hacer un pedido',''],['stock','🔎','Consultar si hay','Hola! Quería consultar si tienen: '],['promo','🏷️','Promos de la semana','Hola! ¿Qué promos tienen esta semana?']],
+ gastro:[['pedir','🧾','Ver la carta y pedir',''],['reserva','🍽️','Reservar mesa','Hola! Quería reservar una mesa para __ personas el día __ a las __ hs.'],['evento','🎉','Eventos y cumpleaños','Hola! Quería consultar por un evento / cumpleaños.']],
+ servicios:[['turno','📅','Pedir turno','Hola! Quería pedir un turno para el día __ a las __ hs.'],['precio','💲','Consultar precios','Hola! ¿Me pasan los precios de los servicios?'],['pedir','🛍️','Ver productos','']],
+ mayorista:[['pedir','📦','Hacer un pedido',''],['lista','💲','Pedir lista de precios','Hola! ¿Me mandan la lista de precios mayorista actualizada?'],['cuenta','🧾','Mi cuenta corriente','Hola! Quería consultar el saldo de mi cuenta corriente.']],
+ otro:[['pedir','🛍️','Ver productos',''],['consulta','💬','Hacer una consulta','Hola! Quería consultar: ']]};
+function caCfg(){const c=S.cfg.app||(S.cfg.app={});const d={rubro:'almacen',horario:'',tel:'',btns:null,llamar:true,mapa:true,redes:true,resena:true};for(const k in d)if(c[k]===undefined)c[k]=d[k];if(!CA_RUBROS[c.rubro])c.rubro='almacen';return c;}
+function clubAppPublic(){const c=Object.assign({rubro:'almacen',horario:'',tel:'',btns:null,llamar:true,mapa:true,redes:true,resena:true},S.cfg.app||{});if(!CA_RUBROS[c.rubro])c.rubro='almacen'; /* lectura sin modificar la configuración */const B=(CA_BTNS[c.rubro]||CA_BTNS.otro).filter(b=>!c.btns||c.btns.includes(b[0])).map(b=>({k:b[0],ic:b[1],t:b[2],msg:b[3]}));
+ return{rubro:c.rubro,horario:String(c.horario||'').slice(0,160),tel:String(c.tel||'').replace(/[^\d+]/g,'').slice(0,20),btns:B,llamar:!!c.llamar,mapa:!!c.mapa,redes:!!c.redes,resena:!!c.resena,inst:true};}
+function caCardHtml(){if(!can('config')&&!can('menu_admin'))return '';const c=caCfg();const B=CA_BTNS[c.rubro]||CA_BTNS.otro;
+ return `<div class="card" id="ca-card" style="margin-top:1rem"><h3>App del Club (clientes)</h3><p class="sm mut">Lo que ve el cliente en su app: tarjeta, beneficios, seguimiento de pedidos y botones para comunicarse. Se publica con «Publicar» del menú.</p>
+ <div class="grid g2"><div><label for="ca-rb">Rubro del comercio</label><select id="ca-rb">${Object.entries(CA_RUBROS).map(([k,t])=>`<option value="${k}" ${c.rubro===k?'selected':''}>${esc(t)}</option>`).join('')}</select></div><div><label for="ca-tl">Teléfono para llamar (opcional, si no es el WhatsApp)</label><input id="ca-tl" maxlength="20" inputmode="tel" value="${esc(c.tel)}"></div></div>
+ <label for="ca-hr">Horario que se muestra</label><input id="ca-hr" maxlength="160" value="${esc(c.horario)}" placeholder="Lun a sáb 9 a 23 · Dom 18 a 23">
+ <h4>Botones de contacto</h4><div class="row">${B.map(b=>`<label class="chk"><input type="checkbox" class="ca-b" value="${b[0]}" ${!c.btns||c.btns.includes(b[0])?'checked':''}> ${b[1]} ${esc(b[2])}</label>`).join('')}</div>
+ <div class="row"><label class="chk"><input type="checkbox" id="ca-ll" ${c.llamar?'checked':''}> 📞 Llamar</label><label class="chk"><input type="checkbox" id="ca-mp" ${c.mapa?'checked':''}> 📍 Cómo llegar</label><label class="chk"><input type="checkbox" id="ca-rd" ${c.redes?'checked':''}> Redes sociales</label><label class="chk"><input type="checkbox" id="ca-rs" ${c.resena?'checked':''}> ⭐ Dejar reseña</label></div>
+ <div class="row" style="margin-top:.5rem"><button class="btn gold" data-act="caSave">Guardar</button></div></div>`;}
+A.caSave=()=>{const c=caCfg();const rb=val('ca-rb');const changed=rb!==c.rubro;c.rubro=CA_RUBROS[rb]?rb:'almacen';c.tel=val('ca-tl').trim().slice(0,20);c.horario=val('ca-hr').trim().slice(0,160);
+ c.btns=changed?null:[...document.querySelectorAll('.ca-b:checked')].map(x=>x.value);c.llamar=$('#ca-ll').checked;c.mapa=$('#ca-mp').checked;c.redes=$('#ca-rd').checked;c.resena=$('#ca-rs').checked;
+ audit('APP_CLUB_CONFIG','rubro '+CA_RUBROS[c.rubro]+' · botones '+(c.btns?c.btns.join(', '):'todos'));save();if(typeof pubRefresh==='function')pubRefresh();rerender();toast('Guardado. Publicá el menú para que lo vean los clientes.');};

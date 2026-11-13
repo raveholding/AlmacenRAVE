@@ -126,3 +126,22 @@
   #ship-box .sh-err{color:#ffb4a8}
   #cp-coupon-msg.ok,.cp-total-row.disc{color:#6fd39b}#cp-coupon-msg.bad{color:#ff9b8f}
 }
+
+/* V26.69 · envío a domicilio con seguimiento (mismo estilo que la sección de entrega) */
+#rep-box{margin:10px 0;padding:10px;border:1px solid rgba(201,150,62,.45);border-radius:12px}
+#rep-box .sh-h{margin:0 0 6px;font:700 15px Poppins,sans-serif}
+#rep-box label{display:block;font:500 13px Poppins,sans-serif;margin:8px 0 3px}
+#rep-box input[type=text],#rep-box input:not([type]),#rep-box select{width:100%;min-height:44px;box-sizing:border-box;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.07);color:inherit;padding:8px 10px;font:14px Poppins,sans-serif}
+#rep-box .sh-opt{display:flex;align-items:center;gap:8px;min-height:44px;margin:0}
+#rep-box .sh-opt input{width:20px;height:20px}
+#rep-box .sh-n{font:12px Poppins,sans-serif;opacity:.85;margin:6px 0}
+#rep-box .sh-sum{font:13px Poppins,sans-serif;margin:8px 0}
+#rep-box .sh-err{color:#ffb4a8;font:600 13px Poppins,sans-serif;margin:6px 0}
+#rep-box{border-color:var(--line);color:var(--ink)}
+#rep-box input[type=text],#rep-box input:not([type]),#rep-box select{border-color:var(--line);background:var(--card-bg);color:var(--ink)}
+#rep-box .sh-n{opacity:1;color:var(--muted)}
+#rep-box .sh-err{color:#a3271b}
+#rep-box .sh-err{color:#ffb4a8}
+#cart-panel.is-empty #rep-box{display:none}
+#rep-box input[inputmode]{width:100%;min-height:44px;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:var(--card-bg);color:var(--ink);padding:8px 10px;font:14px Poppins,sans-serif}
+#rep-box .sh-loc{display:block;width:100%;min-height:44px;margin:10px 0 4px;border-radius:10px;border:1px dashed var(--line);background:transparent;color:inherit;font:600 14px Poppins,sans-serif;cursor:pointer}

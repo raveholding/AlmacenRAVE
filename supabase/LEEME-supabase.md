@@ -30,6 +30,7 @@ Todo se hace con el **dueño del proyecto** (Vincular Business). Nada de esto va
 | `18-telegram.sql` | **R2AVE en Telegram (@R2aveBot, V26.52, sólo Almacén RAVE):** configuración del bot por comercio (encendido, ventana de correcciones de stock, límites, IA, grupo de alertas) que cambia **sólo el administrador**; vínculos Telegram ↔ administrador con códigos de un solo uso; correcciones de stock en dos pasos que se vuelven a verificar al confirmar (mismo camino que los equipos: `smov` + stock + Auditoría). Las tablas no se leen por la API: sólo la función `telegram` (service role) y las funciones del administrador. Aditivo e idempotente; no toca `sincronizar`. **Requiere 01 a 17 y la función `telegram`.** |
 | `24-restablecer-acceso.sql` | **Restablecer acceso en un paso (V26.66):** función `restablecer_acceso_miembro`: el administrador le da a alguien de su equipo una clave temporal y su llave de datos queda envuelta con esa clave (marcada temporal); al entrar, la persona elige su contraseña nueva. Mismas restricciones que `03` (no otro administrador, no personas de otro comercio). Aditivo e idempotente. **Requiere 01 a 23.** Guía: `LEEME-google.md`. |
 | `25-sello-nfc-mostrador.sql` | **Sello con el celular del cliente (V26.67):** tablas `sello_puntos` y `sello_pedidos` + funciones `sello_punto_guardar` (admin), `club_pedir_sello` y `club_sello_estado` (celular, anónimas, con límites) y `sello_resolver` (equipo). El pedido viaja cifrado con la llave pública del comercio: lo valida el sistema del mostrador. Aditivo e idempotente. **Requiere 01 a 24.** |
+| `26-reparto.sql` | **Reparto y despacho (V26.69):** rol de equipo **repartidor**; colecciones `envio`, `ruta` y `rendrep` en la sincronización (datos del cliente cifrados; rendiciones de una sola vez); `reparto_web` + `reparto_pedir` (pedido con envío desde el menú, **cifrado** con la llave pública del comercio, con límites) y `reparto_web_marcar`; `reparto_seguimiento` + `reparto_estado_poner` (equipo) y `reparto_estado_ver` (celular del cliente: sólo estado, demora y nombre de pila del repartidor). Aditivo e idempotente. **Requiere 01 a 25.** |
 | `90-reiniciar-pruebas.sql` | **SÓLO PRUEBAS. Borra lo subido por todos los comercios.** No correr con el sistema en uso real. |
 
 Todos (menos 90) se pueden repetir sin romper nada.
@@ -75,6 +76,17 @@ Lo usan **sólo los administradores**. Pasos (una vez):
 5. **Alertas (opcional):** agregar @R2aveBot a un grupo y que un administrador vinculado escriba `/alertas_aqui`. Para el resumen diario, programar en Supabase → Integrations → Cron una llamada `POST https://<proyecto>.supabase.co/functions/v1/telegram?alertas=1` con la cabecera `x-tg-cron: <TELEGRAM_WEBHOOK_SECRET>` (por ejemplo, todos los días a las 8:30 y a las 20:30). Las alertas no se repiten.
 
 Pruebas: `./tests/mk-e2e-db.sh && bun test functions/telegram/tg_test.ts` (Telegram e IA **falsos**). La prueba real se hace con @R2aveBot una vez instalado.
+
+## Función `reparto-pro` · conectores Pro del reparto · opcional
+Lo gratis del reparto (Google Maps / Waze por enlace, OpenStreetMap, QR fijo o alias, aviso por WhatsApp con un toque) funciona **sin esta función**. Sólo hace falta para los conectores Pro.
+1. Edge Functions → **Deploy a new function** → nombre `reparto-pro` → pegar `functions/reparto-pro/index.ts` y `handler.ts`. **Verify JWT: APAGADO** (Mercado Pago avisa sin sesión; las acciones del sistema validan la sesión y el rol adentro).
+2. Edge Functions → **Secrets** (sólo los que vayas a usar; nunca en el chat ni en el sistema):
+   - Google Routes: `GOOGLE_ROUTES_KEY` (clave de Google Maps Platform con *Routes API* habilitada y restringida a esa API).
+   - Mercado Pago: `MP_ACCESS_TOKEN` (credencial de producción) y `MP_WEBHOOK_SECRET` (Tus integraciones → Webhooks → clave secreta); `FUNCTION_URL` = `https://<proyecto>.supabase.co/functions/v1/reparto-pro`.
+   - WhatsApp Cloud API: `WA_TOKEN`, `WA_PHONE_ID`, `WA_TEMPLATE` (plantilla aprobada de tipo *utilidad* con **una** variable en el cuerpo, p. ej. `pedido_salio`) y `WA_LANG` (`es_AR`).
+   - `ALLOWED_ORIGINS` = `https://raveholding.github.io`.
+3. En el sistema: Reparto → Configuración → **Conectores a un clic** → elegir el modo Pro → **Probar y activar** (sólo el administrador). Si la prueba falla, sigue funcionando el modo gratis.
+4. Pruebas locales: `node --experimental-strip-types functions/reparto-pro/reparto_test.mjs` (15/15).
 
 ## Función `api` (REST de Proveedores y Compras) · opcional
 La pantalla del sistema **no la necesita** (usa las funciones SQL con la sesión del usuario). Sirve para integrar otros sistemas. Se despliega igual que `arca` (ver `despliegue-panel/LEEME.md`), **sin ningún secreto propio**: usa `SUPABASE_URL` y `SUPABASE_ANON_KEY`, que Supabase ya provee, y reenvía el JWT del usuario; la base decide qué puede hacer. Rutas y formato en la sección 4.21 de `fuente/sistema_vb_26.md`.
