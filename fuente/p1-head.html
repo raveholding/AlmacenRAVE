@@ -421,6 +421,15 @@ html[data-theme=dark] .rep-cb-b.cobrar{background:#4a2a08;color:#ffc98a}
 .can-mode input{position:absolute;opacity:0;pointer-events:none}.can-mode span{font-size:.85rem;color:var(--mut)}
 .can-ol{list-style:none;padding:0;margin:0;display:grid;gap:.6rem}.can-st{display:grid;grid-template-columns:30px 1fr;gap:.5rem;align-items:start}.can-n{width:28px;height:28px;border-radius:50%;background:var(--gold);color:#1b1100;font-weight:800;display:grid;place-items:center}
 .can-st code,.can-sec code{word-break:break-all;font-size:.82rem}.can-st .row,.can-sec .row{gap:.4rem;flex-wrap:wrap;align-items:center;margin:.25rem 0}.can-sec{border:1px dashed var(--line);border-radius:10px;padding:.5rem .6rem;margin-top:.4rem}
+
+/* V26.71 · detalle de cobros digitales compacto */
+.pd-card .pd-head{gap:.5rem;align-items:center;flex-wrap:nowrap}.pd-sw{position:relative;width:44px;height:24px;flex:none;cursor:pointer}.pd-sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.pd-sw i{position:absolute;inset:0;border-radius:12px;background:var(--line);transition:background .15s}.pd-sw i::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.pd-sw input:checked+i{background:var(--ok)}.pd-sw input:checked+i::after{transform:translateX(20px)}.pd-sw input:focus-visible+i{outline:2px solid var(--gold);outline-offset:2px}
+.pd-adv{margin-top:.5rem;border-top:1px solid var(--line);padding-top:.4rem}.pd-adv summary{cursor:pointer;display:flex;gap:.6rem;flex-wrap:wrap;align-items:baseline;font-weight:600;list-style:revert}
+.pd-grid{display:grid;gap:.35rem;margin:.5rem 0}.pd-row{display:grid;grid-template-columns:120px 1fr;gap:.5rem;align-items:center;border-bottom:1px dashed var(--line);padding-bottom:.35rem}@media(max-width:600px){.pd-row{grid-template-columns:1fr}}
+.pd-chips{display:flex;flex-wrap:wrap;gap:.3rem}.pd-chip{display:inline-flex;align-items:center;gap:.3rem;border:1px solid var(--line);border-radius:999px;padding:.1rem .15rem .1rem .55rem;font-size:.8rem;margin:0}
+.pd-chip select{width:auto;min-height:0;padding:.1rem .3rem;font-size:.78rem;border-radius:999px;border:0;background:var(--bg)}.pd-chip.fix{padding:.2rem .6rem;color:var(--mut)}.pd-chip.fix b{color:var(--ok)}
 </style>
 </head>
 <body>

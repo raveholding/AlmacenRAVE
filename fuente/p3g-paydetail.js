@@ -312,13 +312,18 @@ function pdConcilCard(){
 const PD_REQ_TXT={obligatorio:'Obligatorio',recomendado:'Recomendado',oculto:'Oculto'};
 function payCfgCard(){
  if(!can('config'))return'';const c=pdCfg();
- return `<div class="card" id="pd-cfg" style="margin-top:1rem"><h3 style="margin-top:0">Detalle de los cobros digitales</h3>
- <p class="sm mut">Pide los datos del comprobante en transferencias, tarjetas y QR/MODO. Está <b>apagado</b> hasta que lo actives. Lo cargado queda «declarado»: no acredita el cobro. Nunca se guarda el número de tarjeta completo.</p>
- <label class="chk"><input type="checkbox" id="pdc-on" ${c.on?'checked':''}> Exigir el detalle del comprobante al cobrar</label>
- <div class="tw"><table class="cjtbl"><thead><tr><th>Medio</th><th>Campo</th><th>Exigencia</th></tr></thead><tbody>${PD_MEDIOS.map(m=>PD_F[m].map(f=>`<tr><td data-l="Medio">${esc(MET[m])}</td><td data-l="Campo">${esc(f.l)}</td><td data-l="Exigencia">${f.nr?'<span class="tag">Obligatorio siempre</span>':`<select id="pdc-${m}-${f.k}" aria-label="${esc(MET[m]+' · '+f.l)}">${['obligatorio','recomendado','oculto'].map(o=>`<option value="${o}" ${pdReq(m,f)===o?'selected':''}>${PD_REQ_TXT[o]}</option>`).join('')}</select>`}</td></tr>`).join('')).join('')}</tbody></table></div>
- <div class="grid g2"><div><label for="pdc-age">Antigüedad máxima del comprobante (horas, vacío = sin límite)</label><input id="pdc-age" inputmode="numeric" autocomplete="off" placeholder="Sin límite" value="${c.maxAgeH||''}"></div>
- <div><label for="pdc-acc">Cuentas de destino (una por línea)</label><textarea id="pdc-acc" rows="3" maxlength="900">${esc(c.accounts.join('\n'))}</textarea></div></div>
- <div class="row" style="margin-top:.6rem"><button class="btn gold" data-act="payCfgSave">Guardar</button></div></div>`;}
+ /* V26.71 · tarjeta compacta: lo esencial a la vista y los ajustes finos plegados (casi no se usa, pero está) */
+ const cnt={obligatorio:0,recomendado:0,oculto:0};let tot=0;PD_MEDIOS.forEach(m=>PD_F[m].forEach(f=>{tot++;if(f.nr){cnt.obligatorio++;return;}cnt[pdReq(m,f)]=(cnt[pdReq(m,f)]||0)+1;}));
+ const sel=(m,f)=>f.nr?`<span class="pd-chip fix" title="Siempre obligatorio">${esc(f.l)} <b>•</b></span>`:`<label class="pd-chip"><span>${esc(f.l)}</span><select id="pdc-${m}-${f.k}" aria-label="${esc(MET[m]+' · '+f.l)}">${['obligatorio','recomendado','oculto'].map(o=>`<option value="${o}" ${pdReq(m,f)===o?'selected':''}>${{obligatorio:'Oblig.',recomendado:'Recom.',oculto:'Oculto'}[o]}</option>`).join('')}</select></label>`;
+ return `<div class="card pd-card" id="pd-cfg" style="margin-top:1rem">
+ <div class="row pd-head"><h3 class="sp" style="margin:0">Detalle de los cobros digitales</h3><span class="tag ${c.on?'ok':''}">${c.on?'Activo':'Apagado'}</span>
+ <label class="pd-sw" title="Exigir el detalle del comprobante al cobrar"><input type="checkbox" id="pdc-on" ${c.on?'checked':''} role="switch" aria-label="Exigir el detalle del comprobante al cobrar"><i aria-hidden="true"></i></label></div>
+ <p class="sm mut" style="margin:.3rem 0 0">Pide los datos del comprobante en transferencias, tarjetas y QR/MODO. Queda «declarado» (no acredita) y nunca guarda la tarjeta completa.</p>
+ <details class="pd-adv"><summary><span>Ajustes avanzados</span><span class="sm mut">${cnt.obligatorio} obligatorios · ${cnt.recomendado} recomendados · ${cnt.oculto} ocultos${c.maxAgeH?' · máx. '+c.maxAgeH+' h':''}${c.accounts.length?' · '+c.accounts.length+' cuenta(s)':''}</span></summary>
+  <div class="pd-grid">${PD_MEDIOS.map(m=>`<div class="pd-row"><b>${esc(MET[m])}</b><div class="pd-chips">${PD_F[m].map(f=>sel(m,f)).join('')}</div></div>`).join('')}</div>
+  <div class="grid g2"><div><label for="pdc-age">Antigüedad máxima del comprobante (horas)</label><input id="pdc-age" inputmode="numeric" autocomplete="off" placeholder="Sin límite" value="${c.maxAgeH||''}"></div>
+  <div><label for="pdc-acc">Cuentas de destino (una por línea)</label><textarea id="pdc-acc" rows="2" maxlength="900">${esc(c.accounts.join('\n'))}</textarea></div></div></details>
+ <div class="row" style="margin-top:.5rem;justify-content:flex-end"><button class="btn sm gold" data-act="payCfgSave">Guardar</button></div></div>`;}
 A.payCfgSave=()=>{if(!can('config'))return toast('Sólo el administrador cambia esta configuración.',1);
  const old=pdCfg();const on=!!document.getElementById('pdc-on').checked;const fields={};
  PD_MEDIOS.forEach(m=>PD_F[m].forEach(f=>{if(f.nr)return;const el=document.getElementById('pdc-'+m+'-'+f.k);if(el&&el.value!==(f.def||'obligatorio')){fields[m]=fields[m]||{};fields[m][f.k]=el.value;}}));

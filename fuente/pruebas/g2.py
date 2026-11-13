@@ -33,7 +33,7 @@ with sync_playwright() as p:
     chk(pg.locator('#pd-cfg').count()==1,'la pantalla de Configuración tiene la tarjeta «Detalle de los cobros digitales»')
     chk(ev("document.querySelectorAll('#pd-cfg select').length")>10,'matriz por medio y campo con selectores')
     chk(ev("!document.querySelector('#pdc-transferencia-nro')&&!document.querySelector('#pdc-credito-auth')&&!document.querySelector('#pdc-qr-txid')"),'los campos no relajables (N.º de operación, autorización, ID de transacción) no tienen selector')
-    pg.check('#pdc-on');pg.fill('#pdc-acc','alias.rave.test\nCBU 000000');pg.click('[data-act=payCfgSave]');pg.wait_for_timeout(400)
+    pg.click('#pd-cfg .pd-adv summary');pg.check('#pdc-on');pg.fill('#pdc-acc','alias.rave.test\nCBU 000000');pg.click('[data-act=payCfgSave]');pg.wait_for_timeout(400)
     chk(ev("pdOn()")==True and ev("pdCfg().since")>0,'guardar activa el detalle y fija la fecha de inicio')
     chk(ev("pdCfg().accounts.length")==2,'cuentas de destino guardadas')
     chk(ev("S.audit.some(e=>e.action==='COBRO_DETALLE_CONFIG')"),'auditoría del cambio de configuración')
