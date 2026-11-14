@@ -1,6 +1,6 @@
 # SISTEMA VINCULAR BUSINESS — PROMPT ESQUELETO (base genérica para cualquier comercio)
 
-Versión de esqueleto **V27.5** · construido a partir de `SISTEMA_VB_26F.md` (revisión V26.74) · 2026-11-14
+Versión de esqueleto **V27.6** · construido a partir de `SISTEMA_VB_26F.md` (revisión V26.75) · 2026-11-14
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · lema **“Tu idea, en buenas manos.”**
 
 > Este documento es el **esqueleto**: describe el producto genérico que se vende a cualquier comercio (minorista, gastronomía, mayorista/distribuidora, servicios, profesionales, ONG). **No contiene datos de ningún cliente.** Lo propio de cada negocio se carga en la **Ficha del negocio (sección 2)** y en una **capa de particularidades (sección 12)**, nunca en el núcleo. El detalle técnico de cada módulo vive en `SISTEMA_VB_26F.md` (secciones 4.x y anexos); acá está el orden, las reglas y el estado.
@@ -237,6 +237,19 @@ Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no c
 **Nube** (`28-push.sql` + función `push`, «Verify JWT» apagado, sin secretos propios): `push_subs`, `push_campanas`, `push_envios` (único por campaña+suscripción+serie), trabajador `push_tomar`/`push_resultado` sólo con la clave de servicio (404/410 borran la suscripción; 429/5xx reintentan con espera), `push_tick` cada minuto con pg_cron+pg_net si el proyecto los tiene (si no, el sistema abierto despierta el envío cada 5 min). Endpoints sólo de servicios de push conocidos (anti-SSRF). Pruebas `push1.py`, `functions/push/push_test.mjs` (incluye el vector oficial del RFC 8291) y `36-sql-tests.sql`.
 
 ---
+
+## 7-sexies. TIENDA PÚBLICA PREMIUM (menú del comercio · V26.75)
+
+Rediseño **sobre el menú existente** (mismos datos del POS, mismo carrito y mismo WhatsApp; sin React ni otro hosting): `pub/v2.css` + `pub/v2.js` y parches con verificación en `assemble.py`.
+- **Tema** oscuro (por defecto) / claro con botón ☀️/🌙 en el encabezado, guardado en el dispositivo (`rave.tema`); el CSS de modo oscuro se reescribe a `html[data-theme=dark]` al armar (ya no depende del sistema) y el contraste automático de la marca sigue al tema.
+- **Píldora en vivo** del horario de alcohol (`America/Argentina/Salta`, horario del panel): verde «Venta de alcohol habilitada · 07:00 a 00:00 hs» / ámbar «Horario restringido · … pausada hasta las 07:00 hs». No dice «Abierto» (el horario del local no está cargado).
+- **Imágenes siempre visibles:** los productos sin foto muestran una **ilustración SVG por tipo** (bebida, panadería, miel, tabaco, snack, dulce, fiambre, almacén) rotulada **«Imagen ilustrativa»**; se reemplaza sola cuando el comercio carga la foto.
+- **Buscador** con sugerencias (foto, nombre, precio) que busca por nombre, presentación, descripción, bodega/marca y categoría, sin acentos.
+- **Gramaje** para productos con unidad `kg`: 100 g · 250 g (por defecto) · 500 g · 1 kg · A coordinar, precio proporcional en vivo; el pedido guarda el gramaje y lo actualiza si se cambia.
+- **Pedido:** «↶ Deshacer último cambio» (historial de hasta 40 estados: agregar, quitar, cantidad, gramaje, vaciar) + aviso flotante con «Deshacer» al quitar o vaciar; **barra de envío gratis** con la regla del comercio (por defecto la de su banner: **2 combos** —productos de secciones «Promo/Combo»— **o 3 vinos** —palabras en el nombre— en **el macrocentro de Salta**; avisa cuánto falta y lo agrega al ticket «se confirma con la dirección»); **foto y nota por producto** (📝 en el ticket); **«¿Le sumás algo más?»** (hasta 8 productos publicados, primero de otras secciones y sin alcohol, sin los agotados ni los de alcohol fuera de horario); **entrega y pago guiados** cuando no están activos «Tienda con envíos» ni el reparto: retiro en el local (dirección del comercio) o envío (dirección y referencias obligatorias), efectivo con **vuelto** calculado (bloquea si no alcanza), transferencia (alias **sólo si el comercio lo cargó**, con «Copiar alias»; si no, «te lo pasamos por WhatsApp») o Mercado Pago (link por WhatsApp). En escritorio el pedido es un **cajón lateral**.
+- **Banner «Instalá la App de RAVE…»** (usa la instalación de `p12-app.js`: Android/escritorio nativo, iPhone con los pasos de Safari), se puede cerrar.
+- **Configuración:** Menú público → tarjeta «Tienda: envío gratis, entrega y pago» (`S.menu.tienda`; se publica en `site.tienda`; un menú publicado antes sin ese dato usa los valores por defecto). Se conservan control de edad, ES/EN, cupones, Club, legales, arrepentimiento, ARCO, Wi-Fi, reseñas y el **acceso del equipo** (botón, doble clic en el título, 5 toques al logo, `#acceso`).
+- **Pruebas:** `st1.py` (64 comprobaciones) + `kc1.py`.
 
 ## 8. SEGURIDAD Y DATOS
 

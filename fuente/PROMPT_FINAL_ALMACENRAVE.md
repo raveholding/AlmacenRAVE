@@ -1,9 +1,9 @@
 # SISTEMA VINCULAR BUSINESS · PROMPT FINAL — Cliente ALMACÉN RAVE (producción)
 
-**Versión:** V26.74 · 2026-11-14 · **Repositorio y publicación:** `AlmacenRAVE` → `https://raveholding.github.io/AlmacenRAVE/` · **Perfil:** `cliente` (con nube) · **Base local:** `rave-almacenrave-v1` · **Comercio en la nube:** slug `almacen-rave`
+**Versión:** V26.75 · 2026-11-14 · **Repositorio y publicación:** `AlmacenRAVE` → `https://raveholding.github.io/AlmacenRAVE/` · **Perfil:** `cliente` (con nube) · **Base local:** `rave-almacenrave-v1` · **Comercio en la nube:** slug `almacen-rave`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
-> Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.5 → `SISTEMA_VB_26F.md` (secciones 4.x y anexos A–Z, AA). **Este es el sistema en uso de un negocio real: no se rompe.** Si algo de este prompt choca con las reglas de seguridad del esqueleto, mandan las reglas.
+> Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.6 → `SISTEMA_VB_26F.md` (secciones 4.x y anexos A–Z, AA). **Este es el sistema en uso de un negocio real: no se rompe.** Si algo de este prompt choca con las reglas de seguridad del esqueleto, mandan las reglas.
 
 ---
 
@@ -67,6 +67,12 @@ Módulos de la sección 7-quater del esqueleto, en la sección **Finanzas** del 
 **Atención al cliente** (7-bis): base de conocimiento 24/7 con derivación, horario laboral, ruteo por reglas y por carga, /atajos, @menciones, mejorar tono, resumir hilo, línea de tiempo multicanal, analíticas de resolución y proyección, conexión automática OAuth (Gmail, Outlook, Meta) **preparada y apagada** hasta que Vincular Business registre las apps, webhooks y claves de API. IA **opcional** (sin clave, todo por reglas gratis). Se enciende con Omni-Assist.
 **Finanzas** (7-quater): Hoy, + Movimiento, Recordatorios, Facturar todas, paquete .zip para el contador y Mercado Pago Point **preparado** (falta cuenta de MP del comercio). Se enciende con Finanzas.
 **Para usarlo con la nube:** pegar `27`, `28` y `29` en orden (producción tiene 01 a 26, verificado por consulta el 2026-11-14) y desplegar las funciones que se vayan a usar (`conectar`, `eventos`, `mpago`, `ia`, `push`). Manual del comerciante y Guía de integración de APIs: documentos del proyecto.
+
+## Tienda pública premium (V26.75 — pedido de este cliente)
+
+Rediseño de **la tienda actual** (no una app aparte): oscuro por defecto con botón claro/oscuro, píldora del horario de alcohol, imágenes ilustrativas rotuladas para los **18 de 56** productos publicados sin foto (al 2026-11-14), buscador con sugerencias, gramaje por kilo (aparece solo cuando un producto tiene unidad «kg»; hoy no hay fiambres por kilo publicados), deshacer, nota por producto, envío gratis **2 combos o 3 vinos en el macrocentro de Salta** (la regla de su banner; «combos» = sección «Promociones»; «vinos» = nombre con vino/tinto/malbec), sugerencias, **entrega y pago guiados** (retiro en Urquiza 1052 o envío en Salta Capital; efectivo con vuelto, transferencia —alias vacío hasta que el dueño lo cargue— o Mercado Pago por WhatsApp) y banner de instalación. Todo se ajusta en Menú público → «Tienda». Detalle en la sección 7-sexies del esqueleto.
+
+**Supabase (2026-11-14):** aplicados y verificados por consulta `27`, `28` y `29` (más el endurecimiento `29b`: `search_path` fijo en dos funciones y sin ejecución pública de los disparadores). Funciones en el borde (`push`, `conectar`, `eventos`, `mpago`, `ia`) **todavía no desplegadas**.
 
 ## 5. Diseño
 

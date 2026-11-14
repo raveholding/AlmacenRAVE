@@ -7041,3 +7041,9 @@ begin
   end if;
 end
 $mig$;
+
+-- ---------- 7) endurecimiento (avisos del asesor de seguridad de Supabase) ----------
+alter function public.push_host_ok(text) set search_path = public;
+alter function public.push_dist_m(double precision, double precision, double precision, double precision) set search_path = public;
+revoke all on function public.vb_ev_registros() from public, anon, authenticated;
+revoke all on function public.vb_ev_entrantes() from public, anon, authenticated;

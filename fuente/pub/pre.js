@@ -12,16 +12,18 @@
   function tune(base,bgs,toward){ for(var t=0;t<=1.0001;t+=0.03){ var c=mix(base,toward,t); if(bgs.every(function(b){return cr(c,b)>=4.6;})) return c; } return toward; }
   function apply(){
     var root=document.documentElement, cs=getComputedStyle(root);
-    var dark=false; try{ dark=matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){}
+    var dark=root.getAttribute('data-theme')!=='light';
     var g=hex(cs.getPropertyValue('--gold'))||[201,150,62], v=hex(cs.getPropertyValue('--vino'))||[156,59,70];
-    var bgs=dark?[[42,39,35],[27,25,23],[36,34,32]]:[[255,255,255],[251,250,247],[253,246,232]];
+    var bgs=dark?[[42,39,35],[27,25,23],[36,34,32],[22,20,18]]:[[255,255,255],[251,250,247],[253,246,232]];
     var to=dark?[255,255,255]:[0,0,0];
     root.style.setProperty('--gold-ink',css(tune(g,bgs,to)));
     root.style.setProperty('--vino-ink',css(tune(v,bgs,to)));
     var ink=[22,19,16];
     root.style.setProperty('--on-gold',cr(ink,g)>=cr([255,255,255],g)?css(ink):'#ffffff');
   }
-  apply(); try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',apply); }catch(e){}
+  /* V26.75: tema elegido por el cliente (oscuro por defecto), guardado en este dispositivo */
+  try{ var tm=localStorage.getItem('rave.tema'); document.documentElement.setAttribute('data-theme',tm==='light'?'light':'dark'); }catch(e){}
+  apply();
   window.RAVE_CONTRAST=apply;
 })();
 /* ===== Sistema RAVE · datos del comercio (antes del selector de idioma) ===== */

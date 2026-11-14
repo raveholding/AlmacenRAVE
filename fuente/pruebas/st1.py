@@ -1,0 +1,173 @@
+# V26.75 · Tienda premium: tema oscuro/claro, píldora del horario de alcohol, imágenes ilustrativas, gramaje por kilo,
+# buscador con sugerencias, deshacer cualquier cambio del pedido, nota por producto, envío gratis (2 combos o 3 vinos),
+# sugerencias para completar el pedido, entrega y pago guiados (vuelto, alias, Mercado Pago), panel del administrador.
+import urllib.parse
+from playwright.sync_api import sync_playwright
+res=[];errs=[]
+def chk(c,m):print(('OK   ' if c else 'FALLA ')+m);res.append(bool(c))
+URL='file:///tmp/rave/index.html'
+OK="#modal-root .ov >> nth=-1 >> .mf [data-m=ok]"
+def frame(pg): return [x for x in pg.frames if x!=pg.main_frame][0]
+def open_menu(pg):
+    pg.goto(URL+'#menu');pg.wait_for_timeout(1500);f=frame(pg)
+    try: f.click('#ag-yes',timeout=1500)
+    except Exception: pass
+    f.evaluate("window.open=function(u){window.__wa=u;return {}};0");return f
+with sync_playwright() as p:
+    b=p.chromium.launch(args=['--no-proxy-server'])
+    ctx=b.new_context(viewport={'width':390,'height':844});pg=ctx.new_page();pg.clock.install(time=1761750000000)  # 29/10/2025 12:00 Salta
+    pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
+    f=open_menu(pg);ev=f.evaluate
+    # --- tema
+    chk(ev("document.documentElement.getAttribute('data-theme')")=='dark','tema oscuro por defecto')
+    chk(ev("getComputedStyle(document.body).backgroundColor")!='rgb(251, 250, 247)','el fondo oscuro se aplica sin depender del sistema')
+    f.click('#theme-btn');pg.wait_for_timeout(150)
+    chk(ev("document.documentElement.getAttribute('data-theme')")=='light' and ev("localStorage.getItem('rave.tema')")=='light','el botón cambia a claro y lo guarda en el dispositivo')
+    chk(ev("getComputedStyle(document.body).backgroundColor")=='rgb(251, 250, 247)','modo claro: fondo crema de la marca')
+    chk('oscuro' in f.get_attribute('#theme-btn','aria-label'),'el botón dice a qué modo cambia (accesible)')
+    f=open_menu(pg);ev=f.evaluate
+    chk(ev("document.documentElement.getAttribute('data-theme')")=='light','al volver a entrar recuerda el modo elegido')
+    f.click('#theme-btn');pg.wait_for_timeout(100)
+    # --- píldora de horario
+    chk('Venta de alcohol habilitada' in f.inner_text('#alc-pill') and ev("document.getElementById('alc-pill').className")=='on','píldora verde: venta de alcohol habilitada 07:00 a 00:00')
+    ev("document.body.classList.add('alc-closed')");pg.wait_for_timeout(100)
+    chk('pausada hasta las 07:00' in f.inner_text('#alc-pill') and ev("document.getElementById('alc-pill').className")=='off','píldora ámbar fuera de horario (pausada hasta las 07:00)')
+    ev("window.RAVE_applyHours()");pg.wait_for_timeout(100)
+    # --- imágenes ilustrativas
+    sinfoto=ev("window.parent.RAVE_API.catalog().productos.filter(p=>!p.img).length")
+    chk(ev("document.querySelectorAll('.c-noimg,.row-noimg').length")==0,'ningún producto queda sin imagen')
+    n_il=ev("new Set([...document.querySelectorAll('.sheet [data-id].has-ilus')].map(e=>e.dataset.id)).size")
+    chk(n_il==sinfoto,'los %d productos sin foto muestran una imagen ilustrativa'%sinfoto)
+    if sinfoto: chk(ev("[...document.querySelectorAll('.has-ilus')].every(e=>e.querySelector('.rv-ilus-tag')&&/ilustrativa/.test(e.querySelector('.rv-ilus-tag').textContent))"),'… rotulada «Imagen ilustrativa» (no es la foto del producto)')
+    # --- datos para el buscador (marca, categoría) y sugerencias
+    f.fill('#search-input','tabaco');pg.wait_for_timeout(200)
+    vis=ev("[...document.querySelectorAll('.sheet .section[data-cat] [data-id]')].filter(e=>e.offsetParent).length")
+    chk(vis>0,'buscar por categoría («tabaco») encuentra sus productos (%d)'%vis)
+    f.fill('#search-input','gin');pg.wait_for_timeout(200)
+    chk(f.locator('#search-sug button').count()>0 and not ev("document.getElementById('search-sug').hidden"),'el buscador sugiere productos mientras escribís')
+    first=ev("document.querySelector('#search-sug button').dataset.go");f.click('#search-sug button >> nth=0');pg.wait_for_timeout(300)
+    chk(ev("document.getElementById('search-sug').hidden"),'tocar una sugerencia lleva al producto')
+    f.fill('#search-input','');pg.wait_for_timeout(150)
+    # --- gramaje
+    pg.evaluate("(()=>{const p=S.products.find(x=>x.id==='granel-1');p.menu=true;})()")
+    ev("window.RAVE_MENU_RENDER()");pg.wait_for_timeout(300)
+    k=f.locator('.sheet [data-id="granel-1"]')
+    chk(k.count()>=1 and k.first.locator('.gr-chip').count()==5,'producto por kilo: selector 100 g · 250 g · 500 g · 1 kg · a coordinar')
+    pkg=int(ev("document.querySelector('.sheet [data-id=\"granel-1\"]').dataset.pkg"))
+    chk(int(ev("document.querySelector('.sheet [data-id=\"granel-1\"]').dataset.price"))==round(pkg*0.25),'250 g por defecto: precio proporcional (%d)'%round(pkg*0.25))
+    k.first.locator('.gr-chip[data-g="500"]').click();pg.wait_for_timeout(100)
+    chk(int(ev("document.querySelector('.sheet [data-id=\"granel-1\"]').dataset.price"))==round(pkg*0.5) and '500 g' in k.first.locator('.gr-calc').inner_text(),'500 g recalcula el precio en vivo')
+    k.first.locator('.qty-btn.plus').click();pg.wait_for_timeout(100)
+    it=ev("window.RAVE_CART.items()['granel-1']")
+    chk(it and it['price']==round(pkg*0.5) and '500 g' in it['name'],'al pedido entra con su gramaje y su precio')
+    k.first.locator('.gr-chip[data-g="1000"]').click();pg.wait_for_timeout(100)
+    chk(ev("window.RAVE_CART.items()['granel-1'].price")==pkg,'cambiar a 1 kg actualiza el producto del pedido')
+    ev("window.RAVE_CART.undo()");pg.wait_for_timeout(100)
+    chk(ev("window.RAVE_CART.items()['granel-1'].price")==round(pkg*0.5),'«Deshacer» también vuelve el gramaje anterior')
+    k.first.locator('.gr-chip[data-g="c"]').click();pg.wait_for_timeout(100)
+    chk(ev("window.RAVE_CART.items()['granel-1'].price")==None,'«A coordinar»: el precio se arregla por WhatsApp')
+    k.first.locator('.qty-btn.minus').click();pg.wait_for_timeout(100)
+    # --- pedido como Almacén RAVE (sin reparto con seguimiento): envío gratis, entrega y pago
+    pg.evaluate("(()=>{const o=window.RAVE_API.site;window.RAVE_API.site=()=>{const s=o();s.rep=null;s.ship=null;return s;};})()")
+    promos=ev("(()=>{const C=window.parent.RAVE_API.catalog();const ps=C.secciones.filter(s=>/promo|combo/i.test(s.nom||s.titulo)).map(s=>s.cat);return C.productos.filter(p=>ps.includes(p.cat)&&p.precio>0&&!p.agotado&&p.unidad!=='kg').map(p=>p.id)})()")
+    chk(len(promos)>=2,'hay combos en la sección de promos (%d)'%len(promos))
+    def plus(i): ev("document.querySelector('.sheet [data-id=\"%s\"] .qty-btn.plus').click()"%i)
+    plus(promos[0]);ev("document.getElementById('cart-bar').click()");pg.wait_for_timeout(300)
+    t=f.inner_text('#free-bar')
+    chk('Te falta 1 combo' in t and 'Envío Gratis' in t and 'macrocentro de Salta' in t,'barra: «¡Te falta 1 combo o … para Envío Gratis en el macrocentro de Salta!» (%s)'%t.strip()[:90])
+    w=ev("parseFloat(document.querySelector('#free-bar .fb-bar i').style.width)");chk(w==50,'la barra muestra el progreso (50 %%)')
+    plus(promos[1]);ev("window.RAVE_CART_RERENDER()");pg.wait_for_timeout(250)
+    chk('Envío Gratis' in f.inner_text('#free-bar') and 'tiene' in f.inner_text('#free-bar') and ev("document.getElementById('free-bar').className")=='ok','con 2 combos: «¡Tu pedido tiene Envío Gratis…!»')
+    # foto en el pedido
+    chk(ev("[...document.querySelectorAll('#cart-items .cp-item')].every(r=>r.querySelector('img.cp-th'))"),'cada producto del pedido muestra su imagen')
+    # deshacer
+    chk(f.is_visible('#cp-undo') and 'Deshacer último cambio' in f.inner_text('#cp-undo'),'«Deshacer último cambio» en la cabecera del pedido')
+    n0=ev("Object.keys(window.RAVE_CART.items()).length")
+    f.click('.cp-item[data-pid="%s"] .cp-dec'%promos[1]);pg.wait_for_timeout(200)
+    chk(ev("Object.keys(window.RAVE_CART.items()).length")==n0-1 and f.is_visible('#rv-undo-toast') and 'Deshacer' in f.inner_text('#rv-undo-toast'),'al quitar un producto aparece el aviso flotante con «Deshacer»')
+    f.click('#rv-undo-toast button');pg.wait_for_timeout(200)
+    chk(ev("Object.keys(window.RAVE_CART.items()).length")==n0 and f.locator('.cp-item[data-pid="%s"]'%promos[1]).count()==1,'«Deshacer» devuelve exactamente lo que estaba')
+    chk(f.inner_text('.sheet [data-id="%s"] .qty-val'%promos[1]).strip()=='1','… y el catálogo también')
+    f.click('.cp-item[data-pid="%s"] .cp-inc'%promos[0]);pg.wait_for_timeout(150);f.click('#cp-undo');pg.wait_for_timeout(150)
+    chk(ev("window.RAVE_CART.items()['%s'].qty"%promos[0])==1,'deshacer un cambio de cantidad')
+    # nota por producto
+    f.click('.cp-item[data-pid="%s"] .cp-nt'%promos[0]);pg.wait_for_timeout(100)
+    f.fill('.cp-nt-in[data-nt="%s"]'%promos[0],'bebida bien fría');f.press('.cp-nt-in[data-nt="%s"]'%promos[0],'Enter');pg.wait_for_timeout(150)
+    chk('bebida bien fría' in f.inner_text('.cp-item[data-pid="%s"] .cp-nt'%promos[0]),'nota por producto («bebida bien fría») guardada y visible')
+    # sugerencias
+    nx=f.locator('#xsell .xs-add').count();chk(nx>=1,'«¿Le sumás algo más?» sugiere %d productos con imagen y precio'%nx)
+    if nx:
+        idx=ev("document.querySelector('#xsell .xs-add').dataset.add");f.click('#xsell .xs-add >> nth=0');pg.wait_for_timeout(200)
+        chk(ev("!!window.RAVE_CART.items()['%s']"%idx),'«+ Agregar» suma la sugerencia al pedido')
+    # entrega y pago
+    chk(f.is_visible('#chk-box') and 'Retiro en el local' in f.inner_text('#chk-box') and 'Urquiza 1052' in f.inner_text('#chk-box'),'entrega y pago guiados: «Retiro en el local (Urquiza 1052)»')
+    f.check('#chk-box input[name=ck-modo][value=envio]');pg.wait_for_timeout(150)
+    chk('Calificás para envío gratis' in f.inner_text('#chk-box'),'envío a domicilio: avisa que califica para envío gratis')
+    ev("window.__wa=''");f.click('#btn-send');pg.wait_for_timeout(200)
+    chk(ev("window.__wa||''")=='' and 'dirección' in f.inner_text('#ck-err'),'sin dirección no se envía (pide la dirección)')
+    f.fill('#ck-dir','Belgrano 500');f.fill('#ck-ref','timbre 2');f.fill('#ck-abona','100');pg.wait_for_timeout(100)
+    chk('menos que el total' in f.inner_text('#ck-v'),'efectivo: avisa si el importe no alcanza')
+    f.click('#btn-send');pg.wait_for_timeout(200);chk(ev("window.__wa||''")=='','… y no deja enviar')
+    tot=ev("(()=>{let t=0;const c=window.RAVE_CART.items();for(const k in c)if(c[k].price!==null)t+=c[k].price*c[k].qty;return t})()")
+    f.fill('#ck-abona',str(tot+5000));pg.wait_for_timeout(100)
+    chk('$ 5.000' in f.inner_text('#ck-v'),'calcula el vuelto ($ 5.000)')
+    f.fill('#ck-nom','Ana');f.click('#btn-send');pg.wait_for_timeout(250)
+    u=urllib.parse.unquote(ev("window.__wa||''"))
+    chk(u.startswith('https://wa.me/') and '¡Hola! Quiero hacer este pedido:' in u,'abre WhatsApp con el pedido')
+    chk('📝 bebida bien fría' in u,'el ticket lleva la nota del producto')
+    chk('🎁 Califica para envío gratis' in u,'el ticket avisa el envío gratis (se confirma con la dirección)')
+    chk('🛵 ENTREGA: Envío a domicilio' in u and '📍 Dirección: Belgrano 500' in u and '🧭 Referencias: timbre 2' in u,'el ticket lleva entrega, dirección y referencias')
+    chk('💵 PAGO: Efectivo' in u and 'vuelto $ 5.000' in u and '👤 Nombre: Ana' in u,'el ticket lleva pago, vuelto y nombre')
+    f.check('#chk-box input[name=ck-pago][value=transferencia]');pg.wait_for_timeout(100)
+    chk('Te pasamos el alias por WhatsApp' in f.inner_text('#chk-box'),'transferencia sin alias cargado: no inventa uno')
+    pg.evaluate("S.menu.tienda={envGratis:{on:true,combos:2,vinos:3,zona:'el macrocentro de Salta',palabras:'vino'},chk:{on:true,zonaEnvio:'Salta Capital',alias:'rave.prueba.mp',titular:'Prueba',mp:true},xsell:true,inst:true};0")
+    f.check('#chk-box input[name=ck-pago][value=efectivo]');pg.wait_for_timeout(100);f.check('#chk-box input[name=ck-pago][value=transferencia]');pg.wait_for_timeout(100)
+    chk('rave.prueba.mp' in f.inner_text('#chk-box') and f.locator('#ck-copy').count()==1,'con alias cargado: lo muestra con «Copiar alias»')
+    f.check('#chk-box input[name=ck-pago][value=mp]');pg.wait_for_timeout(100)
+    chk('link de pago' in f.inner_text('#chk-box'),'Mercado Pago: el link se manda por WhatsApp (sin cobros automáticos)')
+    # inglés
+    f.click('#btn-x');f.click('#lang-en');pg.wait_for_timeout(250);ev("document.getElementById('cart-bar').click()");pg.wait_for_timeout(250)
+    chk('Undo last change' in f.inner_text('#cp-undo') and 'Delivery' in f.inner_text('#chk-box') and 'Alcohol sales' in f.inner_text('#alc-pill'),'todo lo nuevo se traduce al inglés')
+    f.click('#btn-x');f.click('#lang-es');pg.wait_for_timeout(200)
+    # vaciar y deshacer (botón de siempre)
+    ev("document.getElementById('cart-bar').click()");pg.wait_for_timeout(200);f.click('#btn-clear');pg.wait_for_timeout(200)
+    chk('Vaciaste el pedido' in f.inner_text('#rv-undo-toast'),'vaciar muestra «Deshacer» flotante')
+    f.click('#cart-undo');pg.wait_for_timeout(200)
+    chk(ev("Object.keys(window.RAVE_CART.items()).length")>=2,'el «Deshacer» de siempre recupera el pedido')
+    # funciones que se conservan
+    chk(f.locator('#team-access-btn').count()==1 and f.locator('#age-gate').count()==1 and f.locator('#arrep-btn').count()==1 and f.locator('#cp-coupon-in').count()==1,'se conservan: acceso del equipo, control de edad, arrepentimiento y cupones')
+    # medidas
+    hs=ev("[...document.querySelectorAll('#cart-panel .cp-inc,#cart-panel .cp-dec,#btn-x,#btn-send,#btn-clear,#cp-undo,#theme-btn,#chk-box .ck-opt')].filter(e=>e.offsetParent).map(e=>Math.min(e.getBoundingClientRect().width,e.getBoundingClientRect().height))")
+    chk(min(hs)>=44,'botones táctiles de 44 px o más (%s)'%min(hs))
+    pg.set_viewport_size({'width':320,'height':640});pg.wait_for_timeout(250)
+    chk(ev("document.getElementById('cart-panel').scrollWidth<=document.getElementById('cart-panel').clientWidth+1"),'a 320 px el pedido no desborda')
+    f.click('#btn-x');pg.wait_for_timeout(150)
+    chk(not ev("document.documentElement.scrollWidth>document.documentElement.clientWidth+1"),'a 320 px el menú no desborda')
+    pg.set_viewport_size({'width':1366,'height':900});ev("document.getElementById('cart-bar').click()");pg.wait_for_timeout(400)
+    r=ev("(()=>{const b=document.getElementById('cart-panel').getBoundingClientRect();return [b.left,b.right,b.height]})()")
+    chk(r[1]>=1360 and r[0]>800 and r[2]>=880,'en escritorio el pedido es un cajón lateral derecho')
+    f.click('#btn-x')
+    # panel del administrador (página sin reloj simulado)
+    pg.close();ctx3=b.new_context(viewport={'width':1366,'height':900});pg=ctx3.new_page();pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
+    pg.goto(URL+'#acceso');pg.wait_for_timeout(900);i=pg.evaluate("S.users.findIndex(u=>u.role==='admin')");pg.select_option('#lu',index=i);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(600)
+    pg.evaluate("go('menuadmin')");pg.wait_for_timeout(300)
+    chk(pg.locator('#td-card').count()==1 and pg.input_value('#td-ec')=='2' and pg.input_value('#td-ev')=='3','Menú público: tarjeta «Tienda» con la regla 2 combos o 3 vinos')
+    pg.fill('#td-ca','no válido!');pg.click('[data-act=mpSave]');pg.wait_for_timeout(200)
+    chk(pg.evaluate("!(S.menu.tienda&&S.menu.tienda.chk.alias==='no válido!')"),'alias inválido: no se guarda')
+    pg.fill('#td-ca','rave.almacen.mp');pg.fill('#td-ec','3');pg.uncheck('#td-xs');pg.click('[data-act=mpSave]');pg.wait_for_timeout(200)
+    t=pg.evaluate("S.menu.tienda")
+    chk(t['chk']['alias']=='rave.almacen.mp' and t['envGratis']['combos']==3 and t['xsell'] is False,'guarda alias, regla y sugerencias')
+    chk(pg.evaluate("RAVE_API.site().tienda.envGratis.combos")==3 and pg.evaluate("RAVE_API.site().tienda.xsell")==False,'la tienda pública lee la configuración')
+    # cliente
+    pg2=ctx.new_page();pg2.on('pageerror',lambda e:errs.append('cliente: '+str(e)[:200]))
+    pg2.goto('file:///tmp/rave/out_cliente.html#menu');pg2.wait_for_timeout(1500)
+    f2=frame(pg2)
+    try: f2.click('#ag-yes',timeout=1500)
+    except Exception: pass
+    t=pg2.evaluate("RAVE_API.site().tienda")
+    chk(t is None or (t['envGratis']['combos']==2 and t['chk']['alias']==''),'Almacén RAVE: menú publicado antes de esta versión (sin «tienda») o con la regla del banner')
+    f2.evaluate("window.RAVE_CART&&0");chk(f2.evaluate("typeof window.RAVE_FREE_LINES")=='function','Almacén RAVE: con el menú publicado de antes usa la regla del banner (2 combos o 3 vinos)')
+    chk(f2.locator('#theme-btn').count()==1 and f2.evaluate("document.documentElement.getAttribute('data-theme')") in ('dark','light'),'Almacén RAVE: la tienda nueva carga')
+    b.close()
+chk(not errs,'sin errores de página %s'%errs[:3])
+print('%d OK / %d FALLAN de %d'%(sum(res),len(res)-sum(res),len(res)))
