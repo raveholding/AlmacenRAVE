@@ -25,7 +25,7 @@ with sync_playwright() as p:
     chk(ev("!!convById('%s')"%cid),'el mensaje llega a la bandeja del comercio')
     chk(ev("convMsgs('%s').some(m=>m.dir==='in'&&m.text.includes('fernet'))"%cid),'con su texto')
     # panel
-    pg.goto(URL+'#acceso');pg.wait_for_timeout(900);pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(500)
+    pg.goto(URL+'#acceso');pg.wait_for_timeout(900);pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(500);pg.evaluate("S.cfg.crm=S.cfg.crm||{};S.cfg.crm.omni=false;0")
     ev("go('crm')");pg.wait_for_timeout(500)
     chk(pg.locator('#crm-list .crm-it').count()>=4,'bandeja con conversaciones (incluye ejemplos)')
     chk('Prioridad alta' in pg.inner_text('#crm-list'),'prioriza por reglas (reclamo / espera)')

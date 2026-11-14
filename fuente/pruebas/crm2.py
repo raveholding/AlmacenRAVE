@@ -8,7 +8,7 @@ OK="#modal-root .ov >> nth=-1 >> .mf [data-m=ok]"
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--no-proxy-server']);pg=b.new_page(viewport={'width':1366,'height':900});ev=pg.evaluate
     pg.on('pageerror',lambda e:errs.append(str(e)[:200]))
-    pg.goto(URL+'#acceso');pg.wait_for_timeout(900);pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(600)
+    pg.goto(URL+'#acceso');pg.wait_for_timeout(900);pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(600);pg.evaluate("S.cfg.crm=S.cfg.crm||{};S.cfg.crm.omni=false;0")
     # diseño
     chk(pg.locator('#side a.ux-pos-btn').count()==1 and 'Vender POS' in pg.inner_text('#side a.ux-pos-btn'),'botón dorado «Vender POS» arriba de la barra')
     chk(pg.locator('#side .ux-sec').count()>=4,'secciones plegables en la barra')
