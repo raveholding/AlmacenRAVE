@@ -19,6 +19,8 @@ with sync_playwright() as p:
     login_role(pg,'admin','1234',U)
     chk(ev("finOn()&&acOn()"),'demo: Finanzas y Contabilidad encendidos con datos de ejemplo')
     ev("go('finanzas')");pg.wait_for_timeout(400)
+    chk(ev("finTab")=='hoy' and 'Entró hoy' in pg.inner_text('#view'),'Finanzas abre en «Hoy» (flujo del día)')
+    ev("A.finTabGo({dataset:{t:'tablero'}})");pg.wait_for_timeout(300)
     t=pg.inner_text('#view')
     chk('Efectivo en cajas abiertas' in t and 'A cobrar' in t and 'Margen neto estimado' in t,'tablero con efectivo, a cobrar, a pagar y margen')
     chk(pg.locator('svg.fin-chart').count()==1,'gráfico de liquidez dibujado')
@@ -126,7 +128,7 @@ with sync_playwright() as p:
     for name,url in [('raveV2','file:///tmp/rave/solo.html'),('Kini','file:///tmp/rave/kini.html'),('raveV3','file:///tmp/rave/v3.html')]:
         pg=b.new_page();ev=pg.evaluate;pg.on('pageerror',lambda e:errs.append(name+': '+str(e)[:200]))
         login_role(pg,'admin','1234',url)
-        ev("go('finanzas')");pg.wait_for_timeout(300);ok1='Liquidez' in pg.inner_text('#view')
+        ev("finTab='tablero';go('finanzas')");pg.wait_for_timeout(300);ok1='Liquidez' in pg.inner_text('#view')
         ev("go('contable')");pg.wait_for_timeout(400)
         chk(ok1 and ev("S.journal.length>0&&acVerify().bad===0"),'%s: Finanzas y Contabilidad funcionando'%name)
         pg.close()

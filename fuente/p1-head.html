@@ -325,6 +325,13 @@ html[data-theme=dark]{--selbg:#2f2921}
 .sr-only{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media(max-width:900px){#ux-secnav{position:static}}
 .hr-off{max-width:760px;border-left:6px solid var(--gold)}
+/* V26.74 · CRM omnicanal y finanzas para comercios */
+.om-sc{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.3rem}.om-sc .btn.on{outline:2px solid var(--gold)}.om-tools{gap:.3rem;flex-wrap:wrap}
+.om-tl ol{list-style:none;margin:.3rem 0 0;padding:0}.om-tl li{display:flex;gap:.45rem;padding:.3rem 0;border-bottom:1px dashed var(--line)}.om-tl li:last-child{border-bottom:0}
+.om-oag{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.6rem}.om-oac{border:1px solid var(--line);border-radius:12px;padding:.7rem}.om-int{gap:.4rem;align-items:center;border-bottom:1px dashed var(--line);padding:.3rem 0}
+.om-ment{border-left:4px solid var(--gold)}
+.f2-day{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.5rem}.f2-q{position:fixed;right:1rem;bottom:1rem;z-index:30;border-radius:999px;min-height:52px;padding:0 1.1rem;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+@media print{.f2-q{display:none}}
 /* V26.73 · Notificaciones push */
 .pf-type{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.8rem}.pf-t{display:flex;flex-direction:column;gap:.15rem;align-items:flex-start;text-align:left;padding:.8rem;border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);cursor:pointer;font:inherit;min-height:44px;transition:border-color .15s,box-shadow .15s}.pf-t span{font-size:1.5rem}.pf-t small{color:var(--mut)}.pf-t.on{border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 25%,transparent)}
 .pf-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:.8rem;align-items:start}@media(max-width:900px){.pf-grid{grid-template-columns:1fr}.pf-type{grid-template-columns:1fr}}
