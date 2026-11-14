@@ -39,6 +39,8 @@ if V=='cliente':
 head=head.replace('<style>',cfg+'<style>',1)
 parts=['p2-core.js','p2b-sort.js','p2c-ux.js','p3-ops.js','p3b-pos.js','p3p-payadj.js','p3n-posquick.js','p3c-cash.js','p3q-cortes.js','p3f-transfers.js','p3g-paydetail.js','p3h-expediente.js','p3i-rubcash.js','p3j-combos.js','p3k-owner.js','p3l-kini.js','p3o-solo.js','p3m-payacc.js','p3d-assist.js','p3e-saledetail.js','p3r-oper.js','p6-loyalty.js','p6c-custadmin.js','p6d-cardportable.js','p6e-wallet.js','p6b-wholesale.js','p6f-credito.js','p6g-wacliente.js','p6h-fidel.js','p6i-fiscal.js','p6j-crm.js','p6l-omni.js','p6m-omni2.js','p6k-sellonfc.js','p4-mods.js','p4f-rrhh.js','p4c-compras.js','p4d-compras-ui.js','p4e-factura.js','p4b-online.js','p7a-dash.js','p7b-charts.js','p7d-finanzas.js','p7e-fin2.js','p7c-scale.js','p7-devices.js','p7d-nfc.js','p8-legal.js','p9-cloud.js','p9b-arca.js','p9c-tiendanube.js','p11-portero.js','p12-app.js','p13-reparto.js','p14-clubapp.js','p15-canales.js','p16-push.js','p5c-menusec.js','p5b-store.js','p5d-cscreen.js','p5-menu-boot.js']
 parts=[p for p in parts if os.path.exists(p)]
+# V26.76 · Gestión integral (p17-gestion.js): SÓLO Kini hasta que el dueño apruebe; el cliente (Almacén RAVE), raveV2 y raveV3 no lo llevan. GI=1 lo fuerza (pruebas).
+if os.path.exists('p17-gestion.js') and (KINI or os.environ.get('GI')=='1') and os.environ.get('GI')!='0': parts.insert(parts.index('p5c-menusec.js'),'p17-gestion.js')
 # V26.37 · Centro Inteligente (p10-centro.js): módulo aislado.
 # V26.40: aprobado por el dueño para Almacén RAVE (apagado por defecto; lo activa el administrador). Kini no lo lleva salvo CI=1.
 # raveV2 (solo) y Kini no llevan el Centro Inteligente: es de raveV3 y de Almacén RAVE (apagado)
@@ -78,6 +80,18 @@ def kini_brand(h):
     h=h.replace('--gold:#c9963e','--gold:%s'%c2)
     h=h.replace('--gold-deep:#dba854','--gold-deep:%s'%c2)
 
+    # V26.76: el menú público de Kini no lleva datos ocultos de RAVE (dirección, mapa, WhatsApp) ni la regla de envío gratis del macrocentro
+    for o,n in [('Licoreria+RAVE+Urquiza+1052+Salta+Argentina','Salta+Argentina'),('Licoreria+RAVE,+Urquiza+1052,+Salta,+Argentina','Salta,+Argentina'),
+                ('Grocery &amp; Liquor Store · Urquiza 1052 · Salta, Argentina','Wholesale distributor · demo'),('Urquiza 1052, Salta, Argentina','Salta, Argentina (demo)'),
+                ('5493874574892','5493874484132'),
+                ("envGratis:{on:true,zona:'el macrocentro de Salta'","envGratis:{on:false,zona:'la zona de reparto'"),
+                ("envGratis:{zona:'el macrocentro de Salta',combos:2,vinos:3,palabras:['vino','tinto','malbec']}","envGratis:null"),
+                ('Comprando **2 combos** o **3 vinos**, el envío es **gratis** dentro del macrocentro y alrededores.','Pedidos mayoristas con envío a toda la provincia (demo).'),
+                ('Buy **2 combos** or **3 wines** and delivery is **free** in the downtown area and surroundings.','Wholesale orders with delivery across the province (demo).'),
+                ('Grocery & Liquor store · Urquiza 1052 · Salta, Argentina','Wholesale distributor · demo'),('Grocery & Liquor store · Salta','Wholesale distributor'),
+                ("mapQuery:'Licoreria RAVE, Salta","mapQuery:'Salta"),("dir:'Urquiza 1052, Salta'","dir:'Depósito Kini (demo), Salta'"),('placeholder="387 4574892"','placeholder="387 4000000"'),
+                ('<strong>2 combos<\\/strong> o <strong>3 vinos<\\/strong>, el envío es <strong>gratis<\\/strong> dentro del macrocentro y alrededores.','pedidos mayoristas con envío a toda la provincia (demo).')]:
+        h=h.replace(o,n)
     return h
 def solo_brand(h,v3=False):
     # V26.63 · raveV2 = «Mi Negocio»: sistema genérico, sin rubro de negocio (verde comercial).
