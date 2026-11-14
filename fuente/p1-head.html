@@ -325,6 +325,13 @@ html[data-theme=dark]{--selbg:#2f2921}
 .sr-only{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media(max-width:900px){#ux-secnav{position:static}}
 .hr-off{max-width:760px;border-left:6px solid var(--gold)}
+/* V26.73 · Omni-Assist */
+.om-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:.35rem;margin:.3rem 0}.om-g div{background:var(--bg2,rgba(0,0,0,.04));border-radius:8px;padding:.35rem .45rem}.om-g b{display:block;font-size:1.02rem;font-variant-numeric:tabular-nums}.om-g span{font-size:.75rem;color:var(--mut)}
+.om-qv{gap:.3rem;align-items:center;margin:.2rem 0}.om-cop table{width:100%}.om-cop tr.om-no td{color:var(--red)}.om-res{display:flex;width:100%;text-align:left;white-space:normal;margin-top:.2rem;gap:.3rem;align-items:center}
+.om-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.25rem;margin:.3rem 0}.om-day{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:.3rem .1rem;min-height:44px;cursor:pointer;font:inherit;display:flex;flex-direction:column;align-items:center;font-size:.78rem}.om-day small{color:var(--mut);font-size:.68rem}.om-day.on{background:var(--gold);border-color:var(--gold);color:#000}.om-day.on small{color:#000}
+.om-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:.25rem;margin:.3rem 0}.om-slot{min-height:44px;border:1px solid var(--ok);background:var(--okbg);color:var(--ok);border-radius:8px;font:600 .85rem inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}.om-slot small{font-size:.65rem;font-weight:400}.om-slot.full{border-color:var(--line);background:transparent;color:var(--mut);text-decoration:line-through;cursor:not-allowed}
+#crm-body .card>table{display:block;max-width:100%;overflow-x:auto}
+.om-dias{border:0;padding:0;margin:.4rem 0;display:flex;flex-wrap:wrap;gap:.2rem .7rem}
 /* V26.72 · Finanzas y Contabilidad */
 :root{--fin-in:#2e9e5b;--fin-out:#d9604c}html[data-theme=dark]{--fin-in:#4cc27f;--fin-out:#ff8a73}
 .fin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.7rem;margin-bottom:1rem}
