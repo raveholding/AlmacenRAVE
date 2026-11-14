@@ -3,7 +3,7 @@
 **Versión:** V26.72 · 2026-11-14 · **Repositorio y publicación:** `raveV3` → `https://raveholding.github.io/raveV3/` · **Perfil:** `v3` · **Base local:** `rave-v3-demo-v2`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
-> Orden de lectura: **principio rector (§0)** → este prompt → `PROMPT_ESQUELETO_VB.md` V27.4 → `SISTEMA_VB_26F.md` (anexo P: Centro Inteligente). Si hay conflicto manda ese orden.
+> Orden de lectura: **principio rector (§0)** → este prompt → `PROMPT_ESQUELETO_VB.md` V27.5 → `SISTEMA_VB_26F.md` (anexo P: Centro Inteligente). Si hay conflicto manda ese orden.
 
 ---
 
@@ -64,6 +64,8 @@ Módulos de la sección 7-quater del esqueleto, en la sección **Finanzas** del 
 
 
 > **V26.73 (Omni-Assist y Notificaciones push):** están en el código fuente y funcionan en este perfil, pero **no se publicaron en esta demo**: el dueño pidió trabajar sólo en Almacén RAVE. Se publican cuando lo pida.
+
+> **V26.74 (CRM omnicanal y Finanzas para comercios):** en el código fuente y probados en este perfil; **no publicados en esta demo** (el dueño pidió sólo Almacén RAVE).
 
 ## 5. Diseño
 

@@ -2356,3 +2356,12 @@ Pedido del dueño («Prompt maestro de rediseño UX»), adaptado: no se cambia a
 - **Pruebas:** `omni1.py` 34/34, `push1.py` 39/39, `push_test.mjs` 19/19 (incluye el vector oficial del RFC 8291), `36-sql-tests.sql` 42; SQL total 761/761; regresión completa de los perfiles.
 - **Pendiente del dueño:** pegar `28-push.sql`; desplegar la función `push`; (opcional) activar pg_cron y pg_net; activar los módulos; probar con un celular real Android y un iPhone con la app instalada.
 
+## ANEXO AL — V26.74 · CRM OMNICANAL AUTOSERVICIO Y FINANZAS PARA COMERCIOS (2026-11-14) — sólo Almacén RAVE
+- **Pedido:** dos especificaciones (CRM omnicanal 100 % autoservicio con OAuth, IA, ruteo, analíticas y API; módulo de finanzas y facturación para comercios). Decisiones del dueño: sólo Almacén RAVE; OAuth **listo y apagado** (Meta exige Tech Provider; Google, evaluación de seguridad paga); IA **por reglas gratis + opcional** con clave propia; ARCA en homologación y **sin Mercado Pago** por ahora (Point preparado).
+- **Construido:** `p6m-omni2.js`, `p7e-fin2.js`, funciones `conectar` (OAuth), `eventos` (webhooks y API), `mpago` (Point), `ia` (opcional), `canales` responde por las cuentas OAuth, `supabase/29-omnicanal-finanzas.sql`. Detalle en 7-bis y 7-quater del esqueleto.
+- **Ya existía y se reutilizó:** bandeja unificada, colas, CSAT/NPS, cobros, turnos, presupuestos, ficha 360°, copiloto ERP, cuentas corrientes, conciliación, flujo de fondos, contabilidad con huellas, rol contador, facturación ARCA.
+- **Diferencias con la especificación:** sin React/NestJS/BullMQ/Redis (la arquitectura del sistema es un solo archivo offline-first + Supabase; las colas son tablas con `for update skip locked` y pg_cron); sin pgvector (búsqueda local por raíces e IDF; RAG con IA sólo si hay clave); sin IMAP/SMTP (Edge Functions no abren conexiones IMAP fiables; el correo entra por OAuth o por reenvío); adjuntos y audios no incluidos; sin OpenAPI/Swagger formal (la guía documenta los endpoints); el Libro IVA es CSV de gestión, no el formato del Libro IVA Digital.
+- **Pruebas:** `omni2.py` 33/33, `fin2.py` 35/35, `fin1.py` 46/46, `conectar_test.mjs` 34/34, `eventos_test.mjs` 10/10, `mpago_test.mjs` 7/7, `ia_test.mjs` 7/7, `37-sql-tests.sql` 32; SQL total 793/793.
+- **Documentos:** «Manual del comerciante · Finanzas y Atención al cliente» y «Guía de integración de APIs · V26.74» (documentos del proyecto).
+- **Pendiente del dueño / de Vincular Business:** pegar 27, 28 y 29; desplegar funciones; registrar apps OAuth; cuenta de Mercado Pago; activar los módulos.
+

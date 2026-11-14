@@ -1,9 +1,9 @@
 # SISTEMA VINCULAR BUSINESS · PROMPT FINAL — Cliente ALMACÉN RAVE (producción)
 
-**Versión:** V26.73 · 2026-11-14 · **Repositorio y publicación:** `AlmacenRAVE` → `https://raveholding.github.io/AlmacenRAVE/` · **Perfil:** `cliente` (con nube) · **Base local:** `rave-almacenrave-v1` · **Comercio en la nube:** slug `almacen-rave`
+**Versión:** V26.74 · 2026-11-14 · **Repositorio y publicación:** `AlmacenRAVE` → `https://raveholding.github.io/AlmacenRAVE/` · **Perfil:** `cliente` (con nube) · **Base local:** `rave-almacenrave-v1` · **Comercio en la nube:** slug `almacen-rave`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
-> Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.4 → `SISTEMA_VB_26F.md` (secciones 4.x y anexos A–Z, AA). **Este es el sistema en uso de un negocio real: no se rompe.** Si algo de este prompt choca con las reglas de seguridad del esqueleto, mandan las reglas.
+> Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.5 → `SISTEMA_VB_26F.md` (secciones 4.x y anexos A–Z, AA). **Este es el sistema en uso de un negocio real: no se rompe.** Si algo de este prompt choca con las reglas de seguridad del esqueleto, mandan las reglas.
 
 ---
 
@@ -61,6 +61,12 @@ Módulos de la sección 7-quater del esqueleto, en la sección **Finanzas** del 
 **Omni-Assist** (sección 7-bis del esqueleto): ficha 360° extendida con datos enmascarados, copiloto ERP con stock/precio/cantidades reales y alternativas, presupuesto desde el chat → venta, agenda de 7 días con choques y capacidad, analíticas de resolución y SLA. **Apagado**: el administrador lo activa desde Atención al cliente (tarjeta «✨ Omni-Assist» en la conversación o pestaña de analíticas). No necesita SQL.
 
 **Notificaciones push** (sección 7-quinquies): Web Push estándar sin Firebase. **Apagado**: el administrador lo ve en Clientes → «Notificaciones push» con **Activar**. Para enviar de verdad: (1) el dueño pega `supabase/28-push.sql` (requiere 01 a 27); (2) se despliega la función `push` («Verify JWT» apagado; no lleva secretos); (3) en Ajustes, **Obtener la llave**; (4) publicar el menú. Para que los envíos programados salgan solos, activar **pg_cron** y **pg_net** en Supabase (gratis); si no, salen cuando el sistema está abierto. Geocercas: **preparadas para la app nativa** (decisión del dueño), sin disparo hoy.
+
+## CRM omnicanal y Finanzas para comercios (V26.74 — pedido sólo para este cliente)
+
+**Atención al cliente** (7-bis): base de conocimiento 24/7 con derivación, horario laboral, ruteo por reglas y por carga, /atajos, @menciones, mejorar tono, resumir hilo, línea de tiempo multicanal, analíticas de resolución y proyección, conexión automática OAuth (Gmail, Outlook, Meta) **preparada y apagada** hasta que Vincular Business registre las apps, webhooks y claves de API. IA **opcional** (sin clave, todo por reglas gratis). Se enciende con Omni-Assist.
+**Finanzas** (7-quater): Hoy, + Movimiento, Recordatorios, Facturar todas, paquete .zip para el contador y Mercado Pago Point **preparado** (falta cuenta de MP del comercio). Se enciende con Finanzas.
+**Para usarlo con la nube:** pegar `27`, `28` y `29` en orden (producción tiene 01 a 26, verificado por consulta el 2026-11-14) y desplegar las funciones que se vayan a usar (`conectar`, `eventos`, `mpago`, `ia`, `push`). Manual del comerciante y Guía de integración de APIs: documentos del proyecto.
 
 ## 5. Diseño
 
