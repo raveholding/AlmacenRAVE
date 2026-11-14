@@ -124,7 +124,9 @@ const COLS=[
  {c:'pcta',key:'pcta'},
  {c:'fincmp',key:'finCmp',del:1},
  {c:'finrec',key:'finRec',pii:['desc'],del:1},
- {c:'finiva',key:'finIva',once:1}];
+ {c:'finiva',key:'finIva',once:1},
+ /* V26.73 · 28-push.sql · borradores y estado de las campañas push (los envíos y métricas viven en tablas propias del servidor) */
+ {c:'pushc',key:'pushCamps',del:1}];
 const BYC=Object.fromEntries(COLS.map(x=>[x.c,x]));
 const DELC=new Set(COLS.filter(x=>x.del).map(x=>x.c));
 const CFGIDS=['tenant','cfg','menu','loyalty','roles','integ','legal','payadj'];

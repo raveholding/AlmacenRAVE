@@ -425,6 +425,7 @@
     if(a.resena!==false&&s.reviewUrl) g+='<a class="mta-btn" target="_blank" rel="noopener noreferrer" href="'+esc(s.reviewUrl)+'"><span>⭐</span>'+L('Dejar reseña','Leave a review')+'</a>';
     if(a.redes!==false) (s.social||[]).filter(function(x){ return !CN.some(function(c){ return c.k===cub[x.k]; }); }).slice(0,4).forEach(function(x){ g+='<a class="mta-btn" target="_blank" rel="noopener noreferrer" href="'+esc(x.url)+'"><span>🔗</span>'+esc(x.label||x.k)+'</a>'; });
     if(g) h+='<div class="mta-g2">'+g+'</div>';
+    try{ var pz2=RA()&&RA().push?RA().push.estado():null; if(pz2&&pz2.activo) h+='<button type="button" class="mta-btn" data-mta="pushoff"><span>🔕</span>'+L('Desactivar avisos','Turn off notifications')+'</button>'; }catch(e){}
     if(a.horario||s.address) h+='<div class="mta-c">'+(a.horario?'🕒 '+esc(a.horario)+'<br>':'')+(s.address?'📍 '+esc(s.address):'')+'</div>';
     return h; }
   function mtAppify(o,id,c){ appStyle(); var w=o.querySelector('.mt-w'); if(!w) return; var top=w.querySelector('.mt-top');
@@ -433,6 +434,12 @@
     var ra=RA(), inst='';
     try{ if(ra&&ra.can()&&!ra.installed()&&localStorage.getItem('rave.mta.noinst')!=='1') inst='<div class="mta-inst"><span style="font-size:1.4rem">📲</span><b>'+L('Instalá la app del Club en tu celular','Install the Club app on your phone')+'</b><button type="button" data-mta="inst">'+L('Instalar','Install')+'</button><button type="button" class="x" data-mta="noinst" aria-label="'+L('Ahora no','Not now')+'">✕</button></div>'; }catch(e){}
     if(inst) top.insertAdjacentHTML('afterend',inst);
+    /* V26.73 · aviso amable ANTES del permiso del navegador (notificaciones push) */
+    var pz=null; try{ pz=ra&&ra.push?ra.push.estado():null; }catch(e){}
+    try{ if(pz&&pz.on&&!pz.activo&&pz.perm!=='denied'&&(pz.sup||pz.iosNeedsInstall)&&localStorage.getItem('rave.mta.nopush')!=='1'){
+      var pc='<div class="mta-inst mta-push" role="region" aria-label="'+L('Avisos','Notifications')+'"><span style="font-size:1.4rem" aria-hidden="true">🔔</span><b>'+esc(pz.t||L('¿Te avisamos de las promos?','Get our deals?'))+'<br><small style="font-weight:400;color:#bfb29a">'+esc(pz.iosNeedsInstall?L('En iPhone, primero instalá la app (Compartir → Agregar a inicio) y abrila desde el ícono.','On iPhone, install the app first (Share → Add to Home Screen).'):(pz.b||''))+'</small></b>'
+        +(pz.iosNeedsInstall?'':'<button type="button" data-mta="push">'+L('Activar','Turn on')+'</button>')+'<button type="button" class="x" data-mta="nopush" aria-label="'+L('Ahora no','Not now')+'">✕</button></div>';
+      (o.querySelector('.mta-inst')||top).insertAdjacentHTML('afterend',pc); } }catch(e){}
     [['ben',paneBen(id,c)],['ped',panePed()],['con',paneCon()]].forEach(function(x){ var d=document.createElement('div'); d.className='mt-pane'; d.setAttribute('data-p',x[0]); d.innerHTML=x[1]; w.appendChild(d); });
     var nav=document.createElement('nav'); nav.className='mta-nav'; nav.setAttribute('role','tablist'); nav.setAttribute('aria-label',L('Secciones de la app','App sections'));
     nav.innerHTML=[['card','⭐',L('Tarjeta','Card')],['ben','🎁',L('Beneficios','Benefits')],['ped','📦',L('Pedidos','Orders')],['con','💬',L('Contacto','Contact')]].map(function(t){return '<button type="button" role="tab" data-mtab="'+t[0]+'" aria-selected="false"><span aria-hidden="true">'+t[1]+'</span>'+t[2]+'</button>';}).join('');
@@ -441,6 +448,9 @@
       var b=ev.target.closest('[data-mta]'); if(!b) return; var k=b.getAttribute('data-mta');
       if(k==='menu'){ mtClose(); } else if(k==='refresh'){ pedRefresh(); } else if(k==='chat'){ mtClose(); try{window.RAVE_CHAT_OPEN();}catch(e){} }
       else if(k==='inst'){ try{ Promise.resolve(RA().install()).then(function(){ var x=o.querySelector('.mta-inst'); if(x&&RA().installed()) x.remove(); }); }catch(e){} }
+      else if(k==='push'){ if(b.disabled) return; var pb=o.querySelector('.mta-push'); b.disabled=true; Promise.resolve(RA().push.activar()).then(function(){ if(pb) pb.innerHTML='<span style="font-size:1.4rem">✅</span><b>'+L('Avisos activados. Los podés desactivar en Contacto.','Notifications on. You can turn them off in Contact.')+'</b>'; }).catch(function(er){ b.disabled=false; if(pb){ var sm=pb.querySelector('small'); if(sm) sm.textContent=String(er&&er.message||er).slice(0,160); } }); }
+      else if(k==='nopush'){ try{localStorage.setItem('rave.mta.nopush','1');}catch(e){} var x2=o.querySelector('.mta-push'); if(x2) x2.remove(); }
+      else if(k==='pushoff'){ Promise.resolve(RA().push.desactivar()).then(function(){ b.outerHTML='<p class="mta-mut">'+L('Avisos desactivados: se borró tu suscripción.','Notifications off: your subscription was deleted.')+'</p>'; }); }
       else if(k==='noinst'){ try{localStorage.setItem('rave.mta.noinst','1');}catch(e){} var x=o.querySelector('.mta-inst'); if(x) x.remove(); } });
     var hb=$('#mt-home'); if(hb&&ra&&ra.can()) hb.addEventListener('click',function(e){ e.stopImmediatePropagation(); try{RA().install();}catch(x){} },true); }
   function mtShow(o){ o.querySelectorAll('.mt-pane').forEach(function(p){ p.hidden=p.getAttribute('data-p')!==mtTab; }); o.querySelectorAll('[data-mtab]').forEach(function(b){ b.setAttribute('aria-selected',String(b.getAttribute('data-mtab')===mtTab)); });
