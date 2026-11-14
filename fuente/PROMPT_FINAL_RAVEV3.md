@@ -1,9 +1,9 @@
 # SISTEMA VINCULAR BUSINESS · PROMPT FINAL — raveV3 «Corporación Demo» (gestión empresarial integral)
 
-**Versión:** V26.64 · 2026-11-10 · **Repositorio y publicación:** `raveV3` → `https://raveholding.github.io/raveV3/` · **Perfil:** `v3` · **Base local:** `rave-v3-demo-v2`
+**Versión:** V26.72 · 2026-11-14 · **Repositorio y publicación:** `raveV3` → `https://raveholding.github.io/raveV3/` · **Perfil:** `v3` · **Base local:** `rave-v3-demo-v2`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
-> Orden de lectura: **principio rector (§0)** → este prompt → `PROMPT_ESQUELETO_VB.md` V27.2 → `SISTEMA_VB_26F.md` (anexo P: Centro Inteligente). Si hay conflicto manda ese orden.
+> Orden de lectura: **principio rector (§0)** → este prompt → `PROMPT_ESQUELETO_VB.md` V27.3 → `SISTEMA_VB_26F.md` (anexo P: Centro Inteligente). Si hay conflicto manda ese orden.
 
 ---
 
@@ -56,6 +56,13 @@ Todo lo de raveV2 (completo) **más**: multisucursal y tesorería con traspasos 
 
 Módulo de la sección 7-ter del esqueleto. **En esta demo: Plan Completo** (14 legajos activos de ejemplo): portal del empleado, aprobaciones Supervisor → RR. HH. → Administración, nómina interna, documentos con vencimientos, reclutamiento Kanban, vacaciones y tablero por área. El plan lo decide sola la cantidad de legajos activos (0–10 Micro, 11 o más Completo); el botón «+ Personal de ejemplo» / «Dar de baja el de ejemplo» de la pestaña *Plan y resumen* muestra la transición automática. Fichaje en kiosco con PIN (bloqueo tras 5 intentos), QR, NFC y geocerca; rostro y huella figuran como **pendientes de dispositivo y revisión legal**. Usuario de prueba del portal del empleado: **Empleado (portal) · 2222**. Nómina, firma y archivos bancarios son internos y se rotulan [VERIFICAR] (no reemplazan el recibo legal ni la firma digital).
 
+## Finanzas y Contabilidad (V26.72)
+
+Módulos de la sección 7-quater del esqueleto, en la sección **Finanzas** del menú. **Finanzas** (permiso `finance`; editar con `finance_edit`): tablero con efectivo en cajas abiertas, bancos, a cobrar (cuentas corrientes + tarjetas y billeteras por acreditar), a pagar (proveedores + compromisos) y margen neto estimado; **flujo de fondos proyectado** de 4, 8 o 12 semanas con gráfico y alertas de bache; rentabilidad por operación; **conciliación asistida** del extracto bancario (CSV); tablero de cobros digitales; copiloto de reglas (sin IA ni costo). **Contabilidad** (permiso `accounting`; administrar con `accounting_admin`): asientos de partida doble generados solos desde cada operación, con huella SHA-256 y **cierre de período encadenado**; Libro Diario, Mayor, Sumas y saldos, pre-liquidación de IVA, plan de cuentas modelo editable [VERIFICAR con el contador]. Rol **Contador** de sólo lectura. Es contabilidad de **gestión**: no reemplaza libros legales ni la DDJJ. La pasarela **VB Pay** queda preparada y **apagada** (falta cuenta del procesador y credenciales).
+
+**En el código fuente: encendidos** con datos de ejemplo y usuario **Contador · 4444**. **raveV3 no se republicó en V26.72** (decisión del dueño: «Dejar raveV3 como está»; además otra sesión publicó un módulo de seguridad directo en su `index.html`). Al retomarlo, integrar esos cambios antes de publicar.
+
+
 ## 5. Diseño
 
 Sección 7 del esqueleto completa (barra oscura, «Vender POS [F1]» azul con letra negra, Ctrl + K, campana, avatar, pestañas, línea de ayuda por pantalla, **tablero del turno** en caja con estado, 4 pasos e indicadores, tablas con encabezado fijo, transición suave, tema claro/oscuro, ≥ 44 px, 320–1440 px). El Centro Inteligente conserva su estética oscura con el acento azul claro.
@@ -81,7 +88,7 @@ cp /tmp/rave/v3.html ../../../ravev3/index.html    # commit con atribución y pu
 - Figura extra «NÉRULA / Investing» de la imagen guía (¿integrante 11 o error?).
 - Que algún especialista ejecute acciones (p. ej. NÉBULA enviando promociones): requiere autorización, integración real y pruebas.
 - Modelos 3D con esqueleto (artista 3D + motor WebGL ~600 KB + revisión de CSP).
-- Módulos empresariales especificados y no construidos: pedidos de venta y remitos encadenados, lotes/FEFO, cierre ciego, contabilidad con asientos (4.22 F2–F7 del maestro).
+- Módulos empresariales especificados y no construidos: pedidos de venta y remitos encadenados, lotes/FEFO, cierre ciego (4.22 F2–F7 del maestro). La contabilidad con asientos ya existe (V26.72) pero raveV3 todavía no la publicó.
 
 ## 9. Prompt de arranque
 

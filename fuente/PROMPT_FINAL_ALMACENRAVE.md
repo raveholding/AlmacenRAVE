@@ -1,9 +1,9 @@
 # SISTEMA VINCULAR BUSINESS · PROMPT FINAL — Cliente ALMACÉN RAVE (producción)
 
-**Versión:** V26.64 · 2026-11-10 · **Repositorio y publicación:** `AlmacenRAVE` → `https://raveholding.github.io/AlmacenRAVE/` · **Perfil:** `cliente` (con nube) · **Base local:** `rave-almacenrave-v1` · **Comercio en la nube:** slug `almacen-rave`
+**Versión:** V26.72 · 2026-11-14 · **Repositorio y publicación:** `AlmacenRAVE` → `https://raveholding.github.io/AlmacenRAVE/` · **Perfil:** `cliente` (con nube) · **Base local:** `rave-almacenrave-v1` · **Comercio en la nube:** slug `almacen-rave`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
-> Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.2 → `SISTEMA_VB_26F.md` (secciones 4.x y anexos A–Z, AA). **Este es el sistema en uso de un negocio real: no se rompe.** Si algo de este prompt choca con las reglas de seguridad del esqueleto, mandan las reglas.
+> Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.3 → `SISTEMA_VB_26F.md` (secciones 4.x y anexos A–Z, AA). **Este es el sistema en uso de un negocio real: no se rompe.** Si algo de este prompt choca con las reglas de seguridad del esqueleto, mandan las reglas.
 
 ---
 
@@ -40,14 +40,21 @@ El sistema real de **Almacén y Licorería RAVE** (Salta). Es la única versión
 
 Hechos y en uso: Resumen «Hoy», Vender (F1–F12, pagos mixtos, cuenta corriente, recargos por medio, balanza Systel/Kretz, EAN-13), **Gestión de caja** (pestañas + **tablero del turno**: estado, 4 pasos, indicadores) con cierre sellado SHA-256 y cierre por rubro, traspasos con `transfer_funds`, cortes X/Z, inventario, presupuestos, mermas, proveedores y compras, Club completo, datos para facturar, personal y fichaje, tareas, menú público (local o tienda con envíos), legales, periféricos, importar/exportar, auditoría, nube.
 
-Apagados hasta que el administrador los active: **Atención al cliente** (chat web cifrado del menú + WhatsApp asistido + teléfono + local; sin Instagram/Messenger/Telegram/correo de demostración), Centro Inteligente, detalle de cobros digitales, canal mayorista.
+Apagados hasta que el administrador los active: **Atención al cliente** (chat web cifrado del menú + WhatsApp asistido + teléfono + local; sin Instagram/Messenger/Telegram/correo de demostración), Centro Inteligente, detalle de cobros digitales, canal mayorista, **Finanzas y Contabilidad** (V26.72).
 
-**Pendiente de verificar con el dueño:** que `22-crm.sql` esté aplicado en Supabase antes de encender el chat web en la nube (consulta de control: existencia de `crm_entrantes` y de la función `crm_web_enviar`). Sin ese script el resto del sistema funciona igual.
+**Pendiente de verificar con el dueño:** que `27-finanzas-contable.sql` esté aplicado antes de activar Finanzas/Contabilidad con la nube; y que `22-crm.sql` esté aplicado en Supabase antes de encender el chat web en la nube (consulta de control: existencia de `crm_entrantes` y de la función `crm_web_enviar`). Sin ese script el resto del sistema funciona igual.
 
 
 ## Recursos Humanos (V26.64)
 
 Módulo de la sección 7-ter del esqueleto. **Apagado** hasta que el administrador lo active: desde V26.65 el administrador ya lo ve en el menú (sección Equipo → «Recursos Humanos») con el botón **Activar Recursos Humanos**; los demás roles no lo ven hasta que esté activo. Con el personal actual el comercio queda en **Plan Micro** (kiosco con PIN, legajo esencial, calendario de turnos y licencias, reporte de horas y ausencias para el contador, alertas y avisos); el **Plan Completo** se habilita solo si llega a 11 legajos activos, y el cambio queda registrado para facturar. Rostro y huella: pendientes de dispositivo y revisión legal. Antes de usarlo con la nube, el dueño tiene que pegar `supabase/23-rrhh.sql` en Supabase (lo entrega el desarrollador; sin ese script las colecciones de RR. HH. no se sincronizan). «Personal y fichaje» sigue funcionando igual.
+
+## Finanzas y Contabilidad (V26.72)
+
+Módulos de la sección 7-quater del esqueleto, en la sección **Finanzas** del menú. **Finanzas** (permiso `finance`; editar con `finance_edit`): tablero con efectivo en cajas abiertas, bancos, a cobrar (cuentas corrientes + tarjetas y billeteras por acreditar), a pagar (proveedores + compromisos) y margen neto estimado; **flujo de fondos proyectado** de 4, 8 o 12 semanas con gráfico y alertas de bache; rentabilidad por operación; **conciliación asistida** del extracto bancario (CSV); tablero de cobros digitales; copiloto de reglas (sin IA ni costo). **Contabilidad** (permiso `accounting`; administrar con `accounting_admin`): asientos de partida doble generados solos desde cada operación, con huella SHA-256 y **cierre de período encadenado**; Libro Diario, Mayor, Sumas y saldos, pre-liquidación de IVA, plan de cuentas modelo editable [VERIFICAR con el contador]. Rol **Contador** de sólo lectura. Es contabilidad de **gestión**: no reemplaza libros legales ni la DDJJ. La pasarela **VB Pay** queda preparada y **apagada** (falta cuenta del procesador y credenciales).
+
+**En este cliente: apagados.** El administrador los ve en el menú con **Activar Finanzas** / **Activar Contabilidad** (elige desde qué fecha contabilizar); los demás roles no los ven hasta que estén activos. Sin datos de ejemplo ni usuario Contador (si el dueño quiere darle acceso a su contador, lo invita desde la nube con el rol «Contador»). **Antes de activarlos con la nube** el dueño pega `supabase/27-finanzas-contable.sql` en Supabase (la base de producción ya tiene 01 a 26: se verificó por consulta el 2026-11-14).
+
 
 ## 5. Diseño
 

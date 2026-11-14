@@ -325,6 +325,18 @@ html[data-theme=dark]{--selbg:#2f2921}
 .sr-only{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media(max-width:900px){#ux-secnav{position:static}}
 .hr-off{max-width:760px;border-left:6px solid var(--gold)}
+/* V26.72 · Finanzas y Contabilidad */
+:root{--fin-in:#2e9e5b;--fin-out:#d9604c}html[data-theme=dark]{--fin-in:#4cc27f;--fin-out:#ff8a73}
+.fin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.7rem;margin-bottom:1rem}
+.fin-k{gap:.2rem}.fin-k span{font-size:.85rem;color:var(--mut);font-weight:600}.fin-k b{font-size:1.45rem;font-variant-numeric:tabular-nums}.fin-k small{color:var(--mut);font-size:.8rem}.fin-k.neg b{color:var(--red)}
+.fin-chart{width:100%;height:auto;max-height:300px;display:block}.fin-leg{display:flex;flex-wrap:wrap;gap:.35rem .9rem;align-items:center}
+.fin-sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle;margin-right:.25rem}.fin-sw.ln{height:3px;background:var(--ink)}
+.fin-a{margin:.3rem 0;padding:.45rem .7rem;border-radius:8px}.fin-a.red{background:var(--redbg);color:var(--red);font-weight:600}.fin-a.amb{background:var(--warnbg)}.fin-a.ok{background:var(--okbg);color:var(--ok);font-weight:600}
+tr.fin-neg td{color:var(--red)}tr.fin-pend td{opacity:.75}
+.fin-ans{white-space:pre-wrap;font:inherit;margin:.6rem 0 0;min-height:1.2em}
+.fin-bk{margin-bottom:.4rem}
+tr.ac-first td{border-top:2px solid var(--line)}tr.ac-tit td{font-weight:700;background:var(--bg2,transparent)}tr.ac-tot td{border-top:2px solid var(--ink)}
+@media print{.hr-tabs,#ux-secnav,.side,.topbar{display:none!important}}
 /* V26.66 · NFC configurable */
 .nfc-wait{text-align:center}.nfc-ring{width:84px;height:84px;margin:.2rem auto .6rem;border-radius:50%;display:grid;place-items:center;color:var(--gold2,var(--gold));background:color-mix(in srgb,var(--gold) 14%,transparent);animation:nfcPulse 1.6s ease-out infinite}
 @keyframes nfcPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--gold) 45%,transparent)}100%{box-shadow:0 0 0 18px transparent}}

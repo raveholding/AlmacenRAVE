@@ -117,11 +117,18 @@ const COLS=[
  /* V26.69 · 26-reparto.sql · reparto: datos del cliente y de la entrega cifrados; la foto de respaldo NO viaja */
  {c:'envio',key:'envios',pii:['cli','pin','tok','ent','aus','inc'],strip:['fotoData']},
  {c:'ruta',key:'rutas'},
- {c:'rendrep',key:'rendRep',once:1}];
+ {c:'rendrep',key:'rendRep',once:1},
+ /* V26.72 · 27-finanzas-contable.sql · asientos y cierres contables: sólo alta (inmutables); el extracto bancario viaja cifrado */
+ {c:'asiento',key:'journal',once:1},
+ {c:'cierrec',key:'acClose',once:1},
+ {c:'pcta',key:'pcta'},
+ {c:'fincmp',key:'finCmp',del:1},
+ {c:'finrec',key:'finRec',pii:['desc'],del:1},
+ {c:'finiva',key:'finIva',once:1}];
 const BYC=Object.fromEntries(COLS.map(x=>[x.c,x]));
 const DELC=new Set(COLS.filter(x=>x.del).map(x=>x.c));
 const CFGIDS=['tenant','cfg','menu','loyalty','roles','integ','legal','payadj'];
-const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado','cortesx','fidmov','giftmov','devol','merma','juego','cmsg','hrmsg','hrplan','rendrep']);
+const ONCEC=new Set(['smov','audit','cierres','cnotas','otp','sellos','cusos','fiado','cortesx','fidmov','giftmov','devol','merma','juego','cmsg','hrmsg','hrplan','rendrep','asiento','cierrec','finiva']);
 const r3=n=>Math.round(n*1000)/1000;
 function stripOf(col,it){const d=JSON.parse(JSON.stringify(it));(col.strip||[]).forEach(k=>delete d[k]);return d;}
 function cfgWire(id){switch(id){
@@ -525,7 +532,7 @@ async function teamInit(){if(!CLOUD.on||cl.rol!=='admin')return;const box=docume
 if(CLOUD.on){INV_HOOK.online=()=>!!(cl.ready&&cl.online);INV_HOOK.preview=async ids=>{const r=await rpc('inventario_vista_previa_borrado',{p_comercio:cl.comercio.id,p_ids:ids});return Array.isArray(r)?r:[];};}
 if(CLOUD.on){UI_HOOK.usersCard=()=>cl.rol==='admin'?teamCardHtml()+custodiaCardHtml()+googleSetupCardHtml():'<div class="card" style="margin-top:1rem"><h3>Equipo</h3><p class="sm mut">Sólo el administrador puede invitar o quitar personas.</p></div>';UI_HOOK.usersAfter=()=>{teamInit();custodiaPaint();googleSetupPaint();};}
 /* ---------- pantalla "Nube" ---------- */
-const ROLES_LBL={admin:'Administrador',supervisor:'Supervisor',mostrador:'Mostrador',operador:'Operador',repartidor:'Repartidor'};
+const ROLES_LBL={admin:'Administrador',supervisor:'Supervisor',mostrador:'Mostrador',operador:'Operador',repartidor:'Repartidor',contador:'Contador (sólo lectura)'};
 reg('nube','Nube','globe','config',()=>{
  if(!CLOUD.on)return `<h1>Nube</h1><div class="card"><span class="tag warn">Pendiente de configuración</span><p>Esta copia funciona <b>sólo en este equipo</b>. Para sincronizar varios equipos y publicar el menú para el público, Vincular Business carga en el archivo la dirección del proyecto de Supabase y su clave <b>publicable</b> (nunca una clave secreta).</p></div>`;
  let n=0;try{n=pendingCount();}catch(e){}

@@ -1,6 +1,6 @@
 # SISTEMA VINCULAR BUSINESS — PROMPT ESQUELETO (base genérica para cualquier comercio)
 
-Versión de esqueleto **V27.2** · construido a partir de `SISTEMA_VB_26F.md` (revisión V26.64) · 2026-11-10
+Versión de esqueleto **V27.3** · construido a partir de `SISTEMA_VB_26F.md` (revisión V26.72) · 2026-11-14
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · lema **“Tu idea, en buenas manos.”**
 
 > Este documento es el **esqueleto**: describe el producto genérico que se vende a cualquier comercio (minorista, gastronomía, mayorista/distribuidora, servicios, profesionales, ONG). **No contiene datos de ningún cliente.** Lo propio de cada negocio se carga en la **Ficha del negocio (sección 2)** y en una **capa de particularidades (sección 12)**, nunca en el núcleo. El detalle técnico de cada módulo vive en `SISTEMA_VB_26F.md` (secciones 4.x y anexos); acá está el orden, las reglas y el estado.
@@ -207,6 +207,18 @@ Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no c
 
 ---
 
+## 7-quater. FINANZAS Y CONTABILIDAD («VB Treasury & Cashflow» · «VB Ledger & Tax»)
+
+**Principio:** sólo **leen** lo que el sistema ya registra (ventas, cobros, caja, compras, pagos a proveedores, mermas, traspasos, cierres, liquidaciones de sueldo) y **nunca cambian** esas operaciones. Todo en centavos enteros. Sección **Finanzas** del menú, archivo `p7d-finanzas.js`. Apagados en el cliente (el administrador los ve con su botón de activación); encendidos con datos «ejemplo» en las demos.
+
+**Finanzas** (`finance` lectura; `finance_edit` compromisos, bancos, plazos y conciliación; el supervisor lo tiene sólo en demos): tablero (efectivo esperado de las cajas abiertas por el arqueo, bancos = saldo informado + acreditaciones − pagos por transferencia, **a cobrar** = cuentas corrientes FIFO por vencimiento + tarjetas y billeteras por acreditar según el plazo de cada medio [VERIFICAR con el procesador], **a pagar** = saldo con proveedores por comprobante y plazo + compromisos de 30 días, **margen neto estimado** = ventas − costo − comisiones − IVA − gastos − sueldos − mermas); **flujo de fondos** semanal (4/8/12) con gráfico de barras + línea de saldo, IVA estimado el día configurado y ventas en efectivo estimadas opcionales; **alertas de bache** con su causa; **compromisos** recurrentes con presupuesto; rentabilidad por operación; **conciliación asistida** (CSV del banco, formato argentino; cruce por importe ±5 días con acreditaciones y pagos; cada cruce lo confirma una persona); **tablero de cobros digitales** (acreditado · en tránsito · pendiente · rechazado); **copiloto** de reglas locales (sin IA, sin costo) registrado en el Asistente como acción de lectura `finance.cashflow.read`. **Pasarela VB Pay:** preparada y apagada hasta tener cuenta del procesador, credenciales en secretos del servidor, función y webhook probados en sandbox; mientras tanto, cobro asistido y QR estático.
+
+**Contabilidad** (`accounting` lectura y exportación; `accounting_admin` plan de cuentas, IVA de compras, percepciones y cierres): **asientos automáticos** de partida doble con id determinístico por operación (`AS-<tipo>-<id>`: no se duplican aunque haya varios equipos), ventas por medio de pago con comisión, IVA débito sólo con CAE y canal minorista/mayorista, CMV, contraasiento espejo al anular, cobros de cuenta corriente, ingresos y egresos de caja (sin duplicar los de compras), compras, pagos y notas de crédito de proveedores, mermas, traspasos, diferencias de cierre y liquidaciones de sueldo. Un asiento que no balancea **no se graba** y se informa. Cada asiento lleva su **huella SHA-256**; el **cierre de período** encadena las huellas del mes con el cierre anterior (lo que llega después con fecha de un mes cerrado se registra en el período abierto, aclarado). Sólo genera asientos el administrador o quien tenga `accounting_admin`. Vistas: Libro Diario (huella OK/ALTERADO y enlace al expediente), Mayor, Sumas y saldos, **pre-liquidación de IVA** (débito, crédito cargado por compra, percepciones/retenciones que carga el contador), plan de cuentas modelo editable [VERIFICAR], CSV e impresión. **Rol `contador`**: sólo lectura (en el servidor lo único que escribe es la auditoría). Es contabilidad de gestión: no reemplaza libros legales, la DDJJ ni al contador. Límite declarado: la huella detecta cambios, no los impide; la inmutabilidad la da el servidor (colecciones de una sola escritura).
+
+**Datos y nube** (`27-finanzas-contable.sql`): `asiento`, `cierrec`, `finiva` (una sola escritura, no se borran), `pcta`, `fincmp`, `finrec` (descripción del extracto cifrada). Escriben administrador y supervisor; contador sólo `audit`. Pruebas `fin1.py` y `35-sql-tests.sql`.
+
+---
+
 ## 8. SEGURIDAD Y DATOS
 
 OWASP/ASVS: escapar todo dato al mostrarlo (incluido lo que llega de IA, OCR, QR, chat); URLs por lista de esquemas y dominios; CSP estricta con SRI; RLS en todas las tablas con prueba cruzada A/B; funciones `SECURITY DEFINER` con `search_path` fijo; idempotencia en pagos, cierres, traspasos e importaciones; datos personales cifrados antes de subir (`__pii`), mínimos y con consentimiento por finalidad; nunca número de tarjeta, CVV ni PIN (detector que los rechaza); exportaciones CSV con fórmulas neutralizadas; auditoría sin textos de mensajes ni secretos. «Inalterable» se escribe siempre con su límite (sólo-agregar en servidor + hash que detecta).
@@ -215,7 +227,7 @@ OWASP/ASVS: escapar todo dato al mostrarlo (incluido lo que llega de IA, OCR, QR
 
 ## 9. NUBE (referencia Supabase)
 
-Scripts numerados, aditivos e idempotentes (`01`…`22` al 2026-11-10; `INSTALAR-TODO.sql` los reúne). Una colección nueva exige: lista de `sincronizar()`, permiso en `rave_puede_escribir`, lectura, exportación, importación, respaldo y prueba SQL. El navegador **no envía saldos ni stock**: envía movimientos. Sin conexión se trabaja igual y nunca se muestra como confirmado lo que el servidor no confirmó. «Confirm email» desactivado. Recuperación con código de 20 caracteres (sin clave ni código, los datos cifrados no se recuperan, por diseño).
+Scripts numerados, aditivos e idempotentes (`01`…`27` al 2026-11-14; `INSTALAR-TODO.sql` los reúne). Una colección nueva exige: lista de `sincronizar()`, permiso en `rave_puede_escribir`, lectura, exportación, importación, respaldo y prueba SQL. El navegador **no envía saldos ni stock**: envía movimientos. Sin conexión se trabaja igual y nunca se muestra como confirmado lo que el servidor no confirmó. «Confirm email» desactivado. Recuperación con código de 20 caracteres (sin clave ni código, los datos cifrados no se recuperan, por diseño).
 
 ---
 

@@ -1,9 +1,9 @@
 # SISTEMA VINCULAR BUSINESS · PROMPT FINAL — raveV2 «Mi Negocio» (sistema genérico, sin rubro)
 
-**Versión:** V26.64 · 2026-11-10 · **Repositorio y publicación:** `raveV2` → `https://raveholding.github.io/raveV2/` · **Perfil de compilación:** `solo` · **Base local del navegador:** `rave-solo-demo-v1`
+**Versión:** V26.72 · 2026-11-14 · **Repositorio y publicación:** `raveV2` → `https://raveholding.github.io/raveV2/` · **Perfil de compilación:** `solo` · **Base local del navegador:** `rave-solo-demo-v1`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
-> Orden de lectura: **este prompt** (qué es y qué lleva raveV2) → `PROMPT_ESQUELETO_VB.md` V27.2 (reglas, UX, módulos) → `SISTEMA_VB_26F.md` (detalle técnico de cada módulo y anexos). Si difieren, para esta demo manda este prompt.
+> Orden de lectura: **este prompt** (qué es y qué lleva raveV2) → `PROMPT_ESQUELETO_VB.md` V27.3 (reglas, UX, módulos) → `SISTEMA_VB_26F.md` (detalle técnico de cada módulo y anexos). Si difieren, para esta demo manda este prompt.
 
 ---
 
@@ -52,6 +52,13 @@ No lleva: socios ni rubros por persona, cierre por rubro, Centro Inteligente ni 
 ## Recursos Humanos (V26.64)
 
 Módulo de la sección 7-ter del esqueleto. **En esta demo: Plan Micro** (1 legajos activos de ejemplo) — el visitante ve con candado qué suma el Plan Completo. El plan lo decide sola la cantidad de legajos activos (0–10 Micro, 11 o más Completo); el botón «+ Personal de ejemplo» / «Dar de baja el de ejemplo» de la pestaña *Plan y resumen* muestra la transición automática. Fichaje en kiosco con PIN (bloqueo tras 5 intentos), QR, NFC y geocerca; rostro y huella figuran como **pendientes de dispositivo y revisión legal**. Usuario de prueba del portal del empleado: **Empleado (portal) · 2222**. Nómina, firma y archivos bancarios son internos y se rotulan [VERIFICAR] (no reemplazan el recibo legal ni la firma digital).
+
+## Finanzas y Contabilidad (V26.72)
+
+Módulos de la sección 7-quater del esqueleto, en la sección **Finanzas** del menú. **Finanzas** (permiso `finance`; editar con `finance_edit`): tablero con efectivo en cajas abiertas, bancos, a cobrar (cuentas corrientes + tarjetas y billeteras por acreditar), a pagar (proveedores + compromisos) y margen neto estimado; **flujo de fondos proyectado** de 4, 8 o 12 semanas con gráfico y alertas de bache; rentabilidad por operación; **conciliación asistida** del extracto bancario (CSV); tablero de cobros digitales; copiloto de reglas (sin IA ni costo). **Contabilidad** (permiso `accounting`; administrar con `accounting_admin`): asientos de partida doble generados solos desde cada operación, con huella SHA-256 y **cierre de período encadenado**; Libro Diario, Mayor, Sumas y saldos, pre-liquidación de IVA, plan de cuentas modelo editable [VERIFICAR con el contador]. Rol **Contador** de sólo lectura. Es contabilidad de **gestión**: no reemplaza libros legales ni la DDJJ. La pasarela **VB Pay** queda preparada y **apagada** (falta cuenta del procesador y credenciales).
+
+**En esta demo: encendidos** con compromisos, banco y asientos de ejemplo (rotulados «ejemplo»). Usuario de prueba **Contador · 4444** (portal del contador, sólo lectura). Botón «Probar con un extracto de ejemplo» en Conciliación.
+
 
 ## 5. Diseño (sección 7 del esqueleto, obligatoria)
 

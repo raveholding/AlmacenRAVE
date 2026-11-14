@@ -1,9 +1,9 @@
 # SISTEMA VINCULAR BUSINESS · PROMPT FINAL — KiniDistribuidoraDemo (distribuidora sólo mayorista)
 
-**Versión:** V26.64 · 2026-11-10 · **Repositorio:** `KiniDistribuidoraDemo` → `https://raveholding.github.io/KiniDistribuidoraDemo/` · **Perfil:** `kini` · **Base local:** `rave-kini-demo-v2`
+**Versión:** V26.72 · 2026-11-14 · **Repositorio:** `KiniDistribuidoraDemo` → `https://raveholding.github.io/KiniDistribuidoraDemo/` · **Perfil:** `kini` · **Base local:** `rave-kini-demo-v2`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
-> Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.2 → `SISTEMA_VB_26F.md` (4.22 mayorista y anexos F, S). Si difieren, para esta demo manda este prompt.
+> Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.3 → `SISTEMA_VB_26F.md` (4.22 mayorista y anexos F, S). Si difieren, para esta demo manda este prompt.
 
 ---
 
@@ -38,6 +38,13 @@ Sección 7 del esqueleto con la paleta Kini (contraste AA verificado por `kc1`):
 
 Módulo de la sección 7-ter del esqueleto. **En esta demo: Plan Micro** (2 legajos activos de ejemplo) — el visitante ve con candado qué suma el Plan Completo. El plan lo decide sola la cantidad de legajos activos (0–10 Micro, 11 o más Completo); el botón «+ Personal de ejemplo» / «Dar de baja el de ejemplo» de la pestaña *Plan y resumen* muestra la transición automática. Fichaje en kiosco con PIN (bloqueo tras 5 intentos), QR, NFC y geocerca; rostro y huella figuran como **pendientes de dispositivo y revisión legal**. Usuario de prueba del portal del empleado: **Empleado (portal) · 2222**. Nómina, firma y archivos bancarios son internos y se rotulan [VERIFICAR] (no reemplazan el recibo legal ni la firma digital).
 
+## Finanzas y Contabilidad (V26.72)
+
+Módulos de la sección 7-quater del esqueleto, en la sección **Finanzas** del menú. **Finanzas** (permiso `finance`; editar con `finance_edit`): tablero con efectivo en cajas abiertas, bancos, a cobrar (cuentas corrientes + tarjetas y billeteras por acreditar), a pagar (proveedores + compromisos) y margen neto estimado; **flujo de fondos proyectado** de 4, 8 o 12 semanas con gráfico y alertas de bache; rentabilidad por operación; **conciliación asistida** del extracto bancario (CSV); tablero de cobros digitales; copiloto de reglas (sin IA ni costo). **Contabilidad** (permiso `accounting`; administrar con `accounting_admin`): asientos de partida doble generados solos desde cada operación, con huella SHA-256 y **cierre de período encadenado**; Libro Diario, Mayor, Sumas y saldos, pre-liquidación de IVA, plan de cuentas modelo editable [VERIFICAR con el contador]. Rol **Contador** de sólo lectura. Es contabilidad de **gestión**: no reemplaza libros legales ni la DDJJ. La pasarela **VB Pay** queda preparada y **apagada** (falta cuenta del procesador y credenciales).
+
+**En esta demo: encendidos** con datos de ejemplo; las ventas mayoristas van a la cuenta 4.1.02 «Ventas mayoristas» y las cuentas corrientes con plazo alimentan el flujo de fondos. Usuario **Contador · 4444**.
+
+
 ## 5. Compilar, probar y publicar
 
 ```bash
@@ -50,7 +57,7 @@ cp /tmp/rave/kini.html ../../../kinidistribuidorademo/index.html   # commit con 
 
 ## 6. Pendientes (decide el dueño o depende de terceros)
 
-Pedidos de venta → picking → remito → factura → recibo, lotes/FEFO, cierre ciego, cheques/eCheq y contabilidad (4.22 F2–F7, especificados); logo y paleta definitivos del cliente; integraciones reales (Meta, ARCA producción, Mercado Pago).
+Pedidos de venta → picking → remito → factura → recibo, lotes/FEFO, cierre ciego, cheques/eCheq (4.22 F2–F7, especificados); la contabilidad de gestión ya está hecha (V26.72); logo y paleta definitivos del cliente; integraciones reales (Meta, ARCA producción, Mercado Pago).
 
 ## 7. Prompt de arranque
 
