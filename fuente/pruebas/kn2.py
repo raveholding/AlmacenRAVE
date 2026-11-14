@@ -7,7 +7,8 @@ from playwright.sync_api import sync_playwright
 errs=[];res=[]
 def chk(c,m):
     print(('OK   ' if c else 'FALLA ')+m);res.append(bool(c))
-BAD=re.compile(r'\brubros?\b|reparto|reparte|sociedad de|merienda|\bRAVE\b|licorer',re.I)
+# «Reparto:» / «reparto y despacho» = envíos a domicilio (V26.69, legítimo en una distribuidora); lo prohibido es el reparto de ganancias entre socios
+BAD=re.compile(r'\brubros?\b|reparto(?! *:)(?! y despacho)|reparte|sociedad de|merienda|\bRAVE\b|licorer',re.I)
 SCREENS=['inicio','vender','pedidos','caja','cajasx','arqueo','cierres','inventario','proveedores','clientes','fidel','cupones','personal','tareas','menuadmin','legal','nube','dispositivos','impex','integ','roles','auditoria','config']
 with sync_playwright() as p:
     b=p.chromium.launch(args=['--no-proxy-server'])
