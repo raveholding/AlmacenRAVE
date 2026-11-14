@@ -3,7 +3,7 @@
 **Versión:** V26.72 · 2026-11-14 · **Repositorio:** `KiniDistribuidoraDemo` → `https://raveholding.github.io/KiniDistribuidoraDemo/` · **Perfil:** `kini` · **Base local:** `rave-kini-demo-v2`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
-> Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.3 → `SISTEMA_VB_26F.md` (4.22 mayorista y anexos F, S). Si difieren, para esta demo manda este prompt.
+> Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.4 → `SISTEMA_VB_26F.md` (4.22 mayorista y anexos F, S). Si difieren, para esta demo manda este prompt.
 
 ---
 
@@ -44,6 +44,8 @@ Módulos de la sección 7-quater del esqueleto, en la sección **Finanzas** del 
 
 **En esta demo: encendidos** con datos de ejemplo; las ventas mayoristas van a la cuenta 4.1.02 «Ventas mayoristas» y las cuentas corrientes con plazo alimentan el flujo de fondos. Usuario **Contador · 4444**.
 
+
+> **V26.73 (Omni-Assist y Notificaciones push):** están en el código fuente y funcionan en este perfil, pero **no se publicaron en esta demo**: el dueño pidió trabajar sólo en Almacén RAVE. Se publican cuando lo pida.
 
 ## 5. Compilar, probar y publicar
 

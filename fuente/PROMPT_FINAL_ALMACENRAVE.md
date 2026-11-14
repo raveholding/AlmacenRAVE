@@ -1,9 +1,9 @@
 # SISTEMA VINCULAR BUSINESS · PROMPT FINAL — Cliente ALMACÉN RAVE (producción)
 
-**Versión:** V26.72 · 2026-11-14 · **Repositorio y publicación:** `AlmacenRAVE` → `https://raveholding.github.io/AlmacenRAVE/` · **Perfil:** `cliente` (con nube) · **Base local:** `rave-almacenrave-v1` · **Comercio en la nube:** slug `almacen-rave`
+**Versión:** V26.73 · 2026-11-14 · **Repositorio y publicación:** `AlmacenRAVE` → `https://raveholding.github.io/AlmacenRAVE/` · **Perfil:** `cliente` (con nube) · **Base local:** `rave-almacenrave-v1` · **Comercio en la nube:** slug `almacen-rave`
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · «Tu idea, en buenas manos.»
 
-> Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.3 → `SISTEMA_VB_26F.md` (secciones 4.x y anexos A–Z, AA). **Este es el sistema en uso de un negocio real: no se rompe.** Si algo de este prompt choca con las reglas de seguridad del esqueleto, mandan las reglas.
+> Orden de lectura: este prompt → `PROMPT_ESQUELETO_VB.md` V27.4 → `SISTEMA_VB_26F.md` (secciones 4.x y anexos A–Z, AA). **Este es el sistema en uso de un negocio real: no se rompe.** Si algo de este prompt choca con las reglas de seguridad del esqueleto, mandan las reglas.
 
 ---
 
@@ -40,7 +40,7 @@ El sistema real de **Almacén y Licorería RAVE** (Salta). Es la única versión
 
 Hechos y en uso: Resumen «Hoy», Vender (F1–F12, pagos mixtos, cuenta corriente, recargos por medio, balanza Systel/Kretz, EAN-13), **Gestión de caja** (pestañas + **tablero del turno**: estado, 4 pasos, indicadores) con cierre sellado SHA-256 y cierre por rubro, traspasos con `transfer_funds`, cortes X/Z, inventario, presupuestos, mermas, proveedores y compras, Club completo, datos para facturar, personal y fichaje, tareas, menú público (local o tienda con envíos), legales, periféricos, importar/exportar, auditoría, nube.
 
-Apagados hasta que el administrador los active: **Atención al cliente** (chat web cifrado del menú + WhatsApp asistido + teléfono + local; sin Instagram/Messenger/Telegram/correo de demostración), Centro Inteligente, detalle de cobros digitales, canal mayorista, **Finanzas y Contabilidad** (V26.72).
+Apagados hasta que el administrador los active: **Atención al cliente** (chat web cifrado del menú + WhatsApp asistido + teléfono + local; sin Instagram/Messenger/Telegram/correo de demostración), Centro Inteligente, detalle de cobros digitales, canal mayorista, **Finanzas y Contabilidad** (V26.72), **Omni-Assist** y **Notificaciones push** (V26.73).
 
 **Pendiente de verificar con el dueño:** que `27-finanzas-contable.sql` esté aplicado antes de activar Finanzas/Contabilidad con la nube; y que `22-crm.sql` esté aplicado en Supabase antes de encender el chat web en la nube (consulta de control: existencia de `crm_entrantes` y de la función `crm_web_enviar`). Sin ese script el resto del sistema funciona igual.
 
@@ -55,6 +55,12 @@ Módulos de la sección 7-quater del esqueleto, en la sección **Finanzas** del 
 
 **En este cliente: apagados.** El administrador los ve en el menú con **Activar Finanzas** / **Activar Contabilidad** (elige desde qué fecha contabilizar); los demás roles no los ven hasta que estén activos. Sin datos de ejemplo ni usuario Contador (si el dueño quiere darle acceso a su contador, lo invita desde la nube con el rol «Contador»). **Antes de activarlos con la nube** el dueño pega `supabase/27-finanzas-contable.sql` en Supabase (la base de producción ya tiene 01 a 26: se verificó por consulta el 2026-11-14).
 
+
+## VB Omni-Assist y Notificaciones push (V26.73 — pedido sólo para este cliente)
+
+**Omni-Assist** (sección 7-bis del esqueleto): ficha 360° extendida con datos enmascarados, copiloto ERP con stock/precio/cantidades reales y alternativas, presupuesto desde el chat → venta, agenda de 7 días con choques y capacidad, analíticas de resolución y SLA. **Apagado**: el administrador lo activa desde Atención al cliente (tarjeta «✨ Omni-Assist» en la conversación o pestaña de analíticas). No necesita SQL.
+
+**Notificaciones push** (sección 7-quinquies): Web Push estándar sin Firebase. **Apagado**: el administrador lo ve en Clientes → «Notificaciones push» con **Activar**. Para enviar de verdad: (1) el dueño pega `supabase/28-push.sql` (requiere 01 a 27); (2) se despliega la función `push` («Verify JWT» apagado; no lleva secretos); (3) en Ajustes, **Obtener la llave**; (4) publicar el menú. Para que los envíos programados salgan solos, activar **pg_cron** y **pg_net** en Supabase (gratis); si no, salen cuando el sistema está abierto. Geocercas: **preparadas para la app nativa** (decisión del dueño), sin disparo hoy.
 
 ## 5. Diseño
 

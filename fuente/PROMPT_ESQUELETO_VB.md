@@ -1,6 +1,6 @@
 # SISTEMA VINCULAR BUSINESS — PROMPT ESQUELETO (base genérica para cualquier comercio)
 
-Versión de esqueleto **V27.3** · construido a partir de `SISTEMA_VB_26F.md` (revisión V26.72) · 2026-11-14
+Versión de esqueleto **V27.4** · construido a partir de `SISTEMA_VB_26F.md` (revisión V26.73) · 2026-11-14
 Desarrollado por **VINCULAR BUSINESS** · Celular **(387) 4484132** · **https://www.vincularbusiness.com.ar/** · **vincularbusiness@gmail.com** · lema **“Tu idea, en buenas manos.”**
 
 > Este documento es el **esqueleto**: describe el producto genérico que se vende a cualquier comercio (minorista, gastronomía, mayorista/distribuidora, servicios, profesionales, ONG). **No contiene datos de ningún cliente.** Lo propio de cada negocio se carga en la **Ficha del negocio (sección 2)** y en una **capa de particularidades (sección 12)**, nunca en el núcleo. El detalle técnico de cada módulo vive en `SISTEMA_VB_26F.md` (secciones 4.x y anexos); acá está el orden, las reglas y el estado.
@@ -205,6 +205,9 @@ Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no c
 
 **Datos y nube** (`23-rrhh.sql`): colecciones `hrshift`, `hrreq`, `hrdoc` (sólo la descripción: el archivo queda en el equipo y el respaldo), `hrpay`, `hrjob`, `hrcand` (datos del candidato cifrados), `hritem`, `hrmsg` y `hrplan` (sólo-agregar). Del legajo viajan cifrados PIN, DNI, clave de la credencial QR/NFC, CBU, teléfono, domicilio y contacto de emergencia. Escriben: administrador todo; supervisor turnos, solicitudes y avisos; mostrador y operador nada. Pruebas `hr1.py` y `31-sql-tests.sql`.
 
+
+**VB Omni-Assist (V26.73, `p6l-omni.js`, bandera `S.cfg.crm.omni`; apagado en el cliente hasta que el administrador lo activa):** extiende la Atención al cliente sin reemplazarla. **Ficha 360° extendida** (presencial / online, ticket promedio, última compra, frecuencia, favoritos, cumpleaños, cobro y turno pendientes, presupuestos vigentes con «Convertir en venta»; WhatsApp y DNI **enmascarados** salvo `customers_admin`). **Copiloto ERP** de reglas (sin IA ni costo): detecta productos y **cantidades** en el último mensaje («3 fernet», «dos», «x6»), muestra precio, stock y subtotal reales, ofrece **alternativas con stock** del mismo rubro, propone horarios libres y arma la respuesta; consulta rápida de stock/precio en el chat. **Presupuesto desde el chat** (precargado con lo pedido; `qtCreate`, no descuenta stock; se envía por el canal, abre el PDF y queda ligado a la conversación). **Agenda de 7 días** con franjas según horario, duración y capacidad configurables: rechaza franjas completas, superposiciones parciales, días cerrados y fuera de horario. **Analíticas**: tasa de resolución, cumplimiento del **SLA** de primera respuesta, pendientes por antigüedad, volumen por hora y departamento, ánimo; una conversación sin responder que pasa el SLA sube a prioridad alta. Prueba `omni1.py`.
+
 ---
 
 ## 7-quater. FINANZAS Y CONTABILIDAD («VB Treasury & Cashflow» · «VB Ledger & Tax»)
@@ -219,6 +222,16 @@ Estado: **H** = hecho y probado · **P** = parcial · **E** = especificado, no c
 
 ---
 
+## 7-quinquies. NOTIFICACIONES PUSH DEL CLUB (Web Push estándar · geocercas preparadas)
+
+**Pantalla «Notificaciones push»** (sección Clientes, permiso `push`; `p16-push.js`). Apagada en el cliente; en demos con campañas de ejemplo rotuladas y **sin envío**. Motor: **Web Push estándar con VAPID** (sin Firebase ni costo): llega a Android y a iPhone con iOS 16.4+ con la app del Club **instalada**. El mensaje se **cifra para cada celular** (RFC 8291, aes128gcm) y se firma con VAPID (RFC 8292); las llaves las crea la función `push` y la privada queda sólo en la base (`push_vapid`, sin acceso público): nadie pega claves.
+**Campañas Estándar:** título ≤ 65, texto ≤ 240, imagen https opcional, acción = sección de la app (`#mitarjeta/ben`…) o https; prioridad normal/alta (cabecera Urgency); segmentos calculados en el sistema (todos, socios, nivel, cumpleaños del mes, sin compras 30 días, con saldo) → sólo viajan ids; **ahora / fecha y hora / hora local de cada celular**. Estados BORRADOR · PROGRAMADA · ACTIVA · PAUSADA · FINALIZADA. **Vista previa en vivo** iPhone/Android, pantalla bloqueada o aviso arriba. **Resultados**: enviadas, entregadas y abiertas (las informa el propio celular con un código al azar por envío), errores, CTR y salud. «Probar en este equipo» muestra una notificación local (no envía a nadie).
+**App del Club:** aviso amable **antes** del permiso del navegador (texto editable), suscripción vinculada al socio si tiene tarjeta, y «Desactivar avisos» que borra la suscripción y cualquier dato de ubicación. El service worker muestra la notificación, avisa «entregado»/«abierto» y abre la sección indicada.
+**Campañas por ubicación (geocercas): PREPARADAS para una app nativa** — una app web no puede vigilar la ubicación con la app cerrada, así que hoy no disparan y se declara en pantalla. Mapa OpenStreetMap con búsqueda de dirección (Nominatim), pin arrastrable, círculo de 100 m a 5 km con slider, ENTRAR / SALIR / PERMANENCIA X min, días y horario, vencimiento, enfriamiento e histéresis, alcance estimado. En el servidor quedan listos `push_geo_registrar` (secreto por dispositivo, una vez) y `push_geo_ping` (firma HMAC-SHA256 de endpoint|lat|lng|ts, ventana de 2 min, anti-repetición, descarte de saltos > ~250 km/h, histéresis y enfriamiento); sólo se guarda la **última** ubicación.
+**Nube** (`28-push.sql` + función `push`, «Verify JWT» apagado, sin secretos propios): `push_subs`, `push_campanas`, `push_envios` (único por campaña+suscripción+serie), trabajador `push_tomar`/`push_resultado` sólo con la clave de servicio (404/410 borran la suscripción; 429/5xx reintentan con espera), `push_tick` cada minuto con pg_cron+pg_net si el proyecto los tiene (si no, el sistema abierto despierta el envío cada 5 min). Endpoints sólo de servicios de push conocidos (anti-SSRF). Pruebas `push1.py`, `functions/push/push_test.mjs` (incluye el vector oficial del RFC 8291) y `36-sql-tests.sql`.
+
+---
+
 ## 8. SEGURIDAD Y DATOS
 
 OWASP/ASVS: escapar todo dato al mostrarlo (incluido lo que llega de IA, OCR, QR, chat); URLs por lista de esquemas y dominios; CSP estricta con SRI; RLS en todas las tablas con prueba cruzada A/B; funciones `SECURITY DEFINER` con `search_path` fijo; idempotencia en pagos, cierres, traspasos e importaciones; datos personales cifrados antes de subir (`__pii`), mínimos y con consentimiento por finalidad; nunca número de tarjeta, CVV ni PIN (detector que los rechaza); exportaciones CSV con fórmulas neutralizadas; auditoría sin textos de mensajes ni secretos. «Inalterable» se escribe siempre con su límite (sólo-agregar en servidor + hash que detecta).
@@ -227,7 +240,7 @@ OWASP/ASVS: escapar todo dato al mostrarlo (incluido lo que llega de IA, OCR, QR
 
 ## 9. NUBE (referencia Supabase)
 
-Scripts numerados, aditivos e idempotentes (`01`…`27` al 2026-11-14; `INSTALAR-TODO.sql` los reúne). Una colección nueva exige: lista de `sincronizar()`, permiso en `rave_puede_escribir`, lectura, exportación, importación, respaldo y prueba SQL. El navegador **no envía saldos ni stock**: envía movimientos. Sin conexión se trabaja igual y nunca se muestra como confirmado lo que el servidor no confirmó. «Confirm email» desactivado. Recuperación con código de 20 caracteres (sin clave ni código, los datos cifrados no se recuperan, por diseño).
+Scripts numerados, aditivos e idempotentes (`01`…`28` al 2026-11-14; `INSTALAR-TODO.sql` los reúne). Una colección nueva exige: lista de `sincronizar()`, permiso en `rave_puede_escribir`, lectura, exportación, importación, respaldo y prueba SQL. El navegador **no envía saldos ni stock**: envía movimientos. Sin conexión se trabaja igual y nunca se muestra como confirmado lo que el servidor no confirmó. «Confirm email» desactivado. Recuperación con código de 20 caracteres (sin clave ni código, los datos cifrados no se recuperan, por diseño).
 
 ---
 
