@@ -6,12 +6,13 @@
 //   WA_TOKEN, WA_PHONE_ID  WhatsApp Cloud API                             META_PAGE_TOKEN  token de la página (Messenger e Instagram)
 //   MAIL_IN_SECRET     texto al azar para el reenvío de correo            RESEND_API_KEY, MAIL_FROM  salida de correo (Resend)
 //   ALLOWED_ORIGINS    https://raveholding.github.io
+//   OAUTH_KEY          (V26.74, opcional) el mismo de la función «conectar»: responde por las cuentas conectadas con un clic
 import { manejar, type Entorno } from "./handler.ts";
 Deno.serve((req) => {
   const e = (k: string) => Deno.env.get(k) ?? undefined;
   const env: Entorno = { SUPABASE_URL: e("SUPABASE_URL") ?? "", SUPABASE_ANON_KEY: e("SUPABASE_ANON_KEY") ?? "", SUPABASE_SERVICE_ROLE_KEY: e("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     ALLOWED_ORIGINS: e("ALLOWED_ORIGINS"), FUNCTION_URL: e("FUNCTION_URL"), CANALES_COMERCIO: e("CANALES_COMERCIO"), TG_CLIENTES_TOKEN: e("TG_CLIENTES_TOKEN"), TG_CLIENTES_SECRET: e("TG_CLIENTES_SECRET"),
     META_VERIFY_TOKEN: e("META_VERIFY_TOKEN"), META_APP_SECRET: e("META_APP_SECRET"), META_PAGE_TOKEN: e("META_PAGE_TOKEN"), WA_TOKEN: e("WA_TOKEN"), WA_PHONE_ID: e("WA_PHONE_ID"),
-    RESEND_API_KEY: e("RESEND_API_KEY"), MAIL_FROM: e("MAIL_FROM"), MAIL_IN_SECRET: e("MAIL_IN_SECRET") };
+    RESEND_API_KEY: e("RESEND_API_KEY"), MAIL_FROM: e("MAIL_FROM"), MAIL_IN_SECRET: e("MAIL_IN_SECRET"), OAUTH_KEY: e("OAUTH_KEY") };
   return manejar(req, env);
 });

@@ -8,7 +8,8 @@
 //   POST ?c=tg                         mensajes del bot de Telegram para clientes
 //   POST ?c=mail&k=MAIL_IN_SECRET      correo reenviado (Postmark, Mailgun, Cloudflare Email Worker o JSON {from,name,subject,text})
 //   POST {accion:'estado'|'enviar'|'tg_conectar'|'probar', comercio, ...}   con la sesión del usuario
-export type Entorno = { SUPABASE_URL: string; SUPABASE_ANON_KEY: string; SUPABASE_SERVICE_ROLE_KEY: string; ALLOWED_ORIGINS?: string; FUNCTION_URL?: string;
+import { cuentaPara, enviarCorreo } from "../conectar/correo.ts";
+export type Entorno = { OAUTH_KEY?: string; GOOGLE_BASE?: string; MS_BASE?: string; SUPABASE_URL: string; SUPABASE_ANON_KEY: string; SUPABASE_SERVICE_ROLE_KEY: string; ALLOWED_ORIGINS?: string; FUNCTION_URL?: string;
   CANALES_COMERCIO?: string; TG_CLIENTES_TOKEN?: string; TG_CLIENTES_SECRET?: string; META_VERIFY_TOKEN?: string; META_APP_SECRET?: string; META_PAGE_TOKEN?: string;
   WA_TOKEN?: string; WA_PHONE_ID?: string; RESEND_API_KEY?: string; MAIL_FROM?: string; MAIL_IN_SECRET?: string; TG_API_BASE?: string; GRAPH_BASE?: string };
 type F = typeof fetch; type J = any;
@@ -162,6 +163,15 @@ export async function manejar(req: Request, env: Entorno, f: F = fetch): Promise
       const k = String(b.canal ?? ""), para = String(b.para ?? "").slice(0, 120), txt = limpio(b.texto, 3500); if (!para || !txt) return R({ error: "falta el destinatario o el texto" }, 400);
       const G = env.GRAPH_BASE ?? "https://graph.facebook.com";
       if (k === "tg") { if (!/^-?\d{1,20}$/.test(para)) return R({ error: "destinatario inválido" }, 400); await tg(env, f, "sendMessage", { chat_id: para, text: txt }); return R({ ok: true }); }
+      // V26.74: si no hay secretos manuales, responde por la cuenta conectada con un clic (OAuth) en la función «conectar»
+      const oa = (k === "mail" && !(env.RESEND_API_KEY && env.MAIL_FROM)) || (k === "wa" && !(env.WA_TOKEN && env.WA_PHONE_ID)) || ((k === "ig" || k === "fb") && !env.META_PAGE_TOKEN) ? await cuentaPara(env, f, com, k) : null;
+      if (oa && k === "mail") { if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(para)) return R({ error: "correo inválido" }, 400); const e = await enviarCorreo(env, f, oa.prov, oa.cuenta, oa.tok, para, limpio(b.asunto || "Respuesta a tu consulta", 140), txt); return e ? R({ error: e }, 502) : R({ ok: true, via: oa.cuenta }); }
+      if (oa && k === "wa") { const ph = oa.datos?.wa?.[0]?.phone_id; if (!/^\d{6,16}$/.test(para) || !ph) return R({ error: "número inválido" }, 400);
+        const r = await f(`${G}/v21.0/${encodeURIComponent(ph)}/messages`, { method: "POST", headers: { authorization: "Bearer " + oa.tok.at, "content-type": "application/json" }, body: JSON.stringify({ messaging_product: "whatsapp", to: para, type: "text", text: { body: txt, preview_url: false } }) });
+        return r.ok ? R({ ok: true }) : R({ error: "WhatsApp no lo envió (" + r.status + "): pasaron más de 24 h desde el último mensaje del cliente o falta una plantilla" }, 502); }
+      if (oa && (k === "ig" || k === "fb")) { const pg = oa.datos?.paginas?.[0]?.id; const pt = pg && oa.tok.pages?.[pg]; if (!/^\d{1,30}$/.test(para) || !pt) return R({ error: "Instagram / Messenger no está configurado" }, 412);
+        const r = await f(`${G}/v21.0/me/messages`, { method: "POST", headers: { authorization: "Bearer " + pt, "content-type": "application/json" }, body: JSON.stringify({ recipient: { id: para }, messaging_type: "RESPONSE", message: { text: txt.slice(0, 1000) } }) });
+        return r.ok ? R({ ok: true }) : R({ error: "Meta no lo envió (" + r.status + "): sólo se puede responder dentro de las 24 h del último mensaje" }, 502); }
       if (k === "wa") { if (!/^\d{6,16}$/.test(para) || !env.WA_TOKEN || !env.WA_PHONE_ID) return R({ error: "WhatsApp no está configurado o el número es inválido" }, 412);
         const r = await f(`${G}/v21.0/${encodeURIComponent(env.WA_PHONE_ID)}/messages`, { method: "POST", headers: { authorization: "Bearer " + env.WA_TOKEN, "content-type": "application/json" }, body: JSON.stringify({ messaging_product: "whatsapp", to: para, type: "text", text: { body: txt, preview_url: false } }) });
         if (!r.ok) return R({ error: "WhatsApp no lo envió (" + r.status + "): pasaron más de 24 h desde el último mensaje del cliente o falta una plantilla" }, 502); return R({ ok: true }); }
