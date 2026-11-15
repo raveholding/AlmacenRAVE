@@ -95,6 +95,13 @@ function kiniBase(d){
  d.registers=[{id:'r1',code:'1',name:'Caja 1',type:'operational',branchId:'',parentId:'rp',active:true},
   {id:'r2',code:'2',name:'Caja 2',type:'operational',branchId:'',parentId:'rp',active:true},
   {id:'rp',code:'P',name:'Caja principal',type:'main',branchId:'',parentId:'',active:true}];
+ /* V27 · demos nuevas de Vincular Business (VB-Demo-*): mismo perfil con otra marca, otro canal y módulos prendidos.
+    window.RAVE_DEMO lo inyecta build.py sólo en esas compilaciones; sin él, la demo Kini queda igual. */
+ const D=(typeof window!=='undefined'&&window.RAVE_DEMO)||null;
+ if(D){d.tenant=Object.assign({},d.tenant,{name:D.nombre,legal:D.nombre+' (demo de ejemplo)',slogan:D.slogan});
+  d.menu=Object.assign({},d.menu,{title:D.nombre.toUpperCase(),sub:{es:D.slogan,en:D.slogan},footer:{es:D.nombre+' · demo de Vincular Business',en:D.nombre+' · Vincular Business demo'}});
+  if(d.cfg.wholesale&&D.canal==='both')d.cfg.wholesale.only=false;
+  d.cfg.plan='total';d.cfg.mods=Object.assign({},d.cfg.mods||{});(D.mods||[]).forEach(k=>{d.cfg.mods[k]=true;});}
  const t=Math.max(Date.now()-2*3600000,new Date().setHours(0,5,0,0));
  d.sessions=[{id:'k-s1',caja:1,regId:'r1',regName:'Caja 1',branchId:'',openedBy:'ADMIN',openedAt:t,opening:15000000,closedAt:0},
   {id:'k-s2',caja:2,regId:'r2',regName:'Caja 2',branchId:'',openedBy:'Mostrador (ejemplo)',openedAt:t,opening:10000000,closedAt:0},

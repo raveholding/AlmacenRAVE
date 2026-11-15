@@ -27,9 +27,18 @@ pub=os.environ.get('PUBLIC_URL','https://raveholding.github.io/'+('AlmacenRAVE/'
 import datetime
 if KINI: pub=os.environ.get('PUBLIC_URL','https://raveholding.github.io/KiniDistribuidoraDemo/')
 if PROFILE=='v3': pub=os.environ.get('PUBLIC_URL','https://raveholding.github.io/raveV3/')
+# V27 · demos nuevas de Vincular Business: perfil kini con otra marca (DEMO_ID, DEMO_NOMBRE, DEMO_SLOGAN, DEMO_CANAL, DEMO_MODS).
+# Cada demo usa su propia base en el navegador: todas las demos comparten el dominio raveholding.github.io.
+DEMO=None
+if KINI and os.environ.get('DEMO_ID'):
+    DEMO={'id':os.environ['DEMO_ID'],'nombre':os.environ.get('DEMO_NOMBRE','Demo'),'slogan':os.environ.get('DEMO_SLOGAN','Demo de Vincular Business'),
+          'canal':os.environ.get('DEMO_CANAL','may'),'mods':[m for m in os.environ.get('DEMO_MODS','').split(',') if m]}
+    pub=os.environ.get('PUBLIC_URL','https://raveholding.github.io/'+DEMO['id']+'/')
 build={'ver':datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M')+' UTC','variant':V,'db':'rave-almacenrave-v1' if V=='cliente' else {'kini':'rave-kini-demo-v2','solo':'rave-solo-demo-v1','v3':'rave-v3-demo-v2'}.get(PROFILE,'rave-cliente-v3'),'publicUrl':pub}
 if PROFILE: build['profile']=PROFILE
+if DEMO: build['db']='vb-demo-'+re.sub(r'[^a-z0-9]+','-',DEMO['id'].lower())+'-v1'
 cfg='<script>window.RAVE_BUILD=%s;window.RAVE_CLOUD=%s;</script>\n'%(json.dumps(build),json.dumps({'url':url,'key':key,'slug':slug}))
+if DEMO: cfg=cfg.replace('</script>','window.RAVE_DEMO=%s;</script>'%json.dumps({k:DEMO[k] for k in ('nombre','slogan','canal','mods')},ensure_ascii=False),1)
 head=B('p1-head.html')
 head=head.replace("connect-src 'none'","connect-src "+((url+' ') if url else '')+"https://ntfy.sh https://nominatim.openstreetmap.org").replace("img-src data: blob:","img-src 'self' data: blob: https://ntfy.sh https://tile.openstreetmap.org")  # V26.68: portero SeguridadRave (avisos por ntfy y foto del timbre)
 if V=='cliente':
@@ -145,9 +154,15 @@ def solo_brand(h,v3=False):
 vbj='const VB_BANNER="data:image/webp;base64,'+base64.b64encode(open('assets/vb-banner.webp','rb').read()).decode()+'";\n'
 html=head+'\n'+vbj+B('build/p0-data.js')+B('build/p0-pub.js')+"const SOCIAL_ICONS_OK=1;\n"+B('build/qr.js')+'\n'+'\n'.join(B(p) for p in parts)+'\n</script>\n</body></html>\n'
 if KINI: html=kini_brand(html)
+if DEMO:
+    N=DEMO['nombre']
+    for a,b in [('Kini Distribuidora',N),('KINI DISTRIBUIDORA',N.upper()),('Club Kini','Club '+N),('Kini Club',N+' Club'),('Sistema Kini','Sistema VB'),
+                ('alt=\\"Kini','alt=\\"'+N),('class=\\"foot-brand\\">KINI<','class=\\"foot-brand\\">'+N.upper()+'<'),('<title>Kini','<title>'+N),
+                ('Distribuidora mayorista · demo',DEMO['slogan']),('Wholesale distributor · demo',DEMO['slogan'])]:
+        html=html.replace(a,b)
 if PROFILE in('solo','v3'): html=solo_brand(html,PROFILE=='v3')
 # V26.69 · app instalable (PWA): manifiesto del sistema, manifiesto del Club, service worker e íconos junto al HTML
-APPN={'cliente':('AlmacenRAVE','RAVE','Club RAVE'),'kini':('Kini Distribuidora','Kini','Club Kini'),'v3':('Sistema VB Empresas','VB','Club VB'),'solo':('Sistema VB','VB','Club VB')}.get('cliente' if V=='cliente' else PROFILE,('Sistema RAVE','RAVE','Club RAVE'))
+APPN={'demo-vb':(DEMO['nombre'] if DEMO else '','VB','Club VB'),'cliente':('AlmacenRAVE','RAVE','Club RAVE'),'kini':('Kini Distribuidora','Kini','Club Kini'),'v3':('Sistema VB Empresas','VB','Club VB'),'solo':('Sistema VB','VB','Club VB')}.get('cliente' if V=='cliente' else ('demo-vb' if DEMO else PROFILE),('Sistema RAVE','RAVE','Club RAVE'))
 html=html.replace('<meta name="theme-color" content="#242220">','<meta name="theme-color" content="#242220">\n<link rel="manifest" id="pwa-man" href="app.webmanifest">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-title" content="%s">\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">'%APPN[1],1)
 html=html.replace("base-uri 'none'","manifest-src 'self'; worker-src 'self'; base-uri 'none'",1)
 def pwa_files(d):
