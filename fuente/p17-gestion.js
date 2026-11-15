@@ -44,18 +44,32 @@ A.giMod=el=>{const k=el.dataset.k,on=el.dataset.on==='1';const m=giMod(k);if(!m)
  if(deps.length)confirmBox(on?'Activar con sus dependencias':'Desactivar también lo que depende',`${on?'Para usar':'Al apagar'} <b>${esc(m.t)}</b> ${on?'se activa también':'se apaga también'}: <b>${deps.map(d=>esc(giMod(d).t)).join(', ')}</b>.${on?'':' Los datos no se borran: quedan guardados.'}`,doIt,on?'Activar':'Desactivar');
  else if(!on)confirmBox('Desactivar módulo',`Se oculta <b>${esc(m.t)}</b>. Los datos no se borran y vuelven al activarlo.`,doIt,'Desactivar');else doIt();};
 A.giPlan=el=>{if(!giAdm()||IS_CLIENT)return;const p=el.value||el.dataset.p;if(!GI_PORD.includes(p))return;S.cfg.plan=p;audit('PLAN_VISTA_PREVIA',GI_PLANS[p].t);save();rerender();};
+/* V26.78 · Paquetes por tipo de comercio: al elegir el canal de venta (Configuración → Modelo de negocio) o desde «Módulos»
+   se activan solas las funciones recomendadas. Sólo ENCIENDE (nunca apaga ni borra); respeta el plan y las dependencias; queda en Auditoría. */
+const GI_PACKS={min:{t:'Almacén / minorista',k:['pos_hold','price_hist','labels','kiosk'],x:['Club y fidelización','Atención al cliente']},
+ both:{t:'Minorista y mayorista',k:['pos_hold','price_hist','price_bulk','labels','kiosk','hr_vales'],x:['Reparto, despacho y rendición','Finanzas','Atención al cliente']},
+ may:{t:'Mayorista / distribuidora',k:['pos_hold','price_hist','price_bulk','labels','hr_vales'],x:['Reparto, despacho y rendición','Finanzas','Contabilidad de gestión']}};
+const giPackTodo=ch=>{const P=GI_PACKS[ch];if(!P)return[];return P.k.filter(k=>{const m=giMod(k);return m&&giInPlan(m.plan)&&!giCfg()[k];});};
+function giPackTxt(ch){const L=giPackTodo(ch);const P=GI_PACKS[ch];if(!P)return'';
+ return (L.length?`<br><br>También se activan solas: <b>${L.map(k=>esc(giMod(k).t)).join(', ')}</b>.`:'')+(P.x.length?`<br><span class="sm mut">Recomendado activar en su pantalla (necesitan configuración): ${P.x.map(esc).join(', ')}.</span>`:'');}
+function giPackApply(ch){if(!giAdm())return[];const L=giPackTodo(ch);L.forEach(k=>giSetMod(k,true));if(L.length)audit('MODULOS_PAQUETE',(GI_PACKS[ch]||{}).t+': '+L.map(k=>giMod(k).t).join(', '));return L;}
+A.giPack=el=>{const ch=el.dataset.ch;const P=GI_PACKS[ch];if(!P)return;const L=giPackTodo(ch);
+ if(!L.length)return toast('Las funciones recomendadas para «'+P.t+'» ya están activas.');
+ confirmBox('Activar funciones para '+esc(P.t),`Se activan: <b>${L.map(k=>esc(giMod(k).t)).join(', ')}</b>. No se apaga ni se borra nada.`+(P.x.length?`<br><span class="sm mut">Además conviene activar en su pantalla: ${P.x.map(esc).join(', ')}.</span>`:''),()=>{giPackApply(ch);toast(L.length+' función(es) activadas');rerender();},'Activar');};
 const giBadge=(on,lock)=>lock?'<span class="tag">🔒 Otro plan</span>':on?'<span class="tag ok">Activo</span>':'<span class="tag">Apagado</span>';
 reg('modulos','Módulos','gear','config',()=>{const pl=giPlan();
  return`<div class="row"><h1 class="sp">Módulos del sistema</h1></div>
  <p class="mut">Cada comercio usa sólo lo que necesita. Activar no borra nada y desactivar tampoco: los datos quedan guardados. Cada cambio queda en Auditoría.</p>
  <div class="card"><h3 style="margin-top:0">Plan: ${esc(GI_PLANS[pl].t)}</h3><p class="sm mut">${esc(GI_PLANS[pl].d)}</p>
  ${IS_CLIENT?'<p class="sm mut">El plan lo fija Vincular Business según el contrato.</p>':`<label for="gi-plan">Vista previa de planes (demo: en producción lo fija Vincular Business)</label><select id="gi-plan" data-chg="giPlan">${GI_PORD.map(p=>`<option value="${p}" ${p===pl?'selected':''}>${esc(GI_PLANS[p].t)}</option>`).join('')}</select>`}</div>
- <h2>Módulos nuevos (V26.76)</h2><div class="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:.8rem">
+ <div class="card"><h3 style="margin-top:0">Activar según el tipo de comercio</h3><p class="sm mut">Enciende de una vez las funciones recomendadas. También pasa solo al elegir el canal de venta en Configuración → Modelo de negocio. Nunca apaga nada.</p>
+ <div class="row" style="gap:.5rem;flex-wrap:wrap">${Object.entries(GI_PACKS).map(([k,P])=>`<button class="btn sm ${typeof chanCur==='function'&&chanCur()===k?'gold':''}" data-act="giPack" data-ch="${k}">${esc(P.t)}</button>`).join('')}</div></div>
+ <h2>Funciones que se activan acá</h2><div class="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:.8rem">
  ${GI_MODS.map(m=>{const lock=!giInPlan(m.plan),on=giOn(m.k);return`<div class="card" data-mod="${m.k}"><div class="row"><b class="sp">${esc(m.t)}</b>${giBadge(on,lock)}</div><p class="sm">${esc(m.d)}</p>${m.dep?`<p class="sm mut">Necesita: ${m.dep.map(d=>esc(giMod(d).t)).join(', ')}</p>`:''}<p class="sm mut">Incluido desde ${esc(GI_PLANS[m.plan].t)}</p>
   ${lock?'':`<button class="btn sm ${on?'':'gold'}" data-act="giMod" data-k="${m.k}" data-on="${on?0:1}">${on?'Desactivar':'Activar'}</button>`}${on&&m.scr?` <button class="btn sm" data-act="nav" data-id="${m.scr}">Abrir</button>`:''}</div>`;}).join('')}</div>
  <h2>Módulos que ya tenías</h2><p class="sm mut">Se activan desde su propia pantalla (cada uno tiene su configuración).</p><div class="tw"><table data-nosort><thead><tr><th>Módulo</th><th>Plan</th><th>Estado</th><th></th></tr></thead><tbody>
  ${GI_EXIST.map(x=>{const lock=!giInPlan(x.plan);let on=false;try{on=!!x.on();}catch(e){}return`<tr><td>${esc(x.t)}</td><td>${esc(GI_PLANS[x.plan].t)}</td><td>${giBadge(on,lock)}</td><td class="r">${!lock&&SCREENS[x.scr]?`<button class="btn sm" data-act="nav" data-id="${x.scr}">Ir</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>
- <h2>En construcción</h2><p class="sm mut">Próximas etapas del plan de gestión integral (se activan acá cuando estén terminadas y probadas).</p><ul>${GI_NEXT.map(([t,p])=>`<li>${esc(t)} <span class="tag">${esc(GI_PLANS[p].t)}</span></li>`).join('')}</ul>`;},
+ <h2>En desarrollo</h2><p class="sm mut">Todavía no están en el sistema: se suman a este panel, apagadas, a medida que se terminan y se prueban.</p><ul>${GI_NEXT.map(([t,p])=>`<li>${esc(t)} <span class="tag">${esc(GI_PLANS[p].t)}</span></li>`).join('')}</ul>`;},
  ()=>{const s=$('#gi-plan');if(s)s.addEventListener('change',()=>A.giPlan(s));},'Sistema');
 SCREENS.modulos.show=()=>giAdm();
 NAV.push(['modulos','Sistema'],['precios','Operación'],['vales','Equipo']);

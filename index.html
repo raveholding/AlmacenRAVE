@@ -21,7 +21,7 @@
 <meta property="og:locale" content="es_AR">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "LiquorStore", "name": "Almacén y Licorería RAVE", "url": "https://raveholding.github.io/AlmacenRAVE/", "telephone": "+54 9 387 457 4892", "address": {"@type": "PostalAddress", "streetAddress": "Urquiza 1052", "addressLocality": "Salta", "addressRegion": "Salta", "addressCountry": "AR"}}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242220'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23c9963e' font-family='Georgia,serif' font-weight='700'%3ER%3C/text%3E%3C/svg%3E">
-<script>window.RAVE_BUILD={"ver": "2026-11-15 00:57 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
+<script>window.RAVE_BUILD={"ver": "2026-11-15 01:39 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
 <style>
 :root{--ink:#242220;--gold:#c9963e;--gold2:#a87a28;--bg:#f6f3ee;--card:#fff;--line:#e6e0d6;--mut:#6d675f;--red:#c0392b;--redbg:#fdecea;--ok:#1e7a46;--okbg:#e6f4ec;--warnbg:#fff4dc;--r:16px}
 *{box-sizing:border-box}
@@ -3460,8 +3460,8 @@ function bizCard(){const cur=ownerMode()?'owner':'rubros';const adm=!!user&&user
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.closest||!t.closest('#biz-card')||t.type!=='radio')return;t.closest('.bm-grid').querySelectorAll('.bm-opt').forEach(l=>l.classList.toggle('on',l.querySelector('input').checked));});
 A.chanSave=()=>{if(!user||user.role!=='admin')return toast('Sólo el administrador',1);const el=document.querySelector('input[name="chan"]:checked');const nv=el?el.value:'';if(!CHANNELS[nv])return;const ov=chanCur();if(nv===ov)return toast('Ya vendés así');
  const msg={min:'Se vuelve a vender como minorista. Las presentaciones, acuerdos y precios mayoristas quedan guardados y las ventas anteriores no cambian.',both:'Aparecen el canal de cada cliente, los precios por presentación (Unidad, Display, Fardo, Pallet…), los acuerdos y el crédito con plazo. Las ventas anteriores no cambian.',may:'Toda venta pasa a ser mayorista y desaparece «Cambiar canal». Las ventas anteriores no cambian.'}[nv];
- confirmBox('Cambiar canales de venta',`De «${CHANNELS[ov][0]}» a «${CHANNELS[nv][0]}». ${msg}`,()=>{const before=JSON.stringify(S.cfg.wholesale||{});const W=Object.assign({},S.cfg.wholesale||{});W.on=nv!=='min';W.only=nv==='may';delete W.lists;S.cfg.wholesale=W;
-  audit(nv==='min'?'MAYORISTA_APAGAR':ov==='min'?'MAYORISTA_ACTIVAR':'MAYORISTA_CONFIG','canales: '+CHANNELS[ov][0]+' → '+CHANNELS[nv][0]+' · antes '+before.slice(0,120));save();rerender();toast('Canales de venta: '+CHANNELS[nv][0]);},'Cambiar');};
+ confirmBox('Cambiar canales de venta',`De «${CHANNELS[ov][0]}» a «${CHANNELS[nv][0]}». ${msg}${typeof giPackTxt==='function'?giPackTxt(nv):''}`,()=>{const before=JSON.stringify(S.cfg.wholesale||{});const W=Object.assign({},S.cfg.wholesale||{});W.on=nv!=='min';W.only=nv==='may';delete W.lists;S.cfg.wholesale=W;
+  audit(nv==='min'?'MAYORISTA_APAGAR':ov==='min'?'MAYORISTA_ACTIVAR':'MAYORISTA_CONFIG','canales: '+CHANNELS[ov][0]+' → '+CHANNELS[nv][0]+' · antes '+before.slice(0,120));save();const act=typeof giPackApply==='function'?giPackApply(nv):[];rerender();toast('Canales de venta: '+CHANNELS[nv][0]+(act.length?' · se activaron '+act.length+' función(es)':''));},'Cambiar');};
 A.bizSave=()=>{if(!user||user.role!=='admin')return toast('Sólo el administrador',1);if(bizLocked())return toast('Este sistema es de un solo dueño: el tipo de negocio no se cambia.',1);const el=document.querySelector('input[name="biz"]:checked');const nv=el?el.value:'';
  if(!BIZ_TYPES[nv])return;const ov=ownerMode()?'owner':'rubros';if(nv===ov)return toast('Ya está así');
  if(openSess())return toast('Cerrá la caja abierta antes de cambiar el tipo de negocio (el arqueo cambia de forma).',1);
@@ -11291,18 +11291,32 @@ A.giMod=el=>{const k=el.dataset.k,on=el.dataset.on==='1';const m=giMod(k);if(!m)
  if(deps.length)confirmBox(on?'Activar con sus dependencias':'Desactivar también lo que depende',`${on?'Para usar':'Al apagar'} <b>${esc(m.t)}</b> ${on?'se activa también':'se apaga también'}: <b>${deps.map(d=>esc(giMod(d).t)).join(', ')}</b>.${on?'':' Los datos no se borran: quedan guardados.'}`,doIt,on?'Activar':'Desactivar');
  else if(!on)confirmBox('Desactivar módulo',`Se oculta <b>${esc(m.t)}</b>. Los datos no se borran y vuelven al activarlo.`,doIt,'Desactivar');else doIt();};
 A.giPlan=el=>{if(!giAdm()||IS_CLIENT)return;const p=el.value||el.dataset.p;if(!GI_PORD.includes(p))return;S.cfg.plan=p;audit('PLAN_VISTA_PREVIA',GI_PLANS[p].t);save();rerender();};
+/* V26.78 · Paquetes por tipo de comercio: al elegir el canal de venta (Configuración → Modelo de negocio) o desde «Módulos»
+   se activan solas las funciones recomendadas. Sólo ENCIENDE (nunca apaga ni borra); respeta el plan y las dependencias; queda en Auditoría. */
+const GI_PACKS={min:{t:'Almacén / minorista',k:['pos_hold','price_hist','labels','kiosk'],x:['Club y fidelización','Atención al cliente']},
+ both:{t:'Minorista y mayorista',k:['pos_hold','price_hist','price_bulk','labels','kiosk','hr_vales'],x:['Reparto, despacho y rendición','Finanzas','Atención al cliente']},
+ may:{t:'Mayorista / distribuidora',k:['pos_hold','price_hist','price_bulk','labels','hr_vales'],x:['Reparto, despacho y rendición','Finanzas','Contabilidad de gestión']}};
+const giPackTodo=ch=>{const P=GI_PACKS[ch];if(!P)return[];return P.k.filter(k=>{const m=giMod(k);return m&&giInPlan(m.plan)&&!giCfg()[k];});};
+function giPackTxt(ch){const L=giPackTodo(ch);const P=GI_PACKS[ch];if(!P)return'';
+ return (L.length?`<br><br>También se activan solas: <b>${L.map(k=>esc(giMod(k).t)).join(', ')}</b>.`:'')+(P.x.length?`<br><span class="sm mut">Recomendado activar en su pantalla (necesitan configuración): ${P.x.map(esc).join(', ')}.</span>`:'');}
+function giPackApply(ch){if(!giAdm())return[];const L=giPackTodo(ch);L.forEach(k=>giSetMod(k,true));if(L.length)audit('MODULOS_PAQUETE',(GI_PACKS[ch]||{}).t+': '+L.map(k=>giMod(k).t).join(', '));return L;}
+A.giPack=el=>{const ch=el.dataset.ch;const P=GI_PACKS[ch];if(!P)return;const L=giPackTodo(ch);
+ if(!L.length)return toast('Las funciones recomendadas para «'+P.t+'» ya están activas.');
+ confirmBox('Activar funciones para '+esc(P.t),`Se activan: <b>${L.map(k=>esc(giMod(k).t)).join(', ')}</b>. No se apaga ni se borra nada.`+(P.x.length?`<br><span class="sm mut">Además conviene activar en su pantalla: ${P.x.map(esc).join(', ')}.</span>`:''),()=>{giPackApply(ch);toast(L.length+' función(es) activadas');rerender();},'Activar');};
 const giBadge=(on,lock)=>lock?'<span class="tag">🔒 Otro plan</span>':on?'<span class="tag ok">Activo</span>':'<span class="tag">Apagado</span>';
 reg('modulos','Módulos','gear','config',()=>{const pl=giPlan();
  return`<div class="row"><h1 class="sp">Módulos del sistema</h1></div>
  <p class="mut">Cada comercio usa sólo lo que necesita. Activar no borra nada y desactivar tampoco: los datos quedan guardados. Cada cambio queda en Auditoría.</p>
  <div class="card"><h3 style="margin-top:0">Plan: ${esc(GI_PLANS[pl].t)}</h3><p class="sm mut">${esc(GI_PLANS[pl].d)}</p>
  ${IS_CLIENT?'<p class="sm mut">El plan lo fija Vincular Business según el contrato.</p>':`<label for="gi-plan">Vista previa de planes (demo: en producción lo fija Vincular Business)</label><select id="gi-plan" data-chg="giPlan">${GI_PORD.map(p=>`<option value="${p}" ${p===pl?'selected':''}>${esc(GI_PLANS[p].t)}</option>`).join('')}</select>`}</div>
- <h2>Módulos nuevos (V26.76)</h2><div class="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:.8rem">
+ <div class="card"><h3 style="margin-top:0">Activar según el tipo de comercio</h3><p class="sm mut">Enciende de una vez las funciones recomendadas. También pasa solo al elegir el canal de venta en Configuración → Modelo de negocio. Nunca apaga nada.</p>
+ <div class="row" style="gap:.5rem;flex-wrap:wrap">${Object.entries(GI_PACKS).map(([k,P])=>`<button class="btn sm ${typeof chanCur==='function'&&chanCur()===k?'gold':''}" data-act="giPack" data-ch="${k}">${esc(P.t)}</button>`).join('')}</div></div>
+ <h2>Funciones que se activan acá</h2><div class="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:.8rem">
  ${GI_MODS.map(m=>{const lock=!giInPlan(m.plan),on=giOn(m.k);return`<div class="card" data-mod="${m.k}"><div class="row"><b class="sp">${esc(m.t)}</b>${giBadge(on,lock)}</div><p class="sm">${esc(m.d)}</p>${m.dep?`<p class="sm mut">Necesita: ${m.dep.map(d=>esc(giMod(d).t)).join(', ')}</p>`:''}<p class="sm mut">Incluido desde ${esc(GI_PLANS[m.plan].t)}</p>
   ${lock?'':`<button class="btn sm ${on?'':'gold'}" data-act="giMod" data-k="${m.k}" data-on="${on?0:1}">${on?'Desactivar':'Activar'}</button>`}${on&&m.scr?` <button class="btn sm" data-act="nav" data-id="${m.scr}">Abrir</button>`:''}</div>`;}).join('')}</div>
  <h2>Módulos que ya tenías</h2><p class="sm mut">Se activan desde su propia pantalla (cada uno tiene su configuración).</p><div class="tw"><table data-nosort><thead><tr><th>Módulo</th><th>Plan</th><th>Estado</th><th></th></tr></thead><tbody>
  ${GI_EXIST.map(x=>{const lock=!giInPlan(x.plan);let on=false;try{on=!!x.on();}catch(e){}return`<tr><td>${esc(x.t)}</td><td>${esc(GI_PLANS[x.plan].t)}</td><td>${giBadge(on,lock)}</td><td class="r">${!lock&&SCREENS[x.scr]?`<button class="btn sm" data-act="nav" data-id="${x.scr}">Ir</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>
- <h2>En construcción</h2><p class="sm mut">Próximas etapas del plan de gestión integral (se activan acá cuando estén terminadas y probadas).</p><ul>${GI_NEXT.map(([t,p])=>`<li>${esc(t)} <span class="tag">${esc(GI_PLANS[p].t)}</span></li>`).join('')}</ul>`;},
+ <h2>En desarrollo</h2><p class="sm mut">Todavía no están en el sistema: se suman a este panel, apagadas, a medida que se terminan y se prueban.</p><ul>${GI_NEXT.map(([t,p])=>`<li>${esc(t)} <span class="tag">${esc(GI_PLANS[p].t)}</span></li>`).join('')}</ul>`;},
  ()=>{const s=$('#gi-plan');if(s)s.addEventListener('change',()=>A.giPlan(s));},'Sistema');
 SCREENS.modulos.show=()=>giAdm();
 NAV.push(['modulos','Sistema'],['precios','Operación'],['vales','Equipo']);
@@ -11962,6 +11976,597 @@ NAV.push(['etiquetas','Operación']);
 /* demo: activo y con plantillas; en la demo también la cola tiene un ingreso de mercadería de ejemplo */
 {const _rt=route;route=function(){try{if(S&&S.cfg&&!IS_CLIENT&&!S.lbDemo){S.lbDemo=1;giCfg().labels=1;lbCfg();const P=S.products.filter(p=>p.active!==false&&!p.archived).slice(8,11);
  P.forEach((p,i)=>lbQ().push({id:uid(),pid:p.id,ts:now()-(2-i)*3600e3,why:'ingreso',ref:'Factura A 0001-0000123 (ejemplo)',qty:6*(i+1),done:0}));S.lblRcN=(S.receipts||[]).length;}}catch(e){console.warn('lbDemo',e);}return _rt.apply(this,arguments);};}
+
+/* ===== V26.78 · Gestión integral — circuito mayorista, perfiles de comercio y nube (SQL 30) =====
+   Pedidos de venta → armado (picking) → remito (parcial o total) → factura (venta del sistema) → cobro (cuenta corriente de siempre).
+   Acopio = venta con entrega diferida a precio congelado: se cobra (o queda en cuenta corriente) y se retira en partes con remito.
+   Perfiles de comercio: activan de una vez los módulos recomendados (nunca apagan nada).
+   Todo apagado en Almacén RAVE hasta que el administrador lo activa en Sistema → Módulos.
+   Nube: las colecciones nuevas suben recién cuando el servidor confirma el SQL 30 (vb_version() ≥ 30). */
+
+GI_MODS.push(
+ {k:'orders',t:'Pedidos de venta, armado y remitos',d:'Pedido → armado con lista de picking → remito parcial o total → factura → cobro. Reserva el stock de lo pedido y deja todo trazado.',plan:'mayorista',scr:'pedidosv'},
+ {k:'stockpile',t:'Acopio',d:'El cliente compra a precio congelado y retira en partes con remito. Saldo de acopio por artículo, vencimiento y aviso.',plan:'mayorista',dep:['orders'],scr:'acopios'});
+GI_NEXT.length=0; /* V26.78: todo lo de la hoja de ruta está construido */
+GI_EXIST.push({t:'Precios por cantidad (tramos por presentación) y acuerdos por cliente',plan:'mayorista',on:()=>typeof wsOn==='function'&&wsOn(),scr:'config'});
+Object.assign(PERMS,{orders:'Pedidos de venta: crear, armar, remitir y facturar',stockpile:'Acopios: vender con entrega diferida y registrar retiros'});
+
+/* ---------- Paquetes por tipo de comercio (p17 · V26.78): se suman los módulos de esta versión ----------
+   Al elegir el canal de venta en Configuración → Modelo de negocio, o desde «Módulos», se encienden solos (nunca se apaga nada). */
+if(typeof GI_PACKS!=='undefined'){const add=(ch,L)=>{if(GI_PACKS[ch])L.forEach(k=>{if(!GI_PACKS[ch].k.includes(k))GI_PACKS[ch].k.push(k);});};
+ add('min',['count']);add('both',['orders','stockpile','depots','count','b2b']);add('may',['orders','stockpile','depots','count','presale','gps','wa_orders','b2b']);}
+/* con todo construido, «En desarrollo» desaparece del panel */
+{const s=SCREENS.modulos;const _r=s.render;s.render=function(){const h=_r.apply(this,arguments);return GI_NEXT.length?h:h.replace(/<h2>En desarrollo<\/h2>[\s\S]*$/,'');};}
+
+/* ---------- roles nuevos (se crean al activar los módulos que los usan) ---------- */
+function vbRolesEnsure(){if(!S.roles)return;let ch=0;
+ if((giOn('presale')||giOn('gps'))&&!S.roles.preventista){S.roles.preventista=['presale'];ch=1;}
+ if((giOn('orders')||giOn('depots')||giOn('count'))&&!S.roles.deposito){S.roles.deposito=['orders','depots','count'];ch=1;}
+ const add=(r,p)=>{if(Array.isArray(S.roles[r])&&!S.roles[r].includes(p)){S.roles[r].push(p);ch=1;}};
+ if(giOn('orders')){add('supervisor','orders');add('mostrador','orders');}if(giOn('stockpile')){add('supervisor','stockpile');add('mostrador','stockpile');}
+ if(giOn('depots'))add('supervisor','depots');if(giOn('count')){add('supervisor','count');}if(giOn('presale'))add('supervisor','presale');if(giOn('gps'))add('supervisor','gps_view');
+ if(ch)audit('ROLES_GESTION','Permisos de los módulos activados agregados a sus roles');return ch;}
+{const _sm=giSetMod;giSetMod=function(k,on){const e=_sm.apply(this,arguments);if(!e&&on){try{if(vbRolesEnsure())save();}catch(x){}}return e;};}
+if(typeof ROLES_LBL!=='undefined')Object.assign(ROLES_LBL,{preventista:'Preventista',deposito:'Depósito'});
+
+/* ---------- Nube: colecciones del SQL 30 ---------- */
+const VB30_COLS=[{c:'pedv',key:'sordr',pii:['custName','note','addr']},{c:'remv',key:'remitos',pii:['custName']},{c:'visit',key:'visits',once:1,pii:['lat','lng','note']},{c:'cobrr',key:'cobrRuta',pii:['ref','custName']},
+ {c:'gps',key:'gpsPts',once:1,pii:['lat','lng','acc']},{c:'tdep',key:'tdep'},{c:'dstk',key:'dstk'},{c:'tinv',key:'counts'},{c:'acop',key:'acopios',pii:['custName']},{c:'plog',key:'priceLog',once:1},
+ {c:'lblq',key:'lblQ',del:1},{c:'hold',key:'holds',del:1,pii:['custName','note']},{c:'vale',key:'vales',pii:['empName','note']}];
+let vb30=false,vb30At=0;
+function vb30Enable(){if(vb30||typeof COLS==='undefined')return;VB30_COLS.forEach(x=>{if(!COLS.some(y=>y.c===x.c)){COLS.push(x);BYC[x.c]=x;if(x.del)DELC.add(x.c);}});vb30=true;}
+if(typeof pushAll==='function'){const _pa=pushAll;pushAll=async function(){if(!vb30&&typeof cl!=='undefined'&&cl.comercio&&Date.now()-vb30At>600000){vb30At=Date.now();
+  try{const v=await rpc('vb_version',{});if(+v>=30)vb30Enable();}catch(e){}}return _pa.apply(this,arguments);};}
+
+/* ---------- utilidades ---------- */
+const vbArr=k=>S[k]||(S[k]=[]);
+const vbSeq=(k,pre,w)=>{S[k]=(S[k]||0)+1;return pre+String(S[k]).padStart(w||5,'0');};
+const VB_OPEN=['pendiente','armado','parcial'];
+function vbLinePrice(p,qty,cust){if(typeof priceResolve==='function'&&typeof wsOn==='function'&&wsOn()){const r=priceResolve(p,qty,{cust,chan:'mayorista'});return{amt:r.amt!==undefined?r.amt:Math.round(r.price*qty),price:r.price,why:r.why,tr:r.tr,rule:r.rule,lst:r.list};}
+ return{amt:Math.round(p.price*qty),price:p.price,why:'precio de venta'};}
+/* reservado = lo pedido y no remitido en pedidos abiertos + lo remitido y no facturado */
+function vbReserved(pid,exceptOrd){let r=0;for(const o of vbArr('sordr')){if(o.id===exceptOrd)continue;if(VB_OPEN.includes(o.state)||o.state==='entregado')for(const it of o.items){if(it.pid!==pid)continue;r+=(it.qty-(it.del||0))+((it.del||0)-(it.inv||0));}}return Math.max(0,Math.round(r*1000)/1000);}
+const vbAvail=(p,ex)=>Math.round(((+p.stock||0)-vbReserved(p.id,ex))*1000)/1000;
+function vbCustFind(q){q=String(q||'').trim();if(!q)return[];if(typeof wsCustFind==='function'){const r=wsCustFind(q);if(r.length)return r.slice(0,8);}
+ const n=giNorm(q);return S.customers.filter(c=>!c.deleted&&giNorm(custFull(c)+' '+(c.taxid||'')+' '+(c.wa||'')).includes(n)).slice(0,8);}
+function vbDoc(title,body){return`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:A4;margin:14mm}body{font:11pt Arial,Helvetica,sans-serif;color:#000}h1{font-size:16pt;margin:0 0 2mm}table{width:100%;border-collapse:collapse;margin-top:4mm}th,td{border-bottom:1px solid #999;padding:1.5mm;text-align:left}td.r,th.r{text-align:right}.mut{color:#444;font-size:9pt}.box{border:1px solid #000;padding:3mm;margin-top:3mm}.sig{margin-top:18mm;display:flex;gap:20mm}.sig div{flex:1;border-top:1px solid #000;padding-top:1mm;font-size:9pt}</style></head><body>${body}</body></html>`;}
+function vbPrint(html){if(typeof lbPrintDoc==='function')return lbPrintDoc(html);const w=window.open('','_blank');if(!w)return toast('El navegador bloqueó la ventana de impresión.',1);w.document.write(html);w.document.close();setTimeout(()=>w.print(),200);}
+const vbShop=()=>{const b=(S.cfg.lbl&&S.cfg.lbl.brand)||{};return{name:b.name||S.tenant.name,addr:b.addr||S.tenant.address||'',phone:b.phone||S.tenant.phone||'',cuit:S.tenant.cuit||''};};
+
+/* ---------- Pedidos de venta: lógica ---------- */
+/* o: {cust, items:[{pid,qty}], cond:'contado'|'cc', note, src, deliv (fecha AAAA-MM-DD), seller, addr} */
+function vbOrderCreate(o){if(!giOn('orders'))return{err:'El módulo «Pedidos de venta» está apagado.'};if(!(can('orders')||can('presale')))return{err:'Sin permiso para cargar pedidos.'};
+ const c=custById(o.cust);if(!c)return{err:'Elegí el cliente del pedido.'};const agg={};
+ for(const it of (o.items||[])){const p=prod(it.pid);const q=Math.round((+it.qty||0)*1000)/1000;if(!p||p.archived||p.active===false)return{err:'Hay un artículo que ya no está disponible.'};if(!(q>0))return{err:'Cada artículo necesita una cantidad mayor a cero.'};agg[p.id]=(agg[p.id]||0)+q;}
+ const ids=Object.keys(agg);if(!ids.length)return{err:'El pedido no tiene artículos.'};if(ids.length>300)return{err:'Máximo 300 artículos por pedido.'};
+ const cond=o.cond==='cc'?'cc':'contado';const items=ids.map(pid=>{const p=prod(pid);const pr=vbLinePrice(p,agg[pid],c);return{pid,name:pfull(p),qty:agg[pid],price:pr.price,amt:pr.amt,del:0,inv:0,pick:null};});
+ const warn=items.filter(it=>vbAvail(prod(it.pid))<it.qty).map(it=>it.name+' (disp. '+vbAvail(prod(it.pid))+')');
+ const ord={id:uid(),n:vbSeq('seqPV','PV-'),ts:now(),user:user.name,cust:c.id,custName:custFull(c),items,cond,note:String(o.note||'').replace(/[<>]/g,'').slice(0,240),src:o.src||'mostrador',seller:o.seller||(user&&user.role==='preventista'?user.id:''),
+  deliv:/^\d{4}-\d{2}-\d{2}$/.test(o.deliv||'')?o.deliv:'',addr:String(o.addr||c.addr||'').slice(0,160),state:'pendiente',hist:[{ts:now(),u:user.name,s:'pendiente'}],remitos:[],sales:[],total:items.reduce((a,i)=>a+i.amt,0)};
+ vbArr('sordr').push(ord);audit('PEDIDO_VENTA',ord.n+' · '+ord.custName+' · '+items.length+' art. · '+money(ord.total)+' · '+ord.src+(warn.length?' · sin stock suficiente: '+warn.join(', '):''));save();return{o:ord,warn};}
+const vbOrd=id=>vbArr('sordr').find(x=>x.id===id);
+function vbSetState(o,s){o.state=s;o.hist.push({ts:now(),u:user?user.name:'sistema',s});}
+/* armado: picked {pid:q}; lo que falta queda marcado (el remito no puede superar lo armado si se armó) */
+function vbPick(id,picked){const o=vbOrd(id);if(!o)return{err:'Pedido inexistente.'};if(!can('orders'))return{err:'Sin permiso.'};if(!['pendiente','armado'].includes(o.state))return{err:'Sólo se arma un pedido pendiente.'};
+ const falt=[];for(const it of o.items){const q=Math.max(0,Math.min(it.qty,Math.round((+(picked||{})[it.pid]||0)*1000)/1000));it.pick=q;if(q<it.qty)falt.push(it.name+' ('+q+' de '+it.qty+')');}
+ vbSetState(o,'armado');o.pickBy=user.name;o.pickAt=now();audit('PEDIDO_ARMADO',o.n+(falt.length?' · faltantes: '+falt.join(', '):' · completo'));save();return{o,falt};}
+/* remito: qtys {pid:q} ≤ pendiente (y ≤ lo armado si se armó) */
+function vbRemito(id,qtys){const o=vbOrd(id);if(!o)return{err:'Pedido inexistente.'};if(!can('orders'))return{err:'Sin permiso.'};if(!VB_OPEN.includes(o.state))return{err:'El pedido no tiene nada para remitir.'};
+ const items=[];for(const it of o.items){const pend=Math.round((it.qty-(it.del||0))*1000)/1000;const lim=it.pick===null||it.pick===undefined?pend:Math.max(0,Math.min(pend,it.pick-(it.del||0)));
+  const q=Math.round((+(qtys||{})[it.pid]||0)*1000)/1000;if(q<0||q>lim+1e-9)return{err:'«'+it.name+'»: se pueden remitir hasta '+lim+'.'};if(q>0)items.push({pid:it.pid,name:it.name,qty:q,price:it.price});}
+ if(!items.length)return{err:'Indicá qué se entrega.'};
+ const r={id:uid(),n:vbSeq('seqRM','R-0001-',8),ts:now(),user:user.name,ord:o.id,ordN:o.n,cust:o.cust,custName:o.custName,items,inv:'',state:'emitido'};
+ for(const x of items){const it=o.items.find(i=>i.pid===x.pid);it.del=Math.round(((it.del||0)+x.qty)*1000)/1000;}
+ o.remitos.push(r.id);vbSetState(o,o.items.every(i=>i.del>=i.qty-1e-9)?'entregado':'parcial');vbArr('remitos').push(r);
+ audit('REMITO',r.n+' · '+o.n+' · '+o.custName+' · '+items.map(i=>i.qty+' '+i.name).join(', '));save();return{r,o};}
+function vbRemitoVoid(rid,why){const r=vbArr('remitos').find(x=>x.id===rid);if(!r)return{err:'Remito inexistente.'};if(!can('orders'))return{err:'Sin permiso.'};if(r.state==='anulado')return{err:'Ya está anulado.'};if(r.inv)return{err:'Ya está facturado: se corrige con nota de crédito o devolución.'};
+ if(!why||String(why).trim().length<3)return{err:'Escribí el motivo.'};const o=vbOrd(r.ord);r.state='anulado';r.voidWhy=String(why).trim().slice(0,120);r.voidAt=now();
+ if(o){for(const x of r.items){const it=o.items.find(i=>i.pid===x.pid);if(it)it.del=Math.max(0,Math.round(((it.del||0)-x.qty)*1000)/1000);}vbSetState(o,o.items.some(i=>(i.del||0)>0)?'parcial':(o.pickAt?'armado':'pendiente'));}
+ audit('REMITO_ANULADO',r.n+' · '+r.voidWhy);save();return{r};}
+/* factura: une remitos sin facturar del mismo cliente y registra la venta con el motor de siempre (stock, caja, cuenta corriente, ARCA) */
+function vbInvoice(rids,o){o=o||{};if(!can('orders')||!can('sell'))return{err:'Sin permiso para facturar.'};const R=rids.map(id=>vbArr('remitos').find(x=>x.id===id)).filter(Boolean);
+ if(!R.length)return{err:'Elegí los remitos a facturar.'};if(R.some(r=>r.inv||r.state==='anulado'))return{err:'Hay remitos ya facturados o anulados.'};if(new Set(R.map(r=>r.cust)).size>1)return{err:'Los remitos tienen que ser del mismo cliente.'};
+ const c=custById(R[0].cust);if(!c)return{err:'El cliente ya no existe.'};const agg={};R.forEach(r=>r.items.forEach(x=>{agg[x.pid]=(agg[x.pid]||0)+x.qty;}));
+ const lines=Object.keys(agg).map(pid=>{const p=prod(pid);if(!p)return null;const q=Math.round(agg[pid]*1000)/1000;const pr=vbLinePrice(p,q,c);
+  const l={pid,name:pfull(p),rubro:p.rubro,qty:q,price:pr.price,cost:p.cost,unit:p.unit,list:pr.price};if(pr.tr){l.tr=pr.tr;l.amt=pr.amt;l.rule=pr.rule;l.lst=pr.lst;}return l;});
+ if(lines.some(l=>!l))return{err:'Un artículo del remito ya no existe.'};
+ const method=o.method||'fiado';const opts={custId:c.id,ws:typeof wsOn==='function'&&wsOn()?{chan:'mayorista'}:undefined};if(o.pays)opts.pays=o.pays;
+ const r=commitSale(method,!!o.arca,'local',lines,opts);if(r.err)return{err:r.err};
+ const sale=r.sale;sale.rems=R.map(x=>x.n);const ords=new Set();
+ R.forEach(rm=>{rm.inv=sale.id;rm.invN=sale.n;const od=vbOrd(rm.ord);if(od){ords.add(od);rm.items.forEach(x=>{const it=od.items.find(i=>i.pid===x.pid);if(it)it.inv=Math.round(((it.inv||0)+x.qty)*1000)/1000;});}});
+ ords.forEach(od=>{od.sales.push(sale.id);sale.ord=od.n;if(od.items.every(i=>(i.inv||0)>=i.qty-1e-9))vbSetState(od,'facturado');});
+ audit('FACTURA_REMITOS',sale.n+' · '+R.map(x=>x.n).join(', ')+' · '+custFull(c)+' · '+money(sale.total)+' · '+(MET[sale.method]||sale.method));save();return{sale};}
+function vbOrderCancel(id,why){const o=vbOrd(id);if(!o)return{err:'Pedido inexistente.'};if(!can('orders'))return{err:'Sin permiso.'};if(['facturado','anulado'].includes(o.state))return{err:'Ese pedido ya está cerrado.'};
+ if(vbArr('remitos').some(r=>r.ord===o.id&&r.state!=='anulado'&&!r.inv))return{err:'Tiene remitos sin facturar: facturalos o anulalos primero.'};if(!why||String(why).trim().length<3)return{err:'Escribí el motivo.'};
+ const closed=o.items.some(i=>(i.inv||0)>0);vbSetState(o,closed?'facturado':'anulado');o.cancelWhy=String(why).trim().slice(0,120);
+ audit(closed?'PEDIDO_CERRADO':'PEDIDO_ANULADO',o.n+' · '+o.cancelWhy+(closed?' · se cierra con lo ya facturado':''));save();return{o};}
+function vbOrderDoc(o){const s=vbShop();return vbDoc('Pedido '+o.n,`<h1>Pedido ${esc(o.n)}</h1><div class="mut">${esc(s.name)} · ${esc(s.addr)} · ${esc(s.phone)}</div>
+ <div class="box"><b>Cliente:</b> ${esc(o.custName)}<br><b>Fecha:</b> ${fmtDT(o.ts)}${o.deliv?' · <b>Entrega:</b> '+dmy(o.deliv):''} · <b>Condición:</b> ${o.cond==='cc'?'Cuenta corriente':'Contado'}${o.addr?'<br><b>Entregar en:</b> '+esc(o.addr):''}${o.note?'<br><b>Nota:</b> '+esc(o.note):''}</div>
+ <table><thead><tr><th>Artículo</th><th class="r">Cantidad</th><th class="r">Precio</th><th class="r">Importe</th></tr></thead><tbody>${o.items.map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${i.qty}</td><td class="r">${money(i.price)}</td><td class="r">${money(i.amt)}</td></tr>`).join('')}</tbody>
+ <tfoot><tr><th colspan="3" class="r">Total estimado</th><th class="r">${money(o.total)}</th></tr></tfoot></table><p class="mut">Los precios se confirman al facturar. Documento interno, no válido como factura.</p>`);}
+function vbPickDoc(o){const P=o.items.map(i=>({i,p:prod(i.pid)})).sort((a,b)=>String((a.p&&(a.p.loc||rubName(a.p.rubro)))||'').localeCompare(String((b.p&&(b.p.loc||rubName(b.p.rubro)))||''))||a.i.name.localeCompare(b.i.name));
+ return vbDoc('Armado '+o.n,`<h1>Lista de armado · ${esc(o.n)}</h1><div class="mut">${esc(o.custName)} · ${fmtDT(o.ts)}</div><table><thead><tr><th>✓</th><th>Ubicación / rubro</th><th>Artículo</th><th>Código</th><th class="r">Pedido</th><th class="r">Armado</th></tr></thead><tbody>
+ ${P.map(({i,p})=>`<tr><td>☐</td><td>${esc((p&&(p.loc||rubName(p.rubro)))||'')}</td><td>${esc(i.name)}</td><td>${esc((p&&p.barcode)||'')}</td><td class="r">${i.qty-(i.del||0)}</td><td class="r">______</td></tr>`).join('')}</tbody></table><div class="sig"><div>Armó</div><div>Controló</div></div>`);}
+function vbRemitoDoc(r){const s=vbShop();const c=custById(r.cust)||{};return vbDoc('Remito '+r.n,`<h1>Remito ${esc(r.n)}</h1><div class="mut">${esc(s.name)}${s.cuit?' · CUIT '+esc(s.cuit):''} · ${esc(s.addr)} · ${esc(s.phone)}</div>
+ <div class="box"><b>Cliente:</b> ${esc(r.custName)}${c.taxid?' · CUIT '+esc(c.taxid):''}<br><b>Fecha:</b> ${fmtDT(r.ts)} · <b>Pedido:</b> ${esc(r.ordN||'')}</div>
+ <table><thead><tr><th>Artículo</th><th class="r">Cantidad</th></tr></thead><tbody>${r.items.map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${i.qty}</td></tr>`).join('')}</tbody></table>
+ <div class="sig"><div>Entregó</div><div>Recibí conforme (firma, aclaración y DNI)</div></div><p class="mut">Remito interno de entrega. No reemplaza el remito electrónico ni el COT cuando la mercadería viaja y la normativa lo exige [VERIFICAR con el contador].</p>`);}
+
+/* ---------- Acopio (venta con entrega diferida a precio congelado) ---------- */
+/* o: {cust, items:[{pid,qty}], method, pays, venc (AAAA-MM-DD)} → crea la venta (stock, caja y cuenta corriente de siempre) y el acopio a retirar */
+function vbAcopioCreate(o){if(!giOn('stockpile'))return{err:'El módulo «Acopio» está apagado.'};if(!can('stockpile')||!can('sell'))return{err:'Sin permiso.'};const c=custById(o.cust);if(!c)return{err:'Elegí el cliente.'};
+ const agg={};for(const it of (o.items||[])){const p=prod(it.pid);const q=Math.round((+it.qty||0)*1000)/1000;if(!p)return{err:'Artículo inexistente.'};if(!(q>0))return{err:'Cantidades mayores a cero.'};agg[p.id]=(agg[p.id]||0)+q;}
+ const ids=Object.keys(agg);if(!ids.length)return{err:'El acopio no tiene artículos.'};
+ const lines=ids.map(pid=>{const p=prod(pid);const pr=vbLinePrice(p,agg[pid],c);const l={pid,name:pfull(p),rubro:p.rubro,qty:agg[pid],price:pr.price,cost:p.cost,unit:p.unit,list:pr.price};if(pr.tr){l.tr=pr.tr;l.amt=pr.amt;l.rule=pr.rule;l.lst=pr.lst;}return l;});
+ const opts={custId:c.id,ws:typeof wsOn==='function'&&wsOn()?{chan:'mayorista'}:undefined};if(o.pays)opts.pays=o.pays;
+ const r=commitSale(o.method||'fiado',!!o.arca,'local',lines,opts);if(r.err)return{err:r.err};const sale=r.sale;
+ const ac={id:uid(),n:vbSeq('seqAC','AC-'),ts:now(),user:user.name,cust:c.id,custName:custFull(c),sale:sale.id,saleN:sale.n,items:lines.map(l=>({pid:l.pid,name:l.name,qty:l.qty,price:l.amt!==undefined?Math.round(l.amt/l.qty):l.price,ret:0})),total:sale.total,
+  venc:/^\d{4}-\d{2}-\d{2}$/.test(o.venc||'')?o.venc:'',state:'vigente',retiros:[]};
+ sale.acopio=ac.n;vbArr('acopios').push(ac);audit('ACOPIO',ac.n+' · '+ac.custName+' · '+money(ac.total)+' · venta '+sale.n+' · precio congelado');save();return{ac,sale};}
+function vbAcopioRetiro(id,qtys){const ac=vbArr('acopios').find(x=>x.id===id);if(!ac)return{err:'Acopio inexistente.'};if(!can('stockpile'))return{err:'Sin permiso.'};if(ac.state!=='vigente')return{err:'Ese acopio no está vigente.'};
+ const items=[];for(const it of ac.items){const pend=Math.round((it.qty-it.ret)*1000)/1000;const q=Math.round((+(qtys||{})[it.pid]||0)*1000)/1000;if(q<0||q>pend+1e-9)return{err:'«'+it.name+'»: quedan '+pend+' para retirar.'};if(q>0)items.push({pid:it.pid,name:it.name,qty:q});}
+ if(!items.length)return{err:'Indicá qué retira.'};const r={id:uid(),n:vbSeq('seqRM','R-0001-',8),ts:now(),user:user.name,ord:'',ordN:ac.n,acop:ac.id,cust:ac.cust,custName:ac.custName,items,inv:ac.sale,invN:ac.saleN,state:'emitido'};
+ items.forEach(x=>{const it=ac.items.find(i=>i.pid===x.pid);it.ret=Math.round((it.ret+x.qty)*1000)/1000;});ac.retiros.push({id:r.id,n:r.n,ts:r.ts,items});if(ac.items.every(i=>i.ret>=i.qty-1e-9))ac.state='retirado';
+ vbArr('remitos').push(r);audit('ACOPIO_RETIRO',ac.n+' · '+r.n+' · '+items.map(i=>i.qty+' '+i.name).join(', ')+(ac.state==='retirado'?' · completo':''));save();return{r,ac};}
+const vbAcopioPend=ac=>ac.items.reduce((a,i)=>a+Math.round((i.qty-i.ret)*i.price),0);
+/* pasivo: lo cobrado (o facturado) que todavía no se entregó */
+const vbAcopioPasivo=()=>vbArr('acopios').filter(a=>a.state==='vigente').reduce((t,a)=>t+vbAcopioPend(a),0);
+
+/* ---------- Pantallas: Pedidos de venta ---------- */
+let vbOTab='lista',vbOF='abiertos',vbDraft=null,vbOSel='';
+const VB_ST={pendiente:['Pendiente',''],armado:['Armado','ok'],parcial:['Entregado en parte','warn'],entregado:['Entregado, falta facturar','warn'],facturado:['Facturado','ok'],anulado:['Anulado','bad']};
+const vbTag=s=>`<span class="tag ${VB_ST[s]?VB_ST[s][1]:''}">${esc(VB_ST[s]?VB_ST[s][0]:s)}</span>`;
+A.vbOTab=el=>{vbOTab=el.dataset.t;rerender();};
+function vbDraftNew(cust,src){vbDraft={cust:cust||'',items:[],cond:'cc',note:'',src:src||'mostrador',deliv:''};}
+function vbDraftHTML(){const d=vbDraft;const c=custById(d.cust);const tot=d.items.reduce((a,x)=>{const p=prod(x.pid);return a+(p?vbLinePrice(p,x.qty,c).amt:0);},0);
+ return`<div class="card"><h3 style="margin-top:0">Nuevo pedido</h3>
+ ${c?`<div class="row"><b class="sp">${esc(custFull(c))}</b>${typeof debtOf==='function'&&debtOf(c.id)>0?`<span class="tag warn">Debe ${money(debtOf(c.id))}</span>`:''}<button class="btn sm" data-act="vbDCust" data-id="">Cambiar</button></div>`
+  :`<label for="vb-dc">Cliente</label><input id="vb-dc" placeholder="Nombre, CUIT o teléfono" autocomplete="off"><div id="vb-dcr"></div>`}
+ <label for="vb-dp">Agregar artículo</label><input id="vb-dp" placeholder="Código de barras o nombre (Enter)" autocomplete="off"><div id="vb-dpr"></div>
+ ${d.items.length?`<div class="tw"><table data-nosort><thead><tr><th>Artículo</th><th class="r">Disponible</th><th class="r">Cantidad</th><th class="r">Importe</th><th></th></tr></thead><tbody>
+ ${d.items.map((x,i)=>{const p=prod(x.pid);if(!p)return'';const pr=vbLinePrice(p,x.qty,c);const av=vbAvail(p);return`<tr><td>${esc(pfull(p))}<div class="sm mut">${esc(pr.why||'')}</div></td><td class="r ${av<x.qty?'bad':''}">${av}</td>
+  <td class="r"><input class="vb-dq" data-i="${i}" type="number" min="0" step="any" value="${x.qty}" style="width:5.5rem" aria-label="Cantidad de ${esc(p.name)}"></td><td class="r">${money(pr.amt)}</td><td><button class="btn sm red" data-act="vbDRm" data-i="${i}" aria-label="Quitar">✕</button></td></tr>`;}).join('')}</tbody>
+ <tfoot><tr><th colspan="3" class="r">Total estimado</th><th class="r">${money(tot)}</th><th></th></tr></tfoot></table></div>`:'<p class="sm mut">Todavía no hay artículos.</p>'}
+ <div class="f"><div><label for="vb-dk">Condición</label><select id="vb-dk"><option value="cc" ${d.cond==='cc'?'selected':''}>Cuenta corriente</option><option value="contado" ${d.cond==='contado'?'selected':''}>Contado</option></select></div>
+ <div><label for="vb-dd">Fecha de entrega</label><input id="vb-dd" type="date" value="${d.deliv}"></div><div><label for="vb-dn">Nota</label><input id="vb-dn" maxlength="240" value="${esc(d.note)}"></div></div>
+ <div class="row" style="gap:.5rem"><button class="btn gold" data-act="vbDSave" ${c&&d.items.length?'':'disabled'}>Guardar pedido</button><button class="btn ghost" data-act="vbDCancel">Descartar</button></div></div>`;}
+function vbDraftAfter(){const dc=$('#vb-dc');if(dc)dc.addEventListener('input',()=>{const L=vbCustFind(dc.value);$('#vb-dcr').innerHTML=L.map(c=>`<button class="btn sm" data-act="vbDCust" data-id="${c.id}" style="margin:.15rem">${esc(custFull(c))}${c.taxid?' · '+esc(c.taxid):''}</button>`).join('');});
+ const dp=$('#vb-dp');if(dp){dp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const p=giFind(dp.value)[0];if(!p)return toast('No encontré ese artículo.',1);A.vbDAdd({dataset:{id:p.id}});}});
+  dp.addEventListener('input',()=>{const v=dp.value.trim();if(v.length<3||/^\d+$/.test(v)){$('#vb-dpr').innerHTML='';return;}$('#vb-dpr').innerHTML=giFind(v,6).map(p=>`<button class="btn sm" data-act="vbDAdd" data-id="${p.id}" style="margin:.15rem">${esc(pfull(p))} · ${money(p.price)}</button>`).join('');});}
+ $$('.vb-dq').forEach(i=>i.addEventListener('change',()=>{const v=Math.round((+i.value||0)*1000)/1000;const x=vbDraft.items[+i.dataset.i];if(x){if(v>0)x.qty=v;else vbDraft.items.splice(+i.dataset.i,1);}rerender();}));
+ [['vb-dk','cond'],['vb-dd','deliv'],['vb-dn','note']].forEach(([id,k])=>{const e=$('#'+id);if(e)e.addEventListener('change',()=>{vbDraft[k]=e.value;});});}
+A.vbDCust=el=>{vbDraft.cust=el.dataset.id||'';rerender();};
+A.vbDAdd=el=>{const x=vbDraft.items.find(i=>i.pid===el.dataset.id);if(x)x.qty+=1;else vbDraft.items.push({pid:el.dataset.id,qty:1});rerender();setTimeout(()=>{const i=$('#vb-dp');if(i)i.focus();},50);};
+A.vbDRm=el=>{vbDraft.items.splice(+el.dataset.i,1);rerender();};
+A.vbDCancel=()=>{vbDraft=null;vbOTab='lista';rerender();};
+A.vbDSave=()=>{const r=vbOrderCreate(vbDraft);if(r.err)return toast(r.err,1);vbDraft=null;vbOTab='lista';vbOSel=r.o.id;rerender();toast('Pedido '+r.o.n+' guardado'+(r.warn.length?' · ojo: falta stock de '+r.warn.length+' artículo(s)':''));};
+A.vbONew=()=>{vbDraftNew();vbOTab='nuevo';rerender();};
+function vbOrdersList(){const F={abiertos:o=>VB_OPEN.concat('entregado').includes(o.state),todos:()=>true,facturado:o=>o.state==='facturado',anulado:o=>o.state==='anulado'};const L=vbArr('sordr').filter(F[vbOF]||F.abiertos).slice().reverse().slice(0,300);
+ return`<div class="row" style="gap:.4rem;flex-wrap:wrap;margin:.5rem 0">${[['abiertos','Abiertos'],['facturado','Facturados'],['anulado','Anulados'],['todos','Todos']].map(([k,t])=>`<button class="btn sm ${vbOF===k?'gold':''}" data-act="vbOF" data-f="${k}">${t}</button>`).join('')}<span class="sp"></span><button class="btn gold" data-act="vbONew">+ Nuevo pedido</button></div>
+ ${L.length?`<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Origen</th><th class="r">Total</th><th>Estado</th><th></th></tr></thead><tbody>${L.map(o=>`<tr><td><b>${esc(o.n)}</b></td><td>${fmtDT(o.ts)}</td><td>${esc(o.custName)}</td><td>${esc({mostrador:'Mostrador',preventa:'Preventa',whatsapp:'WhatsApp',portal:'Portal'}[o.src]||o.src)}</td><td class="r">${money(o.total)}</td><td>${vbTag(o.state)}</td><td class="r"><button class="btn sm" data-act="vbOOpen" data-id="${o.id}">Abrir</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="okbox">No hay pedidos en esta vista.</div>'}`;}
+A.vbOF=el=>{vbOF=el.dataset.f;rerender();};
+A.vbOOpen=el=>{vbOSel=el.dataset.id;vbOTab='detalle';rerender();};
+function vbOrderDetail(){const o=vbOrd(vbOSel);if(!o)return'<p>Elegí un pedido.</p>';const R=vbArr('remitos').filter(r=>r.ord===o.id);const open=VB_OPEN.includes(o.state);const uninv=R.filter(r=>!r.inv&&r.state!=='anulado');
+ return`<div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="btn sm" data-act="vbOTab" data-t="lista">← Pedidos</button><h2 class="sp" style="margin:0">${esc(o.n)} · ${esc(o.custName)}</h2>${vbTag(o.state)}</div>
+ <p class="sm mut">${fmtDT(o.ts)} · ${esc(o.user)} · ${o.cond==='cc'?'Cuenta corriente':'Contado'}${o.deliv?' · entrega '+dmy(o.deliv):''}${o.note?' · '+esc(o.note):''}</p>
+ <div class="tw"><table data-nosort><thead><tr><th>Artículo</th><th class="r">Pedido</th><th class="r">Armado</th><th class="r">Entregado</th><th class="r">Facturado</th><th class="r">Disponible</th>${open?'<th class="r">Entregar ahora</th>':''}</tr></thead><tbody>
+ ${o.items.map(it=>{const p=prod(it.pid);const pend=Math.round((it.qty-(it.del||0))*1000)/1000;const lim=it.pick===null||it.pick===undefined?pend:Math.max(0,Math.min(pend,it.pick-(it.del||0)));
+  return`<tr><td>${esc(it.name)}</td><td class="r">${it.qty}</td><td class="r">${it.pick===null||it.pick===undefined?'—':it.pick}</td><td class="r">${it.del||0}</td><td class="r">${it.inv||0}</td><td class="r">${p?vbAvail(p,o.id):'—'}</td>${open?`<td class="r"><input class="vb-rq" data-pid="${it.pid}" type="number" min="0" max="${lim}" step="any" value="${lim}" style="width:5.5rem" aria-label="Entregar ${esc(it.name)}"></td>`:''}</tr>`;}).join('')}</tbody></table></div>
+ <div class="row" style="gap:.5rem;flex-wrap:wrap;margin:.6rem 0">
+ <button class="btn sm" data-act="vbODoc" data-id="${o.id}">Imprimir pedido</button>
+ ${['pendiente','armado'].includes(o.state)?`<button class="btn sm" data-act="vbOPickDoc" data-id="${o.id}">Lista de armado</button><button class="btn sm" data-act="vbOPick" data-id="${o.id}">Registrar armado</button>`:''}
+ ${open?`<button class="btn gold" data-act="vbORem" data-id="${o.id}">Emitir remito</button>`:''}
+ ${uninv.length?`<button class="btn gold" data-act="vbOInv" data-id="${o.id}">Facturar ${uninv.length} remito(s)</button>`:''}
+ ${!['facturado','anulado'].includes(o.state)?`<button class="btn sm red" data-act="vbOCancel" data-id="${o.id}">${o.items.some(i=>(i.inv||0)>0)?'Cerrar pedido':'Anular pedido'}</button>`:''}</div>
+ ${R.length?`<h3>Remitos</h3><div class="tw"><table data-nosort><thead><tr><th>N.º</th><th>Fecha</th><th>Artículos</th><th>Factura</th><th></th></tr></thead><tbody>${R.map(r=>`<tr><td>${esc(r.n)}${r.state==='anulado'?' <span class="tag bad">Anulado</span>':''}</td><td>${fmtDT(r.ts)}</td><td>${r.items.map(i=>i.qty+' '+esc(i.name)).join(', ')}</td><td>${r.inv?esc(r.invN||''):'—'}</td>
+  <td class="r"><button class="btn sm" data-act="vbRDoc" data-id="${r.id}">Imprimir</button>${!r.inv&&r.state!=='anulado'?` <button class="btn sm red" data-act="vbRVoid" data-id="${r.id}">Anular</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:''}
+ <h3>Historial</h3><ul class="sm">${o.hist.map(h=>`<li>${fmtDT(h.ts)} · ${esc(h.u)} · ${esc(VB_ST[h.s]?VB_ST[h.s][0]:h.s)}</li>`).join('')}</ul>`;}
+A.vbODoc=el=>{const o=vbOrd(el.dataset.id);if(o)vbPrint(vbOrderDoc(o));};
+A.vbOPickDoc=el=>{const o=vbOrd(el.dataset.id);if(o)vbPrint(vbPickDoc(o));};
+A.vbRDoc=el=>{const r=vbArr('remitos').find(x=>x.id===el.dataset.id);if(r)vbPrint(vbRemitoDoc(r));};
+A.vbOPick=el=>{const o=vbOrd(el.dataset.id);if(!o)return;modal('Armado de '+o.n,`<p class="sm mut">Anotá lo que se armó de verdad. Lo que falte queda pendiente y no se puede remitir hasta armarlo.</p>${o.items.map(it=>`<label for="pk-${it.pid}">${esc(it.name)} (pedido ${it.qty})</label><input id="pk-${it.pid}" class="vb-pk" data-pid="${it.pid}" type="number" min="0" step="any" value="${it.qty}">`).join('')}`,
+ {okText:'Guardar armado',onOk:w=>{const m={};$$('.vb-pk',w).forEach(i=>m[i.dataset.pid]=+i.value);const r=vbPick(o.id,m);if(r.err)return w._err(r.err),false;toast(r.falt.length?'Armado con faltantes':'Armado completo');rerender();}});};
+A.vbORem=el=>{const o=vbOrd(el.dataset.id);if(!o)return;const m={};$$('.vb-rq').forEach(i=>m[i.dataset.pid]=+i.value);const r=vbRemito(o.id,m);if(r.err)return toast(r.err,1);
+ confirmBox('Remito '+esc(r.r.n),`Se registró la entrega de ${r.r.items.length} artículo(s). ¿Lo imprimimos para que firme el cliente?`,()=>vbPrint(vbRemitoDoc(r.r)),'Imprimir');rerender();};
+A.vbRVoid=el=>{modal('Anular remito',`<label for="rv-w">Motivo</label><input id="rv-w" maxlength="120">`,{okText:'Anular',onOk:w=>{const r=vbRemitoVoid(el.dataset.id,val('rv-w'));if(r.err)return w._err(r.err),false;toast('Remito anulado');rerender();}});};
+A.vbOCancel=el=>{modal('Cerrar o anular pedido',`<label for="oc-w">Motivo</label><input id="oc-w" maxlength="120">`,{okText:'Confirmar',onOk:w=>{const r=vbOrderCancel(el.dataset.id,val('oc-w'));if(r.err)return w._err(r.err),false;toast('Pedido '+r.o.n+' · '+VB_ST[r.o.state][0]);rerender();}});};
+function vbPayForm(c,cond){const M=['fiado','efectivo','transferencia','debito','credito','qr'];return`<label for="iv-m">Cómo se cobra</label><select id="iv-m">${M.map(m=>`<option value="${m}" ${(cond==='cc'?'fiado':'efectivo')===m?'selected':''}>${esc(MET[m]||m)}</option>`).join('')}</select>
+ ${typeof arcaOn==='function'&&arcaOn()?'<label class="row" style="gap:.4rem"><input type="checkbox" id="iv-a"> Factura electrónica (ARCA)</label>':''}<p class="sm mut">Necesita la caja abierta. La cuenta corriente respeta el límite de crédito del cliente.</p>`;}
+A.vbOInv=el=>{const o=vbOrd(el.dataset.id);if(!o)return;const R=vbArr('remitos').filter(r=>r.ord===o.id&&!r.inv&&r.state!=='anulado');const c=custById(o.cust);
+ modal('Facturar '+o.n,`<p>${R.map(r=>esc(r.n)).join(', ')} · ${esc(o.custName)}</p>${vbPayForm(c,o.cond)}`,{okText:'Facturar',onOk:w=>{const r=vbInvoice(R.map(x=>x.id),{method:val('iv-m'),arca:!!($('#iv-a')&&$('#iv-a').checked)});if(r.err)return w._err(r.err),false;toast('Venta '+r.sale.n+' · '+money(r.sale.total));rerender();}});};
+function vbRemitosList(){const L=vbArr('remitos').slice().reverse().slice(0,300);return L.length?`<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Pedido / acopio</th><th>Factura</th><th></th></tr></thead><tbody>${L.map(r=>`<tr><td>${esc(r.n)}${r.state==='anulado'?' <span class="tag bad">Anulado</span>':''}</td><td>${fmtDT(r.ts)}</td><td>${esc(r.custName)}</td><td>${esc(r.ordN||'')}</td><td>${r.inv?esc(r.invN||'Facturado'):'<span class="tag warn">Sin facturar</span>'}</td><td class="r"><button class="btn sm" data-act="vbRDoc" data-id="${r.id}">Imprimir</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="okbox">Todavía no hay remitos.</div>';}
+reg('pedidosv','Pedidos de venta','truck','orders',()=>{const tabs=[['lista','Pedidos'],['remitos','Remitos']];if(vbOTab==='nuevo'&&!vbDraft)vbDraftNew();
+ return`<div class="row"><h1 class="sp">Pedidos de venta</h1></div><p class="sm mut">Pedido → armado → remito → factura → cobro. Lo pedido queda reservado: «disponible» ya descuenta lo comprometido con otros pedidos.</p>
+ ${vbOTab==='nuevo'?vbDraftHTML():vbOTab==='detalle'?vbOrderDetail():`<div class="ux-tabs" role="tablist">${tabs.map(([k,t])=>`<a role="tab" tabindex="0" data-act="vbOTab" data-t="${k}" aria-selected="${k===vbOTab}" class="${k===vbOTab?'on':''}">${t}</a>`).join('')}</div>${vbOTab==='remitos'?vbRemitosList():vbOrdersList()}`}`;},
+ ()=>{if(vbOTab==='nuevo')vbDraftAfter();},'Operación');
+SCREENS.pedidosv.show=()=>giOn('orders');NAV.push(['pedidosv','Operación']);
+
+/* ---------- Pantalla: Acopios ---------- */
+let vbAcDraft=null;
+A.vbAcNew=()=>{vbAcDraft={cust:'',items:[],venc:''};rerender();};
+A.vbAcCust=el=>{vbAcDraft.cust=el.dataset.id||'';rerender();};
+A.vbAcAdd=el=>{const x=vbAcDraft.items.find(i=>i.pid===el.dataset.id);if(x)x.qty+=1;else vbAcDraft.items.push({pid:el.dataset.id,qty:1});rerender();};
+A.vbAcRm=el=>{vbAcDraft.items.splice(+el.dataset.i,1);rerender();};
+A.vbAcCancel=()=>{vbAcDraft=null;rerender();};
+A.vbAcSave=()=>{const c=custById(vbAcDraft.cust);modal('Cobrar el acopio',vbPayForm(c,'cc')+`<label for="ac-v">Vence (opcional)</label><input id="ac-v" type="date" value="${vbAcDraft.venc||''}">`,{okText:'Registrar acopio',onOk:w=>{
+ const r=vbAcopioCreate({cust:vbAcDraft.cust,items:vbAcDraft.items,method:val('iv-m'),arca:!!($('#iv-a')&&$('#iv-a').checked),venc:val('ac-v')});if(r.err)return w._err(r.err),false;vbAcDraft=null;toast('Acopio '+r.ac.n+' · venta '+r.sale.n);rerender();}});};
+A.vbAcRet=el=>{const ac=vbArr('acopios').find(x=>x.id===el.dataset.id);if(!ac)return;modal('Retiro de '+ac.n,ac.items.map(it=>`<label for="ar-${it.pid}">${esc(it.name)} · quedan ${Math.round((it.qty-it.ret)*1000)/1000}</label><input id="ar-${it.pid}" class="vb-ar" data-pid="${it.pid}" type="number" min="0" step="any" value="0">`).join(''),
+ {okText:'Registrar retiro',onOk:w=>{const m={};$$('.vb-ar',w).forEach(i=>m[i.dataset.pid]=+i.value);const r=vbAcopioRetiro(ac.id,m);if(r.err)return w._err(r.err),false;rerender();confirmBox('Remito '+esc(r.r.n),'¿Imprimimos el remito del retiro?',()=>vbPrint(vbRemitoDoc(r.r)),'Imprimir');}});};
+reg('acopios','Acopios','box','stockpile',()=>{const L=vbArr('acopios').slice().reverse();const hoy=dkey(now());const d=vbAcDraft;
+ if(d){const c=custById(d.cust);return`<h1>Nuevo acopio</h1><div class="card"><p class="sm mut">El cliente compra hoy a precio congelado y retira en partes. La venta se registra ahora (stock, caja o cuenta corriente); cada retiro genera su remito.</p>
+  ${c?`<div class="row"><b class="sp">${esc(custFull(c))}</b><button class="btn sm" data-act="vbAcCust" data-id="">Cambiar</button></div>`:`<label for="ac-c">Cliente</label><input id="ac-c" autocomplete="off" placeholder="Nombre, CUIT o teléfono"><div id="ac-cr"></div>`}
+  <label for="ac-p">Agregar artículo</label><input id="ac-p" autocomplete="off" placeholder="Código o nombre (Enter)">
+  ${d.items.length?`<div class="tw"><table data-nosort><thead><tr><th>Artículo</th><th class="r">Cantidad</th><th class="r">Importe</th><th></th></tr></thead><tbody>${d.items.map((x,i)=>{const p=prod(x.pid);const pr=vbLinePrice(p,x.qty,c);return`<tr><td>${esc(pfull(p))}</td><td class="r"><input class="vb-aq" data-i="${i}" type="number" min="0" step="any" value="${x.qty}" style="width:5.5rem" aria-label="Cantidad"></td><td class="r">${money(pr.amt)}</td><td><button class="btn sm red" data-act="vbAcRm" data-i="${i}" aria-label="Quitar">✕</button></td></tr>`;}).join('')}</tbody></table></div>`:''}
+  <div class="row" style="gap:.5rem;margin-top:.6rem"><button class="btn gold" data-act="vbAcSave" ${c&&d.items.length?'':'disabled'}>Cobrar y registrar</button><button class="btn ghost" data-act="vbAcCancel">Descartar</button></div></div>`;}
+ return`<div class="row"><h1 class="sp">Acopios</h1><button class="btn gold" data-act="vbAcNew">+ Nuevo acopio</button></div>
+ <div class="card"><div class="sm mut">Mercadería vendida pendiente de entregar (pasivo con clientes)</div><div class="total">${money(vbAcopioPasivo())}</div></div>
+ ${L.length?`<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Pendiente</th><th class="r">A entregar</th><th>Vence</th><th>Estado</th><th></th></tr></thead><tbody>${L.map(a=>{const venc=a.venc&&a.state==='vigente'&&a.venc<hoy;return`<tr><td>${esc(a.n)}</td><td>${fmtDT(a.ts)}</td><td>${esc(a.custName)}</td><td class="sm">${a.items.filter(i=>i.qty>i.ret).map(i=>Math.round((i.qty-i.ret)*1000)/1000+' '+esc(i.name)).join(', ')||'—'}</td><td class="r">${money(vbAcopioPend(a))}</td><td>${a.venc?dmy(a.venc):'—'}${venc?' <span class="tag bad">Vencido</span>':''}</td><td><span class="tag ${a.state==='vigente'?'warn':'ok'}">${a.state==='vigente'?'Vigente':'Retirado'}</span></td><td class="r">${a.state==='vigente'?`<button class="btn sm gold" data-act="vbAcRet" data-id="${a.id}">Retiro</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>`:'<div class="okbox">No hay acopios.</div>'}`;},
+ ()=>{if(!vbAcDraft)return;const ci=$('#ac-c');if(ci)ci.addEventListener('input',()=>{$('#ac-cr').innerHTML=vbCustFind(ci.value).map(c=>`<button class="btn sm" data-act="vbAcCust" data-id="${c.id}" style="margin:.15rem">${esc(custFull(c))}</button>`).join('');});
+  const pi=$('#ac-p');if(pi)pi.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const p=giFind(pi.value)[0];if(!p)return toast('No encontré ese artículo.',1);A.vbAcAdd({dataset:{id:p.id}});}});
+  $$('.vb-aq').forEach(i=>i.addEventListener('change',()=>{const v=+i.value||0;const x=vbAcDraft.items[+i.dataset.i];if(x){if(v>0)x.qty=v;else vbAcDraft.items.splice(+i.dataset.i,1);}rerender();}));},'Operación');
+SCREENS.acopios.show=()=>giOn('stockpile');NAV.push(['acopios','Operación']);
+
+/* ===== V26.78 · Stock por sucursal y depósito · Toma de inventario con el celular =====
+   Depósitos: el stock total del artículo (el de siempre, el que usa Vender) se reparte entre depósitos.
+   Regla única: el depósito de ESTE equipo = stock total − lo de los demás depósitos − lo que está en tránsito.
+   Así toda venta, compra, merma o ajuste de este equipo cae en su depósito sin tocar Vender ni Compras,
+   y las transferencias mueven entre depósitos sin cambiar el total. Los datos van en S.dstk (colección «dstk» del SQL 30).
+   Inventario: conteo a ciegas por sector, varios contadores, segundo conteo de diferencias, ajuste único auditado. */
+
+GI_MODS.push(
+ {k:'depots',t:'Stock por sucursal y depósito',d:'Stock separado por depósito, transferencias con remito interno y mercadería en tránsito, mínimos y sugerencia de reposición.',plan:'mayorista',scr:'depositos'},
+ {k:'count',t:'Toma de inventario con el celular',d:'Conteo a ciegas por sector con escáner o cámara, varios contadores, segundo conteo de diferencias y ajuste único auditado con valorización.',plan:'esencial',scr:'inventariof'});
+Object.assign(PERMS,{depots:'Stock por depósito y transferencias',count:'Toma de inventario: contar y (con supervisor) ajustar'});
+
+/* ---------- Depósitos ---------- */
+const VB_TR='_tr';
+function dpList(){const c=S.cfg.depots||(S.cfg.depots=[]);if(!c.length)c.push({id:'d1',name:'Depósito principal',suc:''});return c;}
+const dpById=id=>dpList().find(d=>d.id===id);
+function dpCur(){let id='';try{id=localStorage.getItem('vb.depot')||'';}catch(e){}return dpById(id)?id:dpList()[0].id;}
+function dpSetCur(id){if(!dpById(id))return;try{localStorage.setItem('vb.depot',id);}catch(e){}audit('DEPOSITO_EQUIPO','Este equipo trabaja con '+dpById(id).name);}
+const dpRec=pid=>{let r=vbArr('dstk').find(x=>x.id===pid);if(!r){r={id:pid,q:{},min:{}};vbArr('dstk').push(r);}if(!r.q)r.q={};if(!r.min)r.min={};return r;};
+
+/* reparte: el depósito del equipo absorbe la diferencia con el total */
+function dpSync(){if(!giOn('depots')||!S.products)return;const cur=dpCur();
+ for(const p of S.products){if(p.id==='p_envio'||p.archived)continue;const has=vbArr('dstk').find(x=>x.id===p.id);if(!has&&!(+p.stock))continue;const r=dpRec(p.id);
+  let others=0;for(const k in r.q)if(k!==cur)others+=+r.q[k]||0;const v=r3((+p.stock||0)-others);if(r.q[cur]!==v)r.q[cur]=v;}}
+{const _sv=save;save=function(){try{dpSync();}catch(e){}return _sv.apply(this,arguments);};}
+const dpQty=(pid,dep)=>{const r=vbArr('dstk').find(x=>x.id===pid);return r&&r.q?r3(+r.q[dep]||0):0;};
+function dpAdd(name,suc){if(!giAdm())return{err:'Sólo el administrador crea depósitos.'};name=String(name||'').replace(/[<>]/g,'').trim().slice(0,40);if(name.length<2)return{err:'Escribí el nombre del depósito.'};
+ if(dpList().some(d=>d.name.toLowerCase()===name.toLowerCase()))return{err:'Ya hay un depósito con ese nombre.'};const d={id:'d'+uid().slice(-6),name,suc:String(suc||'').slice(0,40)};dpList().push(d);audit('DEPOSITO_NUEVO',d.name);save();return{d};}
+/* transferencia: sale del origen y queda en tránsito; al recibir entra al destino. Faltante → ajuste de stock con motivo. */
+function dpSend(from,to,items,note){if(!giOn('depots'))return{err:'El módulo está apagado.'};if(!can('depots'))return{err:'Sin permiso.'};if(!dpById(from)||!dpById(to)||from===to)return{err:'Elegí origen y destino distintos.'};
+ const L=[];for(const it of items||[]){const p=prod(it.pid);const q=r3(+it.qty||0);if(!p||!(q>0))continue;if(q>dpQty(p.id,from)+1e-9)return{err:'«'+pfull(p)+'»: en '+dpById(from).name+' hay '+dpQty(p.id,from)+'.'};L.push({pid:p.id,name:pfull(p),qty:q,rec:null});}
+ if(!L.length)return{err:'Indicá qué se manda.'};dpSync();
+ for(const x of L){const r=dpRec(x.pid);r.q[from]=r3((+r.q[from]||0)-x.qty);r.q[VB_TR]=r3((+r.q[VB_TR]||0)+x.qty);}
+ const t={id:uid(),n:vbSeq('seqTD','RI-',6),ts:now(),user:user.name,from,to,items:L,note:String(note||'').slice(0,160),state:'en_transito'};vbArr('tdep').push(t);
+ audit('TRANSFERENCIA_DEPOSITO',t.n+' · '+dpById(from).name+' → '+dpById(to).name+' · '+L.map(x=>x.qty+' '+x.name).join(', '));save();return{t};}
+function dpReceive(id,recv,why){const t=vbArr('tdep').find(x=>x.id===id);if(!t)return{err:'Transferencia inexistente.'};if(!can('depots'))return{err:'Sin permiso.'};if(t.state!=='en_transito')return{err:'Ya se recibió.'};
+ const dif=[];for(const x of t.items){const q=r3(Math.max(0,+((recv||{})[x.pid]??x.qty)));if(q>x.qty+1e-9)return{err:'«'+x.name+'»: no se puede recibir más de lo enviado ('+x.qty+').'};x.rec=q;if(q<x.qty)dif.push(x);}
+ if(dif.length&&(!why||String(why).trim().length<3))return{err:'Hay faltantes: escribí el motivo.'};
+ for(const x of t.items){const r=dpRec(x.pid);r.q[VB_TR]=r3((+r.q[VB_TR]||0)-x.qty);r.q[t.to]=r3((+r.q[t.to]||0)+x.rec);
+  if(x.rec<x.qty){const p=prod(x.pid);if(p){p.stock=r3((+p.stock||0)-(x.qty-x.rec));}}}
+ /* el total bajó por el faltante: que lo absorba el destino y no el depósito de este equipo */
+ if(dif.length){const cur=dpCur();if(cur!==t.to){for(const x of dif){const r=dpRec(x.pid);r.q[cur]=r3((+r.q[cur]||0)+(x.qty-x.rec));}}}
+ t.state='recibida';t.recAt=now();t.recBy=user.name;t.why=dif.length?String(why).trim().slice(0,120):'';
+ audit('TRANSFERENCIA_RECIBIDA',t.n+(dif.length?' · faltantes: '+dif.map(x=>(x.qty-x.rec)+' '+x.name).join(', ')+' · '+t.why:' · completa'));save();return{t,dif};}
+function dpSuggest(dep){const out=[];for(const r of vbArr('dstk')){const p=prod(r.id);if(!p||p.archived)continue;const mn=+((r.min||{})[dep])||0;if(!(mn>0))continue;const have=dpQty(p.id,dep);if(have>=mn)continue;
+ const need=r3(mn-have);const src=dpList().filter(d=>d.id!==dep).map(d=>({d,q:dpQty(p.id,d.id)-(+((r.min||{})[d.id])||0)})).filter(x=>x.q>0).sort((a,b)=>b.q-a.q)[0];
+ out.push({pid:p.id,name:pfull(p),have,min:mn,need,from:src?src.d.id:'',fromQ:src?r3(Math.min(src.q,need)):0});}return out;}
+let dpTab='stock',dpSel='',dpDraft=null;
+A.dpTab=el=>{dpTab=el.dataset.t;rerender();};
+A.dpNew=()=>modal('Nuevo depósito',`<label for="dn-n">Nombre</label><input id="dn-n" maxlength="40" placeholder="Ej.: Depósito Norte"><label for="dn-s">Sucursal (opcional)</label><input id="dn-s" maxlength="40">`,{okText:'Crear',onOk:w=>{const r=dpAdd(val('dn-n'),val('dn-s'));if(r.err)return w._err(r.err),false;rerender();}});
+A.dpCurSet=el=>{dpSetCur(el.dataset.id);save();rerender();toast('Este equipo trabaja con '+dpById(el.dataset.id).name);};
+A.dpSendNew=()=>{dpDraft={from:dpCur(),to:(dpList().find(d=>d.id!==dpCur())||{}).id||'',items:[],note:''};dpTab='enviar';rerender();};
+A.dpDAdd=el=>{const x=dpDraft.items.find(i=>i.pid===el.dataset.id);if(x)x.qty+=1;else dpDraft.items.push({pid:el.dataset.id,qty:1});rerender();};
+A.dpDGo=()=>{const r=dpSend(dpDraft.from,dpDraft.to,dpDraft.items,dpDraft.note);if(r.err)return toast(r.err,1);dpDraft=null;dpTab='transf';rerender();
+ confirmBox('Remito interno '+esc(r.t.n),'¿Lo imprimimos para que viaje con la mercadería?',()=>vbPrint(dpDoc(r.t)),'Imprimir');};
+A.dpRecv=el=>{const t=vbArr('tdep').find(x=>x.id===el.dataset.id);if(!t)return;modal('Recibir '+t.n,`${t.items.map(x=>`<label for="rc-${x.pid}">${esc(x.name)} · enviado ${x.qty}</label><input id="rc-${x.pid}" class="dp-rc" data-pid="${x.pid}" type="number" min="0" step="any" value="${x.qty}">`).join('')}<label for="rc-w">Motivo si falta algo</label><input id="rc-w" maxlength="120">`,
+ {okText:'Recibir',onOk:w=>{const m={};$$('.dp-rc',w).forEach(i=>m[i.dataset.pid]=+i.value);const r=dpReceive(t.id,m,val('rc-w'));if(r.err)return w._err(r.err),false;toast(r.dif.length?'Recibida con faltantes (ajuste registrado)':'Recibida completa');rerender();}});};
+A.dpPrint=el=>{const t=vbArr('tdep').find(x=>x.id===el.dataset.id);if(t)vbPrint(dpDoc(t));};
+function dpDoc(t){return vbDoc('Remito interno '+t.n,`<h1>Remito interno ${esc(t.n)}</h1><div class="mut">${esc(vbShop().name)} · ${fmtDT(t.ts)} · ${esc(t.user)}</div><div class="box"><b>Desde:</b> ${esc((dpById(t.from)||{}).name||'')} · <b>Hacia:</b> ${esc((dpById(t.to)||{}).name||'')}${t.note?'<br>'+esc(t.note):''}</div>
+ <table><thead><tr><th>Artículo</th><th class="r">Enviado</th><th class="r">Recibido</th></tr></thead><tbody>${t.items.map(x=>`<tr><td>${esc(x.name)}</td><td class="r">${x.qty}</td><td class="r">${x.rec===null?'______':x.rec}</td></tr>`).join('')}</tbody></table><div class="sig"><div>Despachó</div><div>Recibió</div></div><p class="mut">Movimiento interno entre depósitos del mismo comercio.</p>`);}
+A.dpMin=el=>{const r=dpRec(el.dataset.id);const dep=el.dataset.d;modal('Mínimo en '+esc(dpById(dep).name),`<label for="mn-v">Stock mínimo de ${esc(pfull(prod(el.dataset.id)))}</label><input id="mn-v" type="number" min="0" step="any" value="${+(r.min[dep]||0)}">`,{okText:'Guardar',onOk:w=>{const v=Math.max(0,+val('mn-v')||0);r.min[dep]=v;save();rerender();}});};
+reg('depositos','Depósitos','box','depots',()=>{dpSync();const D=dpList(),cur=dpCur();const tabs=[['stock','Stock por depósito'],['transf','Transferencias'],['repo','Reposición']];
+ const q=giNorm(val('dp-q')||'');const P=S.products.filter(p=>p.active!==false&&!p.archived&&p.id!=='p_envio').filter(p=>!q||giNorm(pfull(p)).includes(q)).slice(0,250);
+ const T=vbArr('tdep').slice().reverse();const sel=dpSel&&dpById(dpSel)?dpSel:cur;const sug=dpSuggest(sel);
+ let body='';
+ if(dpTab==='enviar'&&dpDraft){body=`<div class="card"><h3 style="margin-top:0">Nueva transferencia</h3><div class="f"><div><label for="dt-f">Desde</label><select id="dt-f">${D.map(d=>`<option value="${d.id}" ${d.id===dpDraft.from?'selected':''}>${esc(d.name)}</option>`).join('')}</select></div><div><label for="dt-t">Hacia</label><select id="dt-t">${D.map(d=>`<option value="${d.id}" ${d.id===dpDraft.to?'selected':''}>${esc(d.name)}</option>`).join('')}</select></div></div>
+  <label for="dt-p">Agregar artículo</label><input id="dt-p" autocomplete="off" placeholder="Código o nombre (Enter)">
+  ${dpDraft.items.length?`<div class="tw"><table data-nosort><thead><tr><th>Artículo</th><th class="r">Hay en origen</th><th class="r">Enviar</th></tr></thead><tbody>${dpDraft.items.map((x,i)=>`<tr><td>${esc(pfull(prod(x.pid)))}</td><td class="r">${dpQty(x.pid,dpDraft.from)}</td><td class="r"><input class="dt-q" data-i="${i}" type="number" min="0" step="any" value="${x.qty}" style="width:5.5rem" aria-label="Cantidad"></td></tr>`).join('')}</tbody></table></div>`:''}
+  <label for="dt-n">Nota</label><input id="dt-n" maxlength="160" value="${esc(dpDraft.note)}"><div class="row" style="gap:.5rem;margin-top:.6rem"><button class="btn gold" data-act="dpDGo" ${dpDraft.items.length?'':'disabled'}>Enviar</button><button class="btn ghost" data-act="dpTab" data-t="transf">Cancelar</button></div></div>`;}
+ else if(dpTab==='transf')body=`<div class="row" style="margin:.5rem 0"><span class="sp"></span><button class="btn gold" data-act="dpSendNew" ${D.length>1?'':'disabled'}>+ Nueva transferencia</button></div>${T.length?`<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Desde → Hacia</th><th>Artículos</th><th>Estado</th><th></th></tr></thead><tbody>${T.map(t=>`<tr><td>${esc(t.n)}</td><td>${fmtDT(t.ts)}</td><td>${esc((dpById(t.from)||{}).name||'?')} → ${esc((dpById(t.to)||{}).name||'?')}</td><td class="sm">${t.items.map(x=>x.qty+' '+esc(x.name)).join(', ')}</td><td><span class="tag ${t.state==='en_transito'?'warn':'ok'}">${t.state==='en_transito'?'En tránsito':'Recibida'}</span></td><td class="r"><button class="btn sm" data-act="dpPrint" data-id="${t.id}">Imprimir</button>${t.state==='en_transito'?` <button class="btn sm gold" data-act="dpRecv" data-id="${t.id}">Recibir</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<div class="okbox">No hay transferencias.</div>'}`;
+ else if(dpTab==='repo')body=`<label for="dp-sel">Depósito</label><select id="dp-sel">${D.map(d=>`<option value="${d.id}" ${d.id===sel?'selected':''}>${esc(d.name)}</option>`).join('')}</select>${sug.length?`<div class="tw"><table data-nosort><thead><tr><th>Artículo</th><th class="r">Hay</th><th class="r">Mínimo</th><th class="r">Faltan</th><th>Sugerencia</th></tr></thead><tbody>${sug.map(s=>`<tr><td>${esc(s.name)}</td><td class="r">${s.have}</td><td class="r">${s.min}</td><td class="r">${s.need}</td><td>${s.from?'Transferir '+s.fromQ+' desde '+esc(dpById(s.from).name)+(s.fromQ<s.need?' y comprar '+r3(s.need-s.fromQ):''):'Comprar '+s.need}</td></tr>`).join('')}</tbody></table></div>`:'<div class="okbox">Nada por debajo del mínimo en este depósito. Cargá mínimos tocando la cantidad en «Stock por depósito».</div>'}`;
+ else body=`<div class="row" style="margin:.5rem 0"><input id="dp-q" class="sp" placeholder="Buscar artículo" value="${esc(val('dp-q')||'')}" autocomplete="off"></div><div class="tw"><table><thead><tr><th>Artículo</th>${D.map(d=>`<th class="r">${esc(d.name)}${d.id===cur?' ★':''}</th>`).join('')}<th class="r">En tránsito</th><th class="r">Total</th></tr></thead><tbody>
+  ${P.map(p=>`<tr><td>${esc(pfull(p))}</td>${D.map(d=>{const r=vbArr('dstk').find(x=>x.id===p.id);const mn=r&&r.min?+(r.min[d.id]||0):0;const v=dpQty(p.id,d.id);return`<td class="r"><button class="btn sm ${mn&&v<mn?'red':''}" data-act="dpMin" data-id="${p.id}" data-d="${d.id}" title="Tocar para el mínimo">${v}${mn?' / '+mn:''}</button></td>`;}).join('')}<td class="r">${dpQty(p.id,VB_TR)}</td><td class="r"><b>${+p.stock||0}</b></td></tr>`).join('')}</tbody></table></div>`;
+ return`<div class="row"><h1 class="sp">Stock por depósito</h1>${giAdm()?'<button class="btn sm" data-act="dpNew">+ Depósito</button>':''}</div>
+ <div class="card"><p class="sm" style="margin:0">Este equipo trabaja con: ${D.map(d=>`<button class="btn sm ${d.id===cur?'gold':''}" data-act="dpCurSet" data-id="${d.id}">${esc(d.name)}</button>`).join(' ')}</p><p class="sm mut" style="margin:.4rem 0 0">Las ventas, compras y ajustes de este equipo salen de su depósito. ★ = el de este equipo.</p></div>
+ ${dpTab==='enviar'?'':`<div class="ux-tabs" role="tablist">${tabs.map(([k,t])=>`<a role="tab" tabindex="0" data-act="dpTab" data-t="${k}" aria-selected="${k===dpTab}" class="${k===dpTab?'on':''}">${t}</a>`).join('')}</div>`}${body}`;},
+ ()=>{const q=$('#dp-q');if(q)q.addEventListener('change',()=>rerender());const s=$('#dp-sel');if(s)s.addEventListener('change',()=>{dpSel=s.value;rerender();});
+  if(dpDraft){const f=$('#dt-f'),t=$('#dt-t');if(f)f.addEventListener('change',()=>{dpDraft.from=f.value;rerender();});if(t)t.addEventListener('change',()=>{dpDraft.to=t.value;});const n=$('#dt-n');if(n)n.addEventListener('change',()=>dpDraft.note=n.value);
+   const p=$('#dt-p');if(p)p.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const x=giFind(p.value)[0];if(!x)return toast('No encontré ese artículo.',1);A.dpDAdd({dataset:{id:x.id}});}});
+   $$('.dt-q').forEach(i=>i.addEventListener('change',()=>{const v=+i.value||0;const x=dpDraft.items[+i.dataset.i];if(x){if(v>0)x.qty=v;else dpDraft.items.splice(+i.dataset.i,1);}rerender();}));}},'Logística');
+SCREENS.depositos.show=()=>giOn('depots');NAV.push(['depositos','Logística']);
+
+/* ---------- Toma de inventario ---------- */
+const ivList=()=>vbArr('counts');
+const ivById=id=>ivList().find(x=>x.id===id);
+function ivScope(c){return S.products.filter(p=>p.active!==false&&!p.archived&&p.id!=='p_envio'&&!(typeof isKit==='function'&&isKit(p))&&(!c.rubro||p.rubro===c.rubro));}
+function ivCreate(rubro,name){if(!giOn('count'))return{err:'El módulo está apagado.'};if(!can('count'))return{err:'Sin permiso.'};if(ivList().some(c=>c.state!=='cerrado'&&c.state!=='anulado'&&(c.rubro||'')===(rubro||'')))return{err:'Ya hay un inventario abierto de ese sector.'};
+ const c={id:uid(),n:vbSeq('seqTI','TI-',4),ts:now(),user:user.name,rubro:rubro||'',name:String(name||'').slice(0,60)||(rubro?rubName(rubro):'Todo el local'),state:'contando',c1:{},c2:{},dep:giOn('depots')?dpCur():''};
+ ivList().push(c);audit('INVENTARIO_INICIO',c.n+' · '+c.name);save();return{c};}
+/* conteo: se suma (cada pasada del lector suma 1; o una cantidad); ronda 1 o 2 */
+function ivCount(id,pid,qty,round,set){const c=ivById(id);if(!c)return{err:'Inventario inexistente.'};if(!can('count'))return{err:'Sin permiso.'};if(!['contando','revision'].includes(c.state))return{err:'Ese inventario ya se cerró.'};
+ const p=prod(pid);if(!p||!ivScope(c).some(x=>x.id===pid))return{err:'Ese artículo no es de este sector.'};const q=r3(+qty);if(!(q>=0)||q>1e6)return{err:'Cantidad inválida.'};
+ const k=round===2?'c2':'c1';const prev=c[k][pid];const v=set||!prev?q:r3(prev.q+q);c[k][pid]={q:v,u:user.name,ts:now()};save();return{q:v,p};}
+/* esperado = stock actual (si se vendió durante el conteo, se cuenta igual porque el conteo es de lo que hay ahora) */
+function ivDiffs(c){const exp=p=>c.dep&&giOn('depots')?dpQty(p.id,c.dep):(+p.stock||0);return ivScope(c).map(p=>{const k1=c.c1[p.id],k2=c.c2[p.id];const counted=k2?k2.q:k1?k1.q:null;const e=r3(exp(p));
+ return{pid:p.id,name:pfull(p),exp:e,c1:k1?k1.q:null,c2:k2?k2.q:null,counted,diff:counted===null?null:r3(counted-e),val:counted===null?0:Math.round((counted-e)*(+p.cost||0))};});}
+function ivReview(id){const c=ivById(id);if(!c)return{err:'Inventario inexistente.'};if(!can('count'))return{err:'Sin permiso.'};if(c.state!=='contando')return{err:'Sólo se revisa un inventario en conteo.'};
+ c.state='revision';c.revAt=now();const D=ivDiffs(c).filter(d=>d.diff);audit('INVENTARIO_REVISION',c.n+' · '+D.length+' diferencia(s) para segundo conteo');save();return{c,dif:D};}
+/* cierre: ajusta sólo lo contado; lo no contado queda igual (o en cero si se pide) */
+function ivClose(id,zeroUncounted){const c=ivById(id);if(!c)return{err:'Inventario inexistente.'};if(!(can('count')&&(user.role==='admin'||user.role==='supervisor'||can('close_cash'))))return{err:'El cierre lo hace un supervisor o el administrador.'};
+ if(!['contando','revision'].includes(c.state))return{err:'Ese inventario ya se cerró.'};const D=ivDiffs(c);let n=0,val=0;const lines=[];
+ for(const d of D){let counted=d.counted;if(counted===null){if(!zeroUncounted)continue;counted=0;}const diff=r3(counted-d.exp);if(!diff)continue;const p=prod(d.pid);p.stock=r3((+p.stock||0)+diff);if(c.dep&&giOn('depots')&&c.dep!==dpCur()){const r=dpRec(p.id);r.q[c.dep]=r3((+r.q[c.dep]||0)+diff);}n++;val+=Math.round(diff*(+p.cost||0));lines.push(d.name+' '+(diff>0?'+':'')+diff);}
+ c.state='cerrado';c.closedAt=now();c.closedBy=user.name;c.adj={n,val,zero:!!zeroUncounted};
+ audit('AJUSTE_INVENTARIO',c.n+' · '+c.name+' · '+n+' artículo(s) ajustados · valorización '+money(val)+(lines.length?' · '+lines.slice(0,40).join(', '):''));save();return{c,n,val};}
+let ivSel='',ivRound=1;
+A.ivNew=()=>{const rubs=S.rubros.filter(r=>r.kind==='rubro'||!r.kind);modal('Nueva toma de inventario',`<label for="iv-r">Sector</label><select id="iv-r"><option value="">Todo el local</option>${rubs.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('')}</select><p class="sm mut">Conviene contar con el sector quieto. El conteo es a ciegas: quien cuenta no ve lo que dice el sistema.</p>`,
+ {okText:'Empezar',onOk:w=>{const r=ivCreate(val('iv-r'));if(r.err)return w._err(r.err),false;ivSel=r.c.id;ivRound=1;rerender();}});};
+A.ivOpen=el=>{ivSel=el.dataset.id;const c=ivById(ivSel);ivRound=c&&c.state==='revision'?2:1;rerender();};
+A.ivBack=()=>{ivSel='';rerender();};
+A.ivReview=()=>{const r=ivReview(ivSel);if(r.err)return toast(r.err,1);ivRound=2;toast(r.dif.length+' artículo(s) para volver a contar');rerender();};
+A.ivClose=()=>{const c=ivById(ivSel);const D=ivDiffs(c);const unc=D.filter(d=>d.counted===null).length;confirmBox('Cerrar y ajustar '+esc(c.n),`Se ajusta el stock de lo contado con diferencia.${unc?`<br><label class="row" style="gap:.4rem"><input type="checkbox" id="iv-z"> Poner en cero los ${unc} artículo(s) no contados</label>`:''}`,
+ ()=>{const r=ivClose(c.id,!!($('#iv-z')&&$('#iv-z').checked));if(r.err)return toast(r.err,1);toast(r.n+' ajuste(s) · '+money(r.val));rerender();},'Cerrar y ajustar');};
+function ivScan(v){const c=ivById(ivSel);if(!c)return;const s=String(v||'').trim();if(!s)return;const m=s.match(/^(\d+(?:[.,]\d+)?)\s*[x*]\s*(.+)$/i);const qty=m?parseFloat(m[1].replace(',','.')):1;const code=m?m[2]:s;
+ const p=giFind(code)[0];if(!p)return toast('No encontré «'+code+'».',1);const r=ivCount(c.id,p.id,qty,ivRound);if(r.err)return toast(r.err,1);
+ const b=$('#iv-last');if(b)b.innerHTML=`<div class="okbox"><b>${esc(pfull(p))}</b> · contado: <b>${r.q}</b></div>`;const t=$('#iv-tbl');if(t)t.innerHTML=ivTable(c);}
+function ivTable(c){const D=ivDiffs(c);const rev=c.state!=='contando';const cv=can('view_cost');const L=rev?D.filter(d=>d.diff||d.c2!==null):D.filter(d=>d.counted!==null);
+ return L.length?`<div class="tw"><table data-nosort><thead><tr><th>Artículo</th><th class="r">Conteo 1</th>${rev?'<th class="r">Conteo 2</th><th class="r">Sistema</th><th class="r">Diferencia</th>'+(cv?'<th class="r">Valor</th>':''):''}</tr></thead><tbody>${L.map(d=>`<tr><td>${esc(d.name)}</td><td class="r">${d.c1===null?'—':d.c1}</td>${rev?`<td class="r">${d.c2===null?'—':d.c2}</td><td class="r">${d.exp}</td><td class="r ${d.diff?'bad':''}">${d.diff===null?'sin contar':(d.diff>0?'+':'')+d.diff}</td>${cv?`<td class="r">${money(d.val)}</td>`:''}`:''}</tr>`).join('')}</tbody></table></div>`:'<p class="sm mut">Todavía no hay conteos.</p>';}
+reg('inventariof','Toma de inventario','list','count',()=>{const c=ivSel&&ivById(ivSel);
+ if(c){const done=c.state==='cerrado';const sup=user.role==='admin'||user.role==='supervisor'||can('close_cash');const D=ivDiffs(c);const nc=D.filter(d=>d.counted!==null).length;
+  return`<div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="btn sm" data-act="ivBack">← Inventarios</button><h2 class="sp" style="margin:0">${esc(c.n)} · ${esc(c.name)}</h2><span class="tag ${done?'ok':'warn'}">${done?'Cerrado':c.state==='revision'?'Segundo conteo':'Contando'}</span></div>
+  <p class="sm mut">${nc} de ${D.length} artículos contados${c.dep?' · depósito '+esc((dpById(c.dep)||{}).name||''):''}${done?' · ajustados '+c.adj.n+' · '+money(c.adj.val):''}</p>
+  ${done?'':`<div class="card"><label for="iv-s">${ivRound===2?'Segundo conteo de las diferencias':'Escaneá o escribí el artículo'} (podés poner «12 x código»)</label><input id="iv-s" autocomplete="off" inputmode="search" placeholder="Código de barras o nombre" style="font-size:1.2rem"><div id="iv-last"></div>
+   <div class="row" style="gap:.5rem;margin-top:.6rem;flex-wrap:wrap">${c.state==='contando'&&sup?'<button class="btn" data-act="ivReview">Ver diferencias y pedir segundo conteo</button>':''}${sup?'<button class="btn gold" data-act="ivClose">Cerrar y ajustar stock</button>':''}</div></div>`}
+  <div id="iv-tbl">${ivTable(c)}</div>`;}
+ const L=ivList().slice().reverse();return`<div class="row"><h1 class="sp">Toma de inventario</h1><button class="btn gold" data-act="ivNew">+ Nueva</button></div><p class="sm mut">Contá desde el celular con el lector o la cámara. Quien cuenta no ve el stock del sistema; las diferencias se revisan con un segundo conteo y el ajuste queda en Auditoría con su valor.</p>
+ ${L.length?`<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Sector</th><th>Estado</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td>${esc(c.n)}</td><td>${fmtDT(c.ts)}</td><td>${esc(c.name)}</td><td><span class="tag ${c.state==='cerrado'?'ok':'warn'}">${{contando:'Contando',revision:'Segundo conteo',cerrado:'Cerrado'}[c.state]||c.state}</span></td><td class="r"><button class="btn sm" data-act="ivOpen" data-id="${c.id}">Abrir</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="okbox">No hay inventarios.</div>'}`;},
+ ()=>{const s=$('#iv-s');if(s){s.focus();s.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ivScan(s.value);s.value='';}});}},'Logística');
+SCREENS.inventariof.show=()=>giOn('count');NAV.push(['inventariof','Logística']);
+
+/* ===== V26.78 · Gestión integral — trabajo en la calle y canales del cliente mayorista =====
+   Preventa: cartera por día y zona, pedido en el cliente (sin señal también), repetir pedido, visita sin pedido, cobranza en la calle,
+             rendición ciega en caja, tablero del supervisor y comisiones.
+   GPS: posición del preventista/repartidor SÓLO en jornada, en horario laboral y con consentimiento firmado en la app; mapa del equipo.
+   Bot de pedidos por WhatsApp: se engancha a Atención al cliente (CRM); catálogo, carrito, repetir, saldo y derivación a una persona.
+   Portal B2B: enlace privado del cliente con su saldo, comprobantes, acopios y su lista de precios; arma el pedido y lo manda por WhatsApp. */
+
+GI_MODS.push(
+ {k:'presale',t:'Preventa (app del preventista)',d:'Recorrido del día por zona, pedido en el cliente aun sin señal, repetir pedido, visita sin pedido, cobranza en la calle con rendición ciega, tablero y comisiones.',plan:'mayorista',dep:['orders'],scr:'preventa'},
+ {k:'gps',t:'GPS del equipo en tiempo real',d:'Posición de preventistas y repartidores sólo en jornada, en horario laboral y con consentimiento; mapa, recorrido del día y llegada a cada cliente.',plan:'mayorista',scr:'equipo'},
+ {k:'wa_orders',t:'Bot de pedidos por WhatsApp',d:'El cliente consulta productos y precios, arma el carrito, repite su último pedido o ve su saldo por WhatsApp; el pedido entra solo a Pedidos de venta.',plan:'total',dep:['orders'],scr:'botwa'},
+ {k:'b2b',t:'Portal del cliente mayorista',d:'Enlace privado por cliente con saldo, comprobantes, acopios y su lista de precios; arma el pedido y lo envía por WhatsApp.',plan:'total',dep:['orders'],scr:'portalb2b'});
+Object.assign(PERMS,{presale:'Preventa: cartera, pedidos y cobranza en la calle',gps_view:'Ver el mapa del equipo (GPS)'});
+
+/* ---------- Preventa: cartera ---------- */
+const PV_DIAS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const pvOf=c=>c.pv||(c.pv={zona:'',dias:[],seller:'',ord:0,lat:null,lng:null});
+const pvSellers=()=>S.users.filter(u=>u.role==='preventista'||(S.roles[u.role]||[]).includes('presale'));
+function pvRoute(sellerId,day){day=day===undefined?new Date(now()).getDay():day;return S.customers.filter(c=>c.status!=='baja'&&!c.deleted&&c.pv&&(c.pv.dias||[]).includes(day)&&(!sellerId||c.pv.seller===sellerId)).sort((a,b)=>(a.pv.ord||0)-(b.pv.ord||0)||custFull(a).localeCompare(custFull(b)));}
+const pvMe=()=>user&&(user.role==='preventista'||!(user.role==='admin'||user.role==='supervisor'))?user.id:'';
+const pvVisits=()=>vbArr('visits');
+function pvVisit(cid,res,note,pos){const c=custById(cid);if(!c)return{err:'Cliente inexistente.'};if(!can('presale'))return{err:'Sin permiso.'};
+ const v={id:uid(),ts:now(),u:user.id,uName:user.name,cust:cid,custName:custFull(c),res:String(res||'').slice(0,40),note:String(note||'').replace(/[<>]/g,'').slice(0,160)};
+ if(pos&&isFinite(pos.lat)&&isFinite(pos.lng)){v.lat=pos.lat;v.lng=pos.lng;const cp=pvOf(c);if(isFinite(cp.lat)&&cp.lat!==null)v.dist=Math.round(gpsDist(pos.lat,pos.lng,cp.lat,cp.lng));}
+ pvVisits().push(v);audit('VISITA',v.custName+' · '+v.res+(v.dist!==undefined?' · a '+v.dist+' m del cliente':''));save();return{v};}
+const PV_MOT=['Cerrado','Tiene stock','Sin dinero','No estaba el encargado','Compró a otro','Volver otro día'];
+/* cobranza en la calle: queda «a rendir» hasta que caja la recibe */
+function pvCobro(cid,amount,method,ref){const c=custById(cid);if(!c)return{err:'Cliente inexistente.'};if(!can('presale'))return{err:'Sin permiso.'};const a=Math.round(+amount);if(!(a>0))return{err:'El importe tiene que ser mayor a cero.'};
+ const deb=typeof debtOf==='function'?debtOf(cid):0;const pend=vbArr('cobrRuta').filter(x=>x.cust===cid&&x.state==='a_rendir').reduce((t,x)=>t+x.amount,0);if(a>deb-pend)return{err:'Supera la deuda del cliente ('+money(Math.max(0,deb-pend))+').'};
+ if(!['efectivo','transferencia','cheque'].includes(method))return{err:'Medio inválido.'};if(method!=='efectivo'&&String(ref||'').trim().length<2)return{err:'Anotá el número de comprobante o de cheque.'};
+ const x={id:uid(),n:vbSeq('seqCR','RC-',6),ts:now(),u:user.id,uName:user.name,cust:cid,custName:custFull(c),amount:a,method,ref:String(ref||'').slice(0,60),state:'a_rendir'};vbArr('cobrRuta').push(x);
+ audit('COBRANZA_CALLE',x.n+' · '+x.custName+' · '+money(a)+' · '+method+' · a rendir');save();return{x};}
+/* rendición ciega: el cajero declara el efectivo recibido; cada cobro se imputa a la cuenta corriente con el motor de siempre */
+function pvRendir(sellerId,declared){if(!(can('cash_mov')||can('close_cash')))return{err:'La rendición la recibe caja.'};if(!openSess())return{err:'Abrí la caja para recibir la rendición.'};
+ const L=vbArr('cobrRuta').filter(x=>x.state==='a_rendir'&&x.u===sellerId);if(!L.length)return{err:'Ese preventista no tiene cobranzas a rendir.'};const dec=Math.round(+declared);if(!(dec>=0))return{err:'Declará el efectivo recibido (puede ser 0).'};
+ const exp=L.filter(x=>x.method==='efectivo').reduce((t,x)=>t+x.amount,0);const errs=[];const rid=uid();
+ for(const x of L){const m=x.method==='cheque'?'transferencia':x.method;const e=fiadoPay(x.cust,Math.min(x.amount,Math.max(0,debtOf(x.cust))),m);if(e){errs.push(x.n+': '+e);continue;}x.state='rendido';x.rend=rid;x.rendAt=now();x.rendBy=user.name;}
+ const dif=dec-exp;const nm=(S.users.find(u=>u.id===sellerId)||{}).name||'preventista';
+ if(dif!==0){const own=typeof ownerMode==='function'&&ownerMode();const rb=dif>0?(own?ownerRubro():'cobr'):(own?ownerRubro():((S.rubros.find(r=>r.kind==='shared')||S.rubros.find(r=>r.kind==='rubro'||!r.kind)||{}).id||''));const e=addMov(dif>0?'ingreso':'egreso',rb,(dif>0?'Sobrante':'Faltante')+' rendición de '+nm,Math.abs(dif));if(e)errs.push('Diferencia: '+e);}
+ audit('RENDICION_PREVENTA',nm+' · esperado efectivo '+money(exp)+' · declarado '+money(dec)+' · '+(dif?(dif>0?'sobrante ':'faltante ')+money(Math.abs(dif)):'sin diferencia')+(errs.length?' · '+errs.join(' | '):''));save();return{exp,dec,dif,errs,n:L.length};}
+function pvStats(from,to){const out={};const ords=vbArr('sordr').filter(o=>o.src==='preventa'&&o.ts>=from&&o.ts<to);
+ for(const u of pvSellers()){const R=[];for(let t=from;t<to;t+=864e5)R.push(...pvRoute(u.id,new Date(t).getDay()).map(c=>c.id+':'+dkey(t)));
+  const V=pvVisits().filter(v=>v.u===u.id&&v.ts>=from&&v.ts<to);const vis=new Set(V.map(v=>v.cust+':'+dkey(v.ts)));const O=ords.filter(o=>o.seller===u.id);
+  const fact=O.flatMap(o=>o.sales).map(id=>S.sales.find(s=>s.id===id)).filter(s=>s&&s.status==='ok').reduce((t,s)=>t+s.total,0);const pct=+(((S.cfg.presale||{}).com||{})[u.id]||0);
+  out[u.id]={name:u.name,plan:R.length,visitas:vis.size,pedidos:O.length,importe:O.reduce((t,o)=>t+o.total,0),efect:vis.size?Math.round(O.length/vis.size*100):0,facturado:fact,pct,comision:Math.round(fact*pct/100),cobros:vbArr('cobrRuta').filter(x=>x.u===u.id&&x.ts>=from&&x.ts<to).reduce((t,x)=>t+x.amount,0)};}
+ return out;}
+
+/* ---------- GPS ---------- */
+function gpsDist(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dl=r(c-a),dn=r(d-b);const h=Math.sin(dl/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+const gpsCfg=()=>Object.assign({from:'07:00',to:'21:00',days:30,every:120},S.cfg.gps||{});
+const gpsCons=()=>S.gpsCons||(S.gpsCons={});
+const GPS_TXT='Acepto que, mientras tenga la jornada iniciada en esta aplicación y dentro del horario laboral, el comercio registre la ubicación de este equipo para organizar el recorrido y verificar las visitas. Fuera de la jornada o del horario no se registra nada. Puedo terminar la jornada en cualquier momento. Los datos se guardan cifrados y se borran solos.';
+let gpsWatch=null,gpsLast=null,gpsOnJ=false;
+function gpsInHours(t){const c=gpsCfg();const d=new Date(t||now());const hm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');return hm>=c.from&&hm<=c.to;}
+/* registra un punto (lo usa el reloj del GPS y las pruebas) */
+function gpsPoint(lat,lng,acc,t){if(!giOn('gps')||!user||!gpsOnJ)return null;const c=gpsCfg();t=t||now();if(!gpsInHours(t))return null;if(!(gpsCons()[user.id]&&gpsCons()[user.id].ok))return null;
+ if(gpsLast&&t-gpsLast.ts<c.every*1000&&gpsDist(gpsLast.lat,gpsLast.lng,lat,lng)<100)return null;
+ const p={id:uid(),u:user.id,uName:user.name,ts:t,lat:Math.round(lat*1e6)/1e6,lng:Math.round(lng*1e6)/1e6,acc:Math.round(acc||0)};vbArr('gpsPts').push(p);gpsLast=p;
+ const lim=t-c.days*864e5;if(vbArr('gpsPts').length>5000||vbArr('gpsPts')[0].ts<lim)S.gpsPts=vbArr('gpsPts').filter(x=>x.ts>=lim).slice(-5000);save();return p;}
+function gpsStart(){if(!giOn('gps'))return'El GPS está apagado.';if(!(gpsCons()[user.id]&&gpsCons()[user.id].ok))return'Falta el consentimiento.';gpsOnJ=true;audit('JORNADA_INICIO',user.name);
+ if(navigator.geolocation&&!gpsWatch){try{gpsWatch=navigator.geolocation.watchPosition(p=>gpsPoint(p.coords.latitude,p.coords.longitude,p.coords.accuracy),()=>{},{enableHighAccuracy:true,maximumAge:60000,timeout:30000});}catch(e){}}save();return'';}
+function gpsStop(){gpsOnJ=false;if(gpsWatch!==null&&navigator.geolocation){try{navigator.geolocation.clearWatch(gpsWatch);}catch(e){}}gpsWatch=null;gpsLast=null;audit('JORNADA_FIN',user?user.name:'');save();}
+A.gpsJor=()=>{if(gpsOnJ){gpsStop();toast('Jornada terminada: el GPS se apagó');return rerender();}
+ if(!(gpsCons()[user.id]&&gpsCons()[user.id].ok)){modal('Consentimiento de ubicación',`<p>${esc(GPS_TXT)}</p><p class="sm mut">Horario: ${esc(gpsCfg().from)} a ${esc(gpsCfg().to)} · se guarda ${gpsCfg().days} días. [VERIFICAR con el asesor legal: Ley 25.326 y convenio colectivo.]</p><label class="row" style="gap:.4rem"><input type="checkbox" id="gc-ok"> Leí y acepto</label>`,
+  {okText:'Aceptar e iniciar',onOk:w=>{if(!$('#gc-ok').checked)return w._err('Marcá que leíste y aceptás.'),false;gpsCons()[user.id]={ok:true,ts:now(),txt:GPS_TXT};audit('GPS_CONSENTIMIENTO',user.name);const e=gpsStart();if(e)return w._err(e),false;rerender();}});return;}
+ const e=gpsStart();if(e)return toast(e,1);toast('Jornada iniciada');rerender();};
+A.gpsRevoke=()=>{confirmBox('Retirar consentimiento','Se apaga el GPS de este usuario y no se vuelve a registrar su ubicación hasta que lo acepte de nuevo.',()=>{gpsStop();delete gpsCons()[user.id];audit('GPS_CONSENTIMIENTO_RETIRADO',user.name);save();rerender();},'Retirar');};
+/* mapa: mosaico de OpenStreetMap con marcadores (sin librerías) */
+function gpsMapHTML(pts,W,H,lines){if(!pts.length)return'<div class="okbox">Todavía no hay posiciones registradas.</div>';W=W||640;H=H||380;
+ const lat=pts.map(p=>p.lat),lng=pts.map(p=>p.lng);const T=(la,ln,z)=>{const n=2**z;return{x:(ln+180)/360*n*256,y:(1-Math.log(Math.tan(la*Math.PI/180)+1/Math.cos(la*Math.PI/180))/Math.PI)/2*n*256};};
+ let z=17;for(;z>3;z--){const a=T(Math.max(...lat),Math.min(...lng),z),b=T(Math.min(...lat),Math.max(...lng),z);if(b.x-a.x<W-60&&b.y-a.y<H-60)break;}
+ const cA=T((Math.max(...lat)+Math.min(...lat))/2,(Math.max(...lng)+Math.min(...lng))/2,z);const ox=cA.x-W/2,oy=cA.y-H/2;let tiles='';
+ for(let tx=Math.floor(ox/256);tx<=Math.floor((ox+W)/256);tx++)for(let ty=Math.floor(oy/256);ty<=Math.floor((oy+H)/256);ty++){if(ty<0||ty>=2**z)continue;const nx=((tx%2**z)+2**z)%2**z;tiles+=`<img src="https://tile.openstreetmap.org/${z}/${nx}/${ty}.png" alt="" style="position:absolute;left:${tx*256-ox}px;top:${ty*256-oy}px;width:256px;height:256px" loading="lazy" referrerpolicy="no-referrer">`;}
+ const P=pts.map(p=>{const q=T(p.lat,p.lng,z);return Object.assign({},p,{x:q.x-ox,y:q.y-oy});});
+ const pl=(lines||[]).map(L=>{const Q=L.map(p=>{const q=T(p.lat,p.lng,z);return(q.x-ox).toFixed(1)+','+(q.y-oy).toFixed(1);}).join(' ');return`<polyline points="${Q}" fill="none" stroke="#1a73e8" stroke-width="3" stroke-opacity=".75"/>`;}).join('');
+ return`<div class="gps-map" style="position:relative;width:100%;max-width:${W}px;height:${H}px;overflow:hidden;border-radius:10px;background:#dde">${tiles}<svg width="${W}" height="${H}" style="position:absolute;left:0;top:0">${pl}</svg>
+ ${P.map(p=>`<div title="${esc(p.label||p.uName||'')}" style="position:absolute;left:${p.x-7}px;top:${p.y-7}px;width:14px;height:14px;border-radius:50%;background:${p.color||'#d93025'};border:2px solid #fff;box-shadow:0 0 3px #000"></div><div class="sm" style="position:absolute;left:${p.x+9}px;top:${p.y-9}px;background:#fffd;padding:0 .3rem;border-radius:4px;color:#000">${esc(p.label||'')}</div>`).join('')}
+ <div class="sm" style="position:absolute;right:4px;bottom:2px;background:#fffc;padding:0 .3rem;color:#000">© OpenStreetMap</div></div>`;}
+let gpsUser='',gpsDay='';
+reg('equipo','Equipo en el mapa','globe','gps_view',()=>{const D=gpsDay||dkey(now());const all=vbArr('gpsPts');const users=[...new Set(all.map(p=>p.u))];
+ const last=users.map(u=>{const L=all.filter(p=>p.u===u);return L[L.length-1];}).filter(Boolean);const mins=t=>Math.round((now()-t)/60000);
+ const sel=gpsUser&&users.includes(gpsUser)?gpsUser:'';const day=sel?all.filter(p=>p.u===sel&&dkey(p.ts)===D):[];
+ const V=sel?pvVisits().filter(v=>v.u===sel&&dkey(v.ts)===D):[];
+ return`<div class="row"><h1 class="sp">Equipo en el mapa</h1></div><p class="sm mut">Sólo posiciones de quienes iniciaron su jornada, dentro del horario (${esc(gpsCfg().from)}–${esc(gpsCfg().to)}). Se borran a los ${gpsCfg().days} días.${typeof vb30!=='undefined'&&!vb30?' <b>Entre equipos se ve cuando la nube tenga el SQL 30;</b> hasta entonces, este mapa muestra lo registrado en este equipo.':''}</p>
+ ${gpsMapHTML(sel?day.map((p,i)=>Object.assign({},p,{label:i===day.length-1?p.uName+' · '+new Date(p.ts).toTimeString().slice(0,5):'',color:i===day.length-1?'#d93025':'#1a73e8'})).concat(V.filter(v=>isFinite(v.lat)).map(v=>({lat:v.lat,lng:v.lng,label:'✓ '+v.custName,color:'#188038'}))):last.map(p=>Object.assign({},p,{label:p.uName+' · hace '+mins(p.ts)+' min'})),640,380,sel&&day.length>1?[day]:[])}
+ <div class="tw" style="margin-top:.8rem"><table data-nosort><thead><tr><th>Persona</th><th>Última posición</th><th>Precisión</th><th></th></tr></thead><tbody>${last.map(p=>`<tr><td>${esc(p.uName)}</td><td>${fmtDT(p.ts)} (hace ${mins(p.ts)} min)</td><td>${p.acc?'± '+p.acc+' m':'—'}</td><td class="r"><button class="btn sm ${sel===p.u?'gold':''}" data-act="gpsSel" data-id="${p.u}">Recorrido</button></td></tr>`).join('')}</tbody></table></div>
+ ${sel?`<label for="gp-d">Día</label><input id="gp-d" type="date" value="${D}"><p class="sm">${day.length} posición(es) · ${V.length} visita(s)${V.filter(v=>v.dist!==undefined).length?' · llegadas: '+V.filter(v=>v.dist!==undefined).map(v=>esc(v.custName)+' a '+v.dist+' m').join(', '):''}</p>`:''}
+ ${giAdm()?`<details><summary>Configuración del GPS</summary><div class="f"><div><label for="gc-f">Desde</label><input id="gc-f" type="time" value="${gpsCfg().from}"></div><div><label for="gc-t">Hasta</label><input id="gc-t" type="time" value="${gpsCfg().to}"></div><div><label for="gc-d">Guardar (días)</label><input id="gc-d" type="number" min="1" max="90" value="${gpsCfg().days}"></div><div><label for="gc-e">Cada (segundos)</label><input id="gc-e" type="number" min="30" max="900" value="${gpsCfg().every}"></div></div><button class="btn sm" data-act="gpsCfgSave">Guardar</button></details>`:''}`;},
+ ()=>{const d=$('#gp-d');if(d)d.addEventListener('change',()=>{gpsDay=d.value;rerender();});},'Equipo');
+SCREENS.equipo.show=()=>giOn('gps');NAV.push(['equipo','Equipo']);
+A.gpsSel=el=>{gpsUser=gpsUser===el.dataset.id?'':el.dataset.id;rerender();};
+A.gpsCfgSave=()=>{const f=val('gc-f'),t=val('gc-t');if(!/^\d\d:\d\d$/.test(f)||!/^\d\d:\d\d$/.test(t)||f>=t)return toast('Revisá el horario.',1);S.cfg.gps={from:f,to:t,days:Math.max(1,Math.min(90,+val('gc-d')||30)),every:Math.max(30,Math.min(900,+val('gc-e')||120))};audit('GPS_CONFIG',f+'–'+t);save();toast('Guardado');rerender();};
+
+/* ---------- Pantalla del preventista (pensada para el celular) ---------- */
+let pvTab='ruta',pvSeller='',pvDay=-1;
+A.pvTab=el=>{pvTab=el.dataset.t;rerender();};
+function pvPos(cb){if(!navigator.geolocation||!giOn('gps')||!gpsOnJ)return cb(null);let done=false;const t=setTimeout(()=>{if(!done){done=true;cb(null);}},4000);
+ try{navigator.geolocation.getCurrentPosition(p=>{if(done)return;done=true;clearTimeout(t);cb({lat:p.coords.latitude,lng:p.coords.longitude});},()=>{if(!done){done=true;clearTimeout(t);cb(null);}},{maximumAge:120000,timeout:3500});}catch(e){done=true;clearTimeout(t);cb(null);}}
+function pvCard(c){const deb=typeof debtOf==='function'?debtOf(c.id):0;const od=typeof wsOverdue==='function'&&wsOn()?wsOverdue(c.id):[];const last=vbArr('sordr').filter(o=>o.cust===c.id).slice(-1)[0];
+ const vis=pvVisits().filter(v=>v.cust===c.id&&dkey(v.ts)===dkey(now()));const addr=c.addr||'';
+ return`<div class="card" style="margin:.5rem 0"><div class="row"><b class="sp">${esc(custFull(c))}</b>${vis.length?`<span class="tag ok">✓ ${esc(vis[vis.length-1].res)}</span>`:''}</div>
+ <p class="sm" style="margin:.2rem 0">${esc(addr)}${c.pv&&c.pv.zona?' · '+esc(c.pv.zona):''}</p><p class="sm" style="margin:.2rem 0">Saldo: <b>${money(deb)}</b>${od.length?` · <span class="tag bad">${od.length} vencido(s)</span>`:''}${last?' · último pedido '+esc(last.n)+' ('+dmy(dkey(last.ts))+')':''}</p>
+ <div class="row" style="gap:.35rem;flex-wrap:wrap"><button class="btn sm gold" data-act="pvOrd" data-id="${c.id}">Pedido</button>${last?`<button class="btn sm" data-act="pvRep" data-id="${c.id}">Repetir último</button>`:''}<button class="btn sm" data-act="pvNo" data-id="${c.id}">Sin pedido</button>${deb>0?`<button class="btn sm" data-act="pvCob" data-id="${c.id}">Cobrar</button>`:''}${addr?`<a class="btn sm" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}" target="_blank" rel="noopener">Cómo llegar</a>`:''}</div></div>`;}
+A.pvOrd=el=>{vbDraftNew(el.dataset.id,'preventa');vbDraft.seller=user.id;vbOTab='nuevo';go('pedidosv');};
+A.pvRep=el=>{const last=vbArr('sordr').filter(o=>o.cust===el.dataset.id).slice(-1)[0];if(!last)return;vbDraftNew(el.dataset.id,'preventa');vbDraft.seller=user.id;vbDraft.items=last.items.filter(i=>prod(i.pid)).map(i=>({pid:i.pid,qty:i.qty}));vbOTab='nuevo';go('pedidosv');toast('Se copió el pedido '+last.n+': revisá cantidades y guardá');};
+A.pvNo=el=>{modal('Visita sin pedido',`<label for="pn-m">Motivo</label><select id="pn-m">${PV_MOT.map(m=>`<option>${esc(m)}</option>`).join('')}</select><label for="pn-n">Nota</label><input id="pn-n" maxlength="160">`,{okText:'Registrar',onOk:w=>{const m=val('pn-m'),n=val('pn-n');pvPos(pos=>{const r=pvVisit(el.dataset.id,m,n,pos);if(r.err)return toast(r.err,1);toast('Visita registrada');rerender();});}});};
+A.pvCob=el=>{const c=custById(el.dataset.id);modal('Cobrar a '+esc(custFull(c)),`<p class="sm">Debe ${money(debtOf(c.id))}</p><label for="pc-a">Importe ($)</label>${numIn('pc-a',0)}<label for="pc-m">Medio</label><select id="pc-m"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="cheque">Cheque</option></select><label for="pc-r">Comprobante / N.º de cheque</label><input id="pc-r" maxlength="60">`,
+ {okText:'Registrar cobro',onOk:w=>{const r=pvCobro(c.id,cents(val('pc-a')),val('pc-m'),val('pc-r'));if(r.err)return w._err(r.err),false;pvPos(pos=>pvVisit(c.id,'Cobro '+money(r.x.amount),'',pos));toast('Cobro '+r.x.n+' a rendir');rerender();}});};
+function pvCarteraHTML(){const sel=pvSellers();const L=S.customers.filter(c=>c.status!=='baja'&&!c.deleted).sort((a,b)=>custFull(a).localeCompare(custFull(b))).slice(0,400);
+ return`<p class="sm mut">Asigná a cada cliente su preventista, zona y días de visita. El orden define el recorrido.</p>${sel.length?'':'<div class="warnbox">No hay preventistas: creá un usuario con el rol «preventista» en Usuarios y permisos.</div>'}
+ <div class="tw"><table data-nosort><thead><tr><th>Cliente</th><th>Preventista</th><th>Zona</th><th>Días</th><th>Orden</th></tr></thead><tbody>${L.map(c=>{const p=pvOf(c);return`<tr><td>${esc(custFull(c))}</td>
+ <td><select class="pv-f" data-id="${c.id}" data-k="seller" aria-label="Preventista"><option value="">—</option>${sel.map(u=>`<option value="${u.id}" ${p.seller===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></td>
+ <td><input class="pv-f" data-id="${c.id}" data-k="zona" value="${esc(p.zona||'')}" maxlength="30" style="width:7rem" aria-label="Zona"></td>
+ <td style="white-space:nowrap">${[1,2,3,4,5,6].map(d=>`<label class="sm" style="margin-right:.25rem"><input type="checkbox" class="pv-d" data-id="${c.id}" data-d="${d}" ${(p.dias||[]).includes(d)?'checked':''}>${PV_DIAS[d]}</label>`).join('')}</td>
+ <td><input class="pv-f" data-id="${c.id}" data-k="ord" type="number" min="0" value="${p.ord||0}" style="width:4.5rem" aria-label="Orden"></td></tr>`;}).join('')}</tbody></table></div>
+ <h3>Comisiones</h3>${sel.map(u=>`<label for="pvc-${u.id}">${esc(u.name)} · % sobre lo facturado de sus pedidos</label><input id="pvc-${u.id}" class="pv-c" data-id="${u.id}" type="number" min="0" max="30" step="0.1" value="${((S.cfg.presale||{}).com||{})[u.id]||0}">`).join('')||'<p class="sm mut">—</p>'}`;}
+function pvRendHTML(){const by={};vbArr('cobrRuta').filter(x=>x.state==='a_rendir').forEach(x=>{(by[x.u]=by[x.u]||{n:x.uName,L:[]}).L.push(x);});const E=Object.entries(by);
+ return E.length?E.map(([u,o])=>`<div class="card"><div class="row"><b class="sp">${esc(o.n)}</b><span>${o.L.length} cobro(s)</span></div><p class="sm mut">${o.L.filter(x=>x.method!=='efectivo').map(x=>esc(x.n)+' '+esc(x.method)+' '+money(x.amount)+' ('+esc(x.ref)+')').join(' · ')||'Sólo efectivo'}</p>
+ <label for="pr-${u}">Efectivo que entrega (contalo sin mirar el esperado)</label>${numIn('pr-'+u,0)}<button class="btn gold" data-act="pvRend" data-id="${u}">Recibir rendición</button></div>`).join(''):'<div class="okbox">No hay cobranzas pendientes de rendir.</div>';}
+A.pvRend=el=>{const u=el.dataset.id;const r=pvRendir(u,cents(val('pr-'+u)));if(r.err)return toast(r.err,1);
+ modal('Rendición recibida',`<p>${r.n} cobro(s) imputados a cuenta corriente.</p><p>Efectivo esperado: <b>${money(r.exp)}</b> · declarado: <b>${money(r.dec)}</b> · ${r.dif?(r.dif>0?'Sobrante ':'Faltante ')+'<b>'+money(Math.abs(r.dif))+'</b> (quedó en caja como movimiento)':'sin diferencia'}</p>${r.errs.length?'<div class="warnbox">'+r.errs.map(esc).join('<br>')+'</div>':''}`,{ok:false,cancelText:'Cerrar'});rerender();};
+function pvTablero(){const t0=new Date(now());t0.setHours(0,0,0,0);const from=t0.getTime()-6*864e5,to=t0.getTime()+864e5;const st=pvStats(from,to);const L=Object.values(st);
+ return L.length?`<p class="sm mut">Últimos 7 días.</p><div class="tw"><table data-nosort><thead><tr><th>Preventista</th><th class="r">Visitas plan.</th><th class="r">Visitados</th><th class="r">Pedidos</th><th class="r">Efectividad</th><th class="r">Pedido</th><th class="r">Facturado</th><th class="r">Comisión</th><th class="r">Cobrado</th></tr></thead><tbody>${L.map(x=>`<tr><td>${esc(x.name)}</td><td class="r">${x.plan}</td><td class="r">${x.visitas}</td><td class="r">${x.pedidos}</td><td class="r">${x.efect} %</td><td class="r">${money(x.importe)}</td><td class="r">${money(x.facturado)}</td><td class="r">${money(x.comision)} <span class="sm mut">(${x.pct} %)</span></td><td class="r">${money(x.cobros)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="okbox">Todavía no hay preventistas.</div>';}
+reg('preventa','Preventa','route','presale',()=>{const sup=user.role==='admin'||user.role==='supervisor';const me=pvMe();const tabs=[['ruta','Mi recorrido']].concat(sup?[['cartera','Cartera'],['tablero','Tablero']]:[]).concat(can('cash_mov')||can('close_cash')?[['rendir','Rendiciones']]:[]);
+ if(!tabs.some(t=>t[0]===pvTab))pvTab='ruta';const day=pvDay>=0?pvDay:new Date(now()).getDay();const sid=me||pvSeller;const R=pvRoute(sid,day);
+ const jor=giOn('gps')?`<div class="card" style="margin-bottom:.6rem"><div class="row"><span class="sp">${gpsOnJ?'🟢 Jornada iniciada: el GPS registra tu recorrido':'⚪ Jornada sin iniciar: el GPS no registra nada'}</span><button class="btn sm ${gpsOnJ?'':'gold'}" data-act="gpsJor">${gpsOnJ?'Terminar jornada':'Iniciar jornada'}</button></div>${gpsCons()[user.id]?'<button class="btn sm ghost" data-act="gpsRevoke" style="margin-top:.3rem">Retirar consentimiento</button>':''}</div>`:'';
+ return`<div class="row"><h1 class="sp">Preventa</h1><button class="btn sm" data-act="nav" data-id="pedidosv">Pedidos</button></div>${jor}
+ <div class="ux-tabs" role="tablist">${tabs.map(([k,t])=>`<a role="tab" tabindex="0" data-act="pvTab" data-t="${k}" aria-selected="${k===pvTab}" class="${k===pvTab?'on':''}">${t}</a>`).join('')}</div>
+ ${pvTab==='cartera'?pvCarteraHTML():pvTab==='tablero'?pvTablero():pvTab==='rendir'?pvRendHTML():`<div class="f">${!me?`<div><label for="pv-s">Preventista</label><select id="pv-s"><option value="">Todos</option>${pvSellers().map(u=>`<option value="${u.id}" ${pvSeller===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>`:''}<div><label for="pv-d">Día</label><select id="pv-d">${[1,2,3,4,5,6,0].map(d=>`<option value="${d}" ${d===day?'selected':''}>${PV_DIAS[d]}</option>`).join('')}</select></div></div>
+ <p class="sm mut">${R.length} cliente(s) para visitar · ${R.filter(c=>pvVisits().some(v=>v.cust===c.id&&dkey(v.ts)===dkey(now()))).length} visitados hoy</p>${R.map(pvCard).join('')||'<div class="okbox">No hay clientes asignados para este día. El supervisor los asigna en «Cartera».</div>'}`}`;},
+ ()=>{const s=$('#pv-s');if(s)s.addEventListener('change',()=>{pvSeller=s.value;rerender();});const d=$('#pv-d');if(d)d.addEventListener('change',()=>{pvDay=+d.value;rerender();});
+  $$('.pv-f').forEach(i=>i.addEventListener('change',()=>{const c=custById(i.dataset.id);if(!c)return;const p=pvOf(c);p[i.dataset.k]=i.dataset.k==='ord'?(+i.value||0):i.value.replace(/[<>]/g,'').slice(0,30);save();}));
+  $$('.pv-d').forEach(i=>i.addEventListener('change',()=>{const c=custById(i.dataset.id);if(!c)return;const p=pvOf(c);const d=+i.dataset.d;p.dias=(p.dias||[]).filter(x=>x!==d);if(i.checked)p.dias.push(d);save();}));
+  $$('.pv-c').forEach(i=>i.addEventListener('change',()=>{const P=S.cfg.presale||(S.cfg.presale={});(P.com||(P.com={}))[i.dataset.id]=Math.max(0,Math.min(30,+i.value||0));audit('COMISION_PREVENTA',i.dataset.id+' · '+i.value+' %');save();}));},'Operación');
+SCREENS.preventa.show=()=>giOn('presale');NAV.push(['preventa','Operación']);
+
+/* ---------- Bot de pedidos por WhatsApp ---------- */
+const waS=()=>S.waSess||(S.waSess={});
+const WA_MENU='Elegí una opción escribiendo el número:\n1️⃣ Buscar producto\n2️⃣ Ver mi carrito\n3️⃣ Repetir mi último pedido\n4️⃣ Mi saldo\n5️⃣ Hablar con una persona\n0️⃣ Confirmar el pedido\nTambién podés escribir directamente, por ejemplo: «6 coca 2,25».';
+function waCust(phone){const d=String(phone||'').replace(/\D/g,'').slice(-10);if(d.length<8)return null;return S.customers.find(c=>c.status!=='baja'&&String(c.wa||'').replace(/\D/g,'').slice(-10)===d)||null;}
+function waCartTxt(s,c){if(!s.cart.length)return'Tu carrito está vacío.';let t=0;const L=s.cart.map(x=>{const p=prod(x.pid);if(!p)return'';const pr=vbLinePrice(p,x.qty,c);t+=pr.amt;return'• '+x.qty+' × '+pfull(p)+' = '+money(pr.amt);}).filter(Boolean);return'🛒 Tu pedido:\n'+L.join('\n')+'\nTotal estimado: '+money(t)+'\n\nEscribí 0 para confirmar o «borrar» para empezar de nuevo.';}
+/* responde un mensaje entrante; devuelve el texto de respuesta ('' = no responde, lo atiende una persona) */
+function waBot(phone,text,name){if(!giOn('wa_orders'))return'';const k=String(phone||'').replace(/\D/g,'')||'anon';const S0=waS();let s=S0[k];const t=String(text||'').trim();const n=giNorm(t);
+ if(!s||now()-s.ts>6*3600e3){s=S0[k]={ts:now(),st:'menu',cart:[],last:''};}s.ts=now();if(s.human)return'';
+ const c=waCust(phone);const hola=c?'¡Hola '+(c.name||'').split(' ')[0]+'! ':'¡Hola! ';
+ /* pedido pegado desde el portal: «2 x [código] nombre» */
+ const lines=[...t.matchAll(/^\s*(\d+(?:[.,]\d+)?)\s*x\s*\[([^\]]+)\]/gim)];
+ if(lines.length){let ok=0;for(const m of lines){const p=giFind(m[2])[0];if(p){s.cart.push({pid:p.id,qty:parseFloat(m[1].replace(',','.'))});ok++;}}s.st='menu';return'Recibí '+ok+' artículo(s) de tu lista.\n'+waCartTxt(s,c);}
+ /* primero las respuestas a una pregunta del bot (elegir de la lista o decir la cantidad): un «1» acá es la opción, no el menú */
+ if(s.st==='elegir'&&/^\d+$/.test(n)&&s.opts&&s.opts[+n-1]){s.pick=s.opts[+n-1];const p=prod(s.pick);if(s.qtyPend>0){const q=s.qtyPend;s.qtyPend=0;s.cart.push({pid:s.pick,qty:q});s.st='menu';return'Agregado: '+q+' × '+pfull(p)+'.\n'+waCartTxt(s,c);}
+  s.st='cant';return'¿Cuántas unidades de '+pfull(p)+' ('+money(vbLinePrice(p,1,c).price)+' c/u)?';}
+ if(s.st==='cant'&&/^\d+([.,]\d+)?$/.test(n)){const q=parseFloat(n.replace(',','.'));if(!(q>0))return'Escribí una cantidad mayor a cero.';s.cart.push({pid:s.pick,qty:q});s.st='menu';return'Agregado.\n'+waCartTxt(s,c)+'\n\n¿Algo más? Escribí otro producto o 0 para confirmar.';}
+ if(/^(hola|buenas|buen dia|menu|inicio|opciones)\b/.test(n)||n==='')return hola+'Soy el asistente de pedidos de '+S.tenant.name+'.\n'+WA_MENU;
+ if(n==='5'||/persona|humano|vendedor|asesor/.test(n)){s.human=1;return'Listo, te paso con una persona del equipo. En breve te responden.';}
+ if(n==='4'||/saldo|debo|deuda|cuenta/.test(n)){if(!c)return'No encuentro tu número entre nuestros clientes. Escribí 5 y te atiende una persona.';const d=debtOf(c.id);return d>0?'Tu saldo en cuenta corriente es '+money(d)+'.':'No tenés saldo pendiente. ¡Gracias!';}
+ if(n==='3'||/repetir|lo mismo|ultimo pedido/.test(n)){if(!c)return'Para repetir un pedido necesito que seas cliente registrado. Escribí 5.';const last=vbArr('sordr').filter(o=>o.cust===c.id).slice(-1)[0];if(!last)return'No encuentro pedidos anteriores.';
+  s.cart=last.items.filter(i=>prod(i.pid)).map(i=>({pid:i.pid,qty:i.qty}));return'Copié tu pedido '+last.n+'.\n'+waCartTxt(s,c);}
+ if(n==='2'||/carrito|mi pedido/.test(n))return waCartTxt(s,c);
+ if(/^(borrar|vaciar|cancelar)/.test(n)){s.cart=[];s.st='menu';return'Vacié el carrito.\n'+WA_MENU;}
+ if(n==='0'||/^(confirmo|confirmar|listo|enviar)/.test(n)){if(!s.cart.length)return'Tu carrito está vacío.\n'+WA_MENU;if(!c){s.human=1;return'Tu pedido quedó anotado y una persona te contacta para completar tus datos.\n'+waCartTxt(s,c);}
+  const r=vbOrderCreate({cust:c.id,items:s.cart,cond:'cc',src:'whatsapp',note:'Pedido por WhatsApp'});if(r.err)return'No pude registrar el pedido: '+r.err+'\nEscribí 5 y te ayuda una persona.';s.cart=[];s.st='menu';
+  return'✅ Pedido '+r.o.n+' recibido por '+money(r.o.total)+'. Te avisamos cuando salga. ¡Gracias!';}
+ if(n==='1'){s.st='buscar';return'Escribí el nombre o el código del producto.';}
+ /* «6 coca 2,25» o un nombre */
+ const m=t.match(/^\s*(\d+(?:[.,]\d+)?)\s+(.{2,})$/);const q=m?parseFloat(m[1].replace(',','.')):0;const L=giFind(m?m[2]:t,5);
+ if(!L.length)return'No encontré «'+(m?m[2]:t).slice(0,40)+'». Probá con otra palabra o escribí 5 para hablar con una persona.';
+ if(L.length===1&&q>0){s.cart.push({pid:L[0].id,qty:q});s.st='menu';return'Agregado: '+q+' × '+pfull(L[0])+'.\n'+waCartTxt(s,c);}
+ s.opts=L.map(p=>p.id);s.st='elegir';s.qtyPend=q>0?q:0;return'Encontré:\n'+L.map((p,i)=>(i+1)+') '+pfull(p)+' · '+money(vbLinePrice(p,1,c).price)).join('\n')+'\nEscribí el número.';}
+/* se engancha a Atención al cliente: si el módulo está activo y nadie del equipo tomó la conversación, responde el bot de pedidos */
+if(typeof crmBot==='function'){const _cb=crmBot;crmBot=async function(c,text){if(giOn('wa_orders')&&c&&['wa','web'].concat(typeof CHAN_DEMO!=='undefined'?CHAN_DEMO:[]).includes(c.chan)&&!c.asg){
+  const r=waBot(c.wa||c.ext||c.id,text,c.name);if(r){try{await crmSend(c,r,{kind:'bot',by:'Asistente de pedidos',noState:1});}catch(e){}return;}}return _cb.apply(this,arguments);};}
+let waSim=[];
+A.waSimSend=()=>{const t=val('ws-t').trim();if(!t)return;const ph=val('ws-p')||'5493870000000';waSim.push({d:'in',t});const r=waBot(ph,t)||'(lo atiende una persona del equipo)';waSim.push({d:'out',t:r});rerender();setTimeout(()=>{const i=$('#ws-t');if(i)i.focus();},40);};
+A.waSimReset=()=>{waSim=[];const ph=String(val('ws-p')||'5493870000000').replace(/\D/g,'');delete waS()[ph];rerender();};
+reg('botwa','Bot de pedidos','chat','crm',()=>`<div class="row"><h1 class="sp">Bot de pedidos por WhatsApp</h1>${SCREENS.crm?'<button class="btn sm" data-act="nav" data-id="crm">Atención al cliente</button>':''}</div>
+ <p class="sm mut">Responde solo en las conversaciones de WhatsApp y del chat web que nadie del equipo tomó. Identifica al cliente por su número, usa su lista de precios y el pedido entra a «Pedidos de venta». Con «5» deriva a una persona. Para que responda las 24 horas con el sistema cerrado hace falta la conexión de WhatsApp Business (Atención al cliente → Canales) y la función del servidor [pendiente de Vincular Business].</p>
+ <div class="card"><h3 style="margin-top:0">Probar el bot</h3><label for="ws-p">Teléfono del cliente (para identificarlo)</label><input id="ws-p" value="${esc((S.customers.find(c=>c.wa)||{}).wa||'5493870000000')}">
+ <div style="max-height:22rem;overflow:auto;background:var(--bg2,#0001);padding:.5rem;border-radius:8px;margin:.5rem 0">${waSim.map(m=>`<div style="text-align:${m.d==='in'?'right':'left'};margin:.25rem 0"><span style="display:inline-block;white-space:pre-line;padding:.35rem .6rem;border-radius:10px;background:${m.d==='in'?'#dcf8c6':'#fff'};color:#000;max-width:85%">${esc(m.t)}</span></div>`).join('')||'<p class="sm mut">Escribí «hola».</p>'}</div>
+ <div class="row" style="gap:.4rem"><input id="ws-t" class="sp" placeholder="Mensaje del cliente" autocomplete="off"><button class="btn gold" data-act="waSimSend">Enviar</button><button class="btn sm" data-act="waSimReset">Reiniciar</button></div></div>`,
+ ()=>{const t=$('#ws-t');if(t)t.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();A.waSimSend();}});},'Clientes');
+SCREENS.botwa.show=()=>giOn('wa_orders');NAV.push(['botwa','Clientes']);
+
+/* ---------- Portal del cliente mayorista (enlace privado, sin servidor) ---------- */
+const vbB64u=s=>btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const vbUb64u=s=>atob(s.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((s.length+3)%4));
+async function b2bPack(cid){const c=custById(cid);if(!c)throw new Error('Cliente inexistente.');const now_=now();
+ const docs=S.sales.filter(s=>s.cust===cid&&s.status==='ok').slice(-12).reverse().map(s=>[s.n,s.ts,s.total,typeof saleFiadoAmt==='function'?saleFiadoAmt(s):0,s.due||0]);
+ const pays=S.fiadoPays.filter(p=>p.cust===cid).slice(-8).reverse().map(p=>[p.ts,p.amount]);
+ const ac=vbArr('acopios').filter(a=>a.cust===cid&&a.state==='vigente').map(a=>[a.n,a.items.filter(i=>i.qty>i.ret).map(i=>[i.name,Math.round((i.qty-i.ret)*1000)/1000])]);
+ const P=S.products.filter(p=>p.active!==false&&!p.archived&&p.id!=='p_envio'&&p.price>0&&!(typeof isKit==='function'&&isKit(p))).slice(0,400).map(p=>{const r=vbLinePrice(p,1,c);const pres=(typeof wsPres==='function'&&wsOn())?wsPres(p).map(k=>[wsLvName(k.lv),k.qty,k.unit]):[];return[p.barcode||p.plu||p.id,pfull(p),r.price,rubName(p.rubro)||'',pres];});
+ const last=vbArr('sordr').filter(o=>o.cust===cid).slice(-1)[0];
+ const d={v:1,t:now_,shop:{n:S.tenant.name,wa:String(S.tenant.wa||'').replace(/\D/g,'')},c:{n:custFull(c)},deb:debtOf(cid),od:typeof wsOverdue==='function'&&wsOn()?wsOverdue(cid).length:0,docs,pays,ac,P,last:last?last.items.map(i=>{const p=prod(i.pid);return p?[p.barcode||p.plu||p.id,i.qty]:null;}).filter(Boolean):[]};
+ const raw=new TextEncoder().encode(JSON.stringify(d));let bin;
+ if(typeof CompressionStream!=='undefined'){const cs=new Blob([raw]).stream().pipeThrough(new CompressionStream('gzip'));bin=new Uint8Array(await new Response(cs).arrayBuffer());}else bin=raw;
+ let s='';for(let i=0;i<bin.length;i+=8192)s+=String.fromCharCode.apply(null,bin.subarray(i,i+8192));return(typeof CompressionStream!=='undefined'?'z':'j')+vbB64u(s);}
+async function b2bUnpack(tok){const k=tok[0];const bin=Uint8Array.from(vbUb64u(tok.slice(1)),ch=>ch.charCodeAt(0));let raw=bin;
+ if(k==='z'){const ds=new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'));raw=new Uint8Array(await new Response(ds).arrayBuffer());}return JSON.parse(new TextDecoder().decode(raw));}
+function b2bBase(){return((window.RAVE_BUILD&&RAVE_BUILD.publicUrl)||location.href.split('#')[0]).split('#')[0];}
+A.b2bLink=async el=>{const c=custById(el.dataset.id);if(!c)return;try{const tok=await b2bPack(c.id);const url=b2bBase()+'#b2b='+tok;audit('PORTAL_ENLACE',custFull(c)+' · '+Math.round(url.length/1024)+' KB');
+ const wa=String(c.wa||'').replace(/\D/g,'');const msg='Hola '+(c.name||'')+', te paso tu portal de cliente de '+S.tenant.name+' con tu saldo, tus comprobantes y tu lista de precios para hacer pedidos: '+url;
+ modal('Portal de '+esc(custFull(c)),`<p class="sm">Enlace privado con los datos de hoy (${fmtDT(now())}). Cuando cambien precios o saldo, generá uno nuevo.</p><textarea id="b2-u" rows="4" readonly>${esc(url)}</textarea>
+  <div class="row" style="gap:.4rem;margin-top:.5rem"><button class="btn sm" data-act="b2bCopy">Copiar</button>${wa?`<a class="btn sm gold" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}">Enviar por WhatsApp</a>`:''}<a class="btn sm" target="_blank" rel="noopener" href="${esc(url)}">Ver como el cliente</a></div>`,{ok:false,cancelText:'Cerrar'});}catch(e){toast('No se pudo armar el enlace: '+e.message,1);}};
+A.b2bCopy=()=>{const t=$('#b2-u');if(!t)return;t.select();try{navigator.clipboard.writeText(t.value);}catch(e){document.execCommand&&document.execCommand('copy');}toast('Copiado');};
+reg('portalb2b','Portal de clientes','users','customers',()=>{const q=giNorm(val('b2-q')||'');const L=S.customers.filter(c=>c.status!=='baja'&&!c.deleted).filter(c=>!q||giNorm(custFull(c)+' '+(c.taxid||'')).includes(q)).slice(0,200);
+ return`<div class="row"><h1 class="sp">Portal del cliente mayorista</h1></div><p class="sm mut">Cada cliente recibe un enlace privado con su saldo, comprobantes, acopios y su lista de precios. Arma el pedido en el celular y lo manda por WhatsApp; si el bot está activo, lo carga solo en «Pedidos de venta». El enlace es una foto de los datos al momento de generarlo: no da acceso al sistema.</p>
+ <input id="b2-q" placeholder="Buscar cliente" value="${esc(val('b2-q')||'')}" autocomplete="off"><div class="tw" style="margin-top:.5rem"><table data-nosort><thead><tr><th>Cliente</th><th class="r">Saldo</th><th></th></tr></thead><tbody>${L.map(c=>`<tr><td>${esc(custFull(c))}</td><td class="r">${money(debtOf(c.id))}</td><td class="r"><button class="btn sm gold" data-act="b2bLink" data-id="${c.id}">Generar enlace</button></td></tr>`).join('')}</tbody></table></div>`;},
+ ()=>{const q=$('#b2-q');if(q)q.addEventListener('change',()=>rerender());},'Clientes');
+SCREENS.portalb2b.show=()=>giOn('b2b');NAV.push(['portalb2b','Clientes']);
+/* vista del cliente: #b2b=… (no requiere sesión ni datos del equipo) */
+let b2bData=null,b2bCart={},b2bTab='cat';
+function b2bView(){const d=b2bData;if(!d)return;let k=$('#b2b-v');if(!k){k=document.createElement('div');k.id='b2b-v';document.body.appendChild(k);}['#pub','#login','#panel'].forEach(s=>{const e=$(s);if(e)e.hidden=true;});
+ k.setAttribute('style','position:fixed;inset:0;z-index:60;overflow:auto;background:var(--bg,#fff);color:var(--ink,#111);padding:1rem;font-size:16px');const q=giNorm((($('#b2-s')||{}).value)||'');
+ const items=Object.entries(b2bCart).filter(([,v])=>v>0);const tot=items.reduce((t,[code,v])=>{const p=d.P.find(x=>x[0]===code);return t+(p?Math.round(p[2]*v):0);},0);
+ k.innerHTML=`<div style="max-width:46rem;margin:0 auto"><h1 style="margin:.2rem 0">${esc(d.shop.n)}</h1><p class="sm">Portal de <b>${esc(d.c.n)}</b> · datos al ${fmtDT(d.t)}</p>
+ <div class="card"><div class="row"><span class="sp">Saldo en cuenta corriente</span><b style="font-size:1.4rem">${money(d.deb)}</b></div>${d.od?`<p class="sm"><span class="tag bad">${d.od} comprobante(s) vencido(s)</span></p>`:''}</div>
+ <div class="ux-tabs" role="tablist">${[['cat','Pedir'],['docs','Comprobantes'],['ac','Acopios']].map(([x,t])=>`<a role="tab" tabindex="0" data-act="b2bT" data-t="${x}" aria-selected="${x===b2bTab}" class="${x===b2bTab?'on':''}">${t}</a>`).join('')}</div>
+ ${b2bTab==='docs'?`<div class="tw"><table data-nosort><thead><tr><th>Comprobante</th><th>Fecha</th><th class="r">Total</th><th class="r">Debe</th><th>Vence</th></tr></thead><tbody>${d.docs.map(x=>`<tr><td>${esc(x[0])}</td><td>${dmy(dkey(x[1]))}</td><td class="r">${money(x[2])}</td><td class="r">${money(x[3])}</td><td>${x[4]?dmy(dkey(x[4])):'—'}</td></tr>`).join('')}</tbody></table></div><h3>Pagos</h3><ul>${d.pays.map(p=>`<li>${dmy(dkey(p[0]))} · ${money(p[1])}</li>`).join('')||'<li>—</li>'}</ul>`
+ :b2bTab==='ac'?(d.ac.length?d.ac.map(a=>`<div class="card"><b>${esc(a[0])}</b><ul>${a[1].map(i=>`<li>${i[1]} × ${esc(i[0])}</li>`).join('')}</ul></div>`).join(''):'<p>No tenés mercadería en acopio.</p>')
+ :`<div class="row" style="gap:.4rem;margin:.5rem 0"><input id="b2-s" class="sp" placeholder="Buscar producto" value="${esc((($('#b2-s')||{}).value)||'')}">${d.last.length?'<button class="btn sm" data-act="b2bRep">Repetir último pedido</button>':''}</div>
+  ${items.length?`<div class="card"><b>Tu pedido · ${money(tot)}</b><ul>${items.map(([code,v])=>{const p=d.P.find(x=>x[0]===code);return p?`<li>${v} × ${esc(p[1])}</li>`:'';}).join('')}</ul>${d.shop.wa?`<button class="btn gold" data-act="b2bSend">Enviar pedido por WhatsApp</button>`:'<p class="sm">Pasale esta lista al comercio.</p>'} <button class="btn sm" data-act="b2bClr">Vaciar</button></div>`:''}
+  <div class="tw"><table data-nosort><thead><tr><th>Producto</th><th class="r">Precio</th><th class="r">Cantidad</th></tr></thead><tbody>${d.P.filter(p=>!q||giNorm(p[1]+' '+p[3]).includes(q)).slice(0,150).map(p=>`<tr><td>${esc(p[1])}${p[4].length?`<div class="sm">${p[4].map(x=>esc(x[0])+' x'+x[1]+': '+money(x[2])+' c/u').join(' · ')}</div>`:''}</td><td class="r">${money(p[2])}</td><td class="r"><input class="b2-q" data-c="${esc(p[0])}" type="number" min="0" step="1" value="${b2bCart[p[0]]||''}" style="width:4.5rem" aria-label="Cantidad de ${esc(p[1])}"></td></tr>`).join('')}</tbody></table></div><p class="sm">Precios de referencia al ${dmy(dkey(d.t))}; el comercio los confirma al facturar.</p>`}</div>`;
+ const s=$('#b2-s');if(s)s.addEventListener('change',()=>setTimeout(b2bView,0));$$('.b2-q').forEach(i=>i.addEventListener('change',()=>{b2bCart[i.dataset.c]=Math.max(0,+i.value||0);setTimeout(b2bView,0);}));}
+A.b2bT=el=>{b2bTab=el.dataset.t;b2bView();};
+A.b2bRep=()=>{b2bCart={};b2bData.last.forEach(([c,q])=>b2bCart[c]=q);b2bView();};
+A.b2bClr=()=>{b2bCart={};b2bView();};
+function b2bMsg(){const d=b2bData;return'Pedido de '+d.c.n+':\n'+Object.entries(b2bCart).filter(([,v])=>v>0).map(([code,v])=>{const p=d.P.find(x=>x[0]===code);return p?v+' x ['+code+'] '+p[1]:'';}).filter(Boolean).join('\n');}
+A.b2bSend=()=>{const u='https://wa.me/'+b2bData.shop.wa+'?text='+encodeURIComponent(b2bMsg());window.open(u,'_blank','noopener');};
+{const _rt=route;route=function(){const h=location.hash||'';if(h.startsWith('#b2b=')){const tok=h.slice(5);b2bUnpack(tok).then(d=>{if(!d||d.v!==1)throw new Error('formato');b2bData=d;b2bView();}).catch(()=>{document.body.insertAdjacentHTML('beforeend','<div class="card" style="margin:2rem">El enlace del portal no es válido o está incompleto. Pedile uno nuevo al comercio.</div>');});return;}
+ const v=$('#b2b-v');if(v)v.remove();return _rt.apply(this,arguments);};}
+
+/* paquete «Todo el sistema» (después de que todos los archivos sumaron sus módulos) */
+if(typeof GI_PACKS!=='undefined'&&!GI_PACKS.todo)GI_PACKS.todo={t:'Todo el sistema',k:GI_MODS.map(m=>m.k),x:['Reparto, despacho y rendición','Finanzas','Contabilidad de gestión','Atención al cliente']};
 
 /* ===== V26.18 · Menú público editable: secciones, sección de cada producto y foto =====
    · Secciones del menú = los rubros/categorías que se muestran + «secciones sólo del menú» (kind 'msec': Ofertas, Novedades…).

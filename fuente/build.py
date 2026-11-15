@@ -45,6 +45,9 @@ parts=[p for p in parts if os.path.exists(p)]
 if os.path.exists('p17-gestion.js') and (KINI or V=='cliente' or os.environ.get('GI')=='1') and os.environ.get('GI')!='0':
     parts.insert(parts.index('p5c-menusec.js'),'p17-gestion.js')
     if os.path.exists('p18-etiquetas.js'): parts.insert(parts.index('p5c-menusec.js'),'p18-etiquetas.js')
+    # V26.78 · circuito mayorista, preventa/GPS/bot/portal, depósitos e inventario (todo apagado en el cliente hasta activarlo)
+    for f in ('p19-mayorista.js','p21-stock.js','p20-campo.js'):
+        if os.path.exists(f): parts.insert(parts.index('p5c-menusec.js'),f)
 # V26.37 · Centro Inteligente (p10-centro.js): módulo aislado.
 # V26.40: aprobado por el dueño para Almacén RAVE (apagado por defecto; lo activa el administrador). Kini no lo lleva salvo CI=1.
 # raveV2 (solo) y Kini no llevan el Centro Inteligente: es de raveV3 y de Almacén RAVE (apagado)

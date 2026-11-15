@@ -27,7 +27,7 @@ with sync_playwright() as p:
     chk(ev("giLog().length")==32 and ev("giLblPending().length")==4,'demo: historial de 60 días (8 artículos × 4 cambios) y 4 etiquetas pendientes')
     chk(ev("giVales().length")==3,'demo: 3 vales de ejemplo')
     ev("go('modulos')");pg.wait_for_timeout(300)
-    chk(pg.locator('[data-mod]').count()==6 and 'En construcción' in pg.inner_text('#view'),'Módulos: 6 tarjetas nuevas (con Etiquetas profesionales) y la hoja de ruta «en construcción»')
+    chk(pg.locator('[data-mod]').count()==ev("GI_MODS.length")==14 and 'En desarrollo' not in pg.inner_text('#view'),'Módulos: las 14 funciones activables y nada pendiente «en desarrollo»')
     # dependencia: apagar historial apaga también la actualización masiva
     pg.click('[data-act=giMod][data-k=price_hist]');pg.wait_for_timeout(200);ok_modal(pg)
     chk(not ev("giOn('price_hist')") and not ev("giOn('price_bulk')"),'apagar «Historial» apaga también «Actualización masiva» (depende de él)')
