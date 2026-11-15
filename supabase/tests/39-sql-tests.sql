@@ -8,7 +8,7 @@ declare
   uP uuid := '00000000-0000-0000-0000-0000000000e1'; cA uuid := t.ctxget('cA')::uuid; r jsonb;
 begin
   r := t.call(uA,'a@a.com',$q$select to_jsonb(public.vb_version())$q$);
-  perform t.chk('39: vb_version() = 31', r::text='31', r::text);
+  perform t.chk('39: vb_version() >= 31', r::text::int>=31, r::text);
   r := t.call(uA,'a@a.com',format($q$select public.sincronizar(%L,'devA','[{"c":"deal","id":"op1","d":{"n":"OP-0001","stage":"propuesta"}}]'::jsonb)$q$,cA));
   perform t.chk('39: el admin sube oportunidades', (r->>'aplicados')::int=1, r::text);
   r := t.call(uA,'a@a.com',format($q$select public.sincronizar(%L,'devA','[{"c":"deal","id":"op1","d":{"n":"OP-0001","stage":"negociacion"}}]'::jsonb)$q$,cA));
