@@ -20,7 +20,7 @@ begin
   perform t.chk('38: un rol inventado sigue rechazado', r ? 'err', r::text);
   -- versión
   r := t.call(uA,'a@a.com',$q$select to_jsonb(public.vb_version())$q$);
-  perform t.chk('38: vb_version() = 30 para el equipo', r::text='30', r::text);
+  perform t.chk('38: vb_version() >= 30 para el equipo', (r::text)::int>=30, r::text);
   r := t.call(null,'',$q$select to_jsonb(public.vb_version())$q$,'anon');
   perform t.chk('38: anon no consulta la versión', r ? 'err', r::text);
   -- admin: todas las colecciones nuevas

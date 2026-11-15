@@ -489,6 +489,9 @@
   /* si el panel cambia datos (cupones, sellos) el menú se redibuja */
   window.RAVE_PUB_REFRESH=function(){renderCoupons();renderCard();renderLegal();try{if(window.RAVE_SHIP_REFRESH)window.RAVE_SHIP_REFRESH();}catch(e){}};
 
+  /* V26.79 · el chat no deja enviar datos de tarjeta (Luhn), CVV ni PIN */
+  function rvCardIn(t){t=String(t||'');var m=t.match(/(?:\d[ \-.]?){12,18}\d/g)||[];for(var i=0;i<m.length;i++){var d=m[i].replace(/\D/g,'');if(d.length<13||d.length>19||/^(\d)\1+$/.test(d))continue;var s=0,alt=false;for(var j=d.length-1;j>=0;j--){var n=+d[j];if(alt){n*=2;if(n>9)n-=9;}s+=n;alt=!alt;}if(s%10===0)return true;}
+   return /\b(cvv2?|cvc2?|c[oó]digo de seguridad)\b\s*(es|:|=|-)?\s*\d{3,4}\b/i.test(t)||/\b(pin)\b\s*(es|:|=|-)?\s*\d{4,6}\b/i.test(t);}
   /* --- V26.60 · chat «Escribinos» (CRM): el celular guarda su chat; en la nube viaja cifrado de punta a punta --- */
   (function(){
     if(typeof API.chatOn!=='function') return;
@@ -526,6 +529,7 @@
       var n=e.target.closest('[data-np]');if(n&&API.chatNps){API.chatNps(+n.dataset.np).then(function(r){if(r&&r.ok)paint(true);else toast((r&&r.msg)||L('No se pudo enviar.','Could not send.'));});}});
     box.addEventListener('keydown',function(e){if(e.key==='Escape'){show(false);fab.focus();}});
     box.addEventListener('submit',function(e){e.preventDefault();var ta=box.querySelector('#rv-ct'),er=box.querySelector('.err'),b=box.querySelector('.snd');var n=box.querySelector('#rv-cn'),w=box.querySelector('#rv-cw');
+      if(rvCardIn(ta.value)){er.textContent=L('Por tu seguridad no envíes números de tarjeta, códigos de seguridad ni claves por chat. Para pagar usá el link oficial o pagá en el local.','For your safety, do not send card numbers, security codes or PINs by chat.');return;}
       b.disabled=true;er.textContent='';API.chatSend(ta.value,n?n.value:'',w?w.value:'').then(function(r){b.disabled=false;if(!r||!r.ok){er.textContent=(r&&r.msg)||L('No se pudo enviar.','Could not send.');return;}ta.value='';paint();}).catch(function(){b.disabled=false;er.textContent=L('No se pudo enviar.','Could not send.');});});
     fab.addEventListener('click',function(){show(true);});
     function tick(){var on=API.chatOn();fab.querySelector('.t').textContent=L('Escribinos','Chat');if(!open)fab.style.display=on?'flex':'none';if(!on&&open)show(false);

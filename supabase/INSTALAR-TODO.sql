@@ -1,6 +1,6 @@
 -- INSTALAR-TODO.sql · proyecto Supabase NUEVO · Vincular Business · Sistema VB V26F
--- Pegar el CONTENIDO completo en SQL Editor y ejecutar una sola vez. Incluye 01 a 30 (no incluye 00 ni 90).
--- Si tu proyecto YA tenía 01 a 11 instalados, alcanza con pegar 12-pago-proveedor-cajas.sql y 13-tiendanube.sql (son aditivos e idempotentes, en ese orden). Si tenía 01 a 10, pegá 11, 12 y 13. Si ya tenía 01 a 13, alcanza con pegar 14-auditoria-search-path.sql y 15-custodia-google.sql. Si ya tenía 01 a 15, pegá 16-ajustes-medios-pago.sql, 17-fiado-cc-cortes.sql y 18-telegram.sql, en ese orden. Si ya tenía 01 a 19, alcanza con pegar 20-fidelizacion-operacion.sql. Si ya tenía 01 a 25, alcanza con pegar 26-reparto.sql (reparto y despacho, pedidos del menú y seguimiento). Si ya tenía 01 a 26, alcanza con pegar 27-finanzas-contable.sql (Finanzas y Contabilidad, rol contador). Si ya tenía 01 a 27, alcanza con pegar 28-push.sql (notificaciones push del Club). Si ya tenía 01 a 28, alcanza con pegar 29-omnicanal-finanzas.sql (OAuth, webhooks, API, Mercado Pago Point). Si ya tenía 01 a 29, alcanza con pegar 30-gestion-integral.sql (pedidos, remitos, preventa, GPS, depósitos, inventario, acopio, etiquetas; roles preventista y depósito).
+-- Pegar el CONTENIDO completo en SQL Editor y ejecutar una sola vez. Incluye 01 a 31 (no incluye 00 ni 90).
+-- Si tu proyecto YA tenía 01 a 11 instalados, alcanza con pegar 12-pago-proveedor-cajas.sql y 13-tiendanube.sql (son aditivos e idempotentes, en ese orden). Si tenía 01 a 10, pegá 11, 12 y 13. Si ya tenía 01 a 13, alcanza con pegar 14-auditoria-search-path.sql y 15-custodia-google.sql. Si ya tenía 01 a 15, pegá 16-ajustes-medios-pago.sql, 17-fiado-cc-cortes.sql y 18-telegram.sql, en ese orden. Si ya tenía 01 a 19, alcanza con pegar 20-fidelizacion-operacion.sql. Si ya tenía 01 a 25, alcanza con pegar 26-reparto.sql (reparto y despacho, pedidos del menú y seguimiento). Si ya tenía 01 a 26, alcanza con pegar 27-finanzas-contable.sql (Finanzas y Contabilidad, rol contador). Si ya tenía 01 a 27, alcanza con pegar 28-push.sql (notificaciones push del Club). Si ya tenía 01 a 28, alcanza con pegar 29-omnicanal-finanzas.sql (OAuth, webhooks, API, Mercado Pago Point). Si ya tenía 01 a 29, alcanza con pegar 30-gestion-integral.sql (pedidos, remitos, preventa, GPS, depósitos, inventario, acopio, etiquetas; roles preventista y depósito). Si ya tenía 01 a 30, alcanza con pegar 31-pipeline.sql (oportunidades del pipeline de ventas).
 
 -- ===== 01-base.sql =====
 -- =====================================================================
@@ -7146,5 +7146,46 @@ $mig$;
 -- ---------- 4) versión del esquema (el sistema la consulta antes de subir las colecciones nuevas) ----------
 create or replace function public.vb_version()
 returns int language sql stable set search_path = public as $$ select 30 $$;
+revoke all on function public.vb_version() from public, anon;
+grant execute on function public.vb_version() to authenticated;
+
+-- ===== 31-pipeline.sql =====
+-- =====================================================================
+-- 31-pipeline.sql · V26.79 · Sistema Vincular Business
+-- Pipeline de ventas de Atención al cliente: colección «deal» (oportunidades) en sincronizar(),
+-- escritura para administrador, supervisor, mostrador y operador; vb_version() = 31.
+-- Aditivo e idempotente: no borra ni cambia datos. Requiere 01 a 30.
+-- =====================================================================
+do $mig$
+declare d text;
+begin
+  select pg_get_functiondef('public.sincronizar(uuid,text,jsonb)'::regprocedure) into d;
+  if position('''deal''' in d) = 0 then
+    if position($o$'lblq','hold','vale'];$o$ in d) = 0 then raise exception '31: no encontré la lista de sincronizar (¿falta correr 30?)'; end if;
+    d := replace(d, $o$'lblq','hold','vale'];$o$, $n$'lblq','hold','vale','deal'];$n$);
+    execute d;
+  end if;
+end
+$mig$;
+
+do $mig$
+declare d text;
+  os constant text := $o$'tdep','dstk','tinv','acop','plog','lblq','hold','vale')$o$;
+  om constant text := $o$'dstk','tinv','acop','plog','lblq','hold')$o$;
+  oo constant text := $o$'tlogs','cexcu','ctransf','ctev','cdet','envio','plog','hold')$o$;
+begin
+  select pg_get_functiondef('public.rave_puede_escribir(text,text,text)'::regprocedure) into d;
+  if position('''deal''' in d) = 0 then
+    if position(os in d) = 0 or position(om in d) = 0 or position(oo in d) = 0 then raise exception '31: no encontré las listas de rave_puede_escribir (¿falta correr 30?)'; end if;
+    d := replace(d, os, $n$'tdep','dstk','tinv','acop','plog','lblq','hold','vale','deal')$n$);
+    d := replace(d, om, $n$'dstk','tinv','acop','plog','lblq','hold','deal')$n$);
+    d := replace(d, oo, $n$'tlogs','cexcu','ctransf','ctev','cdet','envio','plog','hold','deal')$n$);
+    execute d;
+  end if;
+end
+$mig$;
+
+create or replace function public.vb_version()
+returns int language sql stable set search_path = public as $$ select 31 $$;
 revoke all on function public.vb_version() from public, anon;
 grant execute on function public.vb_version() to authenticated;

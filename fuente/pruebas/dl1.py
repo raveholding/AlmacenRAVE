@@ -1,0 +1,135 @@
+# V26.79 · Atención al cliente: pipeline de ventas (Kanban), datos de tarjeta, modo agente, presupuesto → oportunidad → venta, nube y Almacén RAVE apagado
+from playwright.sync_api import sync_playwright
+import os
+D=os.environ.get('LB_DIR','/tmp/rave')
+errs=[];res=[]
+def chk(c,m):
+    print(('OK   ' if c else 'FALLA ')+m);res.append(bool(c))
+def login(pg,pin='1234',idx=0,f='kini'):
+    pg.goto('file://%s/%s.html#acceso'%(D,f));pg.wait_for_timeout(1000)
+    pg.select_option('#lu',index=idx);pg.fill('#lp',pin);pg.click('[data-act=login]');pg.wait_for_timeout(600)
+def ok_modal(pg):
+    pg.locator('#modal-root .ov >> nth=-1').locator('.mf [data-m=ok]').click();pg.wait_for_timeout(300)
+with sync_playwright() as p:
+    b=p.chromium.launch(args=['--no-proxy-server'])
+    ctx=b.new_context(viewport={'width':1366,'height':900});pg=ctx.new_page();ev=pg.evaluate
+    pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
+    pg.on('console',lambda m:errs.append(m.text[:200]) if m.type=='error' and 'TUNNEL' not in m.text and 'ERR_' not in m.text else None)
+    pg.add_init_script("try{localStorage.setItem('rave.ux.config','all')}catch(e){}")
+    login(pg)
+    ev("S.cfg.crm=Object.assign(S.cfg.crm||{},{on:true});save();0")
+    chk(ev("giOn('pipeline')"),'demo: pipeline activo')
+    # ---------- tarjetas ----------
+    chk(ev("vbCardScrub('mi tarjeta es 4111 1111 1111 1111 vence 12/28').t")=='mi tarjeta es •••• 1111 [tarjeta oculta] vence 12/28','número de tarjeta válido (Luhn): se oculta dejando los últimos 4')
+    chk(ev("vbCardScrub('el cvv es 123 y el pin: 4321').t")=='el cvv es [oculto] y el pin: [oculto]','CVV y PIN se ocultan')
+    chk(ev("vbCardScrub('mi CUIT 20-12345678-6, cel 3874484132, pedido 1234567890123').hit")==0,'CUIT, teléfono y números que no pasan Luhn no se tocan')
+    cid=ev("crmNew({chan:'wa',name:'Cliente prueba',wa:'5493870000001'}).id")
+    ev("crmAdd(convById('%s'),'in','hola, te paso la tarjeta 4111111111111111 cvv 999');save();0"%cid)
+    ms=ev("cmsgs().filter(m=>m.conv==='%s').map(m=>[m.dir,m.text])"%cid)
+    chk(not any('4111111111111111' in t or '999' in t for d,t in ms) and any('[tarjeta oculta]' in t for d,t in ms),'mensaje entrante con tarjeta: se guarda oculto')
+    chk(any(d=='note' and 'Se ocultaron 2' in t for d,t in ms) and ev("S.audit.some(a=>a.action==='CRM_DATO_TARJETA'&&!/4111/.test(a.detail||a.desc||''))"),'aviso interno al agente y Auditoría sin el dato')
+    sent=ev("(async()=>{window.__s=[];const c=convById('%s');const o=crmSend;try{await crmSend(c,'Tu tarjeta 4111 1111 1111 1111 quedó registrada',{});}catch(e){}return cmsgs().filter(m=>m.conv===c.id&&m.dir==='out').map(m=>m.text)})()"%cid)
+    chk(all('4111 1111' not in t for t in sent),'mensaje saliente: tampoco se guarda ni se envía el número')
+    # ---------- pipeline ----------
+    ev("crmSel='%s';crmTab='deals';go('crm')"%cid);pg.wait_for_timeout(600)
+    chk(pg.locator('.dl-col').count()==7,'embudo con 5 etapas + Ganado + Perdido')
+    chk(pg.locator('[data-act=crmTab][data-t=deals]').count()==1,'pestaña «Oportunidades» en Atención al cliente')
+    r=ev("(()=>{const r=dlCreate({title:'Provisión mensual',cust:'kc2',amount:5000000,prio:'alta',next:'Llamar',nextAt:'2020-01-01'});return r.err||r.d.id})()")
+    d1=r
+    r2=ev("dlCreate({title:'Bebidas evento',cust:'kc3',amount:2000000,stage:'propuesta'}).d.id")
+    chk(ev("dlCreate({title:'x'}).err") is not None,'título demasiado corto: rechazado')
+    st=ev("dlStats()")
+    chk(st['value']==7000000 and st['weighted']==round(5000000*.10+2000000*.60),'valor del embudo $ 70.000 y ponderado 10 %% × 50.000 + 60 %% × 20.000 = $ 17.000 (%s)'%st['weighted'])
+    ev("crmPaint()");pg.wait_for_timeout(300)
+    card=pg.locator('[data-dl="%s"]'%d1)
+    chk(card.count()==1 and 'late' in (pg.locator('[data-dl="%s"] .dl-nx'%d1).get_attribute('class') or ''),'tarjeta con prioridad y próxima acción vencida en rojo')
+    # arrastrar con el mouse a la columna de al lado
+    tgt=pg.locator('.dl-col[data-stage=contacto]');pg.locator('#dl-board').evaluate("b=>b.scrollLeft=0");pg.wait_for_timeout(100)
+    bx=card.bounding_box();tb=tgt.bounding_box()
+    pg.mouse.move(bx['x']+30,bx['y']+20);pg.mouse.down();pg.mouse.move(bx['x']+60,bx['y']+40,steps=4);pg.mouse.move(tb['x']+tb['width']/2,tb['y']+80,steps=12);pg.mouse.up();pg.wait_for_timeout(400)
+    chk(ev("dlById('%s').stage"%d1)=='contacto' and ev("dlById('%s').hist.length"%d1)==2,'arrastrar y soltar con el mouse la mueve a «Contacto realizado» y queda en el historial')
+    # toque (dedo) con eventos de puntero táctiles
+    ev("""(()=>{const c=document.querySelector('[data-dl="%s"]');const t=document.querySelector('.dl-col[data-stage=reunion]');const b=document.getElementById('dl-board');const r=c.getBoundingClientRect(),q=t.getBoundingClientRect();
+     const f=(type,x,y)=>new PointerEvent(type,{bubbles:true,pointerId:7,pointerType:'touch',clientX:x,clientY:y,button:0,buttons:1});
+     c.dispatchEvent(f('pointerdown',r.left+20,r.top+15));b.dispatchEvent(f('pointermove',r.left+40,r.top+30));b.dispatchEvent(f('pointermove',q.left+q.width/2,q.top+90));b.dispatchEvent(f('pointerup',q.left+q.width/2,q.top+90));})()"""%r2)
+    pg.wait_for_timeout(400)
+    chk(ev("dlById('%s').stage"%r2)=='reunion','con el dedo (pointer táctil) también se mueve')
+    pg.locator('[data-dl="%s"]'%r2).focus();pg.keyboard.press('Alt+ArrowRight');pg.wait_for_timeout(300)
+    chk(ev("dlById('%s').stage"%r2)=='propuesta','Alt + → la pasa a la etapa siguiente')
+    pg.click('[data-dl="%s"] [data-act=dlStepA][data-d="-1"]'%r2);pg.wait_for_timeout(300)
+    chk(ev("dlById('%s').stage"%r2)=='reunion','el botón ◀ la vuelve a la anterior')
+    # perder con motivo, ganar soltando en Ganado
+    chk(ev("dlLose('%s','').err"%r2) is not None,'perder exige motivo')
+    ev("A.dlLoseA({dataset:{id:'%s'}})"%r2);pg.wait_for_timeout(200);pg.select_option('#dll-w','Precio');ok_modal(pg)
+    chk(ev("dlById('%s').status"%r2)=='lost' and ev("dlStats().lostWhy['Precio']")==1,'perdida por «Precio» y aparece en los motivos de pérdida')
+    ev("dlMove('%s','negociacion');crmPaint()"%d1);pg.wait_for_timeout(300)
+    card=pg.locator('[data-dl="%s"]'%d1);won=pg.locator('.dl-col[data-stage=__won]')
+    pg.locator('#dl-board').evaluate("b=>b.scrollLeft=b.scrollWidth");pg.wait_for_timeout(100)
+    bx=card.bounding_box();tb=won.bounding_box()
+    pg.mouse.move(bx['x']+20,bx['y']+15);pg.mouse.down();pg.mouse.move(bx['x']+50,bx['y']+30,steps=4);pg.mouse.move(tb['x']+tb['width']/2,tb['y']+80,steps=10);pg.mouse.up();pg.wait_for_timeout(300)
+    ok_modal(pg)
+    chk(ev("dlById('%s').status"%d1)=='won' and ev("dlStats().winRate")==50 and ev("dlStats().wonMonth")==5000000,'soltar en «Ganado»: ganada; %% de cierre 50 %% y ganado del mes $ 50.000')
+    chk(ev("dlReopen('%s').d.status"%d1)=='open','se puede reabrir')
+    # ---------- presupuesto del chat → oportunidad → venta ----------
+    ev("crmTab='inbox';crmSel='%s';rerender();0"%cid);pg.wait_for_timeout(500)
+    chk(pg.locator('[data-act=dlFromConv]').count()==1,'la conversación ofrece «＋ Oportunidad»')
+    q=ev("(()=>{const r=qtCreate({lines:[{pid:'k-agua',name:'Agua',qty:12,price:108000,cost:85000,unit:'u',rubro:prod('k-agua').rubro}],cust:'kc2',days:7,note:''});r.q.conv='%s';save();return {id:r.q.id,n:r.q.n}})()"%cid)
+    dq=ev("dls().find(d=>d.quote==='%s')"%q['id'])
+    chk(dq and dq['stage']=='propuesta' and dq['amount']==12*108000 and dq['conv']==cid,'un presupuesto del chat crea la oportunidad en «Propuesta» por $ 12.960')
+    ev("(()=>{const q=quotes().find(x=>x.id==='%s');qtCommit({id:'s-x',n:'V-TEST'},q.id);save()})()"%q['id'])
+    chk(ev("dls().find(d=>d.quote==='%s').status"%q['id'])=='won','al convertir el presupuesto en venta, la oportunidad se gana sola')
+    ev("crmPaint()");pg.wait_for_timeout(300)
+    # ---------- etapas editables ----------
+    ev("crmTab='deals';crmPaint();A.dlStagesEd()");pg.wait_for_timeout(300)
+    pg.locator('.dls-t >> nth=0').fill('Lead calificado');ok_modal(pg)
+    chk(ev("dlStages()[0].t")=='Lead calificado','renombrar una etapa')
+    ev("dlCreate({title:'Ocupa etapa',stage:'contacto'})");ev("A.dlStagesEd()");pg.wait_for_timeout(300)
+    pg.locator('.dls-r >> nth=1').evaluate("r=>r.remove()");ok_modal(pg)
+    chk('tiene oportunidades abiertas' in pg.inner_text('#modal-root'),'no deja borrar una etapa con oportunidades abiertas')
+    pg.locator('#modal-root .ov >> nth=-1').locator('.mf [data-m=x]').click()
+    # ---------- modo agente ----------
+    ev("crmTab='inbox';go('crm')");pg.wait_for_timeout(400)
+    n_all=ev("crmList().length")
+    ev("convs().push(Object.assign(crmNew({chan:'wa',name:'De otro',wa:'5493870000009'}),{asg:'Otro agente'}));save();0")
+    pg.click('[data-act=crmAgentT]');pg.wait_for_timeout(400)
+    t=pg.inner_text('#view');    chk('Mis conversaciones' in t and pg.locator('[data-act=crmCfgOpen]').count()==0 and 'Campañas' not in t,'modo agente: sólo «Mis conversaciones» y «Mis oportunidades», sin ajustes ni campañas')
+    chk(not any(c.get('asg')=='Otro agente' for c in ev("crmList()")),'modo agente: no muestra conversaciones de otros agentes')
+    pg.click('[data-act=crmAgentT]');pg.wait_for_timeout(300)
+    chk('Campañas' in pg.inner_text('#view'),'se vuelve a la vista completa')
+    # ---------- nube ----------
+    chk(not ev("COLS.some(c=>c.c==='deal')"),'sin SQL 31 las oportunidades no suben (no hay rechazos)')
+    ev("vb31Enable();0")
+    chk(ev("COLS.some(c=>c.c==='deal')&&BYC.deal.pii.includes('custName')&&collectAll().some(x=>x.c==='deal')"),'con el SQL 31 confirmado se sincronizan cifradas')
+    ctx.close()
+    # ---------- chat del menú público ----------
+    ctx=b.new_context(viewport={'width':390,'height':844});pg=ctx.new_page();pg.on('pageerror',lambda e:errs.append('menu: '+str(e)[:200]))
+    login(pg);pg.evaluate("S.cfg.crm=Object.assign(S.cfg.crm||{},{on:true});save();0")
+    pg.goto('file://%s/kini.html#menu'%D);pg.wait_for_timeout(2000);fr=pg.frame_locator('#pubframe')
+    if fr.locator('#age-gate.open').count(): fr.locator('#ag-yes').click()
+    try:
+        if fr.locator('#rv-chat-fab').count(): fr.locator('#rv-chat-fab').click()
+        else: pg.evaluate("document.getElementById('pubframe').contentWindow.RAVE_CHAT_OPEN()")
+        pg.wait_for_timeout(500)
+        if fr.locator('#rv-cn').count(): fr.locator('#rv-cn').fill('Ana')
+        if fr.locator('#rv-cw').count(): fr.locator('#rv-cw').fill('3870000000')
+        fr.locator('#rv-ct').fill('pago con 4111 1111 1111 1111');fr.locator('#rv-chat .snd').click();pg.wait_for_timeout(500)
+        er=fr.locator('#rv-chat .err').inner_text()
+        chk('tarjeta' in er and fr.locator('#rv-ct').input_value()!='','chat del menú: avisa y NO envía un número de tarjeta')
+    except Exception as e:
+        chk(False,'chat del menú: no se pudo abrir (%s)'%str(e)[:80])
+    ctx.close()
+    # ---------- 360 px ----------
+    ctx=b.new_context(viewport={'width':360,'height':800});pg=ctx.new_page();ev=pg.evaluate;pg.on('pageerror',lambda e:errs.append(str(e)[:300]))
+    pg.add_init_script("try{localStorage.setItem('rave.ux.config','all')}catch(e){}");login(pg)
+    ev("S.cfg.crm=Object.assign(S.cfg.crm||{},{on:true});dlCreate({title:'Prueba celular',amount:100000});crmTab='deals';go('crm')");pg.wait_for_timeout(600)
+    chk(ev("document.documentElement.scrollWidth")<=362 and pg.locator('.dl-col').count()>=7,'360 px: el tablero se desplaza dentro de su caja, sin desbordar la pantalla')
+    ctx.close()
+    # ---------- Almacén RAVE ----------
+    pg=b.new_page();ev=pg.evaluate;pg.on('pageerror',lambda e:errs.append('cliente: '+str(e)[:200]))
+    pg.goto('file://%s/out_cliente.html'%D);pg.wait_for_timeout(1300)
+    chk(not ev("giOn('pipeline')") and ev("(S.deals||[]).length")==0,'Almacén RAVE: el pipeline nace apagado y sin datos de ejemplo')
+    chk(ev("typeof vbCardScrub==='function'&&vbCardScrub('4111111111111111').hit===1"),'Almacén RAVE: la protección de tarjetas está siempre activa')
+    pg.close()
+    print('errores:',errs[:6]);chk(not errs,'sin errores de consola')
+    b.close()
+print('%d OK / %d FALLAN de %d'%(sum(res),len(res)-sum(res),len(res)))

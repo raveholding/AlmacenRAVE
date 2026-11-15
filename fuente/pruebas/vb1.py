@@ -194,7 +194,7 @@ with sync_playwright() as p:
     pg.add_init_script("try{localStorage.setItem('rave.ux.config','all')}catch(e){}")
     pg.goto('file://%s/out_cliente.html'%D);pg.wait_for_timeout(1300)
     ev("S.users.push({id:'ua',name:'ADMIN',role:'admin',pin:'1234'});user=S.users[S.users.length-1];save();0")
-    chk(not any(ev("GI_MODS.map(m=>giOn(m.k))")) and len(ev("GI_MODS"))==14,'Almacén RAVE: los 14 módulos nacen apagados')
+    chk(not any(ev("GI_MODS.map(m=>giOn(m.k))")) and len(ev("GI_MODS"))==15,"Almacén RAVE: los 15 módulos nacen apagados")
     chk(not any(ev("['pedidosv','acopios','depositos','inventariof','preventa','equipo','botwa','portalb2b'].map(s=>SCREENS[s].show())")),'Almacén RAVE: ninguna pantalla nueva aparece sin activar')
     chk(ev("(S.sordr||[]).length+(S.acopios||[]).length+(S.gpsPts||[]).length")==0,'Almacén RAVE: sin datos de ejemplo')
     chk(not ev("COLS.some(c=>c.c==='pedv')") and not ev("collectAll().some(x=>x.c==='pedv')"),'nube sin SQL 30: las colecciones nuevas NO se suben (no hay rechazos)')
