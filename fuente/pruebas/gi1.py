@@ -27,7 +27,7 @@ with sync_playwright() as p:
     chk(ev("giLog().length")==32 and ev("giLblPending().length")==4,'demo: historial de 60 días (8 artículos × 4 cambios) y 4 etiquetas pendientes')
     chk(ev("giVales().length")==3,'demo: 3 vales de ejemplo')
     ev("go('modulos')");pg.wait_for_timeout(300)
-    chk(pg.locator('[data-mod]').count()==5 and 'En construcción' in pg.inner_text('#view'),'Módulos: 5 tarjetas nuevas y la hoja de ruta «en construcción»')
+    chk(pg.locator('[data-mod]').count()==6 and 'En construcción' in pg.inner_text('#view'),'Módulos: 6 tarjetas nuevas (con Etiquetas profesionales) y la hoja de ruta «en construcción»')
     # dependencia: apagar historial apaga también la actualización masiva
     pg.click('[data-act=giMod][data-k=price_hist]');pg.wait_for_timeout(200);ok_modal(pg)
     chk(not ev("giOn('price_hist')") and not ev("giOn('price_bulk')"),'apagar «Historial» apaga también «Actualización masiva» (depende de él)')
@@ -154,7 +154,7 @@ with sync_playwright() as p:
     ctx.close()
     print('errores:',errs[:5]);chk(not errs,'sin errores de consola')
     b.close()
-# aislamiento: el sistema de Almacén RAVE no lleva este módulo
-src=open('/tmp/rave/gi_cliente.html',encoding='utf8').read() if __import__('os').path.exists('/tmp/rave/gi_cliente.html') else ''
-chk(src!='' and 'giHoldPut' not in src and 'Gestión integral — Etapa B' not in src,'el perfil cliente (Almacén RAVE) no incluye el módulo')
+# Almacén RAVE (V26.77): lleva el módulo, apagado (lo prueba lb1.py); acá sólo se verifica que el compilado lo incluye
+src=open('/tmp/rave/out_cliente.html',encoding='utf8').read() if __import__('os').path.exists('/tmp/rave/out_cliente.html') else ''
+chk('giHoldPut' in src and 'lbBuild' in src,'el perfil cliente (Almacén RAVE) incluye la gestión integral y las etiquetas')
 print('%d OK / %d FALLAN de %d'%(sum(res),len(res)-sum(res),len(res)))

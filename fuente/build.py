@@ -39,8 +39,12 @@ if V=='cliente':
 head=head.replace('<style>',cfg+'<style>',1)
 parts=['p2-core.js','p2b-sort.js','p2c-ux.js','p3-ops.js','p3b-pos.js','p3p-payadj.js','p3n-posquick.js','p3c-cash.js','p3q-cortes.js','p3f-transfers.js','p3g-paydetail.js','p3h-expediente.js','p3i-rubcash.js','p3j-combos.js','p3k-owner.js','p3l-kini.js','p3o-solo.js','p3m-payacc.js','p3d-assist.js','p3e-saledetail.js','p3r-oper.js','p6-loyalty.js','p6c-custadmin.js','p6d-cardportable.js','p6e-wallet.js','p6b-wholesale.js','p6f-credito.js','p6g-wacliente.js','p6h-fidel.js','p6i-fiscal.js','p6j-crm.js','p6l-omni.js','p6m-omni2.js','p6k-sellonfc.js','p4-mods.js','p4f-rrhh.js','p4c-compras.js','p4d-compras-ui.js','p4e-factura.js','p4b-online.js','p7a-dash.js','p7b-charts.js','p7d-finanzas.js','p7e-fin2.js','p7c-scale.js','p7-devices.js','p7d-nfc.js','p8-legal.js','p9-cloud.js','p9b-arca.js','p9c-tiendanube.js','p11-portero.js','p12-app.js','p13-reparto.js','p14-clubapp.js','p15-canales.js','p16-push.js','p5c-menusec.js','p5b-store.js','p5d-cscreen.js','p5-menu-boot.js']
 parts=[p for p in parts if os.path.exists(p)]
-# V26.76 · Gestión integral (p17-gestion.js): SÓLO Kini hasta que el dueño apruebe; el cliente (Almacén RAVE), raveV2 y raveV3 no lo llevan. GI=1 lo fuerza (pruebas).
-if os.path.exists('p17-gestion.js') and (KINI or os.environ.get('GI')=='1') and os.environ.get('GI')!='0': parts.insert(parts.index('p5c-menusec.js'),'p17-gestion.js')
+# V26.76 · Gestión integral (p17-gestion.js). GI=1 lo fuerza y GI=0 lo saca (pruebas).
+# V26.77: Almacén RAVE pasa a ser el sistema único y lleva la gestión integral (todo APAGADO hasta que el administrador lo activa en Sistema → Módulos).
+# V26.77 · Precios y etiquetas profesionales (p18-etiquetas.js), mismo criterio. raveV2 y raveV3 no lo llevan.
+if os.path.exists('p17-gestion.js') and (KINI or V=='cliente' or os.environ.get('GI')=='1') and os.environ.get('GI')!='0':
+    parts.insert(parts.index('p5c-menusec.js'),'p17-gestion.js')
+    if os.path.exists('p18-etiquetas.js'): parts.insert(parts.index('p5c-menusec.js'),'p18-etiquetas.js')
 # V26.37 · Centro Inteligente (p10-centro.js): módulo aislado.
 # V26.40: aprobado por el dueño para Almacén RAVE (apagado por defecto; lo activa el administrador). Kini no lo lleva salvo CI=1.
 # raveV2 (solo) y Kini no llevan el Centro Inteligente: es de raveV3 y de Almacén RAVE (apagado)
