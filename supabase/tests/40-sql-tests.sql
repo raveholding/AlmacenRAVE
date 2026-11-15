@@ -9,7 +9,7 @@ declare
 begin
   insert into public.vb_staff(email) values ('vb@vb.com') on conflict do nothing;
   r := t.call(uA,'a@a.com',$q$select to_jsonb(public.vb_version())$q$);
-  perform t.chk('40: vb_version() = 32', r::text='32', r::text);
+  perform t.chk('40: vb_version() >= 32', r::text::int>=32, r::text);
   perform t.chk('40: el staff inicial es vincularbusiness', exists(select 1 from public.vb_staff where email='vincularbusiness@gmail.com'));
   delete from public.licencias where comercio_id = cA;
   r := t.call(uA,'a@a.com',format($q$select coalesce(public.mi_licencia(%L),'"nada"'::jsonb)$q$,cA));

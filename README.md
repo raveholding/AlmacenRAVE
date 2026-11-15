@@ -9,8 +9,8 @@ Sistema de gestión integral para comercios: punto de venta, caja, inventario, c
 | | |
 |---|---|
 | Versión de la aplicación | V26.79 · historial completo en [`fuente/docs/CHANGELOG.md`](fuente/docs/CHANGELOG.md) |
-| Versión de la base de datos | 32 (`vb_version()`), migraciones `supabase/01…32` |
-| Pruebas | 838 pruebas SQL + 116 suites de navegador (Playwright) |
+| Versión de la base de datos | 33 (`vb_version()`), migraciones `supabase/01…33` |
+| Pruebas | 846 pruebas SQL + 116 suites de navegador (Playwright) |
 
 ---
 
@@ -45,7 +45,7 @@ flowchart LR
 
 **Flujo de una venta:** Vender (interfaz) → `priceResolve` y cobro (lógica) → `save('sale')` en IndexedDB (datos) → cola de sincronización → `sincronizar()` en Supabase, que verifica el rol y el comercio con RLS y lo guarda en `registros` → los demás dispositivos lo reciben.
 
-**Módulos y licencias:** cada función tiene una clave en `GI_MODS` (`sistema/p17-gestion.js`). El administrador la activa en *Sistema → Módulos*. Desde la versión 32 de la base, la licencia del comercio (`mi_licencia()`) define qué paquetes están contratados. Si un comercio no tiene licencia cargada, funciona sin restricciones; así está hoy Almacén RAVE. Vender y la caja nunca se bloquean por falta de pago.
+**Módulos y licencias:** cada función tiene una clave en `GI_MODS` (`sistema/p17-gestion.js`). El administrador la activa en *Sistema → Módulos*. La licencia del comercio (`mi_licencia()`, versión 33 de la base) registra el combo de la web (Menú, Básico, Completo, Completo + App o a medida), los extras contratados (Pro + IA, NFC, turnos…) y el vencimiento del mantenimiento mensual. **La licencia nunca bloquea:** si el mantenimiento no está al día, el sistema solo muestra un aviso (`bloquea = false`). Si un comercio no tiene licencia cargada, funciona sin restricciones; así está hoy Almacén RAVE.
 
 ## 2. Estructura del repositorio
 
@@ -80,7 +80,7 @@ fuente/
   pruebas/            pruebas de navegador (Playwright)
   docs/               historial de versiones y prompts anteriores
 supabase/
-  01…32-*.sql         migraciones numeradas, aditivas e idempotentes
+  01…33-*.sql         migraciones numeradas, aditivas e idempotentes
   INSTALAR-TODO.sql   01…32 en un solo archivo (proyecto nuevo)
   functions/          Edge Functions (Deno/TypeScript)
   tests/              pruebas SQL (run.sh) y concurrencia
@@ -101,7 +101,7 @@ Los archivos conservan su prefijo `pNN`. El **orden de armado** está en la list
    ```bash
    python3 build.py demo /tmp/demo/index.html
    ```
-3. **Crear la nube** (proyecto nuevo de Supabase): en *SQL Editor*, pegar y ejecutar `supabase/INSTALAR-TODO.sql`. Comprobar con `select vb_version();` → `32`. Pasos detallados en [`supabase/LEEME-supabase.md`](supabase/LEEME-supabase.md); el ingreso con Google, en [`supabase/LEEME-google.md`](supabase/LEEME-google.md).
+3. **Crear la nube** (proyecto nuevo de Supabase): en *SQL Editor*, pegar y ejecutar `supabase/INSTALAR-TODO.sql`. Comprobar con `select vb_version();` → `33`. Pasos detallados en [`supabase/LEEME-supabase.md`](supabase/LEEME-supabase.md); el ingreso con Google, en [`supabase/LEEME-google.md`](supabase/LEEME-google.md).
 4. **Compilar el cliente conectado a la nube**
    ```bash
    SUPABASE_URL=https://<proyecto>.supabase.co SUPABASE_KEY=sb_publishable_… \
@@ -115,7 +115,7 @@ Los archivos conservan su prefijo `pNN`. El **orden de armado** está en la list
 
 **Pruebas**
 ```bash
-bash supabase/tests/run.sh               # base de datos: aplica 01…32 dos veces y corre las pruebas SQL
+bash supabase/tests/run.sh               # base de datos: aplica 01…33 dos veces y corre las pruebas SQL
 python3 fuente/build.py kini /tmp/rave/kini.html
 python3 fuente/build.py cliente /tmp/rave/out_cliente.html
 python3 fuente/pruebas/vb1.py            # cada suite imprime OK / FALLA por verificación
