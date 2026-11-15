@@ -1,74 +1,200 @@
-# Almacén RAVE · Sistema RAVE (VINCULAR BUSINESS)
+# Sistema Vincular Business (Sistema VB)
 
-Sistema de gestión (POS + inventario + caja + clientes + menú público) para **Almacén RAVE**.
-Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
-Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
+Sistema de gestión integral para comercios: punto de venta, caja, inventario, clientes y Club de fidelización, compras, personal, reparto, atención al cliente omnicanal, finanzas, facturación electrónica ARCA y asistentes con IA, en una sola plataforma **modular**. Cada comercio activa solo los módulos que contrató.
 
-## Versión: SISTEMA VB 26F (`SISTEMA_VB_26F`)
+- **Cliente en producción:** Almacén y Licorería RAVE (perfil `cliente`, publicado en GitHub Pages).
+- **Funciona sin internet:** guarda todo en el dispositivo (IndexedDB) y sincroniza con la nube (Supabase) cuando vuelve la conexión.
+- **Un solo archivo publicado:** `index.html`. El menú digital público está adelante; el panel del equipo está en `/#acceso`.
 
-**V26.71 (2026-11-13):** «Detalle de los cobros digitales» compacto: interruptor y resumen a la vista; los ajustes por medio y campo quedan plegados en «Ajustes avanzados».
-
-**V26.70 (2026-11-12):** **Atención al cliente · Centro de canales.** Pestaña **🔌 Canales** con los 8 canales (tienda web y chat, WhatsApp Business, Instagram, Messenger, Telegram, correo, TikTok y Tiendanube), estado y avance. **⚡ Conectar todo con un clic** toma el WhatsApp del comercio y las redes del menú y publica los botones oficiales (wa.me, ig.me, m.me, t.me, mailto, TikTok) en el menú y en la app del Club. Cada canal se puede pasar a **Integrado** con un asistente paso a paso (enlaces exactos, botones para copiar y generar valores, «Probar y activar»): los mensajes de Telegram, WhatsApp Business, Instagram, Messenger y correo entran **cifrados** a la Bandeja y se responden desde el sistema (función `canales`; las claves quedan sólo como secretos de Supabase).
-
-**V26.69 (2026-11-12):** **Reparto y despacho omnicanal + apps.** 📲 Botón **Instalar app** (sistema para el equipo y app del Club para clientes; funcionan sin señal). ⭐ **App del cliente**: tarjeta, beneficios, pedidos con seguimiento en vivo y código de entrega, y botones de contacto según el rubro. 🛵 **Reparto**: «Envío a domicilio» en Vender (ya pagado / efectivo con vuelto / QR en la puerta), bandeja única con pedidos del mostrador, teléfono, WhatsApp y **menú digital** (llegan cifrados), picking, hojas de ruta con orden óptimo y Google Maps/Waze, **copiloto del repartidor** (una parada, PIN, cliente ausente, billetera) y **rendición ciega en caja**. Conectores a un clic: gratis listos; Google Routes, Mercado Pago y WhatsApp Cloud preparados (función `reparto-pro`). Migración `supabase/26-reparto.sql`. Rol nuevo **Repartidor**.
-
-**V26.68 (2026-11-12):** **Seguridad y portero** (Operación → *Seguridad y portero*): el portero del local, **SeguridadRave**, queda integrado al sistema como en Cannabismática. Los timbres (en la puerta y por QR) y las alertas llegan a cualquier pantalla, con sonido y la foto de la cámara, y se responde a la visita con *Ya voy · Un momento · Dejar en la puerta · No atendemos*. Pánico y coacción llegan como alertas silenciosas sólo a quien tiene el permiso. Los temas de aviso se guardan cifrados; la puerta se sigue abriendo desde SeguridadRave. Permisos nuevos «Seguridad y portero» y «Alertas silenciosas de seguridad».
-
-**V26.67 (2026-11-11):** **Sello con el celular del cliente**: un chip NFC (y el mismo enlace en QR, para celulares sin NFC) en el mostrador; el cliente acerca su celular con la tarjeta del Club guardada y pide su sello; el sistema del mostrador lo valida (un solo uso, un sello cada 24 h) y lo aprueba el cajero (aviso «Aprobar / Rechazar») o se aprueba solo. Configuración → Clientes y NFC → *Sello con el celular del cliente*: puntos de sello, enlace para grabar el chip con NFC Tools y cartel A5 con QR. Migración `supabase/25-sello-nfc-mostrador.sql`. Prompt de mejoras corregido en `fuente/PROMPT-mejoras-POS.md`.
-
-**V26.66 (2026-11-11):** **NFC configurable** en todo el sistema: Configuración → *Lector NFC del mostrador* elige el lector de cada equipo (lector USB en modo teclado, celular Android o sin NFC) y qué hace el NFC en el negocio (sumar sello, identificar al cliente en Vender y el cobro, fichar en el kiosco o en el mostrador); las tarjetas se **vinculan por su número** (sin grabarlas) desde la ficha del cliente o del empleado, o acercando una tarjeta nueva en Fidelización; *Probar lector* y lista de tarjetas vinculadas. **Configuración ordenada**: tarjeta única *Modelo de negocio* (¿de quién es el dinero? · ¿a quién le vendés?: sólo minorista / minorista y mayorista / sólo mayorista) y accesos por grupo (Negocio, Equipo y seguridad, Ventas y cobros, Clientes y NFC…). **Modo claro/oscuro arreglado**: selector Claro · Oscuro · Sistema (antes el primer toque no cambiaba nada), también en el ingreso y en Configuración → Apariencia. **Restablecer acceso** del equipo en un paso (clave temporal; migración `supabase/24-restablecer-acceso.sql`) y **asistente de Ingreso con Google** con verificación en vivo (`supabase/LEEME-google.md`).
-
-**V26.52 (2026-11-05):** R2AVE en Telegram (@R2aveBot), sólo para administradores: consultas de ventas, stock, cajas, cierres y deudas; corrección de stock en dos pasos con límites cuando el administrador la habilita; alertas a un grupo. Se configura en Configuración → R2AVE en Telegram (instalación en `supabase/LEEME-supabase.md`).
-
-**V26.51 (2026-11-05):** con una ventana abierta el Tab ya no se va a la pantalla de atrás; y desde la ficha del cliente se le puede mandar un WhatsApp con su saldo (Fiado / Cuenta corriente y vencimientos) o un aviso.
-
-**V26.50 (2026-11-05):** modo oscuro y claro revisados pantalla por pantalla: la línea seleccionada del ticket ya no queda con fondo claro y letra clara, y los avisos en rojo se leen en los dos modos.
-
-**V26.50 (2026-11-05):** cobro en efectivo con **importe recibido obligatorio**, ubicado debajo del total y arriba de los medios de pago; F12 deja el cursor ahí, Enter cobra y «Justo» completa el total exacto.
-
-**V26.50 (2026-11-04):** en Vender, después de sumar un artículo el cursor vuelve solo a «Buscar artículo» para seguir cargando sin tocar el mouse; corregido el doble conteo al leer un código de barras con el cursor en el buscador.
-
-**V26.49 (2026-11-04):** **recargo o descuento por medio de pago** (efectivo, débito, crédito, transferencia, QR, MODO; % o monto; sólo el administrador; aviso legal de la Ley 25.065), **balanzas Systel y Kretz con reconocimiento automático** (pide el peso, estable 400 ms, anti-duplicado), **etiquetas EAN-13 de balanza corregidas** (prefijo de 2 cifras y dígito verificador), **Fiado y Cuenta corriente separados**, **cortes X y Z** numerados, **apertura del cajón** y corte del papel, y **pantalla del cliente** para un segundo monitor. Migraciones `supabase/16-ajustes-medios-pago.sql` y `17-fiado-cc-cortes.sql` (**correrlas en Supabase antes de activar los recargos y de usar el corte X**). Detalle y pruebas: anexo S de `fuente/SISTEMA_VB_26F.md`.
-
-**Prompt V26.4 (2026-10-19):** `fuente/SISTEMA_VB_26F.md` suma la especificación del módulo **Mayorista / Minorista (sección 4.22)** y el **Anexo E** (punto de reanudación con prompt de arranque). Es sólo documentación: el sistema publicado no cambió y 4.22 todavía no está construido.
-
-**V26.3 (2026-10-19) · Club RAVE:** el cliente escanea el QR del menú, se anota (DNI opcional) y **recibe su tarjeta en el celular**; el negocio la importa sola y en el mostrador se suma el sello por **QR, código, DNI o NFC** (migración `supabase/09-club-tarjeta.sql`; pruebas `fuente/pruebas/c18.py`, `c19.py`, SQL 16). Wallet de Apple/Google: no implementado.
-
-**V26.1 (2026-10-18):** cobro con **pagos mixtos** (p. ej. $ 40.000 efectivo + $ 20.000 cuenta corriente), validación de suma exacta, **alerta de vuelto**, arqueo que cuenta sólo el dinero que entró, débito automático en la cuenta corriente con estado *Pago parcial* y libro del cliente (migración `supabase/07-pagos-mixtos.sql`; pruebas `fuente/pruebas/v7.py`, `c16.py`, SQL 14). Marca oficial **VINCULAR BUSINESS** (banner, único celular (387) 4484132, vincularbusiness@gmail.com, lema) en ingreso, menú lateral, menú público ES/EN, tickets y mensajes del sistema.
-
-El prompt maestro vigente está en `fuente/SISTEMA_VB_26F.md` (el anterior `sistema_vb_26.md` queda como historial) (incluye un anexo *as-built* con lo que está hecho, probado y pendiente). Las pruebas automáticas están en `fuente/pruebas/`.
-
-## Estado de esta entrega (leer antes de usar)
-
-| Pieza | Estado |
+| | |
 |---|---|
-| `index.html` | **Armado sin conexión a la nube**: el ingreso dice *Pendiente de configuración* hasta compilarlo con la URL y la clave **publicable** del proyecto (ver «Conectar la nube»). |
-| Nube (Supabase) | Scripts SQL `supabase/00…06` + función `arca`. Probados con Postgres/PostgREST locales (no contra el proyecto real todavía). |
-| CAE automático de ARCA | Implementado (servidor + navegador). **Sin probar contra ARCA real**: requiere certificado del comercio y prueba en homologación. Mientras tanto la venta «Con ARCA» queda *pendiente de CAE*. |
-| Hardware (impresora, balanza, lector) | Sin probar con equipos reales [VERIFICAR por modelo]. |
-| Textos legales | Plantillas [VERIFICAR] con asesor legal. |
+| Versión de la aplicación | V26.79 · historial completo en [`fuente/docs/CHANGELOG.md`](fuente/docs/CHANGELOG.md) |
+| Versión de la base de datos | 32 (`vb_version()`), migraciones `supabase/01…32` |
+| Pruebas | 838 pruebas SQL + 116 suites de navegador (Playwright) |
 
-## Conectar la nube (lo hace Vincular Business)
+---
 
-0. Crear un proyecto nuevo en Supabase y anotar la *Project URL* y la clave **publicable** (`sb_publishable_…`).
-1. En ese proyecto: **Authentication → Providers → Email → desactivar «Confirm email»**.
-2. Aplicar los SQL en el *SQL Editor* siguiendo `supabase/LEEME-supabase.md`: en un proyecto nuevo se aplican `01` a `06` y **se salta el `00`** (sólo archiva un esquema viejo) (pegar el **contenido**, no el nombre del archivo).
-3. Desplegar la función `arca` y cargar su secreto (ver el mismo LEEME).
-4. Compilar con la dirección y la clave **publicable** (nunca la secreta):
+## 1. Arquitectura
 
-```bash
-cd fuente
-SUPABASE_URL="https://<ref>.supabase.co" SUPABASE_KEY="sb_publishable_…" RAVE_SLUG="almacen-rave" \
-  python3 build.py cliente ../index.html
+```mermaid
+flowchart LR
+  subgraph Navegador["Navegador / app instalable (PWA)"]
+    UI["Interfaz<br/>app/ · modulos/*/"] --> DOM["Lógica de negocio<br/>nucleo/ · motores de cada módulo"]
+    DOM --> EST["Estado S + IndexedDB<br/>(nucleo/p2-core.js)"]
+    LIC["Módulos y licencia<br/>sistema/p17-gestion.js"] -. habilita .-> UI
+    EST <--> SYNC["Sincronización<br/>integraciones/p9-cloud.js"]
+  end
+  subgraph Supabase["Supabase (nube)"]
+    AUTH["Auth<br/>PIN · Google"] --> RLS["Postgres + RLS<br/>registros · comercios · licencias"]
+    RPC["Funciones RPC<br/>sincronizar() · mi_licencia() · vb_*"] --> RLS
+    EF["Edge Functions<br/>arca · api · canales · push · ia · …"] --> RLS
+    CRON["pg_cron + pg_net"] --> EF
+  end
+  SYNC <-->|HTTPS · clave publicable| RPC
+  EF <--> EXT["Servicios externos<br/>ARCA · Mercado Pago · Meta · Telegram · Tiendanube · IA"]
 ```
 
-`build.py` rechaza cualquier clave que parezca secreta (`service_role`, `sb_secret_…`). El archivo sólo lleva la URL y la clave publicable.
-5. Publicar con GitHub Pages (Settings → Pages → rama `main`, carpeta `/`).
+**Capas**
 
-> El `RAVE_SLUG` tiene que coincidir con el *slug* del comercio en la base (con el nombre «Almacén RAVE» queda `almacen-rave`).
+| Capa | Dónde | Responsabilidad |
+|---|---|---|
+| Interfaz | `app/`, pantallas de cada `modulos/<área>/` (`SCREENS.x.render`) | Dibujar pantallas, leer formularios, atajos y accesibilidad. No calcula dinero ni stock por su cuenta. |
+| Lógica de negocio | `nucleo/p3-ops.js` (arqueo, reparto, reportes), motores dentro de cada módulo (`priceResolve`, `vbOrderCreate`, `dlMove`, `ivClose`, compras, balanza) | Reglas del comercio, siempre en **centavos**. Funciones puras donde es posible (p. ej. `p7c-scale.js`). |
+| Datos | `nucleo/p2-core.js` (estado `S`, `save()`, IndexedDB), `integraciones/p9-cloud.js` (sincronización), `supabase/*.sql` | Guardar, sincronizar y validar. La base revalida todo con RLS: el navegador nunca es la autoridad. |
+| Integraciones | `integraciones/`, `supabase/functions/` | ARCA, Tiendanube, canales de mensajería, push, Mercado Pago e IA. Las claves secretas viven **solo** como secretos de Supabase. |
 
-## Seguridad en una línea
+**Flujo de una venta:** Vender (interfaz) → `priceResolve` y cobro (lógica) → `save('sale')` en IndexedDB (datos) → cola de sincronización → `sincronizar()` en Supabase, que verifica el rol y el comercio con RLS y lo guarda en `registros` → los demás dispositivos lo reciben.
 
-Cifrado AES-256-GCM en el equipo (clave envuelta con PBKDF2-SHA256 200.000), datos personales cifrados antes de subir, aislamiento por comercio con RLS, roles validados en el servidor, stock sumado por el servidor, clave privada de ARCA sólo en el servidor, sin secretos en el archivo. Sin la contraseña ni el código de recuperación los datos cifrados no se pueden recuperar (por diseño).
+**Módulos y licencias:** cada función tiene una clave en `GI_MODS` (`sistema/p17-gestion.js`). El administrador la activa en *Sistema → Módulos*. Desde la versión 32 de la base, la licencia del comercio (`mi_licencia()`) define qué paquetes están contratados. Si un comercio no tiene licencia cargada, funciona sin restricciones; así está hoy Almacén RAVE. Vender y la caja nunca se bloquean por falta de pago.
 
-Desarrollado por **VINCULAR BUSINESS** · Único celular (387) 4484132 · vincularbusiness@gmail.com · *“Tu idea, en buenas manos.”*
+## 2. Estructura del repositorio
+
+```
+index.html, sw.js, app*.png, *.webmanifest   ← lo publicado (generado por fuente/build.py)
+fuente/
+  build.py            arma index.html para un perfil (demo | cliente | kini | solo | v3)
+  assemble.py         arma el menú público (pub/ → build/p0-pub.js)
+  gen_data.py         catálogo y datos de ejemplo (build/p0-data.js)
+  app/                cabecera HTML y estilos, PWA, experiencia de uso (Ctrl + K, pestañas), tablas ordenables, asistente
+  nucleo/             estado, utilidades, almacenamiento y cálculos base
+  sistema/            registro de módulos, planes y paquetes (Gestión integral)
+  modulos/
+    ventas/           POS, recargos por medio de pago, combos, presupuestos y devoluciones, pantalla del cliente
+    caja/             cajas y sucursales, cortes X/Z, traspasos, cobros digitales, expediente, cierre por rubro
+    perfiles/         modo de comercio: un solo dueño, demo Kini, demo genérica
+    clientes-club/    clientes, Club y fidelización, fiado y cuenta corriente, wallet, sello NFC, push, app del Club
+    atencion-cliente/ CRM omnicanal, Omni-Assist, canales, pipeline de ventas
+    mayorista/        listas y precios mayoristas, pedidos, remitos, acopio, preventa, GPS, bot, portal B2B
+    inventario/       depósitos y transferencias, toma de inventario, etiquetas y precios
+    compras/          proveedores, órdenes de compra, recepción, lectura de facturas
+    personal/         fichaje, Recursos Humanos, seguridad y portero
+    reparto/          reparto y despacho, hoja de ruta
+    finanzas/         Resumen y gráficos, finanzas y contabilidad
+    perifericos/      impresoras, cajón, balanzas, NFC
+    legal/            textos legales y lista de verificación
+    canal-digital/    menú público, tienda, secciones, ventas online
+    centro-inteligente/ Centro Inteligente, equipo R2AVE, centro vivo, Telegram
+  integraciones/      nube (Supabase), ARCA, Tiendanube
+  pub/                fuente del menú público (HTML, CSS y JS)
+  assets/             imágenes de marca
+  pruebas/            pruebas de navegador (Playwright)
+  docs/               historial de versiones y prompts anteriores
+supabase/
+  01…32-*.sql         migraciones numeradas, aditivas e idempotentes
+  INSTALAR-TODO.sql   01…32 en un solo archivo (proyecto nuevo)
+  functions/          Edge Functions (Deno/TypeScript)
+  tests/              pruebas SQL (run.sh) y concurrencia
+instalador/           instalador de escritorio para Windows (Go)
+```
+
+Los archivos conservan su prefijo `pNN`. El **orden de armado** está en la lista `parts` de `build.py`, no en la carpeta: el sistema se arma concatenando las partes en un único script. Cada parte se busca por su nombre (`SRC`), así que un archivo se puede mover de carpeta sin cambiar nada más. Un nombre repetido en dos carpetas corta la compilación.
+
+## 3. Puesta en marcha paso a paso
+
+**Requisitos:** Python 3.10 o superior (con Pillow), Node 18 o superior (solo para `node --check`), Git. Para las pruebas: Playwright con Chromium, OpenCV y PostgreSQL 15 o superior.
+
+1. **Clonar**
+   ```bash
+   git clone https://github.com/raveholding/AlmacenRAVE.git && cd AlmacenRAVE/fuente
+   ```
+2. **Compilar una demo sin nube** (abre el archivo en el navegador; no necesita servidor)
+   ```bash
+   python3 build.py demo /tmp/demo/index.html
+   ```
+3. **Crear la nube** (proyecto nuevo de Supabase): en *SQL Editor*, pegar y ejecutar `supabase/INSTALAR-TODO.sql`. Comprobar con `select vb_version();` → `32`. Pasos detallados en [`supabase/LEEME-supabase.md`](supabase/LEEME-supabase.md); el ingreso con Google, en [`supabase/LEEME-google.md`](supabase/LEEME-google.md).
+4. **Compilar el cliente conectado a la nube**
+   ```bash
+   SUPABASE_URL=https://<proyecto>.supabase.co SUPABASE_KEY=sb_publishable_… \
+   RAVE_SLUG=almacen-rave PUBLIC_URL=https://raveholding.github.io/AlmacenRAVE/ \
+   python3 build.py cliente ../index.html
+   ```
+   `build.py` **rechaza** una clave secreta (`service_role` o `sb_secret_…`).
+5. **Edge Functions** (opcionales, según el módulo): desplegar con `supabase functions deploy <nombre>` y cargar sus secretos con `supabase secrets set NOMBRE=valor`. Ver la sección 4.
+6. **Publicar:** confirmar `index.html`, `sw.js`, los íconos y los manifiestos en la raíz. GitHub Pages los publica solo.
+7. **Primer ingreso:** `/#acceso` → crear el administrador → *Sistema → Módulos* para activar lo contratado.
+
+**Pruebas**
+```bash
+bash supabase/tests/run.sh               # base de datos: aplica 01…32 dos veces y corre las pruebas SQL
+python3 fuente/build.py kini /tmp/rave/kini.html
+python3 fuente/build.py cliente /tmp/rave/out_cliente.html
+python3 fuente/pruebas/vb1.py            # cada suite imprime OK / FALLA por verificación
+```
+
+## 4. Variables de entorno
+
+### Compilación (`fuente/build.py`)
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `SUPABASE_URL` | En `cliente` | URL del proyecto (`https://<ref>.supabase.co`). En las demos se ignora. |
+| `SUPABASE_KEY` | En `cliente` | Clave **publicable** (`sb_publishable_…`). Nunca la secreta. |
+| `RAVE_SLUG` | No | Identificador del comercio (por defecto `almacen-rave`). |
+| `PUBLIC_URL` | No | Dirección pública del sistema (canónica, QR y enlaces). |
+| `GI` | No | `1` fuerza y `0` saca la Gestión integral (pruebas). |
+| `CI` | No | `1` fuerza el Centro Inteligente en perfiles que no lo llevan. |
+| `R2AVE`, `TG` | No | `0` saca, `1` fuerza el equipo R2AVE o R2AVE en Telegram. |
+| `KINI_LOGO`, `KINI_C1…C3` | No | Logo y colores de la marca de la demo mayorista. |
+
+### Edge Functions (secretos de Supabase)
+
+Todas usan `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`. Supabase las inyecta solo: no se cargan a mano. `ALLOWED_ORIGINS` limita qué sitios pueden llamarlas (p. ej. `https://raveholding.github.io`).
+
+| Función | Secretos propios |
+|---|---|
+| `arca` | `ARCA_MASTER_KEY` (cifra el certificado del comercio) |
+| `llave` | `LLAVE_MASTER_KEY` (custodia de claves) |
+| `tiendanube` | `TN_APP_ID`, `TN_CLIENT_SECRET`, `TN_MASTER_KEY` |
+| `canales` | `WA_TOKEN`, `WA_PHONE_ID`, `META_APP_SECRET`, `META_PAGE_TOKEN`, `META_VERIFY_TOKEN`, `TG_CLIENTES_TOKEN`, `TG_CLIENTES_SECRET`, `RESEND_API_KEY`, `MAIL_FROM`, `MAIL_IN_SECRET`, `OAUTH_KEY`, `CANALES_COMERCIO` |
+| `conectar` | `META_APP_ID`, `META_APP_SECRET`, `META_CONFIG_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `MS_TENANT`, `OAUTH_KEY` |
+| `telegram` | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TG_COMERCIO`, `ANTHROPIC_API_KEY` (opcional), `TG_AI_MODEL` |
+| `ia` | `OPENAI_API_KEY` o `GEMINI_API_KEY`, `IA_MODELO`, `IA_LIMITE_HORA` |
+| `leer-factura` | `ANTHROPIC_API_KEY`, `AI_MODEL`, `AI_MAX_DAY` |
+| `mpago` | `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `MP_COMERCIO` |
+| `reparto-pro` | `GOOGLE_ROUTES_KEY`, `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `WA_TOKEN`, `WA_PHONE_ID`, `WA_TEMPLATE`, `WA_LANG` |
+| `push` | `VAPID_SUB` (las claves VAPID se generan y guardan en la base) |
+| `api`, `eventos` | Solo las comunes |
+
+## 5. Convenciones de código
+
+**Idioma y textos**
+- La interfaz está en español rioplatense, con palabras del comercio («Vender», «Caja», «Fiado»). Nada de jerga técnica en pantalla.
+- Los comentarios de cada archivo empiezan con un bloque `/* ===== Vxx · Tema ===== */` que dice qué hace el archivo y desde qué versión.
+
+**Dinero, fechas y datos**
+- Todo importe se guarda en **centavos enteros**. Se muestra con `money()`. No se usan decimales de punto flotante en cálculos.
+- Cada colección nueva se agrega en tres lugares a la vez: en el cliente (`COLS`), en la lista cerrada de `sincronizar()` y en los permisos de `rave_puede_escribir()`. El cliente solo la envía cuando `vb_version()` confirma que la nube la soporta.
+- Toda acción sensible deja una entrada en la auditoría (`audit()`). En el servidor, la auditoría no se puede modificar.
+
+**Estructura del JavaScript**
+- Un único ámbito global con `'use strict'`. Cada módulo usa un **prefijo propio** para no chocar: `gi` módulos, `lb` etiquetas, `vbOrder`/`vbRemito` mayorista, `dp` depósitos, `iv` inventario, `pv` preventa, `dl` pipeline, `crm` atención al cliente.
+- Para extender sin romper, se envuelve la función original: `const _x = x; x = function(...a){ const r = _x(...a); /* extra */ return r; }`. Las `const` no se pueden envolver: se extienden por otro punto.
+- Cada módulo nuevo se registra en `GI_MODS` y nace **apagado**. Si no está activo, no dibuja ni ejecuta nada.
+
+**Base de datos**
+- Las migraciones van numeradas, son **aditivas e idempotentes** (`create … if not exists`, `create or replace`) y no borran datos. Cada una sube `vb_version()`.
+- Las tablas tienen RLS y no se leen directo: el acceso es por funciones `security definer` con `set search_path = public` que verifican `rol_en(comercio)`.
+- Antes de aplicar en producción: pruebas en local con `run.sh` (dos pasadas), autorización del dueño y verificación posterior.
+
+**Seguridad**
+- Nunca hay claves secretas en el código, en el HTML ni en los chats. Solo la clave publicable va al navegador.
+- Los números de tarjeta (validados con Luhn), el CVV y el PIN se bloquean en los chats y se enmascaran.
+- La ubicación GPS se usa solo con consentimiento explícito.
+
+**Pruebas**
+- Cada función nueva lleva su suite en `fuente/pruebas/` con **números conocidos calculados por separado**, y su prueba SQL en `supabase/tests/`.
+- Una reorganización tiene que producir un `index.html` **idéntico byte por byte** al anterior en todos los perfiles.
+
+## 6. Perfiles de compilación
+
+| Perfil | Publicado en | Qué es |
+|---|---|---|
+| `cliente` | AlmacenRAVE | Sistema real, con la nube. Gestión integral incluida y apagada hasta activarla. |
+| `demo` | — | Demo local sin nube. |
+| `solo` | raveV2 | Comercio genérico de un solo dueño. |
+| `v3` | raveV3 | Empresa con el equipo R2AVE. |
+| `kini` | KiniDistribuidoraDemo | Demo mayorista (en retiro). |
+
+## 7. Créditos
+
+Vincular Business · (387) 4484132 · vincularbusiness@gmail.com

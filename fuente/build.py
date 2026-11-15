@@ -9,7 +9,14 @@ PROFILE=V if V in('kini','solo','v3') else ''
 KINI=V=='kini'
 if PROFILE: V='demo'
 out=sys.argv[2] if len(sys.argv)>2 else 'index.html'
-B=lambda f:open(f,encoding='utf8').read()
+# V27 · el código fuente está organizado por módulo (app/, nucleo/, sistema/, modulos/<área>/, integraciones/).
+# Cada parte se busca por su nombre de archivo, así el orden de armado (lista `parts`) no depende de la carpeta.
+import glob
+SRC={os.path.basename(f):f for d in ('app','nucleo','sistema','modulos','integraciones') for f in glob.glob(d+'/**/*.*',recursive=True)}
+assert len(SRC)==len({f for d in ('app','nucleo','sistema','modulos','integraciones') for f in glob.glob(d+'/**/*.*',recursive=True)}),'nombre de archivo repetido en dos módulos'
+def R(f): return SRC.get(f,f)
+def EX(f): return os.path.exists(R(f))
+B=lambda f:open(R(f),encoding='utf8').read()
 subprocess.check_call(['python3','gen_data.py'],stdout=subprocess.DEVNULL);subprocess.check_call(['python3','assemble.py'],stdout=subprocess.DEVNULL)
 url=os.environ.get('SUPABASE_URL','').rstrip('/');key=os.environ.get('SUPABASE_KEY','')
 if V=='demo': url='';key=''
@@ -38,16 +45,16 @@ if V=='cliente':
     head=head.replace('<title>Sistema RAVE · Almacén y Licorería RAVE — Demo</title>',seo)
 head=head.replace('<style>',cfg+'<style>',1)
 parts=['p2-core.js','p2b-sort.js','p2c-ux.js','p3-ops.js','p3b-pos.js','p3p-payadj.js','p3n-posquick.js','p3c-cash.js','p3q-cortes.js','p3f-transfers.js','p3g-paydetail.js','p3h-expediente.js','p3i-rubcash.js','p3j-combos.js','p3k-owner.js','p3l-kini.js','p3o-solo.js','p3m-payacc.js','p3d-assist.js','p3e-saledetail.js','p3r-oper.js','p6-loyalty.js','p6c-custadmin.js','p6d-cardportable.js','p6e-wallet.js','p6b-wholesale.js','p6f-credito.js','p6g-wacliente.js','p6h-fidel.js','p6i-fiscal.js','p6j-crm.js','p6l-omni.js','p6m-omni2.js','p6k-sellonfc.js','p4-mods.js','p4f-rrhh.js','p4c-compras.js','p4d-compras-ui.js','p4e-factura.js','p4b-online.js','p7a-dash.js','p7b-charts.js','p7d-finanzas.js','p7e-fin2.js','p7c-scale.js','p7-devices.js','p7d-nfc.js','p8-legal.js','p9-cloud.js','p9b-arca.js','p9c-tiendanube.js','p11-portero.js','p12-app.js','p13-reparto.js','p14-clubapp.js','p15-canales.js','p16-push.js','p5c-menusec.js','p5b-store.js','p5d-cscreen.js','p5-menu-boot.js']
-parts=[p for p in parts if os.path.exists(p)]
+parts=[p for p in parts if EX(p)]
 # V26.76 · Gestión integral (p17-gestion.js). GI=1 lo fuerza y GI=0 lo saca (pruebas).
 # V26.77: Almacén RAVE pasa a ser el sistema único y lleva la gestión integral (todo APAGADO hasta que el administrador lo activa en Sistema → Módulos).
 # V26.77 · Precios y etiquetas profesionales (p18-etiquetas.js), mismo criterio. raveV2 y raveV3 no lo llevan.
-if os.path.exists('p17-gestion.js') and (KINI or V=='cliente' or os.environ.get('GI')=='1') and os.environ.get('GI')!='0':
+if EX('p17-gestion.js') and (KINI or V=='cliente' or os.environ.get('GI')=='1') and os.environ.get('GI')!='0':
     parts.insert(parts.index('p5c-menusec.js'),'p17-gestion.js')
-    if os.path.exists('p18-etiquetas.js'): parts.insert(parts.index('p5c-menusec.js'),'p18-etiquetas.js')
+    if EX('p18-etiquetas.js'): parts.insert(parts.index('p5c-menusec.js'),'p18-etiquetas.js')
     # V26.78 · circuito mayorista, preventa/GPS/bot/portal, depósitos e inventario (todo apagado en el cliente hasta activarlo)
     for f in ('p19-mayorista.js','p21-stock.js','p20-campo.js','p22-pipeline.js'):
-        if os.path.exists(f): parts.insert(parts.index('p5c-menusec.js'),f)
+        if EX(f): parts.insert(parts.index('p5c-menusec.js'),f)
 # V26.37 · Centro Inteligente (p10-centro.js): módulo aislado.
 # V26.40: aprobado por el dueño para Almacén RAVE (apagado por defecto; lo activa el administrador). Kini no lo lleva salvo CI=1.
 # raveV2 (solo) y Kini no llevan el Centro Inteligente: es de raveV3 y de Almacén RAVE (apagado)
@@ -56,9 +63,9 @@ if (V in ('demo','cliente') and PROFILE not in('kini','solo')) or os.environ.get
 # apruebe la demostración. El cliente (Almacén RAVE) y Kini NO la llevan; con R2AVE=1 se fuerza (pruebas).
 # V26.43: el equipo SVB R2AVE y su centro vivo SÓLO en raveV3 (perfil v3). El cliente, raveV2 y Kini no los llevan.
 # V26.45: aprobado por el dueño para Almacén RAVE (2026-11-02): el cliente también lleva el equipo y el centro vivo.
-if ('p10-centro.js' in parts and (PROFILE=='v3' or V=='cliente') and os.environ.get('R2AVE','1')!='0') or os.environ.get('R2AVE')=='1': parts.append('p10b-r2ave.js');parts.append('p10c-vivo.js') if os.path.exists('p10c-vivo.js') else None
+if ('p10-centro.js' in parts and (PROFILE=='v3' or V=='cliente') and os.environ.get('R2AVE','1')!='0') or os.environ.get('R2AVE')=='1': parts.append('p10b-r2ave.js');parts.append('p10c-vivo.js') if EX('p10c-vivo.js') else None
 # V26.52 · R2AVE en Telegram (p10d-telegram.js, prompt 4.35): Almacén RAVE (real, con la nube) y raveV3 (demo simulada). Kini y raveV2 no.
-if os.path.exists('p10d-telegram.js') and ((V=='cliente' or PROFILE=='v3') and os.environ.get('TG','1')!='0' or os.environ.get('TG')=='1'): parts.append('p10d-telegram.js')
+if EX('p10d-telegram.js') and ((V=='cliente' or PROFILE=='v3') and os.environ.get('TG','1')!='0' or os.environ.get('TG')=='1'): parts.append('p10d-telegram.js')
 import base64
 def kini_brand(h):
     # Marca de la demo Kini: logo y colores (se reemplazan con los del cliente cuando lleguen); los créditos de Vincular Business no se tocan
@@ -164,7 +171,7 @@ def pwa_files(d):
     m2=dict(base,id='./?app=club',name=APPN[2],short_name=APPN[2][:12],description='Tu tarjeta del Club, beneficios, pedidos y contacto con el local.',start_url='./#mitarjeta',orientation='portrait',categories=['shopping','lifestyle'])
     json.dump(m1,open(os.path.join(d,'app.webmanifest'),'w',encoding='utf8'),ensure_ascii=False,indent=1)
     json.dump(m2,open(os.path.join(d,'club.webmanifest'),'w',encoding='utf8'),ensure_ascii=False,indent=1)
-    sw=open('pwa-sw.js',encoding='utf8').read().replace('__VER__',build['ver']+' '+V).replace('__SBURL__',url or '').replace('__SBKEY__',key or '')
+    sw=open(R('pwa-sw.js'),encoding='utf8').read().replace('__VER__',build['ver']+' '+V).replace('__SBURL__',url or '').replace('__SBKEY__',key or '')
     open(os.path.join(d,'sw.js'),'w',encoding='utf8').write(sw)
 open(out,'w',encoding='utf8').write(html)
 pwa_files(os.path.dirname(os.path.abspath(out)))
