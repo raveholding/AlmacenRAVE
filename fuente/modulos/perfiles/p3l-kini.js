@@ -162,10 +162,85 @@ function emptyState(){const d=DEF();
  if(d.cfg.wholesale){d.cfg.wholesale.example=false;}d.cfg.comboSeeded=1;d.cfg.kiniSeeded=1;d.cfg.emptyStart=1;return d;}
 A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, clientes, proveedores, ventas, cajas y movimientos de esta demo en este navegador. Quedan los usuarios (ADMIN 1234) y las cajas definidas, cerradas. Para volver a los ejemplos usá «Volver a los datos de ejemplo».',
  ()=>{S=emptyState();audit('DEMO_VACIA','se empezó de cero sin ejemplos');save();pos.lines=[];if(typeof pubReload==='function')pubReload();rerender();toast('Demo vacía: cargá tus productos y abrí una caja');},'Borrar todo');
-/* V27.1 · Demos por rubro: cada demo muestra sólo las pantallas de su rubro (RAVE_DEMO.pantallas) mientras sigue en su plan.
-   Si en «Módulos» se elige otro plan como vista previa, vuelven las reglas normales de cada pantalla. Sin RAVE_DEMO no cambia nada. */
+/* V27.3 · Demos por rubro (sólo con RAVE_DEMO; sin él no cambia nada).
+   · «Modelo de negocio» único (como Configuración → Módulos de Raspberry): 1 ¿Qué vendés? · 2 ¿Cómo compra tu cliente? · 3 Esto es lo que va a pasar.
+     Lo abren Configuración y Módulos (el mismo botón «Cambiar»): ajusta canal de venta, plan, funciones y menú de una vez.
+   · Módulos: una lista de interruptores, ordenada (fijos arriba, después las funciones del plan).
+   · Celular y tablet: barra inferior (Inicio, Caja, Vender, Stock, Más), el menú lateral se cierra al tocar afuera o con Escape. */
 {const D=(typeof window!=='undefined'&&window.RAVE_DEMO)||null;
- if(D&&Array.isArray(D.pantallas)&&D.pantallas.length){let hecho=false;const _rt=route;
-  route=function(){if(!hecho&&typeof SCREENS==='object'){hecho=true;const ok=new Set(D.pantallas);
-    Object.entries(SCREENS).forEach(([k,s])=>{if(ok.has(k))return;const sh=s.show;s.show=()=>!!(S&&S.cfg&&S.cfg.plan!==(D.plan||'total'))&&(!sh||sh());});}
-   return _rt.apply(this,arguments);};}}
+ if(D){const COM=['inicio','vender','caja','arqueo','cierres','presup','mermas','inventario','precios','etiquetas','inventariof','proveedores','clientes','fidel','cupones','config','roles','modulos','dispositivos','auditoria'];
+  const DIS=['inicio','vender','caja','arqueo','cierres','pedidosv','preventa','reparto','copiloto','depositos','acopios','inventario','inventariof','precios','etiquetas','proveedores','clientes','portalb2b','personal','vales','equipo','config','roles','modulos','dispositivos','auditoria'];
+  const IC={min:'M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6',both:'M3 21V9l9-6 9 6v12M8 21v-7h8v7M3 12h18',may:'M2 6h11v10H2zM13 9h4l4 4v3h-8zM6 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',todo:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5'};
+  const T={min:{t:'Mostrador',d:'Vendés al consumidor final, en el mostrador o con autoservicio.',ej:'Kiosco · almacén · autoservicio · ropa · ferretería',plan:'esencial',p:COM},
+   both:{t:'Minorista y mayorista',d:'Vendés al público y también por mayor, con precios por presentación.',ej:'Mayorista · autoservicio mayorista · bebidas',plan:'esencial',p:COM},
+   may:{t:'Despacho y reparto',d:'Tomás pedidos, se arman en el depósito y se reparten.',ej:'Distribuidora · materiales · mayorista con reparto',plan:'mayorista',p:DIS},
+   todo:{t:'Libre',d:'Todos los módulos visibles, sin molde.',ej:'Para quien prefiere decidir módulo por módulo',plan:'total',p:null}};
+  const RUB=[['Kiosco / almacén','min'],['Autoservicio','min'],['Bebidas','both'],['Ropa y calzado','min'],['Ferretería','min'],['Materiales de construcción','may'],['Distribuidora','may'],['Mayorista','both'],['Otro','todo']];
+  const tipo=()=>S&&S.cfg&&S.cfg.demoTodo?'todo':(typeof chanCur==='function'?chanCur():'both');
+  const lista=()=>{const x=T[tipo()];return x&&x.p?new Set(x.p):null;};
+  const planDe=k=>{const x=T[k]||T.both;S.cfg.plan=x.plan;if(typeof GI_MODS!=='undefined'&&typeof giInPlan==='function'){const c=giCfg();GI_MODS.forEach(m=>{c[m.k]=giInPlan(m.plan)?1:0;});}};
+  const aplicar=(k,rub)=>{if(!T[k])return;S.cfg.demoTodo=k==='todo';if(rub!==undefined)S.cfg.demoRubro=rub;const ch=k==='todo'?'both':k;
+   const W=Object.assign({},S.cfg.wholesale||{});W.on=ch!=='min';W.only=ch==='may';S.cfg.wholesale=W;planDe(k);
+   audit('DEMO_MODELO',T[k].t+(S.cfg.demoRubro?' · '+S.cfg.demoRubro:'')+' · plan '+S.cfg.plan);save();rerender();toast('Modelo de negocio: '+T[k].t+'. Menú y módulos actualizados.');};
+  const pasa=k=>{const on=(x,t)=>`<li><span class="vbm-dot ${x?'on':''}"></span>${esc(t)}: <b>${x?'encendido':'apagado'}</b></li>`;
+   return `<ul class="vbm-pasa">${on(1,'Vender, caja, stock y clientes')}${on(k!=='min','Precios mayoristas por presentación')}${on(k==='may'||k==='todo','Pedidos, preventa y reparto')}${on(k==='may'||k==='todo','Depósitos, acopio y equipo en el mapa')}${on(k!=='may','Club de clientes, cupones y etiquetas')}${on(k==='todo','Atención al cliente, finanzas y contabilidad')}</ul>
+    <p class="sm mut">Plan: <b>${esc(GI_PLANS[T[k].plan].t)}</b>. Lo demás queda como está. Un módulo apagado sale del menú, pero <b>lo que ya existe se sigue viendo</b>: no se borra ningún dato.</p>`;};
+  const svg=d=>`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+  const abrirModelo=()=>{if(!user||user.role!=='admin')return toast('Sólo el administrador cambia el modelo de negocio',1);let sel=tipo(),rub=S.cfg.demoRubro||'';
+   const body=`<p class="sm mut">Con esto ordenamos el menú y encendemos lo que vas a usar. No cambia ningún cálculo ni borra datos, y lo podés cambiar cuando quieras desde Configuración o Módulos.</p>
+    <h4 class="vbm-h">1 · ¿Qué vendés?</h4><div class="vbm-chips">${RUB.map(([r,k])=>`<button type="button" class="vbm-chip ${r===rub?'on':''}" data-r="${esc(r)}" data-k="${k}">${esc(r)}</button>`).join('')}</div>
+    <h4 class="vbm-h">2 · ¿Cómo compra tu cliente?</h4><div class="vbm-opts">${Object.entries(T).map(([k,x])=>`<button type="button" class="vbm-opt ${k===sel?'on':''}" data-k="${k}" aria-pressed="${k===sel}"><span class="vbm-ic">${svg(IC[k])}</span><span><b>${esc(x.t)}</b><br>${esc(x.d)}<br><small>${esc(x.ej)}</small></span></button>`).join('')}</div>
+    <div class="vbm-box"><h4 class="vbm-h" style="margin-top:0">3 · Esto es lo que va a pasar</h4><div id="vbm-pasa">${pasa(sel)}</div></div>`;
+   const w=modal('Modelo de negocio',body,{wide:true,okText:'✓ Aplicar',onOk:()=>{if(sel===tipo()&&rub===(S.cfg.demoRubro||''))return true;aplicar(sel,rub);return true;}});
+   const pick=k=>{sel=k;w.querySelectorAll('.vbm-opt').forEach(b=>{const on=b.dataset.k===k;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});w.querySelector('#vbm-pasa').innerHTML=pasa(k);};
+   w.addEventListener('click',e=>{const c=e.target.closest('.vbm-chip');if(c){rub=c.dataset.r;w.querySelectorAll('.vbm-chip').forEach(b=>b.classList.toggle('on',b===c));pick(c.dataset.k);return;}
+    const o=e.target.closest('.vbm-opt');if(o)pick(o.dataset.k);});};
+  const modeloCard=()=>{const k=tipo(),x=T[k];return`<div class="card vbm-card"><div class="row" style="align-items:center;gap:.7rem"><span class="vbm-ic">${svg(IC[k])}</span><h3 class="sp" style="margin:0">Modelo de negocio</h3>${user&&user.role==='admin'?'<button class="btn" data-act="vbModelo">✎ Cambiar</button>':''}</div>
+   <p style="margin:.7rem 0 .2rem"><b>${esc(x.t)}</b>${S.cfg.demoRubro?` <span class="tag">${esc(S.cfg.demoRubro)}</span>`:''}</p><p class="sm mut" style="margin:0">${esc(x.d)} Plan ${esc(GI_PLANS[x.plan].t)}.</p></div>`;};
+  const FIJOS=['Vender y caja','Stock e inventario','Clientes','Usuarios y permisos','Configuración','Auditoría'];
+  const modulosHTML=()=>{const fijo=t=>`<div class="vbm-row off-ro"><span class="vbm-sw on ro" aria-hidden="true"></span><span class="sp"><b>${esc(t)}</b><br><span class="sm mut">Fijo: no se puede apagar.</span></span></div>`;
+   const fila=m=>{const lock=!giInPlan(m.plan),on=giOn(m.k);const sc=m.scr&&SCREENS[m.scr];
+    return`<div class="vbm-row ${lock?'lock':''}"><button class="vbm-sw ${on?'on':''}" ${lock?'disabled':''} data-act="giMod" data-k="${m.k}" data-on="${on?0:1}" role="switch" aria-checked="${on}" aria-label="${esc(m.t)}"></button><span class="sp"><b>${esc(m.t)}</b><br><span class="sm mut">${lock?'Viene con el modelo «Despacho y reparto» o «Libre».':esc(m.d)}</span></span>${on&&sc?`<button class="btn sm" data-act="nav" data-id="${m.scr}">Abrir</button>`:''}</div>`;};
+   const L=GI_MODS.slice().sort((a,b)=>(giInPlan(a.plan)?0:1)-(giInPlan(b.plan)?0:1));
+   return`<div class="row"><h1 class="sp">Módulos</h1></div>${modeloCard()}
+    <div class="card"><h3 style="margin-top:0">Módulos del sistema</h3><p class="sm mut">Cada interruptor vale para todo el negocio. Apagar un módulo lo saca del menú; lo que ya existe se sigue viendo y no se borra nada. Cada cambio queda en Auditoría.</p>
+    <div class="vbm-list">${FIJOS.map(fijo).join('')}${L.map(fila).join('')}</div></div>`;};
+  const CSS=`.vbm-h{margin:1.1rem 0 .5rem;font-size:1rem;color:var(--mut)}.vbm-chips{display:flex;flex-wrap:wrap;gap:.5rem}
+.vbm-chip{font:inherit;padding:.6rem 1rem;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}.vbm-chip.on{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,transparent);font-weight:700}
+.vbm-opts{display:grid;gap:.6rem}.vbm-opt{font:inherit;text-align:left;display:flex;gap:.8rem;align-items:flex-start;padding:.9rem 1rem;border-radius:14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;line-height:1.4}
+.vbm-opt small{color:var(--mut)}.vbm-opt.on{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,transparent)}.vbm-ic{display:inline-flex;color:var(--gold);flex:0 0 auto;margin-top:.1rem}
+.vbm-box{margin-top:1rem;padding:.9rem 1rem;border-radius:14px;border:1px solid var(--line);background:color-mix(in srgb,var(--mut) 6%,transparent)}.vbm-pasa{list-style:none;padding:0;margin:0 0 .6rem;display:grid;gap:.35rem}
+.vbm-dot{display:inline-block;width:.6rem;height:.6rem;border-radius:50%;background:var(--mut);margin-right:.5rem;vertical-align:middle}.vbm-dot.on{background:#16a34a}
+.vbm-list{display:grid;gap:.6rem;margin-top:.8rem}.vbm-row{display:flex;gap:.9rem;align-items:center;padding:.85rem 1rem;border:1px solid var(--line);border-radius:14px;background:var(--card)}.vbm-row.lock{opacity:.6}
+.vbm-sw{flex:0 0 auto;position:relative;width:52px;height:30px;border-radius:99px;border:2px solid var(--mut);background:transparent;cursor:pointer;padding:0}.vbm-sw::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--mut);transition:left .15s}
+.vbm-sw.on{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 18%,transparent)}.vbm-sw.on::after{left:25px;background:var(--gold)}.vbm-sw.ro{opacity:.55;cursor:default}.vbm-sw:disabled{cursor:not-allowed}
+#vb-tab{display:none}#vb-ov{display:none}
+@media(max-width:900px){#vb-tab{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--card);border-top:1px solid var(--line);padding:.3rem .2rem calc(.3rem + env(safe-area-inset-bottom));backdrop-filter:blur(8px)}
+#vb-tab button{flex:1;font:inherit;font-size:.72rem;display:flex;flex-direction:column;align-items:center;gap:.15rem;padding:.35rem 0;border:0;background:none;color:var(--mut);cursor:pointer}#vb-tab button.on{color:var(--gold);font-weight:700}
+#view{padding-bottom:5.5rem!important}#top .tag,#top .demo-b,#top #as-open,#top .th-seg,#top a[href='#menu'],#top .ux-av .sm,#top .app-inst{display:none!important}#top{gap:.4rem;flex-wrap:nowrap}#top>b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}#vb-ov:not([hidden]){display:block;position:fixed;inset:0;z-index:29;background:rgba(0,0,0,.5)}#top .ux-search kbd{display:none}}`;
+  const TAB=[['inicio','Inicio','M3 11l9-7 9 7v9H3zM9 20v-6h6v6'],['caja','Caja','M3 6h18v12H3zM7 12h.01M17 12h.01M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],['vender','Vender','M3 4h2l2.4 11h11.2L21 8H6.3M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM18 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'],['inventario','Stock','M21 8 12 3 3 8v8l9 5 9-5zM3 8l9 5 9-5M12 13v8'],['_mas','Más','M5 12h.01M12 12h.01M19 12h.01']];
+  const tabPaint=()=>{const t=document.getElementById('vb-tab');if(!t)return;const pan=document.getElementById('panel');t.hidden=!user||!pan||pan.hidden;
+   t.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.id===(typeof curScreen!=='undefined'?curScreen:'')));};
+  let hecho=false;const _rt=route;
+  route=function(){if(!hecho&&typeof SCREENS==='object'){hecho=true;
+    Object.entries(SCREENS).forEach(([k,s])=>{const sh=s.show;s.show=()=>{const L=lista();return(!L||L.has(k))&&(!sh||sh());};});
+    if(typeof UX_SEC_OF==='object'){['depositos','inventariof','acopios','reparto','copiloto','equipo','etiquetas','precios'].forEach(k=>{UX_SEC_OF[k]='Logística e inventario';});
+     ['pedidosv','preventa','portalb2b'].forEach(k=>{UX_SEC_OF[k]='Operación comercial';});['personal','vales'].forEach(k=>{UX_SEC_OF[k]='Equipo';});}
+    if(typeof giPackApply==='function'){giPackApply=function(ch){if(S&&S.cfg)S.cfg.demoTodo=false;planDe(ch);return[];};}
+    if(typeof bizCard==='function'){bizCard=function(){return modeloCard();};}
+    A.vbModelo=()=>abrirModelo();A.bmGo=()=>abrirModelo();
+    if(SCREENS.modulos)SCREENS.modulos.render=()=>modulosHTML();
+    const st=document.createElement('style');st.textContent=CSS;document.head.appendChild(st);
+    const tb=document.createElement('nav');tb.id='vb-tab';tb.setAttribute('aria-label','Accesos rápidos');tb.hidden=true;
+    tb.innerHTML=TAB.map(([id,t,d])=>`<button type="button" data-id="${id}">${svg(d)}<span>${t}</span></button>`).join('');document.body.appendChild(tb);
+    tb.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const sd=document.getElementById('side');
+     if(b.dataset.id==='_mas'){if(sd)sd.classList.toggle('open');return;}if(sd)sd.classList.remove('open');go(b.dataset.id);});
+    setInterval(tabPaint,600);
+    const ov=document.createElement('div');ov.id='vb-ov';ov.hidden=true;document.body.appendChild(ov);let obs=null,obsEl=null;
+    const ovSync=()=>{const sd=document.getElementById('side');ov.hidden=!(sd&&sd.classList.contains('open'));if(sd&&sd!==obsEl){obsEl=sd;if(obs)obs.disconnect();obs=new MutationObserver(ovSync);obs.observe(sd,{attributes:true,attributeFilter:['class']});}};
+    ovSync();setInterval(ovSync,1000);
+    try{if(S&&S.cfg&&!S.cfg.demoTipoV3){S.cfg.demoTipoV3=1;planDe(tipo());save();}}catch(e){}}
+   const r=_rt.apply(this,arguments);setTimeout(tabPaint,0);return r;};
+  document.addEventListener('click',e=>{const sd=document.getElementById('side');if(!sd||!sd.classList.contains('open'))return;
+   if(e.target.closest('#side')||e.target.closest('#burger')||e.target.closest('#vb-tab'))return;sd.classList.remove('open');e.preventDefault();e.stopPropagation();},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){const sd=document.getElementById('side');if(sd)sd.classList.remove('open');}});}}
