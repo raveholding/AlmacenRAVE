@@ -28,17 +28,21 @@ import datetime
 if KINI: pub=os.environ.get('PUBLIC_URL','https://raveholding.github.io/KiniDistribuidoraDemo/')
 if PROFILE=='v3': pub=os.environ.get('PUBLIC_URL','https://raveholding.github.io/raveV3/')
 # V27 · demos nuevas de Vincular Business: perfil kini con otra marca (DEMO_ID, DEMO_NOMBRE, DEMO_SLOGAN, DEMO_CANAL, DEMO_MODS).
+# V27.1 · DEMO_PLAN (esencial | mayorista | total) y DEMO_PANTALLAS (ids de pantalla separados por coma): la demo muestra
+#          sólo las pantallas de su rubro mientras siga en su plan; al elegir otro plan en «Módulos» se ve lo de ese plan.
 # Cada demo usa su propia base en el navegador: todas las demos comparten el dominio raveholding.github.io.
 DEMO=None
 if KINI and os.environ.get('DEMO_ID'):
     DEMO={'id':os.environ['DEMO_ID'],'nombre':os.environ.get('DEMO_NOMBRE','Demo'),'slogan':os.environ.get('DEMO_SLOGAN','Demo de Vincular Business'),
-          'canal':os.environ.get('DEMO_CANAL','may'),'mods':[m for m in os.environ.get('DEMO_MODS','').split(',') if m]}
+          'canal':os.environ.get('DEMO_CANAL','may'),'mods':[m for m in os.environ.get('DEMO_MODS','').split(',') if m],
+          'plan':os.environ.get('DEMO_PLAN','total'),'pantallas':[m for m in os.environ.get('DEMO_PANTALLAS','').split(',') if m]}
+    if DEMO['plan'] not in ('esencial','mayorista','total'): sys.exit('DEMO_PLAN inválido: '+DEMO['plan'])
     pub=os.environ.get('PUBLIC_URL','https://raveholding.github.io/'+DEMO['id']+'/')
 build={'ver':datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M')+' UTC','variant':V,'db':'rave-almacenrave-v1' if V=='cliente' else {'kini':'rave-kini-demo-v2','solo':'rave-solo-demo-v1','v3':'rave-v3-demo-v2'}.get(PROFILE,'rave-cliente-v3'),'publicUrl':pub}
 if PROFILE: build['profile']=PROFILE
-if DEMO: build['db']='vb-demo-'+re.sub(r'[^a-z0-9]+','-',DEMO['id'].lower())+'-v1'
+if DEMO: build['db']='vb-demo-'+re.sub(r'[^a-z0-9]+','-',DEMO['id'].lower())+'-v2'
 cfg='<script>window.RAVE_BUILD=%s;window.RAVE_CLOUD=%s;</script>\n'%(json.dumps(build),json.dumps({'url':url,'key':key,'slug':slug}))
-if DEMO: cfg=cfg.replace('</script>','window.RAVE_DEMO=%s;</script>'%json.dumps({k:DEMO[k] for k in ('nombre','slogan','canal','mods')},ensure_ascii=False),1)
+if DEMO: cfg=cfg.replace('</script>','window.RAVE_DEMO=%s;</script>'%json.dumps({k:DEMO[k] for k in ('nombre','slogan','canal','mods','plan','pantallas')},ensure_ascii=False),1)
 head=B('p1-head.html')
 head=head.replace("connect-src 'none'","connect-src "+((url+' ') if url else '')+"https://ntfy.sh https://nominatim.openstreetmap.org").replace("img-src data: blob:","img-src 'self' data: blob: https://ntfy.sh https://tile.openstreetmap.org")  # V26.68: portero SeguridadRave (avisos por ntfy y foto del timbre)
 if V=='cliente':

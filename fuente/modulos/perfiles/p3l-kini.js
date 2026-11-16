@@ -101,7 +101,7 @@ function kiniBase(d){
  if(D){d.tenant=Object.assign({},d.tenant,{name:D.nombre,legal:D.nombre+' (demo de ejemplo)',slogan:D.slogan});
   d.menu=Object.assign({},d.menu,{title:D.nombre.toUpperCase(),sub:{es:D.slogan,en:D.slogan},footer:{es:D.nombre+' · demo de Vincular Business',en:D.nombre+' · Vincular Business demo'}});
   if(d.cfg.wholesale&&D.canal==='both')d.cfg.wholesale.only=false;
-  d.cfg.plan='total';d.cfg.mods=Object.assign({},d.cfg.mods||{});(D.mods||[]).forEach(k=>{d.cfg.mods[k]=true;});}
+  d.cfg.plan=D.plan||'total';d.cfg.mods=Object.assign({},d.cfg.mods||{});(D.mods||[]).forEach(k=>{d.cfg.mods[k]=true;});}
  const t=Math.max(Date.now()-2*3600000,new Date().setHours(0,5,0,0));
  d.sessions=[{id:'k-s1',caja:1,regId:'r1',regName:'Caja 1',branchId:'',openedBy:'ADMIN',openedAt:t,opening:15000000,closedAt:0},
   {id:'k-s2',caja:2,regId:'r2',regName:'Caja 2',branchId:'',openedBy:'Mostrador (ejemplo)',openedAt:t,opening:10000000,closedAt:0},
@@ -162,3 +162,10 @@ function emptyState(){const d=DEF();
  if(d.cfg.wholesale){d.cfg.wholesale.example=false;}d.cfg.comboSeeded=1;d.cfg.kiniSeeded=1;d.cfg.emptyStart=1;return d;}
 A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, clientes, proveedores, ventas, cajas y movimientos de esta demo en este navegador. Quedan los usuarios (ADMIN 1234) y las cajas definidas, cerradas. Para volver a los ejemplos usá «Volver a los datos de ejemplo».',
  ()=>{S=emptyState();audit('DEMO_VACIA','se empezó de cero sin ejemplos');save();pos.lines=[];if(typeof pubReload==='function')pubReload();rerender();toast('Demo vacía: cargá tus productos y abrí una caja');},'Borrar todo');
+/* V27.1 · Demos por rubro: cada demo muestra sólo las pantallas de su rubro (RAVE_DEMO.pantallas) mientras sigue en su plan.
+   Si en «Módulos» se elige otro plan como vista previa, vuelven las reglas normales de cada pantalla. Sin RAVE_DEMO no cambia nada. */
+{const D=(typeof window!=='undefined'&&window.RAVE_DEMO)||null;
+ if(D&&Array.isArray(D.pantallas)&&D.pantallas.length){let hecho=false;const _rt=route;
+  route=function(){if(!hecho&&typeof SCREENS==='object'){hecho=true;const ok=new Set(D.pantallas);
+    Object.entries(SCREENS).forEach(([k,s])=>{if(ok.has(k))return;const sh=s.show;s.show=()=>!!(S&&S.cfg&&S.cfg.plan!==(D.plan||'total'))&&(!sh||sh());});}
+   return _rt.apply(this,arguments);};}}
