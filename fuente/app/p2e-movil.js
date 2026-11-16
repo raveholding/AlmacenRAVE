@@ -13,8 +13,9 @@ const MV_CSS=`.vbm-list{display:grid;gap:.6rem;margin-top:.8rem}.vbm-row{display
 @media(max-width:900px){#vb-tab:not([hidden]){display:flex;position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--card);border-top:1px solid var(--line);padding:.3rem .2rem calc(.3rem + env(safe-area-inset-bottom));backdrop-filter:blur(8px)}
 #vb-tab button{flex:1;font:inherit;font-size:.72rem;display:flex;flex-direction:column;align-items:center;gap:.15rem;padding:.35rem 0;border:0;background:none;color:var(--mut);cursor:pointer}#vb-tab button.on{color:var(--gold);font-weight:700}
 #view{padding-bottom:5.5rem!important}#vb-ov:not([hidden]){display:block;position:fixed;inset:0;z-index:29;background:rgba(0,0,0,.5)}
-#top .tag,#top .demo-b,#top .th-seg,#top .ux-av .sm,#top .app-inst,#top .ux-search kbd{display:none!important}#top{gap:.4rem}#top>b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}}`;
+.ux-tabs{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.ux-tabs::-webkit-scrollbar{display:none}.ux-tabs a{flex:0 0 auto;white-space:nowrap}#top [data-act=themeCycle],#top .tag,#top .demo-b,#top .th-seg,#top .ux-av .sm,#top .app-inst,#top .ux-search kbd{display:none!important}#top{gap:.4rem}#top>b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}}`;
 const MV_TAB=[['inicio','Inicio','M3 11l9-7 9 7v9H3zM9 20v-6h6v6'],['caja','Caja','M3 6h18v12H3zM7 12h.01M17 12h.01M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],['vender','Vender','M3 4h2l2.4 11h11.2L21 8H6.3M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM18 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'],['inventario','Stock','M21 8 12 3 3 8v8l9 5 9-5zM3 8l9 5 9-5M12 13v8'],['_mas','Más','M5 12h.01M12 12h.01M19 12h.01']];
+function mvTabsCentrar(){try{const a=document.querySelector('.ux-tabs a.on');if(!a)return;const c=a.parentElement;c.scrollLeft=Math.max(0,a.offsetLeft-c.offsetLeft-(c.clientWidth-a.offsetWidth)/2);}catch(e){}}
 function mvTabPaint(){const t=document.getElementById('vb-tab');if(!t)return;const pan=document.getElementById('panel');t.hidden=!user||!pan||pan.hidden;
  t.querySelectorAll('button').forEach(b=>{const id=b.dataset.id;if(id!=='_mas'){let ok=false;try{ok=typeof uxVis==='function'?uxVis(id):!!SCREENS[id];}catch(e){}b.hidden=!ok;}b.classList.toggle('on',id===curScreen);});}
 /* Módulos (fuera de las demos): plan, modelo de negocio resumido y funciones con interruptores */
@@ -42,6 +43,7 @@ A.mvModelo=()=>{go('config');setTimeout(()=>{const c=document.getElementById('bi
    ovSync();setInterval(()=>{ovSync();mvTabPaint();},700);
    if(!(window.RAVE_DEMO)&&SCREENS.modulos&&typeof GI_MODS!=='undefined')SCREENS.modulos.render=()=>mvModulos();}
   const r=_rt.apply(this,arguments);setTimeout(mvTabPaint,0);return r;};}
+{const _sp=showPanel;showPanel=function(){const r=_sp.apply(this,arguments);setTimeout(()=>{mvTabPaint();mvTabsCentrar();setTimeout(mvTabsCentrar,350);},0);return r;};}
 document.addEventListener('click',e=>{const sd=document.getElementById('side');if(!sd||!sd.classList.contains('open'))return;
  if(e.target.closest('#side')||e.target.closest('#burger')||e.target.closest('#vb-tab'))return;sd.classList.remove('open');e.preventDefault();e.stopPropagation();},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const sd=document.getElementById('side');if(sd)sd.classList.remove('open');}});
