@@ -232,21 +232,28 @@ A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, 
      NFC (lector, tarjetas, sello con el celular): se vende aparte como combo, en la reunión. Portero y seguridad: siempre opcional.
      Asistente de texto y voz / IA y bots: planes superiores. Se ocultan de la vista; los datos y funciones no se tocan. */
   {const BAJO=()=>typeof giPlan==='function'&&giPlan()==='esencial';
-   if(typeof nfcCfgCard==='function'){const o=nfcCfgCard;nfcCfgCard=function(){return BAJO()?'':o.apply(this,arguments);};}
+   /* en vez de esconder: se muestran como adicionales bloqueados, con el beneficio y un botón que arma el pedido por WhatsApp (ticket más alto) */
+   const ADD=[['nfc','📡','Combo NFC','Tarjetas y llaveros NFC para el Club, sello con el celular del cliente y lector en el mostrador: el cliente apoya la tarjeta y suma puntos al instante.','Se suma aparte: lector, tarjetas o llaveros con tu marca, instalación y capacitación.'],
+    ['ia','🎙️','Asistente de voz e IA','Le pedís al sistema por voz o por escrito («vendeme 2 gaseosas», «¿cuánto vendí hoy?») y lee las facturas de tus proveedores con IA.','Viene con el plan Total.'],
+    ['portero','🛡️','Portero y seguridad','Control de quién entra y sale, alarmas y avisos al celular del dueño.','Adicional opcional para cualquier plan.']];
+   window.vbAddonsHTML=function(cl){const nom=(window.RAVE_DEMO&&RAVE_DEMO.nombre)||'Sistema VB';const wa=t=>'https://wa.me/5493874484132?text='+encodeURIComponent('Hola Vincular Business, probé la demo «'+nom+'» y quiero información sobre: '+t);
+    return`<div class="card vb-add ${cl||''}" style="margin-top:1rem"><h3 style="margin-top:0">✨ Adicionales para tu negocio</h3><p class="sm mut">Tu plan es <b>${esc(GI_PLANS[giPlan()].t)}</b>. Estos servicios se suman cuando los necesites; los coordinamos en la reunión.</p>
+    <div class="vb-add-l">${ADD.map(([k,ic,t,d,c])=>`<div class="vb-add-i"><span class="vb-add-ic" aria-hidden="true">${ic}</span><span class="sp"><b>${esc(t)}</b> <span class="tag">🔒 adicional</span><br><span class="sm">${esc(d)}</span><br><span class="sm mut">${esc(c)}</span></span><a class="btn sm" target="_blank" rel="noopener" href="${wa(t)}">Pedir información</a></div>`).join('')}</div></div>`;};
+   if(typeof nfcCfgCard==='function'){const o=nfcCfgCard;nfcCfgCard=function(){return BAJO()?window.vbAddonsHTML():o.apply(this,arguments);};}
    if(typeof nfcFieldHTML==='function'){const o=nfcFieldHTML;nfcFieldHTML=function(){return BAJO()?'':o.apply(this,arguments);};}
    if(typeof nfcStatusHTML==='function'){const o=nfcStatusHTML;nfcStatusHTML=function(){return BAJO()?'':o.apply(this,arguments);};}
    if(typeof nfcMiniHTML==='function'){const o=nfcMiniHTML;nfcMiniHTML=function(){return BAJO()?'':o.apply(this,arguments);};}
    if(typeof selloNfcCardHtml==='function'){const o=selloNfcCardHtml;selloNfcCardHtml=function(){return BAJO()?'':o.apply(this,arguments);};}
    if(typeof ptCfgCardHtml==='function'){const o=ptCfgCardHtml;ptCfgCardHtml=function(){return BAJO()?'':o.apply(this,arguments);};}
    if(typeof assistCfgCard==='function'){const o=assistCfgCard;assistCfgCard=function(){return BAJO()?'':o.apply(this,arguments);};}
-   const st=document.createElement('style');st.textContent='html.vb-bajo #as-open,html.vb-bajo #as-dock,html.vb-bajo [data-act=fdNfc],html.vb-bajo [data-act=cbNfc],html.vb-bajo [data-act=hrNfcWrite],html.vb-bajo [data-act=cuNfc],html.vb-bajo [data-act=nfcLink],html.vb-bajo [data-act=nfcManual],html.vb-bajo [data-act=nfcSetup],html.vb-bajo [data-act=nfcTest],html.vb-bajo [data-act=nfcList],html.vb-bajo [data-act=nfcLiveToggle]{display:none!important}';
+   const st=document.createElement('style');st.textContent='html.vb-bajo #as-open,html.vb-bajo #as-dock,html.vb-bajo [data-act=fdNfc],html.vb-bajo [data-act=cbNfc],html.vb-bajo [data-act=hrNfcWrite],html.vb-bajo [data-act=cuNfc],html.vb-bajo [data-act=nfcLink],html.vb-bajo [data-act=nfcManual],html.vb-bajo [data-act=nfcSetup],html.vb-bajo [data-act=nfcTest],html.vb-bajo [data-act=nfcList],html.vb-bajo [data-act=nfcLiveToggle]{display:none!important}.vb-add-l{display:grid;gap:.6rem;margin-top:.6rem}.vb-add-i{display:flex;gap:.8rem;align-items:center;padding:.85rem 1rem;border:1px dashed var(--line);border-radius:14px;background:color-mix(in srgb,var(--gold) 6%,var(--card))}.vb-add-ic{font-size:1.5rem;flex:0 0 auto}.vb-add-i .btn{flex:0 0 auto}@media(max-width:600px){.vb-add-i{flex-wrap:wrap}.vb-add-i .btn{width:100%;text-align:center}}';
    (document.head||document.documentElement).appendChild(st);
    const marca=()=>{try{document.documentElement.classList.toggle('vb-bajo',BAJO());}catch(e){}};marca();setInterval(marca,1500);}
   const COM=['inicio','vender','caja','arqueo','cierres','presup','mermas','inventario','precios','etiquetas','inventariof','proveedores','clientes','fidel','cupones','config','roles','modulos','dispositivos','auditoria'];
   const DIS=['inicio','vender','caja','arqueo','cierres','pedidosv','preventa','reparto','copiloto','depositos','acopios','inventario','inventariof','precios','etiquetas','proveedores','clientes','portalb2b','personal','vales','equipo','config','roles','modulos','dispositivos','auditoria'];
   const IC={min:'M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6',both:'M3 21V9l9-6 9 6v12M8 21v-7h8v7M3 12h18',may:'M2 6h11v10H2zM13 9h4l4 4v3h-8zM6 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',todo:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5'};
   const T={min:{t:'Mostrador',d:'Vendés al consumidor final, en el mostrador o con autoservicio.',ej:'Kiosco · almacén · autoservicio · ropa · ferretería',plan:'esencial',p:COM.filter(x=>x!=='inventariof')},
-   both:{t:'Minorista y mayorista',d:'Vendés al público y también por mayor, con precios por presentación.',ej:'Mayorista · autoservicio mayorista · bebidas',plan:'esencial',p:COM},
+   both:{t:'Minorista y mayorista',d:'Vendés al público y también por mayor, con precios por presentación.',ej:'Mayorista · autoservicio mayorista · bebidas',plan:'mayorista',p:COM},
    may:{t:'Despacho y reparto',d:'Tomás pedidos, se arman en el depósito y se reparten.',ej:'Distribuidora · materiales · mayorista con reparto',plan:'mayorista',p:DIS},
    todo:{t:'Libre',d:'Todos los módulos visibles, sin molde.',ej:'Para quien prefiere decidir módulo por módulo',plan:'total',p:null}};
   const RUB=[['Kiosco / almacén','min'],['Autoservicio','min'],['Bebidas','both'],['Ropa y calzado','min'],['Ferretería','min'],['Materiales de construcción','may'],['Distribuidora','may'],['Mayorista','both'],['Otro','todo']];
@@ -278,7 +285,7 @@ A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, 
    const L=GI_MODS.filter(m=>!(tipo()==='min'&&m.k==='count')).sort((a,b)=>(giInPlan(a.plan)?0:1)-(giInPlan(b.plan)?0:1));
    return`<div class="row"><h1 class="sp">Módulos</h1></div>${modeloCard()}
     <div class="card"><h3 style="margin-top:0">Módulos del sistema</h3><p class="sm mut">Cada interruptor vale para todo el negocio. Apagar un módulo lo saca del menú; lo que ya existe se sigue viendo y no se borra nada. Cada cambio queda en Auditoría.</p>
-    <div class="vbm-list">${FIJOS.map(fijo).join('')}${L.map(fila).join('')}</div></div>`;};
+    <div class="vbm-list">${FIJOS.map(fijo).join('')}${L.map(fila).join('')}</div></div>${typeof giPlan==='function'&&giPlan()==='esencial'&&window.vbAddonsHTML?window.vbAddonsHTML():''}`;};
   const CSS=`.vbm-h{margin:1.1rem 0 .5rem;font-size:1rem;color:var(--mut)}.vbm-chips{display:flex;flex-wrap:wrap;gap:.5rem}
 .vbm-chip{font:inherit;padding:.6rem 1rem;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}.vbm-chip.on{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,transparent);font-weight:700}
 .vbm-opts{display:grid;gap:.6rem}.vbm-opt{font:inherit;text-align:left;display:flex;gap:.8rem;align-items:flex-start;padding:.9rem 1rem;border-radius:14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;line-height:1.4}
