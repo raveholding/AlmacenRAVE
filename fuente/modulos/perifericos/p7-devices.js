@@ -52,13 +52,13 @@ function ticketModel(sale,W){const T=S.tenant,cfg=S.cfg.ticket;const B=[];const 
   if(sale.recv>0&&(sale.vuelto>0||(sale.method==='efectivo'&&sale.recv>=sale.total))){add('l',{l:'Recibido',r:money(sale.recv)});add('l',{l:'Vuelto',r:money(sale.vuelto!=null&&sale.pays?sale.vuelto:sale.recv-sale.total)});}
   if(fi>0&&sale.cust){add('t',{s:'Estado: '+(salePayState(sale)==='parcial'?'PAGO PARCIAL':'PENDIENTE DE COBRO')+' · saldo de esta venta '+money(fi)});add('t',{s:'Saldo adeudado en cuenta corriente: '+money(debtOf(sale.cust))});}
   if(typeof pdTicketLines==='function')pdTicketLines(sale).forEach(x=>add(x.t,{s:x.s}));}
- if(sale.cust){const c=custById(sale.cust);if(c){add('sep');add('c',{s:'Socio N.º '+pad4(c.num)+' · Club RAVE',b:1});const st=stampsOf(c.id);add('c',{s:'Sellos: '+Math.min(st,S.loyalty.goal)+'/'+S.loyalty.goal+(st>=S.loyalty.goal?' — ¡premio para canjear!':'')});}}
+ if(sale.cust){const c=custById(sale.cust);if(c){add('sep');add('c',{s:'Socio N.º '+pad4(c.num)+' · '+(IS_CLIENT?'Club RAVE':'Club de clientes'),b:1});const st=stampsOf(c.id);add('c',{s:'Sellos: '+Math.min(st,S.loyalty.goal)+'/'+S.loyalty.goal+(st>=S.loyalty.goal?' — ¡premio para canjear!':'')});}}
  add('sep');
  if(cb){add('c',{s:'CAE: '+cb.cae,b:1});add('c',{s:'Vto. CAE: '+String(cb.vto||'').split('-').reverse().join('/')});if(cb.qr){let ok=true;try{ok=!!QR.encode(cb.qr);}catch(e){ok=false;}if(ok)add('qr',{data:cb.qr});}}
  else if(arca)add('c',{s:'Comprobante pendiente de CAE (ARCA). Se entrega el definitivo al obtenerlo.'});else{add('c',{s:'DOCUMENTO NO VÁLIDO COMO FACTURA',b:1});}
  add('c',{s:'Precios con impuestos incluidos.'});
  if(cfg.msg)wrapTxt(cfg.msg,W).forEach(l=>add('c',{s:l}));
- add('c',{s:'Instagram @'+(T.ig||'').toLowerCase()+' · Facebook '+(T.fb||'')});
+ if(T.ig||T.fb)add('c',{s:[T.ig?'Instagram @'+String(T.ig).toLowerCase().replace(/^@/,''):'',T.fb?'Facebook '+T.fb:''].filter(Boolean).join(' · ')});
  if(!(cb&&cb.qr)){add('qr',{data:menuUrl()});add('c',{s:'Escaneá: menú, Club y sellos'});}else add('c',{s:'Menú y Club: '+menuUrl(),sm:1});
  if(cfg.legal){add('sep');wrapTxt('Defensa del Consumidor: reclamos en el local. Ventas a distancia: botón de arrepentimiento en el menú digital.'+(restrOn()?' Prohibida la venta de alcohol y tabaco a menores de 18 años. Beber con moderación.':''),W).forEach(l=>add('c',{s:l,sm:1}));}
  add('c',{s:'Sistema RAVE · desarrollado por',sm:1});add('c',{s:VB.name,sm:1,b:1});add('c',{s:'Cel. '+VB.phone,sm:1});add('c',{s:VB.mail,sm:1});add('c',{s:VB.lema,sm:1});if(VB.web)add('c',{s:VB.web.replace(/^https?:\/\//,''),sm:1});

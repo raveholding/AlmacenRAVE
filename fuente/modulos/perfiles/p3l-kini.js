@@ -61,6 +61,65 @@ function kiniCustomers(){const t0=now()-30*86400000;
   mk('kc3',3,'Supermercado Los Andes S.R.L.','',{channel:'mayorista',taxid:'30711000018',limit:300000000,term:30,zone:'Centro',seller:'Vendedor 1 (ejemplo)',notes:'Precio especial acordado en gaseosa cola'}),
   mk('kc4',4,'Bar La Esquina','',{channel:'mayorista',taxid:'30711000026',limit:50000000,term:7,zone:'Centro',seller:'Vendedor 2 (ejemplo)'}),
   mk('kc5',5,'Laura','Ejemplo',{channel:'mayorista',birth:'1990-05-21',consent:{club:true,comm:false,analytics:false,version:'v1-2026-demo',ts:t0},notes:'Compra en el mostrador (sin CUIT)'})];}
+/* V27.6 · Demo «Mostrador» (DEMO_CATALOGO=almacen): almacén, kiosco y autoservicio de barrio, sin venta mayorista.
+   Precios de ejemplo por unidad (en pesos), costo ~70 %, algunos artículos por kilo con PLU para probar la balanza
+   y algunos con poco stock para que aparezcan las alertas. Todo rotulado «ejemplo». */
+function almCats(){return[
+ {id:'a-alm',name:'Almacén',color:'#5b7d3a',mNom:'Almacén',mTitle:'Almacén',layout:'rows',alcohol:false},
+ {id:'k-beb',name:'Bebidas',color:'#2f6f8f',mNom:'Bebidas',mTitle:'Bebidas',layout:'grid',alcohol:false},
+ {id:'a-lac',name:'Lácteos y fiambrería',color:'#c9963e',mNom:'Lácteos',mTitle:'Lácteos, fiambres y panadería',layout:'rows',alcohol:false},
+ {id:'a-kio',name:'Kiosco y golosinas',color:'#b4562f',mNom:'Kiosco',mTitle:'Kiosco y golosinas',layout:'grid',alcohol:false},
+ {id:'a-lim',name:'Limpieza',color:'#5a6e8c',mNom:'Limpieza',mTitle:'Limpieza',layout:'rows',alcohol:false},
+ {id:'a-per',name:'Perfumería',color:'#8a5aa8',mNom:'Perfumería',mTitle:'Perfumería e higiene',layout:'rows',alcohol:false},
+ {id:'a-alc',name:'Cervezas y vinos',color:'#7b2d3b',mNom:'Cervezas y vinos',mTitle:'Cervezas y vinos (+18)',layout:'grid',alcohol:true}];}
+/* [id, nombre, presentación, categoría, precio $, stock, unidad (u|kg), PLU] */
+function almProds(){return[
+ ['a-yerba','Yerba mate con palo','1 kg','a-alm',5200,48,'u'],['a-azucar','Azúcar común','1 kg','a-alm',1500,60,'u'],['a-fideos','Fideos tirabuzón','500 g','a-alm',1300,72,'u'],
+ ['a-arroz','Arroz largo fino','1 kg','a-alm',1900,40,'u'],['a-aceite','Aceite de girasol','1,5 lt','a-alm',4300,24,'u'],['a-harina','Harina 0000','1 kg','a-alm',1100,36,'u'],
+ ['a-pure','Puré de tomate','520 g','a-alm',1200,30,'u'],['a-cafe','Café molido','250 g','a-alm',6500,4,'u'],['a-mate','Mate cocido','caja x25','a-alm',1800,20,'u'],
+ ['a-galle-agua','Galletitas de agua','pack x3','a-alm',1700,26,'u'],['a-mayo','Mayonesa','doypack 250 g','a-alm',1900,18,'u'],['a-sal','Sal fina','500 g','a-alm',900,22,'u'],
+ ['k-gas-cola','Gaseosa cola','2,25 lt','k-beb',3600,36,'u'],['k-gas-lima','Gaseosa lima-limón','2,25 lt','k-beb',3300,24,'u'],['k-agua','Agua mineral sin gas','2 lt','k-beb',1400,30,'u'],
+ ['k-agua-sab','Agua saborizada','1,5 lt','k-beb',1900,24,'u'],['a-jugo','Jugo en polvo naranja','sobre','k-beb',500,60,'u'],['a-soda','Soda en botella','2 lt','k-beb',1300,3,'u'],
+ ['a-leche','Leche entera','sachet 1 lt','a-lac',1600,40,'u'],['a-yogur','Yogur bebible frutilla','1 lt','a-lac',2600,12,'u'],['a-manteca','Manteca','200 g','a-lac',3200,10,'u'],
+ ['a-huevos','Huevos blancos','docena','a-lac',3900,15,'u'],['a-queso','Queso cremoso','por kilo','a-lac',12500,6,'kg','21'],['a-jamon','Jamón cocido','por kilo','a-lac',18000,4,'kg','22'],
+ ['a-salame','Salame milán','por kilo','a-lac',22000,2,'kg','23'],['a-pan','Pan francés','por kilo','a-lac',3500,12,'kg','24'],
+ ['a-alfajor','Alfajor triple de chocolate','unidad','a-kio',1100,96,'u'],['a-choco','Chocolate con leche','100 g','a-kio',3200,24,'u'],['a-chicle','Chicles de menta','paquete','a-kio',700,60,'u'],
+ ['a-papas','Papas fritas clásicas','150 g','a-kio',2300,20,'u'],['a-turron','Turrón de maní','unidad','a-kio',600,80,'u'],['a-barrita','Barrita de cereal','unidad','a-kio',800,40,'u'],
+ ['a-lavandina','Lavandina','2 lt','a-lim',1300,18,'u'],['a-deter','Detergente','750 ml','a-lim',1800,16,'u'],['a-papel','Papel higiénico','pack x4','a-lim',2600,20,'u'],
+ ['a-jabonpol','Jabón en polvo','800 g','a-lim',3400,10,'u'],['a-esponja','Esponja de cocina','unidad','a-lim',700,25,'u'],['a-bolsas','Bolsas de residuo','rollo x10','a-lim',1200,14,'u'],
+ ['a-shampoo','Shampoo','400 ml','a-per',4500,8,'u'],['a-jabon','Jabón de tocador','90 g','a-per',1200,24,'u'],['a-pasta','Pasta dental','90 g','a-per',2200,12,'u'],['a-desodo','Desodorante en aerosol','150 ml','a-per',2900,10,'u'],
+ ['k-cer-lata','Cerveza rubia','lata 473 ml','a-alc',1800,48,'u'],['a-cer-litro','Cerveza rubia retornable','1 lt','a-alc',3000,12,'u'],['a-vino','Vino tinto Malbec','750 ml','a-alc',5600,9,'u'],['a-vino-caja','Vino tinto en caja','1 lt','a-alc',2300,18,'u']];}
+function almCatalog(){
+ const L=almProds().map(([id,name,sub,cat,price,stock,unit,plu],i)=>({id,name,sub,grupo:'',rubro:cat,price:price*100,cost:Math.round(price*0.7/10)*10*100,stock,unit:unit||'u',
+  barcode:unit==='kg'?'':kiniEan(200+i),plu:plu||'',menu:true,active:true,desc:'',featured:['a-yerba','k-gas-cola','a-alfajor','a-leche','a-queso','k-cer-lata'].includes(id),demo:true,pres:[]}));
+ L.push({id:'a-combo-mate',name:'Combo mate',sub:'yerba + azúcar + galletitas de agua',grupo:'',rubro:'a-alm',price:780000,cost:0,stock:0,unit:'u',barcode:'',plu:'',menu:true,active:true,desc:'Se descuenta cada artículo del stock',demo:true,
+  kit:[{pid:'a-yerba',qty:1},{pid:'a-azucar',qty:1},{pid:'a-galle-agua',qty:1}]});
+ return L;}
+function almCustomers(){const t0=now()-40*86400000;
+ const mk=(id,num,name,last,o)=>Object.assign({id,num,name,last,birth:'',wa:'+54938700'+String(20000+num*137).slice(-5),dni:'',cards:[],cardSecrets:{},origin:'ejemplo',
+  consent:{club:true,comm:true,analytics:false,version:'v1-2026-demo',ts:t0},ts:t0,status:'activo',limit:0,secret:'alm-ej-'+id+'-0000000000',notes:'',channel:'minorista',taxid:'',term:0,zone:'',seller:'',example:true},o);
+ return[mk('ac1',1,'María','Gómez',{birth:'1984-03-12',limit:5000000,term:30,notes:'Libreta: paga a fin de mes'}),
+  mk('ac2',2,'Carlos','Ruiz',{birth:'1979-11-02',limit:3000000,term:15,notes:'Libreta: paga cada quincena'}),
+  mk('ac3',3,'Ana','López',{birth:'1996-07-25',notes:'Del Club: junta puntos'}),
+  mk('ac4',4,'Jorge','Fernández',{birth:'1968-01-30',notes:'Compra el pan todos los días'}),
+  mk('ac5',5,'Lucía','Martínez',{birth:'2000-09-14',consent:{club:false,comm:false,analytics:false,version:'v1-2026-demo',ts:t0}})];}
+function almBase(d){
+ const keep=d.rubros.filter(r=>r.kind!=='rubro');
+ d.rubros=almCats().map(c=>Object.assign({owner:'',reparte:false,kind:'rubro',mHint:''},c)).concat(keep);
+ d.products=almCatalog();d.customers=almCustomers();d.agreements=[];
+ if(d.cfg.wholesale){d.cfg.wholesale.on=false;d.cfg.wholesale.only=false;d.cfg.wholesale.example=false;}
+ d.tenant=Object.assign({},d.tenant,{address:'Av. San Martín 1250, Salta (ejemplo)',phone:'(0387) 400-1250',wa:'5493874484132'});
+ d.menu=Object.assign({},d.menu,{pitch:{es:'Hacé tu pedido por WhatsApp y **retiralo en el local** o **te lo llevamos** (ejemplo).',en:'Order by WhatsApp and **pick it up** or **get it delivered** (example).'},
+  promo:{on:true,es:'**Jueves de lácteos**: 10 % en lácteos y fiambres (ejemplo).',en:'**Dairy Thursday**: 10 % off (example).'},clubOn:true});
+ d.coupons=[{id:'cp1',code:'BIENVENIDA10',type:'pct',value:10,min:0,from:'',to:'',maxUses:0,perCust:1,aud:'todos',active:true,note:'10 % en la primera compra (ejemplo)',uses:[]}];
+ d.loyalty=Object.assign({},d.loyalty,{reward:'Un alfajor de regalo cada 10 compras (ejemplo)',ledger:[],usedOtp:{}});
+ d.employees=[{id:'e1',name:'Sofía (cajera, ejemplo)',puestoId:'pu_caj',rate:250000,pin:'1234',active:true},{id:'e2',name:'Tomás (repositor, ejemplo)',puestoId:'pu_rep',rate:230000,pin:'4321',active:true}];
+ d.puestos=[{id:'pu_soc',name:'Dueño',parent:'',holders:''},{id:'pu_caj',name:'Caja y atención',parent:'pu_soc',holders:''},{id:'pu_rep',name:'Reposición',parent:'pu_soc',holders:''}];
+ d.tasks=[{id:'t1',title:'Abrir la caja con el cambio del día',puestoId:'pu_caj',freq:'daily',active:true},
+  {id:'t2',title:'Reponer góndolas y heladera',puestoId:'pu_rep',freq:'daily',active:true},
+  {id:'t3',title:'Controlar vencimientos de lácteos y fiambres',puestoId:'pu_rep',freq:'weekly',dow:1,active:true},
+  {id:'t4',title:'Hacer el pedido a proveedores',puestoId:'pu_soc',freq:'weekly',dow:4,active:true},
+  {id:'t5',title:'Cobrar las libretas (cuenta corriente)',puestoId:'pu_caj',freq:'weekly',dow:6,active:true}];}
 function kiniPeople(d){
  d.employees=[{id:'e1',name:'Empleado de depósito (ejemplo)',puestoId:'pu_dep',rate:250000,pin:'1234',active:true},{id:'e2',name:'Vendedor de mostrador (ejemplo)',puestoId:'pu_most',rate:250000,pin:'4321',active:true}];
  d.puestos=[{id:'pu_soc',name:'Dueño',parent:'',holders:''},{id:'pu_most',name:'Mostrador y ventas',parent:'pu_soc',holders:''},{id:'pu_dep',name:'Depósito y entregas',parent:'pu_soc',holders:''}];
@@ -98,10 +157,10 @@ function kiniBase(d){
  /* V27 · demos nuevas de Vincular Business (VB-Demo-*): mismo perfil con otra marca, otro canal y módulos prendidos.
     window.RAVE_DEMO lo inyecta build.py sólo en esas compilaciones; sin él, la demo Kini queda igual. */
  const D=(typeof window!=='undefined'&&window.RAVE_DEMO)||null;
- if(D){d.tenant=Object.assign({},d.tenant,{name:D.nombre,legal:D.nombre+' (demo de ejemplo)',slogan:D.slogan});
+ if(D){d.tenant=Object.assign({},d.tenant,{name:D.nombre,legal:D.nombre,slogan:D.slogan,cuit:D.canal==='min'?'27-31245678-3':'30-71654321-4',iva:D.canal==='min'?'Responsable Monotributo (ejemplo)':'IVA Responsable Inscripto (ejemplo)',address:'Av. San Martín 1250, Salta (ejemplo)',phone:'(0387) 400-1250'});
   d.menu=Object.assign({},d.menu,{title:D.nombre.toUpperCase(),sub:{es:D.slogan,en:D.slogan},footer:{es:D.nombre+' · demo de Vincular Business',en:D.nombre+' · Vincular Business demo'}});
   if(d.cfg.wholesale&&D.canal==='both')d.cfg.wholesale.only=false;
-  d.cfg.plan=D.plan||'total';d.cfg.mods=Object.assign({},d.cfg.mods||{});(D.mods||[]).forEach(k=>{d.cfg.mods[k]=true;});}
+  d.cfg.plan=D.plan||'total';d.cfg.mods=Object.assign({},d.cfg.mods||{});(D.mods||[]).forEach(k=>{d.cfg.mods[k]=true;});if(D.catalogo==='almacen')almBase(d);}
  const t=Math.max(Date.now()-2*3600000,new Date().setHours(0,5,0,0));
  d.sessions=[{id:'k-s1',caja:1,regId:'r1',regName:'Caja 1',branchId:'',openedBy:'ADMIN',openedAt:t,opening:15000000,closedAt:0},
   {id:'k-s2',caja:2,regId:'r2',regName:'Caja 2',branchId:'',openedBy:'Mostrador (ejemplo)',openedAt:t,opening:10000000,closedAt:0},
@@ -110,7 +169,7 @@ function kiniBase(d){
 /* historial de ejemplo de la distribuidora (reemplaza al del almacén): ventas minoristas y mayoristas por presentación,
    algunas a cuenta corriente de los comercios. Marcadas «demo»: no tocan stock ni caja. */
 function kiniExtras(){if(!isKiniBuild())return;
- S.customers=kiniCustomers();S.loyalty.ledger=[];S.members=[];S.plans=[];
+ S.customers=(window.RAVE_DEMO&&window.RAVE_DEMO.catalogo==='almacen')?almCustomers():kiniCustomers();S.loyalty.ledger=[];S.members=[];S.plans=[];
  S.coupons.forEach(c=>{c.uses=[];});
  S.sales=S.sales.filter(s=>!(s.demo&&/^hs/.test(s.id)));
  let seed=11;const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
@@ -118,14 +177,14 @@ function kiniExtras(){if(!isKiniBuild())return;
  const hs=S.sessions.find(s=>s.id==='hist-demo');if(!hs)S.sessions.push({id:'hist-demo',caja:S.tenant.caja,openedBy:'ADMIN',openedAt:Date.now()-12*86400000,opening:0,closedAt:Date.now()-86400000,demo:true});
  const mays=S.customers.filter(c=>c.channel==='mayorista');const metM=['transferencia','transferencia','efectivo','fiado'],metm=['efectivo','efectivo','debito','credito','qr','transferencia'];
  const cj=S.tenant.caja;const dbt={};
- for(let d=10;d>=1;d--){const n=4+Math.floor(rnd()*5);for(let k=0;k<n;k++){const ws=S.cfg.wholesale&&S.cfg.wholesale.only?true:rnd()<0.45;const items=[];const nl=1+Math.floor(rnd()*(ws?3:2));
+ for(let d=10;d>=0;d--){const n=d?4+Math.floor(rnd()*5):3;for(let k=0;k<n;k++){const wOn=!!(S.cfg.wholesale&&S.cfg.wholesale.on);const ws=wOn&&S.cfg.wholesale.only?true:wOn&&rnd()<0.45;const items=[];const nl=1+Math.floor(rnd()*(ws?3:2));
   for(let j=0;j<nl;j++){const p=pool[Math.floor(rnd()*pool.length)];if(items.some(i=>i.pid===p.id))continue;
    if(ws&&p.pres&&p.pres.length){const sm=p.pres.filter(x=>x.qty<=48);const pr=(sm.length?sm:p.pres)[Math.floor(rnd()*(sm.length||1))];const m=1+Math.floor(rnd()*4);
     items.push({pid:p.id,name:p.name+(p.sub?' ('+p.sub+')':''),rubro:p.rubro,qty:pr.qty*m,price:pr.unit,cost:p.cost,list:p.price,disc:0,lr:'P-'+pr.lv,ll:lvName(pr.lv).name,lb:p.price});}
    else items.push({pid:p.id,name:p.name+(p.sub?' ('+p.sub+')':''),rubro:p.rubro,qty:1+Math.floor(rnd()*3),price:p.price,cost:p.cost,list:p.price,disc:0,...(ws?{lr:'L1',ll:'',lb:p.price}:{})});}
   if(!items.length)continue;
   const total=items.reduce((a,i)=>a+Math.round(i.qty*i.price),0);S.seq[cj]=(S.seq[cj]||0)+1;const ts=Date.now()-d*86400000-Math.floor(rnd()*8*3600000)-3*3600000;
-  const cu=ws&&!(S.cfg.wholesale&&S.cfg.wholesale.only&&rnd()<0.3)?mays[Math.floor(rnd()*mays.length)]:null;let m=cu?metM[Math.floor(rnd()*metM.length)]:metm[Math.floor(rnd()*metm.length)];
+  const lib=S.customers.filter(c=>c.limit>0&&c.channel!=='mayorista');const cu=ws&&!(S.cfg.wholesale&&S.cfg.wholesale.only&&rnd()<0.3)?mays[Math.floor(rnd()*mays.length)]:(!ws&&lib.length&&rnd()<0.18?lib[Math.floor(rnd()*lib.length)]:null);let m=cu?metM[Math.floor(rnd()*metM.length)]:metm[Math.floor(rnd()*metm.length)];
   if(m==='fiado'&&(!cu||d<2||(cu.term>0&&d>=cu.term)||((dbt[cu.id]||0)+total)>cu.limit*0.35))m='transferencia';const fi=m==='fiado'?total:0;if(fi)dbt[cu.id]=(dbt[cu.id]||0)+fi;
   const s={id:'hs'+d+'_'+k,n:cj+'-'+S.seq[cj],ts,user:ws?'ADMIN':'Mostrador',caja:cj,sessId:'hist-demo',items,total,method:m,doc:'ticket_interno',status:'ok',fee:0,channel:'local',
    cust:cu?cu.id:'',custName:cu?custFull(cu):'',coupon:'',benefit:null,recv:0,fiado:fi>0,pays:[{m,a:total,fee:0}],fiadoAmt:fi,paid:total-fi,balance:fi,vuelto:0,pstate:fi?'pendiente':'pagada',demo:true};
@@ -168,7 +227,8 @@ A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, 
    · Módulos: una lista de interruptores, ordenada (fijos arriba, después las funciones del plan).
    · Celular y tablet: barra inferior (Inicio, Caja, Vender, Stock, Más), el menú lateral se cierra al tocar afuera o con Escape. */
 {const D=(typeof window!=='undefined'&&window.RAVE_DEMO)||null;
- if(D){const COM=['inicio','vender','caja','arqueo','cierres','presup','mermas','inventario','precios','etiquetas','inventariof','proveedores','clientes','fidel','cupones','config','roles','modulos','dispositivos','auditoria'];
+ if(D){if(typeof facCfgCard==='function'){const _fc=facCfgCard;facCfgCard=function(){return typeof giPlan==='function'&&giPlan()!=='total'?'':_fc.apply(this,arguments);};}
+  const COM=['inicio','vender','caja','arqueo','cierres','presup','mermas','inventario','precios','etiquetas','inventariof','proveedores','clientes','fidel','cupones','config','roles','modulos','dispositivos','auditoria'];
   const DIS=['inicio','vender','caja','arqueo','cierres','pedidosv','preventa','reparto','copiloto','depositos','acopios','inventario','inventariof','precios','etiquetas','proveedores','clientes','portalb2b','personal','vales','equipo','config','roles','modulos','dispositivos','auditoria'];
   const IC={min:'M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6',both:'M3 21V9l9-6 9 6v12M8 21v-7h8v7M3 12h18',may:'M2 6h11v10H2zM13 9h4l4 4v3h-8zM6 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',todo:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5'};
   const T={min:{t:'Mostrador',d:'Vendés al consumidor final, en el mostrador o con autoservicio.',ej:'Kiosco · almacén · autoservicio · ropa · ferretería',plan:'esencial',p:COM},
@@ -186,7 +246,7 @@ A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, 
    return `<ul class="vbm-pasa">${on(1,'Vender, caja, stock y clientes')}${on(k!=='min','Precios mayoristas por presentación')}${on(k==='may'||k==='todo','Pedidos, preventa y reparto')}${on(k==='may'||k==='todo','Depósitos, acopio y equipo en el mapa')}${on(k!=='may','Club de clientes, cupones y etiquetas')}${on(k==='todo','Atención al cliente, finanzas y contabilidad')}</ul>
     <p class="sm mut">Plan: <b>${esc(GI_PLANS[T[k].plan].t)}</b>. Lo demás queda como está. Un módulo apagado sale del menú, pero <b>lo que ya existe se sigue viendo</b>: no se borra ningún dato.</p>`;};
   const svg=d=>`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
-  const abrirModelo=()=>{if(!user||user.role!=='admin')return toast('Sólo el administrador cambia el modelo de negocio',1);let sel=tipo(),rub=S.cfg.demoRubro||'';
+  const abrirModelo=()=>{if(D.fijo)return toast('Esta demo ya viene armada para '+T[tipo()].t.toLowerCase()+'. Para ver otro rubro, abrí su demo en vincularbusiness.com.ar');if(!user||user.role!=='admin')return toast('Sólo el administrador cambia el modelo de negocio',1);let sel=tipo(),rub=S.cfg.demoRubro||'';
    const body=`<p class="sm mut">Con esto ordenamos el menú y encendemos lo que vas a usar. No cambia ningún cálculo ni borra datos, y lo podés cambiar cuando quieras desde Configuración o Módulos.</p>
     <h4 class="vbm-h">1 · ¿Qué vendés?</h4><div class="vbm-chips">${RUB.map(([r,k])=>`<button type="button" class="vbm-chip ${r===rub?'on':''}" data-r="${esc(r)}" data-k="${k}">${esc(r)}</button>`).join('')}</div>
     <h4 class="vbm-h">2 · ¿Cómo compra tu cliente?</h4><div class="vbm-opts">${Object.entries(T).map(([k,x])=>`<button type="button" class="vbm-opt ${k===sel?'on':''}" data-k="${k}" aria-pressed="${k===sel}"><span class="vbm-ic">${svg(IC[k])}</span><span><b>${esc(x.t)}</b><br>${esc(x.d)}<br><small>${esc(x.ej)}</small></span></button>`).join('')}</div>
@@ -195,7 +255,7 @@ A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, 
    const pick=k=>{sel=k;w.querySelectorAll('.vbm-opt').forEach(b=>{const on=b.dataset.k===k;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});w.querySelector('#vbm-pasa').innerHTML=pasa(k);};
    w.addEventListener('click',e=>{const c=e.target.closest('.vbm-chip');if(c){rub=c.dataset.r;w.querySelectorAll('.vbm-chip').forEach(b=>b.classList.toggle('on',b===c));pick(c.dataset.k);return;}
     const o=e.target.closest('.vbm-opt');if(o)pick(o.dataset.k);});};
-  const modeloCard=()=>{const k=tipo(),x=T[k];return`<div class="card vbm-card"><div class="row" style="align-items:center;gap:.7rem"><span class="vbm-ic">${svg(IC[k])}</span><h3 class="sp" style="margin:0">Modelo de negocio</h3>${user&&user.role==='admin'?'<button class="btn" data-act="vbModelo">✎ Cambiar</button>':''}</div>
+  const modeloCard=()=>{const k=tipo(),x=T[k];return`<div class="card vbm-card"><div class="row" style="align-items:center;gap:.7rem"><span class="vbm-ic">${svg(IC[k])}</span><h3 class="sp" style="margin:0">Modelo de negocio</h3>${user&&user.role==='admin'&&!D.fijo?'<button class="btn" data-act="vbModelo">✎ Cambiar</button>':''}</div>
    <p style="margin:.7rem 0 .2rem"><b>${esc(x.t)}</b>${S.cfg.demoRubro?` <span class="tag">${esc(S.cfg.demoRubro)}</span>`:''}</p><p class="sm mut" style="margin:0">${esc(x.d)} Plan ${esc(GI_PLANS[x.plan].t)}.</p></div>`;};
   const FIJOS=['Vender y caja','Stock e inventario','Clientes','Usuarios y permisos','Configuración','Auditoría'];
   const modulosHTML=()=>{const fijo=t=>`<div class="vbm-row off-ro"><span class="vbm-sw on ro" aria-hidden="true"></span><span class="sp"><b>${esc(t)}</b><br><span class="sm mut">Fijo: no se puede apagar.</span></span></div>`;
