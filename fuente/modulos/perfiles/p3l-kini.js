@@ -160,6 +160,7 @@ function kiniBase(d){
  if(D){d.tenant=Object.assign({},d.tenant,{name:D.nombre,legal:D.nombre,slogan:D.slogan,cuit:D.canal==='min'?'27-31245678-3':'30-71654321-4',iva:D.canal==='min'?'Responsable Monotributo (ejemplo)':'IVA Responsable Inscripto (ejemplo)',address:'Av. San Martín 1250, Salta (ejemplo)',phone:'(0387) 400-1250'});
   d.menu=Object.assign({},d.menu,{title:D.nombre.toUpperCase(),sub:{es:D.slogan,en:D.slogan},footer:{es:D.nombre+' · demo de Vincular Business',en:D.nombre+' · Vincular Business demo'}});
   if(d.cfg.wholesale&&D.canal==='both')d.cfg.wholesale.only=false;
+  if(d.cfg.wholesale&&D.canal==='may'&&D.cli)d.cfg.wholesale.cli=true; /* V27.9 · demo Mayorista: sólo comercios con CUIT */
   d.cfg.plan=D.plan||'total';d.cfg.mods=Object.assign({},d.cfg.mods||{});(D.mods||[]).forEach(k=>{d.cfg.mods[k]=true;});if(D.catalogo==='almacen')almBase(d);}
  const t=Math.max(Date.now()-2*3600000,new Date().setHours(0,5,0,0));
  d.sessions=[{id:'k-s1',caja:1,regId:'r1',regName:'Caja 1',branchId:'',openedBy:'ADMIN',openedAt:t,opening:15000000,closedAt:0},
@@ -169,7 +170,7 @@ function kiniBase(d){
 /* historial de ejemplo de la distribuidora (reemplaza al del almacén): ventas minoristas y mayoristas por presentación,
    algunas a cuenta corriente de los comercios. Marcadas «demo»: no tocan stock ni caja. */
 function kiniExtras(){if(!isKiniBuild())return;
- S.customers=(window.RAVE_DEMO&&window.RAVE_DEMO.catalogo==='almacen')?almCustomers():kiniCustomers();S.loyalty.ledger=[];S.members=[];S.plans=[];
+ S.customers=(window.RAVE_DEMO&&window.RAVE_DEMO.catalogo==='almacen')?almCustomers():kiniCustomers();if(S.cfg.wholesale&&S.cfg.wholesale.cli)S.customers=S.customers.filter(c=>c.taxid);S.loyalty.ledger=[];S.members=[];S.plans=[];
  S.coupons.forEach(c=>{c.uses=[];});
  S.sales=S.sales.filter(s=>!(s.demo&&/^hs/.test(s.id)));
  let seed=11;const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
@@ -184,7 +185,7 @@ function kiniExtras(){if(!isKiniBuild())return;
    else items.push({pid:p.id,name:p.name+(p.sub?' ('+p.sub+')':''),rubro:p.rubro,qty:1+Math.floor(rnd()*3),price:p.price,cost:p.cost,list:p.price,disc:0,...(ws?{lr:'L1',ll:'',lb:p.price}:{})});}
   if(!items.length)continue;
   const total=items.reduce((a,i)=>a+Math.round(i.qty*i.price),0);S.seq[cj]=(S.seq[cj]||0)+1;const ts=Date.now()-d*86400000-Math.floor(rnd()*8*3600000)-3*3600000;
-  const lib=S.customers.filter(c=>c.limit>0&&c.channel!=='mayorista');const cu=ws&&!(S.cfg.wholesale&&S.cfg.wholesale.only&&rnd()<0.3)?mays[Math.floor(rnd()*mays.length)]:(!ws&&lib.length&&rnd()<0.18?lib[Math.floor(rnd()*lib.length)]:null);let m=cu?metM[Math.floor(rnd()*metM.length)]:metm[Math.floor(rnd()*metm.length)];
+  const lib=S.customers.filter(c=>c.limit>0&&c.channel!=='mayorista');const cu=ws&&(S.cfg.wholesale&&S.cfg.wholesale.cli||!(S.cfg.wholesale&&S.cfg.wholesale.only&&rnd()<0.3))?mays[Math.floor(rnd()*mays.length)]:(!ws&&lib.length&&rnd()<0.18?lib[Math.floor(rnd()*lib.length)]:null);let m=cu?metM[Math.floor(rnd()*metM.length)]:metm[Math.floor(rnd()*metm.length)];
   if(m==='fiado'&&(!cu||d<2||(cu.term>0&&d>=cu.term)||((dbt[cu.id]||0)+total)>cu.limit*0.35))m='transferencia';const fi=m==='fiado'?total:0;if(fi)dbt[cu.id]=(dbt[cu.id]||0)+fi;
   const s={id:'hs'+d+'_'+k,n:cj+'-'+S.seq[cj],ts,user:ws?'ADMIN':'Mostrador',caja:cj,sessId:'hist-demo',items,total,method:m,doc:'ticket_interno',status:'ok',fee:0,channel:'local',
    cust:cu?cu.id:'',custName:cu?custFull(cu):'',coupon:'',benefit:null,recv:0,fiado:fi>0,pays:[{m,a:total,fee:0}],fiadoAmt:fi,paid:total-fi,balance:fi,vuelto:0,pstate:fi?'pendiente':'pagada',demo:true};

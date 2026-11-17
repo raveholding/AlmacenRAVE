@@ -5,7 +5,7 @@ const WS_DAY=86400000;
 const WS_LV0=[{id:'d',name:'Display'},{id:'f',name:'Fardo'},{id:'p',name:'Pallet'}];
 function wsConf(){const w=(S.cfg&&S.cfg.wholesale)||{};
  const lv=(Array.isArray(w.levels)?w.levels:WS_LV0).filter(x=>x&&x.id&&x.name).slice(0,7).map(x=>({id:String(x.id).replace(/[^a-z0-9_]/gi,'').slice(0,12),name:String(x.name).replace(/[<>]/g,'').slice(0,24)}));
- return{on:!!w.on,only:!!(w.on&&w.only),allowClub:!!w.allowClub,grace:Math.max(0,Math.min(60,Math.round(+w.grace||0))),example:!!w.example,levels:lv};}
+ return{on:!!w.on,only:!!(w.on&&w.only),cli:!!(w.on&&w.only&&w.cli),allowClub:!!w.allowClub,grace:Math.max(0,Math.min(60,Math.round(+w.grace||0))),example:!!w.example,levels:lv};}
 const wsOn=()=>wsConf().on;
 const wsDateOk=(f,t)=>{const k=dkey(now());return(!f||k>=f)&&(!t||k<=t);};
 function wsLvName(id){if(id==='u')return'Unidad';const l=wsConf().levels.find(x=>x.id===id);return l?l.name:String(id);}
@@ -58,6 +58,8 @@ function wsGate(lines,cust,opts){
  const conf=wsConf();let chan=opts.ws.chan==='mayorista'?'mayorista':'minorista';
  /* V26.34 · sin cliente identificado con CUIT NO se bloquea la venta: es consumidor final y se cobra al precio por unidad
     (salvo «Sólo mayorista», donde los precios por presentación rigen para todos) */
+ /* V27.9 · «Sólo a comercios»: en el modo sólo mayorista se puede exigir un cliente mayorista con CUIT en cada venta */
+ if(conf.cli&&!(cust&&arcaCuitOk(cust.taxid||'')))return{err:'Vendemos sólo a comercios: elegí el cliente mayorista (con CUIT) antes de cobrar.'};
  if(chan==='mayorista'&&!conf.only&&!(cust&&arcaCuitOk(cust.taxid||'')))chan='minorista';
  if(chan==='mayorista'){
   if(!conf.allowClub){if(opts.coupon)return{err:'Los cupones del Club no se aplican a ventas mayoristas.'};if(opts.stampCode)return{err:'Los sellos del Club no se otorgan en ventas mayoristas.'};}}
@@ -109,8 +111,8 @@ function wsCustFind(q){q=String(q||'').trim().toLowerCase();if(!q)return[];const
  return S.customers.filter(c=>c.status!=='baja'&&((c.name+' '+c.last).toLowerCase().includes(q)||(qd&&c.wa.replace(/\D/g,'').includes(qd))||pad4(c.num)===q||(c.dni&&normDni(q).length>=6&&normDni(c.dni)===normDni(q))||(qd.length>=8&&(c.taxid||'').replace(/\D/g,'')===qd))).slice(0,8);}
 function wsCartBar(){if(!wsOn())return'';
  const c=custById(pos.cust),ch=wsChan();
- if(wsOnly())return`<div class="card" style="margin:.5rem 0" id="wsbar"><div class="row" style="flex-wrap:wrap"><span class="tag ok">Venta mayorista</span><b class="sp">${c?esc(custFull(c)):'Cliente sin identificar'}</b><button class="btn sm" data-act="wsPick">${c?'Cambiar cliente':'Elegir cliente'}</button>${c?'<button class="btn sm" data-act="wsPickClear">Quitar</button>':''}</div>
- <p class="sm mut" style="margin:.3rem 0 0">Precio por unidad; al completar una presentación (Display, Fardo, Pallet…) se cobra su precio mayorista.${c?' · crédito: debe '+money(debtOf(c.id))+' de '+money(c.limit||0)+(c.term>0?' · plazo '+c.term+' días':''):' Para cuenta corriente elegí el cliente.'}</p></div>`;
+ if(wsOnly()){const cli=wsConf().cli,bad=cli&&!(c&&arcaCuitOk(c.taxid||''));return`<div class="card" style="margin:.5rem 0" id="wsbar"><div class="row" style="flex-wrap:wrap"><span class="tag ok">Venta mayorista${cli?' · sólo comercios':''}</span><b class="sp">${c?esc(custFull(c)):(cli?'Elegí el comercio':'Cliente sin identificar')}</b><button class="btn sm" data-act="wsPick">${c?'Cambiar cliente':'Elegir cliente'}</button>${c?'<button class="btn sm" data-act="wsPickClear">Quitar</button>':''}</div>
+ <p class="sm mut" style="margin:.3rem 0 0">Precio por unidad; al completar una presentación (Display, Fardo, Pallet…) se cobra su precio mayorista.${c?' · crédito: debe '+money(debtOf(c.id))+' de '+money(c.limit||0)+(c.term>0?' · plazo '+c.term+' días':''):' Para cuenta corriente elegí el cliente.'}</p>${bad?'<div class="warnbox sm" role="status">Esta empresa vende sólo a comercios: para cobrar elegí un cliente mayorista con CUIT.</div>':''}</div>`;}
  const miss=ch==='mayorista'&&!(c&&arcaCuitOk(c.taxid||''));
  return`<div class="card" style="margin:.5rem 0" id="wsbar"><div class="row" style="flex-wrap:wrap"><span class="tag ${ch==='mayorista'?'ok':''}">Canal: ${ch==='mayorista'?'Mayorista':'Minorista'}</span><b class="sp">${c?esc(custFull(c)):'Consumidor final'}</b><button class="btn sm" data-act="wsPick">${c?'Cambiar cliente':'Elegir cliente'}</button>${c?'<button class="btn sm" data-act="wsPickClear">Quitar</button>':''}<button class="btn sm" data-act="wsChan">Cambiar canal</button></div>
  ${miss?'<div class="warnbox sm" role="status">Sin cliente con CUIT es una venta a <b>consumidor final</b>: se cobra al precio por unidad. Para los precios mayoristas elegí un cliente con CUIT.</div>':`<p class="sm mut" style="margin:.3rem 0 0">${ch==='mayorista'?'Precio por volumen: cada producto toma el precio de la presentación (Display, Fardo, Pallet…) que alcance su cantidad.':'Precio de venta al público.'}${c&&ch==='mayorista'?' · crédito: debe '+money(debtOf(c.id))+' de '+money(c.limit||0)+(c.term>0?' · plazo '+c.term+' días':''):''}</p>`}</div>`;}
@@ -260,7 +262,7 @@ function wsCfgCard(){if(!(can('config')||can('price_lists')))return'';const c=ws
  const ag=(S.agreements||[]).slice().reverse();const ov=(S.creditOv||[]).slice(-5).reverse();
  return`<div class="card" style="margin-top:1rem" id="ws-card"><h3>Mayorista: presentaciones, acuerdos y crédito ${c.example?'<span class="tag sim">datos de ejemplo</span>':''}</h3>
  <p class="sm mut">Precios por presentación (Unidad, Display, Fardo, Pallet…) según el volumen, acuerdos por cliente y crédito con plazo. Apagado, el sistema vende exactamente como siempre.</p>
- <p class="sm">Canal: <b>${c.only?'Sólo mayorista (distribuidora)':'Minorista y mayorista'}</b> · se cambia en <a href="#" data-act="bmGo">Modelo de negocio</a>.</p>
+ <p class="sm">Canal: <b>${c.only?'Sólo mayorista (distribuidora)':'Minorista y mayorista'}</b> · se cambia en <a href="#" data-act="bmGo">Modelo de negocio</a>.</p>${c.only?`<label class="chk"><input type="checkbox" id="ws-cli" ${c.cli?'checked':''} ${adm}> Vender sólo a comercios: cada venta necesita un cliente mayorista con CUIT</label>`:''}
  ${c.on?`<h4 style="margin:.8rem 0 .2rem">Presentaciones de venta</h4>
  <p class="sm mut">Son los «tipos de precio» que se cargan en cada producto según el volumen: <b>Unidad</b> (siempre; es el precio de venta) y las que definas acá. Podés renombrarlas y agregar las que necesites (Media caja, Bolsón…). En cada producto se carga cuántas unidades trae cada una y su precio.</p>
  <div id="ws-lv">${c.levels.map(l=>`<div class="row" style="margin-bottom:.3rem"><input id="ws-ln-${esc(l.id)}" maxlength="24" value="${esc(l.name)}" aria-label="Nombre de la presentación" style="max-width:240px" ${adm}>${adm===''?`<button class="btn sm red" type="button" data-act="wsLvDel" data-id="${esc(l.id)}" aria-label="Quitar ${esc(l.name)}">Quitar</button>`:''}<span class="sm mut">${(S.products||[]).filter(p=>(p.pres||[]).some(k=>k.lv===l.id)).length} producto(s) la usan</span></div>`).join('')||'<p class="sm mut">Sin presentaciones: sólo se vende por Unidad.</p>'}</div>
@@ -288,7 +290,7 @@ A.wsLvDel=el=>{if(!can('config'))return toast('Sólo el administrador',1);const 
  confirmBox('Quitar presentación','Se quita «'+l.name+'» de la lista. Ningún producto la usa.',()=>{wsLvSave(L.levels.filter(x=>x.id!==l.id),'quitada «'+l.name+'»');},'Quitar');};
 A.wsSave=()=>{if(!can('config'))return toast('Sólo el administrador',1);const cur=wsConf();const on=$('#ws-on')?$('#ws-on').checked:cur.on;
  const W=Object.assign({},S.cfg.wholesale||{},{on,allowClub:cur.allowClub,grace:cur.grace,example:cur.example,levels:cur.levels.map(l=>({...l}))});delete W.lists;
- if(on&&cur.on){W.only=$('#ws-only')?$('#ws-only').checked:!!cur.only;W.allowClub=!!($('#ws-club')&&$('#ws-club').checked);const g=val('ws-gr').trim()===''?0:Math.round(parseNum(val('ws-gr')));if(isNaN(g)||g<0||g>60)return toast('La tolerancia de mora va de 0 a 60 días.',1);W.grace=g;
+ if(on&&cur.on){W.only=$('#ws-only')?$('#ws-only').checked:!!cur.only;W.cli=!!(W.only&&($('#ws-cli')?$('#ws-cli').checked:cur.cli));W.allowClub=!!($('#ws-club')&&$('#ws-club').checked);const g=val('ws-gr').trim()===''?0:Math.round(parseNum(val('ws-gr')));if(isNaN(g)||g<0||g>60)return toast('La tolerancia de mora va de 0 a 60 días.',1);W.grace=g;
   const L=wsLvRead();if(L.err)return toast(L.err,1);W.levels=L.levels;}
  const apply=()=>{const before=JSON.stringify(S.cfg.wholesale||{});S.cfg.wholesale=W;audit(on!==cur.on?(on?'MAYORISTA_ACTIVAR':'MAYORISTA_APAGAR'):'MAYORISTA_CONFIG','antes '+before.slice(0,160)+' · ahora '+JSON.stringify(W).slice(0,160));save();rerender();toast('Guardado');};
  if(on!==cur.on)confirmBox(on?'Activar canal mayorista':'Apagar canal mayorista',on?'Aparecen los precios por presentación (Unidad, Display, Fardo, Pallet…), los acuerdos por cliente y el crédito con plazo. Las ventas anteriores no cambian.':'Se vende como minorista otra vez. Las presentaciones, acuerdos y precios quedan guardados y las ventas anteriores no cambian.',apply,on?'Activar':'Apagar');else apply();};

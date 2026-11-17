@@ -6,6 +6,8 @@ Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. 
 
 ## Versión: SISTEMA VB 26F (`SISTEMA_VB_26F`)
 
+**V27.9 (2026-11-17):** **Mayorista · vender sólo a comercios.** Con «Sólo mayorista» se puede exigir un cliente mayorista con CUIT en cada venta (Configuración → Mayorista); sin comercio elegido no se cobra. La **demo Mayorista** pasa a ser sólo para mayoristas: sin canal minorista, sin «Consumidor final» ni «Cambiar canal», clientes y ventas de ejemplo todos comercios con CUIT, sin modo kiosco/autoservicio (`DEMO_CANAL=may DEMO_CLIENTE=1`; también corrige los datos ya guardados en el navegador).
+
 **V26.71 (2026-11-13):** «Detalle de los cobros digitales» compacto: interruptor y resumen a la vista; los ajustes por medio y campo quedan plegados en «Ajustes avanzados».
 
 **V26.70 (2026-11-12):** **Atención al cliente · Centro de canales.** Pestaña **🔌 Canales** con los 8 canales (tienda web y chat, WhatsApp Business, Instagram, Messenger, Telegram, correo, TikTok y Tiendanube), estado y avance. **⚡ Conectar todo con un clic** toma el WhatsApp del comercio y las redes del menú y publica los botones oficiales (wa.me, ig.me, m.me, t.me, mailto, TikTok) en el menú y en la app del Club. Cada canal se puede pasar a **Integrado** con un asistente paso a paso (enlaces exactos, botones para copiar y generar valores, «Probar y activar»): los mensajes de Telegram, WhatsApp Business, Instagram, Messenger y correo entran **cifrados** a la Bandeja y se responden desde el sistema (función `canales`; las claves quedan sólo como secretos de Supabase).
