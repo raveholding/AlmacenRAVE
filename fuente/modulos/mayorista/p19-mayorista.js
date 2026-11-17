@@ -89,6 +89,8 @@ function vbInvoice(rids,o){o=o||{};if(!can('orders')||!can('sell'))return{err:'S
  if(!R.length)return{err:'Elegí los remitos a facturar.'};if(R.some(r=>r.inv||r.state==='anulado'))return{err:'Hay remitos ya facturados o anulados.'};if(new Set(R.map(r=>r.cust)).size>1)return{err:'Los remitos tienen que ser del mismo cliente.'};
  const c=custById(R[0].cust);if(!c)return{err:'El cliente ya no existe.'};const agg={};R.forEach(r=>r.items.forEach(x=>{agg[x.pid]=(agg[x.pid]||0)+x.qty;}));
  const lines=Object.keys(agg).map(pid=>{const p=prod(pid);if(!p)return null;const q=Math.round(agg[pid]*1000)/1000;const pr=vbLinePrice(p,q,c);
+  const fx=o.fixed&&o.fixed[pid]!=null?Math.round(+o.fixed[pid]):null; /* V27.15: precio ya cobrado en la puerta (entrega con rechazo parcial) */
+  if(fx!=null)return{pid,name:pfull(p),rubro:p.rubro,qty:q,price:fx,cost:p.cost,unit:p.unit,list:fx,man:true,flrOk:true,why:'Precio del pedido entregado (rechazo parcial en puerta)'};
   const l={pid,name:pfull(p),rubro:p.rubro,qty:q,price:pr.price,cost:p.cost,unit:p.unit,list:pr.price};if(pr.tr){l.tr=pr.tr;l.amt=pr.amt;l.rule=pr.rule;l.lst=pr.lst;}return l;});
  if(lines.some(l=>!l))return{err:'Un artículo del remito ya no existe.'};
  const method=o.method||'fiado';const opts={custId:c.id,ws:typeof wsOn==='function'&&wsOn()?{chan:'mayorista'}:undefined};if(o.pays)opts.pays=o.pays;
@@ -111,7 +113,7 @@ function vbToReparto(id){const o=vbOrd(id);if(!o)return{err:'Pedido inexistente.
   return{pid:x.pid,name:x.name,rubro:p.rubro,qty:x.qty,price:x.qty?Math.round(amt/x.qty):x.price,amt,cost:p.cost||0,unit:p.unit||'u'};});
  const total=items.reduce((a,i)=>a+i.amt,0);const pv=c.pv||{};const zs=repCfg().zonas||[];const z=zs.find(x=>x.activo!==false&&pv.zona&&String(x.nombre).toLowerCase()===String(pv.zona).toLowerCase())||zs.find(x=>x.activo!==false);
  const e=repNuevo({orig:'ped',cli:{nombre:o.custName,tel:c.wa||'',dir:o.addr||c.addr||'',loc:'',ref:'',lat:pv.lat!=null?pv.lat:null,lng:pv.lng!=null?pv.lng:null,custId:c.id||''},custId:c.id||'',zona:z?z.id:'',tarifa:0,items,total,
-  cobro:o.cond==='cc'?{modo:'cc'}:{modo:'efectivo',abona:0},nota:o.n+' · remito '+rm.n+(o.note?' · '+o.note:'')});
+  cobro:o.cond==='cc'?{modo:'cc'}:{modo:'efectivo',abona:0},tok:o.tok||undefined,nota:o.n+' · remito '+rm.n+(o.note?' · '+o.note:'')});if(!o.tok)o.tok=e.tok;
  e.ord=o.id;e.rem=rm.id;e.ordN=o.n;repSetEst(e,'listo',{nota:'pedido '+o.n+' armado'});o.envio=e.id;o.hist.push({ts:now(),u:user?user.name:'sistema',s:'en reparto'});
  audit('PEDIDO_A_REPARTO',o.n+' · remito '+rm.n+' · envío #'+e.n+' · '+(o.cond==='cc'?'cuenta corriente':'cobrar '+money(total)));save();return{o,e,rm};}
 A.vbORep=el=>{const r=vbToReparto(el.dataset.id);if(r.err)return toast(r.err,1);toast(r.o.n+' → Reparto: envío #'+r.e.n+' listo para salir');rerender();};

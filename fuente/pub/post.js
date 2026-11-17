@@ -458,6 +458,8 @@
   window.RAVE_OPEN_APP=function(tab){ mtTab=tab||'card'; mtOpen(); };
   try{ var hq=window.parent.location.hash; if(/^#mitarjeta\/(ben|ped|con)$/.test(hq)){ mtTab=hq.split('/')[1]; } }catch(e){}
   window.RAVE_OPEN_MYCARD=mtOpen;
+  /* V27.15 · enlace de seguimiento (WhatsApp o QR del pedido): #seg/<referencia>/<número> agrega el pedido a «Mis pedidos» y lo abre */
+  try{ var mS=/^#seg\/([A-Za-z0-9_-]{16,40})(?:\/([A-Za-z0-9-]{1,20}))?$/.exec(window.parent.location.hash||''); if(mS){ var A0=pedsGet().filter(function(x){return x.tok!==mS[1];}); A0.unshift({tok:mS[1],n:mS[2]||'',ts:Date.now(),st:'confirmado'}); pedsSet(A0); mtTab='ped'; setTimeout(mtOpen,120); } }catch(e){}
   try{ if(/^#mitarjeta(\/|$)/.test(window.parent.location.hash)) setTimeout(mtOpen,60); }catch(e){}
   window.RAVE_CARD_REFRESH=function(){renderCard();renderCoupons();if($('#mt-full'))mtOpen(true);};
   var rb=$('#loy-recover');

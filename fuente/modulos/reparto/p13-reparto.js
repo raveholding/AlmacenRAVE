@@ -319,9 +319,10 @@ function repRendir2(r,cnt){const K=repCuentas(r);const dif=cnt-K.esperado;const 
  <p class="sm mut">Al confirmar: se registran las ventas cobradas en la puerta con su medio real, vuelve el cambio a la caja${dif?', la diferencia queda como movimiento a nombre del repartidor':''} y los no entregados vuelven a la bandeja.</p>`,{wide:true,okText:'Confirmar rendición',onOk:()=>{const pay=!!(w.querySelector('#rr-pay')||{}).checked;const er=repRendirAplicar(r,cnt,pay);if(er){toast(er,1);return false;}}});}
 function repRendirAplicar(r,cnt,pay){if(!openSess())return 'Abrí la caja.';const K=repCuentas(r);const rb=repRubroCaja();if(!rb)return 'Falta un rubro para registrar los movimientos (Configuración → Rubros).';const errs=[];
  /* 1) ventas de lo cobrado en la puerta (una sola vez por envío: si algo falla, rendir de nuevo continúa donde quedó) */
+ K.E.forEach(e=>{if(e.remFix&&typeof pvxRemitoFix==='function'){const fx=pvxRemitoFix(e);if(fx)errs.push('#'+e.n+': '+fx);}});
  K.E.forEach(e=>{if(e.estado!=='entregado'||e.sold||e.saleId||!e.rem)return;const cb=(e.ent&&e.ent.cobrado)||null;
-  const m=e.cobro.modo==='cc'?'fiado':(cb&&cb.modo==='efectivo'?'efectivo':'transferencia');
-  const res=typeof vbInvoice==='function'?vbInvoice([e.rem],{method:m}):{err:'falta el módulo Pedidos de venta'};if(res.err){errs.push('#'+e.n+': '+res.err);return;}
+  const m=e.cobro.modo==='cc'?'fiado':(cb&&cb.modo==='efectivo'?'efectivo':cb&&cb.modo==='billetera'?'qr':'transferencia');
+  const res=typeof vbInvoice==='function'?vbInvoice([e.rem],{method:m,fixed:e.ent&&e.ent.rech?Object.fromEntries(e.items.filter(i=>i.pid!=='p_envio').map(i=>[i.pid,i.price])):null}):{err:'falta el módulo Pedidos de venta'};if(res.err){errs.push('#'+e.n+': '+res.err);return;}
   e.saleId=res.sale.id;e.sold=true;res.sale.envio=e.id;res.sale.ref=(cb&&cb.ref)||'';repHist(e,'factura '+res.sale.n);});
  K.E.forEach(e=>{if(e.estado!=='entregado'||e.sold||e.saleId||e.rem)return;const cb=(e.ent&&e.ent.cobrado)||{modo:e.cobro.modo,monto:e.total};const m=cb.modo==='efectivo'?'efectivo':'transferencia';
   const res=commitSale(m,false,'reparto',e.items.map(i=>Object.assign({},i)),{custId:'',coupon:'',recv:0,noAdj:true,pdSkip:true,extraDisc:e.disc||0,extraKind:'reparto',extraLabel:e.benLabel||'Beneficio aplicado al tomar el pedido'});
