@@ -15,7 +15,8 @@ const wsOnly=()=>wsConf().only;
 const wsIsWh=c=>!!(c&&(c.channel==='mayorista'||wsOnly()));
 /* V26.33 · «Sólo mayorista» (distribuidora): toda venta es mayorista —precio por unidad y, al completar una presentación,
    el precio mayorista de esa presentación—, para cualquier cliente o consumidor final. No hay canal minorista ni «Cambiar canal». */
-function wsChan(){if(wsOnly())return'mayorista';if(pos.chanSet&&pos.chanSet.cust===pos.cust)return pos.chanSet.v;return wsIsWh(custById(pos.cust))?'mayorista':'minorista';}
+/* V27.10 · consumidor final para todos: también una distribuidora «sólo mayorista» puede venderle al público sin preguntar */
+function wsChan(){if(wsOnly())return pos.chanSet&&pos.chanSet.cust===pos.cust&&!pos.cust?pos.chanSet.v:'mayorista';if(pos.chanSet&&pos.chanSet.cust===pos.cust)return pos.chanSet.v;return wsIsWh(custById(pos.cust))?'mayorista':'minorista';}
 function wsAgreement(cid,p){const A_=(S.agreements||[]).filter(a=>a&&a.active!==false&&a.cust===cid&&wsDateOk(a.from,a.to));
  return A_.find(a=>a.pid&&a.pid===p.id)||A_.find(a=>!a.pid&&a.rubro&&a.rubro===p.rubro)||null;}
 /* desglose del stock en presentaciones: «2 Pallet + 3 Fardo + 5 u» (sólo productos por unidad con presentaciones cargadas) */
@@ -111,10 +112,10 @@ function wsCustFind(q){q=String(q||'').trim().toLowerCase();if(!q)return[];const
  return S.customers.filter(c=>c.status!=='baja'&&((c.name+' '+c.last).toLowerCase().includes(q)||(qd&&c.wa.replace(/\D/g,'').includes(qd))||pad4(c.num)===q||(c.dni&&normDni(q).length>=6&&normDni(c.dni)===normDni(q))||(qd.length>=8&&(c.taxid||'').replace(/\D/g,'')===qd))).slice(0,8);}
 function wsCartBar(){if(!wsOn())return'';
  const c=custById(pos.cust),ch=wsChan();
- if(wsOnly()){const cli=wsConf().cli,bad=cli&&!(c&&arcaCuitOk(c.taxid||''));return`<div class="card" style="margin:.5rem 0" id="wsbar"><div class="row" style="flex-wrap:wrap"><span class="tag ok">Venta mayorista${cli?' · sólo comercios':''}</span><b class="sp">${c?esc(custFull(c)):(cli?'Elegí el comercio':'Cliente sin identificar')}</b><button class="btn sm" data-act="wsPick">${c?'Cambiar cliente':'Elegir cliente'}</button>${c?'<button class="btn sm" data-act="wsPickClear">Quitar</button>':''}</div>
+ if(wsOnly()&&ch==='mayorista'){const cli=wsConf().cli,bad=cli&&!(c&&arcaCuitOk(c.taxid||''));return`<div class="card" style="margin:.5rem 0" id="wsbar"><div class="row" style="flex-wrap:wrap"><span class="tag ok">Venta mayorista${cli?' · sólo comercios':''}</span><b class="sp">${c?esc(custFull(c)):(cli?'Elegí el comercio':'Cliente sin identificar')}</b><button class="btn sm" data-act="wsPick">${c?'Cambiar cliente':'Elegir cliente'}</button>${c?'<button class="btn sm" data-act="wsPickClear">Quitar</button>':''}${!c&&!cli?'<button class="btn sm" data-act="wsChan">Vender a consumidor final</button>':''}</div>
  <p class="sm mut" style="margin:.3rem 0 0">Precio por unidad; al completar una presentación (Display, Fardo, Pallet…) se cobra su precio mayorista.${c?' · crédito: debe '+money(debtOf(c.id))+' de '+money(c.limit||0)+(c.term>0?' · plazo '+c.term+' días':''):' Para cuenta corriente elegí el cliente.'}</p>${bad?'<div class="warnbox sm" role="status">Esta empresa vende sólo a comercios: para cobrar elegí un cliente mayorista con CUIT.</div>':''}</div>`;}
  const miss=ch==='mayorista'&&!(c&&arcaCuitOk(c.taxid||''));
- return`<div class="card" style="margin:.5rem 0" id="wsbar"><div class="row" style="flex-wrap:wrap"><span class="tag ${ch==='mayorista'?'ok':''}">Canal: ${ch==='mayorista'?'Mayorista':'Minorista'}</span><b class="sp">${c?esc(custFull(c)):'Consumidor final'}</b><button class="btn sm" data-act="wsPick">${c?'Cambiar cliente':'Elegir cliente'}</button>${c?'<button class="btn sm" data-act="wsPickClear">Quitar</button>':''}<button class="btn sm" data-act="wsChan">Cambiar canal</button></div>
+ return`<div class="card" style="margin:.5rem 0" id="wsbar"><div class="row" style="flex-wrap:wrap"><span class="tag ${ch==='mayorista'?'ok':''}">Canal: ${ch==='mayorista'?'Mayorista':'Minorista'}</span><b class="sp">${c?esc(custFull(c)):'Consumidor final'}</b><button class="btn sm" data-act="wsPick">${c?'Cambiar cliente':'Elegir cliente'}</button>${c?'<button class="btn sm" data-act="wsPickClear">Quitar</button>':''}<button class="btn sm" data-act="wsChan">${wsOnly()?'Volver a mayorista':'Cambiar canal'}</button></div>
  ${miss?'<div class="warnbox sm" role="status">Sin cliente con CUIT es una venta a <b>consumidor final</b>: se cobra al precio por unidad. Para los precios mayoristas elegí un cliente con CUIT.</div>':`<p class="sm mut" style="margin:.3rem 0 0">${ch==='mayorista'?'Precio por volumen: cada producto toma el precio de la presentación (Display, Fardo, Pallet…) que alcance su cantidad.':'Precio de venta al público.'}${c&&ch==='mayorista'?' · crédito: debe '+money(debtOf(c.id))+' de '+money(c.limit||0)+(c.term>0?' · plazo '+c.term+' días':''):''}</p>`}</div>`;}
 function wsLineInfo(l,i){if(!wsOn())return'';const p=prod(l.pid);let h='';
  if(l.why)h+=`<div class="sm ${l.rule==='MAN'?'mut':''}" style="margin-top:.3rem"><b>${esc(l.rule==='L1'||!l.rule?(wsOnly()?'Por unidad':'Minorista'):l.rule==='MAN'?'A mano':l.rule==='ACU'?'Acuerdo':'Mayorista')}</b> · ${esc(l.why)}</div>`;
@@ -149,11 +150,12 @@ A.wsPick=()=>{const w=modal('Elegir cliente',`<label for="wk-q">Buscar por nombr
  setTimeout(()=>{const q=$('#wk-q');if(q)q.focus();},30);};
 A.wsPickSet=el=>{pos.cust=el.dataset.id||'';pos.chanSet=null;$$('#modal-root .ov').forEach(o=>o.remove());posCart();};
 A.wsPickClear=()=>{pos.cust='';pos.chanSet=null;posCart();};
-A.wsChan=()=>{if(wsOnly())return toast('Esta distribuidora vende sólo por mayor: no hay canal minorista.',1);const c=custById(pos.cust),cur=wsChan(),to=cur==='mayorista'?'minorista':'mayorista',inh=wsIsWh(c)?'mayorista':'minorista';
- if(to===inh){pos.chanSet=null;posCart();return;}
- if(!can('price_lists'))return toast('Cambiar el canal de la operación requiere autorización (listas de precio).',1);
- modal('Cambiar canal de la operación',`<p class="sm">De <b>${cur}</b> a <b>${to}</b>. Queda en auditoría.</p><label for="wc-why">Motivo (obligatorio)</label><input id="wc-why" maxlength="80" autocomplete="off">`,
- {okText:'Cambiar',onOk:w=>{const why=val('wc-why').trim();if(why.length<5)return w._err('Escribí el motivo (mínimo 5 letras).'),false;pos.chanSet={cust:pos.cust,v:to};audit('CANAL_OPERACION',cur+' → '+to+' · '+why);posCart();}});};
+A.wsChan=()=>{/* V27.10 · sin preguntar: cambia al toque y queda en auditoría. Pasar a precio mayorista a alguien sin CUIT sigue pidiendo el permiso de listas de precio */
+ const c=custById(pos.cust),cur=wsChan(),to=cur==='mayorista'?'minorista':'mayorista';
+ if(wsOnly()){if(pos.cust&&to==='minorista')return toast('Para venderle al público, quitá el cliente: queda como consumidor final.',1);pos.chanSet=to==='minorista'?{cust:'',v:'minorista'}:null;audit('CANAL_OPERACION',cur+' → '+to+' · consumidor final');posCart();return;}
+ const inh=wsIsWh(c)?'mayorista':'minorista';if(to===inh){pos.chanSet=null;audit('CANAL_OPERACION',cur+' → '+to);posCart();return;}
+ if(to==='mayorista'&&!can('price_lists'))return toast('Pasar la venta a precio mayorista requiere el permiso de listas de precio.',1);
+ pos.chanSet={cust:pos.cust,v:to};audit('CANAL_OPERACION',cur+' → '+to+(c?' · '+custFull(c):' · consumidor final'));posCart();};
 
 /* ventas a cuenta corriente que el servidor marcó para revisar (superaron el límite mientras el equipo estaba sin conexión) */
 const wsReview=cid=>S.sales.filter(s=>s.credit_review&&(!cid||s.cust===cid));

@@ -192,6 +192,50 @@ function kiniExtras(){if(!isKiniBuild())return;
   if(ws)s.wch='mayorista';if(fi&&cu&&cu.term>0){s.term=cu.term;s.due=ts+cu.term*86400000;}
   S.sales.push(s);}}}
 /* proveedores, deudas y una orden pendiente: se cargan con el mismo motor que usa la pantalla (validaciones reales) */
+/* V27.10 · Distribuidora de ejemplo: cartera de comercios con zona y días de visita, preventista, pedidos de venta en distintos estados
+   (pendiente, armado, entregado en parte, entregado), visitas y cobranza en la calle de HOY, reparto con zonas, repartidores, envíos y una
+   hoja de ruta, y un acopio. Usa las mismas funciones que el sistema, así todo queda enlazado (stock reservado, remitos, cuenta corriente). */
+function demoDistriSeed(){if(!window.RAVE_DEMO||!giOn('orders')||S.cfg.distriSeeded)return;S.cfg.distriSeeded=1;
+ const t0=now(),H=3600000,DAY=86400000,adm=S.users.find(u=>u.role==='admin')||user;const prevU=user;user=adm;
+ try{
+  if(!S.roles.preventista)S.roles.preventista=['presale','orders','sell','customers'];
+  if(!S.users.some(u=>u.role==='preventista'))S.users.push({id:'u-prev',name:'Lucas (preventista)',role:'preventista',pin:'5555',active:true});
+  const Z=['Centro','Zona Norte','Zona Sur'],LL=[[-24.7883,-65.4106],[-24.7701,-65.4093],[-24.8052,-65.4201]],DIAS=[[1,4],[2,5],[3,6]];
+  const N=[['Despensa San Cayetano','27301112225','Av. Belgrano 1450',0,1500000,15],['Kiosco La Terminal','20334445551','Av. Hipólito Yrigoyen 200',0,800000,7],['Autoservicio El Tunal','30715556665','Av. Bolivia 4100',1,4000000,30],
+   ['Almacén Los Pinos','27389990006','Pasaje Los Pinos 120',1,1000000,15],['Minimercado Tres Cerritos','30716667770','Los Ceibos 55',1,2500000,30],['Despensa Don Julio','20298887771','Av. Tavella 3300',2,1200000,15],
+   ['Kiosco Universitario','27412223336','Av. Bolivia 5150',2,600000,7],['Bar El Patio','30717778886','Caseros 980',0,900000,15]];
+  N.forEach(([n,cuit,dir,z,lim,term],i)=>{if(!arcaCuitOk(cuit)||S.customers.some(c=>c.taxid===cuit))return;
+   S.customers.push({id:'dc'+i,num:100+i,name:n,last:'',birth:'',wa:'+5493874'+String(600000+i*137),dni:'',cards:[],cardSecrets:{},origin:'ejemplo',consent:{club:false,comm:true,analytics:false,version:'v1-2026-demo',ts:t0-40*DAY},ts:t0-40*DAY,
+    status:'activo',limit:lim*100,secret:'dc-ej-'+i+'-0000000000',notes:'',channel:'mayorista',taxid:cuit,term,zone:Z[z],seller:'u-prev',addr:dir+', Salta',example:true,
+    pv:{zona:Z[z],dias:DIAS[i%3],seller:'u-prev',ord:i,lat:LL[z][0]+((i*37)%9-4)*0.002,lng:LL[z][1]+((i*53)%9-4)*0.002}});});
+  S.customers.filter(c=>c.channel==='mayorista'&&!c.pv).forEach((c,i)=>{c.pv={zona:'Centro',dias:DIAS[i%3],seller:'u-prev',ord:20+i,lat:LL[0][0]+i*0.003,lng:LL[0][1]-i*0.003};c.zone=c.zone||'Centro';});
+  const P=S.products.filter(p=>!p.archived&&p.active!==false&&p.price>0&&!isKit(p)),pid=k=>P[(k*7)%P.length].id;
+  const ord=(cid,items,cond,src,note,hAtras)=>{const r=vbOrderCreate({cust:cid,items,cond,src,note,deliv:new Date(t0+DAY).toISOString().slice(0,10)});if(!r||r.err)return null;r.o.ts=t0-hAtras*H;if(r.o.hist[0])r.o.hist[0].ts=r.o.ts;return r.o;};
+  const o1=ord('dc0',[{pid:pid(1),qty:12},{pid:pid(2),qty:6}],'cc','preventa','Entregar a la mañana',2);
+  const o2=ord('dc2',[{pid:pid(3),qty:24},{pid:pid(4),qty:12},{pid:pid(5),qty:6}],'cc','preventa','',20);
+  const o3=ord('dc4',[{pid:pid(6),qty:18},{pid:pid(7),qty:6}],'contado','whatsapp','Pidió por WhatsApp',28);
+  const o4=ord('dc5',[{pid:pid(8),qty:12}],'cc','mostrador','',50);ord('dc1',[{pid:pid(9),qty:6},{pid:pid(10),qty:6}],'contado','preventa','',1);
+  if(o2){const k={};o2.items.forEach(it=>k[it.pid]=it.qty);vbPick(o2.id,k);}
+  if(o3){const k={};o3.items.forEach(it=>k[it.pid]=it.qty);vbRemito(o3.id,k);}
+  if(o4){const k={};o4.items.forEach(it=>k[it.pid]=Math.floor(it.qty/2));vbRemito(o4.id,k);}
+  user=S.users.find(u=>u.id==='u-prev')||adm;
+  const ruta=pvRoute('',new Date(t0).getDay());ruta.slice(0,3).forEach((c,i)=>pvVisit(c.id,['Compró','Tiene stock','Cerrado'][i],['Pedido cargado','Vuelve en la próxima visita',''][i]));
+  S.customers.filter(c=>debtOf(c.id)>200000).slice(0,2).forEach((c,i)=>pvCobro(c.id,Math.min(debtOf(c.id),[5000000,3000000][i]),i?'transferencia':'efectivo',i?'TRF 4512':''));
+  user=adm;
+  if(typeof repCfg==='function'){const rc=repCfg();rc.on=true;rc.origen={lat:-24.7859,lng:-65.4117,dir:'Depósito · Av. Ex Combatientes de Malvinas 3900, Salta (ejemplo)'};
+   rc.zonas=[{id:'rz1',nombre:'Centro',tarifa:0,minimo:0,eta:'2 a 4 h',radio:3,activo:true},{id:'rz2',nombre:'Zona Norte',tarifa:0,minimo:0,eta:'en el día',radio:6,activo:true},{id:'rz3',nombre:'Zona Sur',tarifa:0,minimo:0,eta:'en el día',radio:6,activo:true}];
+   rc.reps=[{id:'rr1',nombre:'Martín (camioneta)',tel:'3874001001',veh:'Camioneta',cap:12,fijo:0,pct:0,login:'',activo:true},{id:'rr2',nombre:'Diego (moto)',tel:'3874001002',veh:'Moto con baúl',cap:6,fijo:0,pct:0,login:'',activo:true}];
+   const env=[];['dc0','dc2','dc3','dc5','dc6','dc4'].forEach((cid,i)=>{const c=custById(cid);if(!c||!c.pv)return;const zi=Math.max(0,Z.indexOf(c.pv.zona));
+    const items=[0,1,2].slice(0,1+i%3).map(k=>{const p=prod(pid(i*3+k));const q=6*(1+(i+k)%3);return{pid:p.id,name:pfull(p),rubro:p.rubro,qty:q,price:p.price,cost:p.cost||0,unit:p.unit||'u'};});
+    const e=repNuevo({orig:i%2?'pos':'menu',cli:{nombre:c.name,tel:c.wa,dir:c.addr,loc:'Salta',ref:'',lat:c.pv.lat,lng:c.pv.lng,custId:c.id},zona:['rz1','rz2','rz3'][zi],tarifa:0,items,total:items.reduce((a,x)=>a+x.price*x.qty,0),cobro:{modo:i%2?'pagado':'cobrar',abona:0},nota:''});
+    e.ts=t0-(6-i)*H;env.push(e);});
+   if(env.length>=6){repSetEst(env[0],'preparando');['listo'].forEach(s=>{repSetEst(env[1],s);repSetEst(env[2],s);repSetEst(env[3],s);});repSetEst(env[5],'entregado');
+    const ids=[env[1].id,env[2].id];const r={id:uid(),n:repRutaNum(),ts:t0,rep:'rr1',repNom:'Martín (camioneta)',envios:ids,estado:'armada',cambio:0,km:repKm(ids),via:'cálculo propio (gratis)',url:repMapsUrl(ids),user:adm.name};
+    S.rutas.push(r);ids.forEach(id=>{const e=repEnv(id);e.rutaId=r.id;repHist(e,'en ruta '+r.n);});}}
+  if(giOn('stockpile'))vbAcopioCreate({cust:'dc2',items:[{pid:pid(11),qty:60}],note:'Mercadería pagada que retira en partes (ejemplo)'});
+  audit('DEMO_EJEMPLOS','Distribuidora: cartera, pedidos, preventa, reparto y acopio de ejemplo');
+ }catch(e){console.warn('demoDistriSeed',e&&e.message);}
+ user=prevU;save();}
 async function kiniSeedAsync(){if(!isKiniBuild()||!S.cfg||S.cfg.kiniSeeded)return;S.cfg.kiniSeeded=1;
  const prev=user;user=user||{id:'u1',name:'ADMIN',role:'admin'};
  const prods=S.products.filter(p=>p.unit==='u'&&!isKit(p)&&!p.archived&&p.price>0);const pick=(i)=>prods[i%prods.length];
@@ -211,7 +255,7 @@ async function kiniSeedAsync(){if(!isKiniBuild()||!S.cfg||S.cfg.kiniSeeded)retur
   if(ids[0])await LOCAL.ocSave({idempotency_key:'kini-ej-oc-1',proveedor_id:ids[0],estado:'Solicitada',observaciones:'Orden de ejemplo pendiente de recibir',
    items:['k-cer-lata','k-cer-negra'].map(id=>prod(id)||pick(2)).map(p=>({producto_id:p.id,cantidad:240,precio_costo_pactado:cost(p)}))});
  }catch(e){console.warn('kiniSeed',e&&e.message);}
- user=prev;audit('DEMO_EJEMPLOS','Kini: proveedores, deudas y orden de ejemplo');save();}
+ user=prev;audit('DEMO_EJEMPLOS','Kini: proveedores, deudas y orden de ejemplo');save();try{demoDistriSeed();}catch(e){console.warn('distri',e&&e.message);}}
 /* «Borrar todo y empezar vacío»: sin productos, clientes, proveedores, ventas ni cajas abiertas. Quedan los usuarios, las cajas definidas y la configuración */
 function emptyState(){const d=DEF();
  d.products=[];d.customers=[];d.sales=[];d.sessions=[];d.movs=[];d.closures=[];d.seq={};d.suppliers=[];d.pOrders=[];d.receipts=[];d.supLedger=[];
