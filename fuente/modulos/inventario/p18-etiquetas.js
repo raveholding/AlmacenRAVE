@@ -139,14 +139,17 @@ function lbBuild(jobs,o){lbStyle();const t=lbTpl(o&&o.tpl);const list=[];for(con
  if(!list.length)return{err:'No hay etiquetas para imprimir.'};if(list.length>3000)return{err:'Son más de 3.000 etiquetas: imprimilas en tandas.'};
  let host=$('#lb-host');if(!host){host=document.createElement('div');host.id='lb-host';host.setAttribute('aria-hidden','true');host.style.cssText='position:fixed;left:-20000px;top:0;visibility:hidden';document.body.appendChild(host);}
  const cache={};const out=list.map(p=>{if(cache[p.id])return cache[p.id];host.innerHTML=lbHTML(t,p);lbFit(host);return cache[p.id]=host.innerHTML;});host.innerHTML='';
- const m=t.media||{type:'roll'};let body,size,pages;
+ let m=t.media||{type:'roll'};let body,size,pages;const a4=o&&o.paper==='a4'&&m.type!=='sheet';
+ /* V27.17 · papel común: las etiquetas de rollo se agrupan en hojas A4 (margen 6 mm, 2 mm entre etiquetas y guías de corte) */
+ if(a4){const g=2,mg=6;const cols=Math.max(1,Math.floor((210-2*mg+g)/(t.w+g))),rows=Math.max(1,Math.floor((297-2*mg+g)/(t.h+g)));
+  m={type:'sheet',pw:210,ph:297,gx:g,gy:g,cols,rows,mx:Math.round((210-(cols*t.w+(cols-1)*g))/2*10)/10,my:Math.round((297-(rows*t.h+(rows-1)*g))/2*10)/10};}
  if(m.type==='sheet'){const per=Math.max(1,m.cols*m.rows);const st=Math.max(0,Math.min(per-1,+(o&&o.start)||0));const cells=Array(st).fill(null).concat(out);pages=Math.ceil(cells.length/per);size=`${m.pw}mm ${m.ph}mm`;
   body='';for(let pg=0;pg<pages;pg++){body+=`<div class="pg" style="width:${m.pw}mm;height:${m.ph}mm">`;for(let k=0;k<per;k++){const h=cells[pg*per+k];if(!h)continue;const r=Math.floor(k/m.cols),c=k%m.cols;
    body+=`<div class="cell" style="left:${(+m.mx)+c*(t.w+(+m.gx))}mm;top:${(+m.my)+r*(t.h+(+m.gy))}mm">${h}</div>`;}body+='</div>';}}
  else{size=`${t.w}mm ${t.h}mm`;pages=out.length;body=out.map(h=>`<div class="pg" style="width:${t.w}mm;height:${t.h}mm">${h}</div>`).join('');}
  const html=`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiquetas · ${esc(t.name)}</title><style>@page{size:${size};margin:0}html,body{margin:0;padding:0;background:#fff}
- *{-webkit-print-color-adjust:exact;print-color-adjust:exact}.pg{position:relative;overflow:hidden;page-break-after:always;break-after:page}.pg:last-child{page-break-after:auto;break-after:auto}.cell{position:absolute}${LB_CSS}</style></head><body>${body}</body></html>`;
- return{html,labels:list.length,pages,tpl:t};}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}.pg{position:relative;overflow:hidden;page-break-after:always;break-after:page}.pg:last-child{page-break-after:auto;break-after:auto}.cell{position:absolute}${a4?'.cell{outline:.2mm dashed #c8c8c8;outline-offset:.6mm}':''}${LB_CSS}</style></head><body>${body}</body></html>`;
+ return{html,labels:list.length,pages,tpl:t,a4,per:a4?m.cols*m.rows:0};}
 function lbPrintDoc(html){let f=$('#lb-print');if(f)f.remove();f=document.createElement('iframe');f.id='lb-print';f.setAttribute('aria-hidden','true');f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';
  document.body.appendChild(f);const d=f.contentDocument;d.open();d.write(html);d.close();
  setTimeout(()=>{try{f.contentWindow.focus();f.contentWindow.print();}catch(e){toast('No se pudo abrir la impresión: '+e.message,1);}},250);return f;}
@@ -176,6 +179,9 @@ function lbAddManual(pids,why){let n=0;const t=now();pids.forEach(pid=>{if(!prod
 
 /* ---------- Pantalla «Etiquetas» ---------- */
 let lbTab='cola',lbF={},lbSel=new Set(),lbMode='uno',lbMan={},lbTplSel='',lbStart=0;
+const lbPaper=()=>((S.cfg.lbl||{}).paper)||'a4';
+const lbA4Per=t=>Math.max(1,Math.floor((198+2)/(t.w+2)))*Math.max(1,Math.floor((285+2)/(t.h+2)));
+document.addEventListener('change',ev=>{if(ev.target&&ev.target.id==='lb-pa'){(S.cfg.lbl||(S.cfg.lbl={})).paper=ev.target.value==='rollo'?'rollo':'a4';save();}});
 A.lbTab=el=>{lbTab=el.dataset.t;rerender();};
 const lbFilterNow=()=>({rubro:val('lb-fr'),sup:val('lb-fs'),why:val('lb-fw'),from:val('lb-fd')?new Date(val('lb-fd')+'T00:00:00').getTime():0,to:val('lb-fh')?new Date(val('lb-fh')+'T00:00:00').getTime():0});
 function lbColaHTML(){const L=lbPending(lbF);const rubs=S.rubros.filter(r=>r.kind==='rubro');const sups=(S.suppliers||[]).filter(s=>s.activo!==false);const c=lbCfg();
@@ -190,7 +196,7 @@ function lbColaHTML(){const L=lbPending(lbF);const rubs=S.rubros.filter(r=>r.kin
  <div class="card"><div class="f">
  <div><label for="lb-tp">Plantilla</label><select id="lb-tp">${c.tpls.map(x=>`<option value="${x.id}" ${x.id===lbTplSel?'selected':''}>${esc(x.name)} (${String(x.w).replace('.',',')} × ${String(x.h).replace('.',',')} mm)</option>`).join('')}</select></div>
  <div><label for="lb-cm">Copias</label><select id="lb-cm"><option value="uno" ${lbMode==='uno'?'selected':''}>Las que indico en cada fila</option><option value="stock" ${lbMode==='stock'?'selected':''}>Una por unidad en stock</option><option value="factura" ${lbMode==='factura'?'selected':''}>Según la factura de compra</option></select></div>
- ${t.media.type==='sheet'?`<div><label for="lb-st">Empezar en la etiqueta N.º (plancha usada)</label><input id="lb-st" type="number" min="1" max="${t.media.cols*t.media.rows}" value="${lbStart+1}"></div>`:''}</div>
+ ${t.media.type!=='sheet'?`<div><label for="lb-pa">Papel</label><select id="lb-pa"><option value="a4" ${lbPaper()==='a4'?'selected':''}>Hoja A4 · agrupadas (${lbA4Per(t)} por hoja)</option><option value="rollo" ${lbPaper()==='rollo'?'selected':''}>Rollo de etiquetera · una por etiqueta</option></select></div>`:''}${t.media.type==='sheet'?`<div><label for="lb-st">Empezar en la etiqueta N.º (plancha usada)</label><input id="lb-st" type="number" min="1" max="${t.media.cols*t.media.rows}" value="${lbStart+1}"></div>`:''}</div>
  <div class="row" style="gap:.5rem;flex-wrap:wrap"><b class="sp">${L.length} pendiente(s) · ${sel.length} elegida(s) · ${total} etiqueta(s)</b>
  <button class="btn sm" data-act="lbSelAll">${sel.length===L.length&&L.length?'Ninguna':'Elegir todas'}</button><button class="btn sm" data-act="lbPreview" ${sel.length?'':'disabled'}>Vista previa</button>
  <button class="btn gold" data-act="lbPrint" ${total?'':'disabled'}>🖨 Imprimir ${total}</button><button class="btn sm" data-act="lbDone" ${sel.length?'':'disabled'}>Marcar como impresas</button></div></div>
@@ -214,8 +220,8 @@ A.lbPreview=()=>{const J=lbJobs();if(!J.length)return;lbLogoReady(()=>{const r=l
   <div class="lb-prev" style="display:flex;flex-wrap:wrap;gap:8px;max-height:60vh;overflow:auto">${(()=>{lbStyle();const t=r.tpl;return lbJobs().slice(0,12).map(j=>`<div style="width:${t.w*LB_PX*k}px;height:${t.h*LB_PX*k}px;outline:1px solid #ccc"><div style="transform:scale(${k});transform-origin:0 0">${lbHTML(t,prod(j.pid))}</div></div>`).join('');})()}</div>`,{wide:true,okText:'Imprimir',onOk:()=>{A.lbPrint();}});
  setTimeout(()=>{const w=$('.lb-prev');if(w)lbFit(w);},30);});};
 A.lbPrint=()=>{const J=lbJobs().filter(j=>j.copies>0);if(!J.length)return toast('Elegí artículos con al menos una copia.',1);
- lbLogoReady(()=>{const r=lbBuild(J,{tpl:lbTplSel,start:lbStart});if(r.err)return toast(r.err,1);lbPrintDoc(r.html);
-  audit('ETIQUETAS_IMPRESION',r.labels+' etiqueta(s) · '+r.pages+' página(s) · '+r.tpl.name);
+ lbLogoReady(()=>{const r=lbBuild(J,{tpl:lbTplSel,start:lbStart,paper:lbPaper()});if(r.err)return toast(r.err,1);lbPrintDoc(r.html);
+  audit('ETIQUETAS_IMPRESION',r.labels+' etiqueta(s) · '+r.pages+' página(s) · '+r.tpl.name+(r.a4?' · A4 ('+r.per+' por hoja)':''));
   setTimeout(()=>confirmBox('¿Salieron bien las etiquetas?',`Se mandaron <b>${r.labels}</b> etiqueta(s) en <b>${r.pages}</b> página(s). Si salieron bien, las marco como impresas y salen de la cola.<br><span class="sm mut">Para PDF: elegí «Guardar como PDF», márgenes «Ninguno» y escala 100 %.</span>`,()=>{lbMarkDone(J.map(j=>j.pid));lbSel.clear();lbStart=0;save();rerender();toast('Marcadas como impresas');},'Sí, salieron bien'),400);});};
 A.lbDone=()=>{const J=lbJobs();if(!J.length)return;confirmBox('Marcar como impresas',`Salen de la cola <b>${J.length}</b> artículo(s) sin imprimir.`,()=>{lbMarkDone(J.map(j=>j.pid));audit('ETIQUETAS_MARCADAS',J.length+' artículo(s)');lbSel.clear();save();rerender();});};
 
