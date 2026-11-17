@@ -236,8 +236,10 @@ function pvxCamara(meta){pvxCss();return new Promise(async res=>{const gp=pvxGPS
   const b=ov.querySelector('[data-k=ok]');b.onclick=file;b.setAttribute('aria-label','Elegir foto');}});}
 /* guarda la foto y su ficha (la ficha viaja a la nube; la imagen queda en el equipo hasta subirla) */
 async function pvxEvidencia(tipo,ref,f){const id=uid();await pvxFotoPut(id,f.data);
- const x={id,tipo,ref:String(ref||''),sha:f.sha,vivo:!!f.vivo,bytes:f.bytes,w:f.w,h:f.h,ts:f.ts,lat:f.lat,lng:f.lng,acc:f.acc,u:user?user.id:'',uName:user?user.name:'',subida:false};vbArr('evid').push(x);save();return x;}
-async function pvxFotoHTML(ev,cls){const d=ev?await pvxFotoGet(ev.id):null;return d?`<img src="${d}" alt="Evidencia ${esc(ev.ref)}" class="${cls||'pvx-thumb'}">`:'<div class="pvx-thumb" style="display:grid;place-items:center;font-size:.7rem;text-align:center">foto en el equipo que la sacó</div>';}
+ const ext=/^data:image\/webp/.test(f.data)?'webp':/^data:image\/png/.test(f.data)?'png':'jpg';const nube=typeof CLOUD!=='undefined'&&CLOUD.on&&typeof cl!=='undefined'&&cl.comercio;
+ const x={id,tipo,ref:String(ref||''),sha:f.sha,vivo:!!f.vivo,bytes:f.bytes,w:f.w,h:f.h,ts:f.ts,lat:f.lat,lng:f.lng,acc:f.acc,u:user?user.id:'',uName:user?user.name:'',
+  path:nube?cl.comercio.id+'/'+new Date(f.ts||now()).toISOString().slice(0,7)+'/'+id+'.'+ext:''};vbArr('evid').push(x);save();if(nube)setTimeout(pvxSubirPend,400);return x;}
+async function pvxFotoHTML(ev,cls){const d=ev?(await pvxFotoGet(ev.id))||(await pvxFotoNube(ev)):null;return d?`<img src="${d}" alt="Evidencia ${esc(ev.ref)}" class="${cls||'pvx-thumb'}">`:'<div class="pvx-thumb" style="display:grid;place-items:center;font-size:.7rem;text-align:center">foto en el equipo que la sacó</div>';}
 const pvxEvid=id=>vbArr('evid').find(x=>x.id===id);
 const pvxEvidTag=ev=>ev?(ev.vivo?'<span class="tag ok">Foto en vivo ✓</span>':'<span class="tag warn">Foto sin verificar</span>'):'';
 
@@ -485,3 +487,26 @@ function pvxSugeridos(cid,d){const lim=now()-90*864e5;const H={};const add=(pid,
   const cada=Math.max(1,Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length));const hace=Math.round((now()-t[t.length-1])/864e5);if(hace<cada*0.8)continue;
   const qs=L.map(x=>x.q).sort((a,b)=>a-b);const qty=qs[Math.floor(qs.length/2)];out.push({p,qty,cada,hace,score:hace/cada,txt:`Suele llevar ${pfull(p)} cada ${cada} día${cada>1?'s':''} (último hace ${hace}) y hoy no está.`});}
  return out.sort((a,b)=>b.score-a.score).slice(0,3);}
+
+
+/* ===================== V27.16 · nube (sólo con el SQL 34 aplicado): colecciones nuevas y fotos en Storage privado ===================== */
+/* las fichas viajan con la sincronización de siempre; las imágenes suben al bucket privado «evidencias» y se ven con enlaces firmados de 10 minutos */
+const PVX34_COLS=[{c:'cambio',key:'cambios',pii:['custName']},{c:'evid',key:'evid',once:1,pii:['lat','lng','uName']},{c:'clog',key:'campoLog',once:1,pii:['lat','lng','uName']},{c:'devt',key:'devTransito',pii:['custName']},{c:'aviso',key:'avisos'}];
+let vb34=false,vb34At=0;
+const pvxNube=()=>typeof CLOUD!=='undefined'&&CLOUD.on&&typeof cl!=='undefined'&&cl.ready&&cl.comercio&&vb34;
+function vb34Enable(){if(vb34||typeof COLS==='undefined')return;PVX34_COLS.forEach(x=>{if(!COLS.some(y=>y.c===x.c)){COLS.push(x);BYC[x.c]=x;if(x.del)DELC.add(x.c);}});vb34=true;setTimeout(pvxSubirPend,2000);}
+if(typeof pushAll==='function'){const _pa34=pushAll;pushAll=async function(){if(!vb34&&typeof cl!=='undefined'&&cl.comercio&&Date.now()-vb34At>600000){vb34At=Date.now();
+  try{const v=await rpc('vb_version',{});if(+v>=34)vb34Enable();}catch(e){}}return _pa34.apply(this,arguments);};}
+const pvxSubidas=()=>pvxGet('subidas')||{};
+let pvxSubiendo=false;
+async function pvxSubirPend(){if(!pvxNube()||pvxSubiendo||!navigator.onLine)return;pvxSubiendo=true;try{const up=pvxSubidas();
+ for(const ev of vbArr('evid').filter(x=>x.path&&!up[x.id]).slice(-30)){const d=await pvxFotoGet(ev.id);if(!d)continue; /* la foto está en otro equipo */
+  const t=await accessToken();if(!t)break;const mime=(/^data:([^;]+);/.exec(d)||[])[1]||'image/jpeg';const bin=atob(d.split(',')[1]);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+  let r;try{r=await fetch(CLOUD.url+'/storage/v1/object/evidencias/'+ev.path,{method:'POST',headers:{apikey:CLOUD.key,Authorization:'Bearer '+t,'Content-Type':mime,'x-upsert':'false','cache-control':'31536000'},body:new Blob([u8],{type:mime})});}catch(e){break;}
+  if(r.ok||r.status===409||(r.status===400&&/exist/i.test(await r.text().catch(()=>''))))up[ev.id]=now();else if(r.status===401||r.status===403){audit('EVIDENCIA_SUBIDA_RECHAZADA',ev.id+' · '+r.status);up[ev.id]=-1;}}
+ pvxSet('subidas',up);}finally{pvxSubiendo=false;}}
+setInterval(()=>{if(user)pvxSubirPend();},90000);window.addEventListener('online',()=>setTimeout(pvxSubirPend,1500));
+const PVX_URLS={};
+async function pvxFotoNube(ev){if(!ev||!ev.path||!pvxNube())return null;const c=PVX_URLS[ev.id];if(c&&c.exp>Date.now())return c.url;
+ try{const t=await accessToken();if(!t)return null;const r=await fetch(CLOUD.url+'/storage/v1/object/sign/evidencias/'+ev.path,{method:'POST',headers:{apikey:CLOUD.key,Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify({expiresIn:600})});
+  if(!r.ok)return null;const j=await r.json();const u=j&&(j.signedURL||j.signedUrl);if(!u)return null;const url=CLOUD.url+'/storage/v1'+(u.startsWith('/')?u:'/'+u);PVX_URLS[ev.id]={url,exp:Date.now()+540000};return url;}catch(e){return null;}}
