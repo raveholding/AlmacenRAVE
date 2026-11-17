@@ -228,10 +228,24 @@ A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, 
    · Celular y tablet: barra inferior (Inicio, Caja, Vender, Stock, Más), el menú lateral se cierra al tocar afuera o con Escape. */
 {const D=(typeof window!=='undefined'&&window.RAVE_DEMO)||null;
  if(D){if(typeof facCfgCard==='function'){const _fc=facCfgCard;facCfgCard=function(){return typeof giPlan==='function'&&giPlan()!=='total'?'':_fc.apply(this,arguments);};}
+  /* V27.7 · Plan Esencial (plan bajo): sin servicios que se venden aparte o van en planes superiores.
+     NFC (lector, tarjetas, sello con el celular): se vende aparte como combo, en la reunión. Portero y seguridad: siempre opcional.
+     Asistente de texto y voz / IA y bots: planes superiores. Se ocultan de la vista; los datos y funciones no se tocan. */
+  {const BAJO=()=>typeof giPlan==='function'&&giPlan()==='esencial';
+   if(typeof nfcCfgCard==='function'){const o=nfcCfgCard;nfcCfgCard=function(){return BAJO()?'':o.apply(this,arguments);};}
+   if(typeof nfcFieldHTML==='function'){const o=nfcFieldHTML;nfcFieldHTML=function(){return BAJO()?'':o.apply(this,arguments);};}
+   if(typeof nfcStatusHTML==='function'){const o=nfcStatusHTML;nfcStatusHTML=function(){return BAJO()?'':o.apply(this,arguments);};}
+   if(typeof nfcMiniHTML==='function'){const o=nfcMiniHTML;nfcMiniHTML=function(){return BAJO()?'':o.apply(this,arguments);};}
+   if(typeof selloNfcCardHtml==='function'){const o=selloNfcCardHtml;selloNfcCardHtml=function(){return BAJO()?'':o.apply(this,arguments);};}
+   if(typeof ptCfgCardHtml==='function'){const o=ptCfgCardHtml;ptCfgCardHtml=function(){return BAJO()?'':o.apply(this,arguments);};}
+   if(typeof assistCfgCard==='function'){const o=assistCfgCard;assistCfgCard=function(){return BAJO()?'':o.apply(this,arguments);};}
+   const st=document.createElement('style');st.textContent='html.vb-bajo #as-open,html.vb-bajo #as-dock,html.vb-bajo [data-act=fdNfc],html.vb-bajo [data-act=cbNfc],html.vb-bajo [data-act=hrNfcWrite],html.vb-bajo [data-act=cuNfc],html.vb-bajo [data-act=nfcLink],html.vb-bajo [data-act=nfcManual],html.vb-bajo [data-act=nfcSetup],html.vb-bajo [data-act=nfcTest],html.vb-bajo [data-act=nfcList],html.vb-bajo [data-act=nfcLiveToggle]{display:none!important}';
+   (document.head||document.documentElement).appendChild(st);
+   const marca=()=>{try{document.documentElement.classList.toggle('vb-bajo',BAJO());}catch(e){}};marca();setInterval(marca,1500);}
   const COM=['inicio','vender','caja','arqueo','cierres','presup','mermas','inventario','precios','etiquetas','inventariof','proveedores','clientes','fidel','cupones','config','roles','modulos','dispositivos','auditoria'];
   const DIS=['inicio','vender','caja','arqueo','cierres','pedidosv','preventa','reparto','copiloto','depositos','acopios','inventario','inventariof','precios','etiquetas','proveedores','clientes','portalb2b','personal','vales','equipo','config','roles','modulos','dispositivos','auditoria'];
   const IC={min:'M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6',both:'M3 21V9l9-6 9 6v12M8 21v-7h8v7M3 12h18',may:'M2 6h11v10H2zM13 9h4l4 4v3h-8zM6 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',todo:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5'};
-  const T={min:{t:'Mostrador',d:'Vendés al consumidor final, en el mostrador o con autoservicio.',ej:'Kiosco · almacén · autoservicio · ropa · ferretería',plan:'esencial',p:COM},
+  const T={min:{t:'Mostrador',d:'Vendés al consumidor final, en el mostrador o con autoservicio.',ej:'Kiosco · almacén · autoservicio · ropa · ferretería',plan:'esencial',p:COM.filter(x=>x!=='inventariof')},
    both:{t:'Minorista y mayorista',d:'Vendés al público y también por mayor, con precios por presentación.',ej:'Mayorista · autoservicio mayorista · bebidas',plan:'esencial',p:COM},
    may:{t:'Despacho y reparto',d:'Tomás pedidos, se arman en el depósito y se reparten.',ej:'Distribuidora · materiales · mayorista con reparto',plan:'mayorista',p:DIS},
    todo:{t:'Libre',d:'Todos los módulos visibles, sin molde.',ej:'Para quien prefiere decidir módulo por módulo',plan:'total',p:null}};
@@ -261,7 +275,7 @@ A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, 
   const modulosHTML=()=>{const fijo=t=>`<div class="vbm-row off-ro"><span class="vbm-sw on ro" aria-hidden="true"></span><span class="sp"><b>${esc(t)}</b><br><span class="sm mut">Fijo: no se puede apagar.</span></span></div>`;
    const fila=m=>{const lock=!giInPlan(m.plan),on=giOn(m.k);const sc=m.scr&&SCREENS[m.scr];
     return`<div class="vbm-row ${lock?'lock':''}"><button class="vbm-sw ${on?'on':''}" ${lock?'disabled':''} data-act="giMod" data-k="${m.k}" data-on="${on?0:1}" role="switch" aria-checked="${on}" aria-label="${esc(m.t)}"></button><span class="sp"><b>${esc(m.t)}</b><br><span class="sm mut">${lock?'Viene con el modelo «Despacho y reparto» o «Libre».':esc(m.d)}</span></span>${on&&sc?`<button class="btn sm" data-act="nav" data-id="${m.scr}">Abrir</button>`:''}</div>`;};
-   const L=GI_MODS.slice().sort((a,b)=>(giInPlan(a.plan)?0:1)-(giInPlan(b.plan)?0:1));
+   const L=GI_MODS.filter(m=>!(tipo()==='min'&&m.k==='count')).sort((a,b)=>(giInPlan(a.plan)?0:1)-(giInPlan(b.plan)?0:1));
    return`<div class="row"><h1 class="sp">Módulos</h1></div>${modeloCard()}
     <div class="card"><h3 style="margin-top:0">Módulos del sistema</h3><p class="sm mut">Cada interruptor vale para todo el negocio. Apagar un módulo lo saca del menú; lo que ya existe se sigue viendo y no se borra nada. Cada cambio queda en Auditoría.</p>
     <div class="vbm-list">${FIJOS.map(fijo).join('')}${L.map(fila).join('')}</div></div>`;};
