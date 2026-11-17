@@ -224,14 +224,18 @@ function demoDistriSeed(){if(!window.RAVE_DEMO||!giOn('orders')||S.cfg.distriSee
   user=adm;
   if(typeof repCfg==='function'){const rc=repCfg();rc.on=true;rc.origen={lat:-24.7859,lng:-65.4117,dir:'Depósito · Av. Ex Combatientes de Malvinas 3900, Salta (ejemplo)'};
    rc.zonas=[{id:'rz1',nombre:'Centro',tarifa:0,minimo:0,eta:'2 a 4 h',radio:3,activo:true},{id:'rz2',nombre:'Zona Norte',tarifa:0,minimo:0,eta:'en el día',radio:6,activo:true},{id:'rz3',nombre:'Zona Sur',tarifa:0,minimo:0,eta:'en el día',radio:6,activo:true}];
-   rc.reps=[{id:'rr1',nombre:'Martín (camioneta)',tel:'3874001001',veh:'Camioneta',cap:12,fijo:0,pct:0,login:'',activo:true},{id:'rr2',nombre:'Diego (moto)',tel:'3874001002',veh:'Moto con baúl',cap:6,fijo:0,pct:0,login:'',activo:true}];
+   rc.reps=[{id:'rr1',nombre:'Martín (camioneta)',tel:'3874001001',veh:'Camioneta',cap:12,fijo:0,pct:0,login:(S.users.find(u=>u.role==='repartidor')||{}).id||'',activo:true},{id:'rr2',nombre:'Diego (moto)',tel:'3874001002',veh:'Moto con baúl',cap:6,fijo:0,pct:0,login:'',activo:true}];
    const env=[];['dc0','dc2','dc3','dc5','dc6','dc4'].forEach((cid,i)=>{const c=custById(cid);if(!c||!c.pv)return;const zi=Math.max(0,Z.indexOf(c.pv.zona));
     const items=[0,1,2].slice(0,1+i%3).map(k=>{const p=prod(pid(i*3+k));const q=6*(1+(i+k)%3);return{pid:p.id,name:pfull(p),rubro:p.rubro,qty:q,price:p.price,cost:p.cost||0,unit:p.unit||'u'};});
-    const e=repNuevo({orig:i%2?'pos':'menu',cli:{nombre:c.name,tel:c.wa,dir:c.addr,loc:'Salta',ref:'',lat:c.pv.lat,lng:c.pv.lng,custId:c.id},zona:['rz1','rz2','rz3'][zi],tarifa:0,items,total:items.reduce((a,x)=>a+x.price*x.qty,0),cobro:{modo:i%2?'pagado':'cobrar',abona:0},nota:''});
+    const e=repNuevo({orig:i%2?'pos':'menu',cli:{nombre:c.name,tel:c.wa,dir:c.addr,loc:'Salta',ref:'',lat:c.pv.lat,lng:c.pv.lng,custId:c.id},zona:['rz1','rz2','rz3'][zi],tarifa:0,items,total:items.reduce((a,x)=>a+x.price*x.qty,0),cobro:{modo:i%2?'pagado':'efectivo',abona:0},nota:''});
     e.ts=t0-(6-i)*H;env.push(e);});
    if(env.length>=6){repSetEst(env[0],'preparando');['listo'].forEach(s=>{repSetEst(env[1],s);repSetEst(env[2],s);repSetEst(env[3],s);});repSetEst(env[5],'entregado');
     const ids=[env[1].id,env[2].id];const r={id:uid(),n:repRutaNum(),ts:t0,rep:'rr1',repNom:'Martín (camioneta)',envios:ids,estado:'armada',cambio:0,km:repKm(ids),via:'cálculo propio (gratis)',url:repMapsUrl(ids),user:adm.name};
-    S.rutas.push(r);ids.forEach(id=>{const e=repEnv(id);e.rutaId=r.id;repHist(e,'en ruta '+r.n);});}}
+    S.rutas.push(r);ids.forEach(id=>{const e=repEnv(id);e.rutaId=r.id;repHist(e,'en ruta '+r.n);});
+    /* V27.14 · el circuito completo: dos pedidos del preventista van al camión (uno contado, uno en cuenta corriente) y la ruta de Martín sale a la calle */
+    if(typeof vbToReparto==='function'){const P2=vbArr('sordr').filter(o=>VB_OPEN.includes(o.state)).slice(0,2);const add=[];P2.forEach((o,k)=>{if(k===0)o.cond='contado';const x=vbToReparto(o.id);if(!x.err)add.push(x.e.id);});
+     if(add.length){add.forEach(id=>{const e=repEnv(id);e.rutaId=r.id;repHist(e,'en ruta '+r.n);});r.envios=add.concat(r.envios);r.km=repKm(r.envios);r.url=repMapsUrl(r.envios);}}
+    r.estado='en_curso';r.salida=t0;r.envios.map(repEnv).forEach(e=>{if(e&&e.estado==='listo')repSetEst(e,'en_ruta',{nota:r.n});});}}
   if(giOn('stockpile'))vbAcopioCreate({cust:'dc2',items:[{pid:pid(11),qty:60}],note:'Mercadería pagada que retira en partes (ejemplo)'});
   audit('DEMO_EJEMPLOS','Distribuidora: cartera, pedidos, preventa, reparto y acopio de ejemplo');
  }catch(e){console.warn('demoDistriSeed',e&&e.message);}

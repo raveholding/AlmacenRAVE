@@ -133,6 +133,8 @@ reg('preventa','Preventa','route','presale',()=>{const sup=user.role==='admin'||
   $$('.pv-d').forEach(i=>i.addEventListener('change',()=>{const c=custById(i.dataset.id);if(!c)return;const p=pvOf(c);const d=+i.dataset.d;p.dias=(p.dias||[]).filter(x=>x!==d);if(i.checked)p.dias.push(d);save();}));
   $$('.pv-c').forEach(i=>i.addEventListener('change',()=>{const P=S.cfg.presale||(S.cfg.presale={});(P.com||(P.com={}))[i.dataset.id]=Math.max(0,Math.min(30,+i.value||0));audit('COMISION_PREVENTA',i.dataset.id+' · '+i.value+' %');save();}));},'Operación');
 SCREENS.preventa.show=()=>giOn('presale');NAV.push(['preventa','Operación']);
+/* V27.14 · el preventista entra directo a su recorrido del día */
+{const _pvHome=homeScreen;homeScreen=function(){if(user&&user.role==='preventista'&&giOn('presale')&&SCREENS.preventa)return 'preventa';return _pvHome();};}
 
 /* ---------- Bot de pedidos por WhatsApp ---------- */
 const waS=()=>S.waSess||(S.waSess={});

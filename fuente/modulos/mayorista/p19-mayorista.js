@@ -97,6 +97,27 @@ function vbInvoice(rids,o){o=o||{};if(!can('orders')||!can('sell'))return{err:'S
  R.forEach(rm=>{rm.inv=sale.id;rm.invN=sale.n;const od=vbOrd(rm.ord);if(od){ords.add(od);rm.items.forEach(x=>{const it=od.items.find(i=>i.pid===x.pid);if(it)it.inv=Math.round(((it.inv||0)+x.qty)*1000)/1000;});}});
  ords.forEach(od=>{od.sales.push(sale.id);sale.ord=od.n;if(od.items.every(i=>(i.inv||0)>=i.qty-1e-9))vbSetState(od,'facturado');});
  audit('FACTURA_REMITOS',sale.n+' · '+R.map(x=>x.n).join(', ')+' · '+custFull(c)+' · '+money(sale.total)+' · '+(MET[sale.method]||sale.method));save();return{sale};}
+/* ---------- V27.14 · del pedido al camión: remito + envío en la bandeja de Reparto («Listo para salir») ----------
+   Contado → el repartidor cobra en la puerta · Cuenta corriente → no cobra · al rendir se factura el remito con el medio real. */
+const vbRepOk=()=>typeof repNuevo==='function'&&typeof repOn==='function'&&repOn();
+const vbEnvOf=o=>o&&o.envio&&typeof repEnv==='function'?repEnv(o.envio):null;
+function vbEnvVivo(o){const e=vbEnvOf(o);return e&&!['entregado','cancelado'].includes(e.estado)?e:null;}
+function vbToReparto(id){const o=vbOrd(id);if(!o)return{err:'Pedido inexistente.'};if(!vbRepOk())return{err:'Activá Reparto y despacho para mandar pedidos al camión.'};if(!can('orders'))return{err:'Sin permiso.'};
+ if(vbEnvVivo(o))return{err:o.n+' ya está en reparto (envío #'+vbEnvOf(o).n+').'};if(!VB_OPEN.includes(o.state))return{err:'El pedido no tiene nada pendiente de entregar.'};
+ const q={};o.items.forEach(it=>{const pend=Math.round((it.qty-(it.del||0))*1000)/1000;const lim=it.pick===null||it.pick===undefined?pend:Math.max(0,Math.min(pend,it.pick-(it.del||0)));if(lim>0)q[it.pid]=lim;});
+ if(!Object.keys(q).length)return{err:'Lo armado ya se entregó: registrá el armado de lo que falta.'};
+ const rr=vbRemito(o.id,q);if(rr.err)return rr;const rm=rr.r,c=custById(o.cust)||{};
+ const items=rm.items.map(x=>{const it=o.items.find(i=>i.pid===x.pid)||{};const p=prod(x.pid)||{};const amt=it.qty?Math.round((it.amt||it.price*it.qty)*x.qty/it.qty):Math.round(x.price*x.qty);
+  return{pid:x.pid,name:x.name,rubro:p.rubro,qty:x.qty,price:x.qty?Math.round(amt/x.qty):x.price,amt,cost:p.cost||0,unit:p.unit||'u'};});
+ const total=items.reduce((a,i)=>a+i.amt,0);const pv=c.pv||{};const zs=repCfg().zonas||[];const z=zs.find(x=>x.activo!==false&&pv.zona&&String(x.nombre).toLowerCase()===String(pv.zona).toLowerCase())||zs.find(x=>x.activo!==false);
+ const e=repNuevo({orig:'ped',cli:{nombre:o.custName,tel:c.wa||'',dir:o.addr||c.addr||'',loc:'',ref:'',lat:pv.lat!=null?pv.lat:null,lng:pv.lng!=null?pv.lng:null,custId:c.id||''},custId:c.id||'',zona:z?z.id:'',tarifa:0,items,total,
+  cobro:o.cond==='cc'?{modo:'cc'}:{modo:'efectivo',abona:0},nota:o.n+' · remito '+rm.n+(o.note?' · '+o.note:'')});
+ e.ord=o.id;e.rem=rm.id;e.ordN=o.n;repSetEst(e,'listo',{nota:'pedido '+o.n+' armado'});o.envio=e.id;o.hist.push({ts:now(),u:user?user.name:'sistema',s:'en reparto'});
+ audit('PEDIDO_A_REPARTO',o.n+' · remito '+rm.n+' · envío #'+e.n+' · '+(o.cond==='cc'?'cuenta corriente':'cobrar '+money(total)));save();return{o,e,rm};}
+A.vbORep=el=>{const r=vbToReparto(el.dataset.id);if(r.err)return toast(r.err,1);toast(r.o.n+' → Reparto: envío #'+r.e.n+' listo para salir');rerender();};
+A.vbORepAll=()=>{const L=vbArr('sordr').filter(o=>VB_OPEN.includes(o.state)&&!vbEnvVivo(o));if(!L.length)return toast('No hay pedidos abiertos para mandar.',1);
+ confirmBox('Mandar '+L.length+' pedido(s) a Reparto',`Se emite el remito de lo pendiente (o de lo armado) y cada pedido queda «Listo para salir» en la bandeja de Reparto, con su cobro: contado se cobra en la puerta, cuenta corriente no.`,()=>{let ok=0;const bad=[];L.forEach(o=>{const r=vbToReparto(o.id);if(r.err)bad.push(o.n+': '+r.err);else ok++;});
+  toast(ok+' pedido(s) en Reparto'+(bad.length?' · '+bad.length+' con problema':''),!!bad.length);if(bad.length)modal('No se pudieron mandar',`<ul class="sm">${bad.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`,{okText:'Entendido',noCancel:true});rerender();},'Mandar');};
 function vbOrderCancel(id,why){const o=vbOrd(id);if(!o)return{err:'Pedido inexistente.'};if(!can('orders'))return{err:'Sin permiso.'};if(['facturado','anulado'].includes(o.state))return{err:'Ese pedido ya está cerrado.'};
  if(vbArr('remitos').some(r=>r.ord===o.id&&r.state!=='anulado'&&!r.inv))return{err:'Tiene remitos sin facturar: facturalos o anulalos primero.'};if(!why||String(why).trim().length<3)return{err:'Escribí el motivo.'};
  const closed=o.items.some(i=>(i.inv||0)>0);vbSetState(o,closed?'facturado':'anulado');o.cancelWhy=String(why).trim().slice(0,120);
@@ -160,11 +181,11 @@ A.vbDCust=el=>{vbDraft.cust=el.dataset.id||'';rerender();};
 A.vbDAdd=el=>{const x=vbDraft.items.find(i=>i.pid===el.dataset.id);if(x)x.qty+=1;else vbDraft.items.push({pid:el.dataset.id,qty:1});rerender();setTimeout(()=>{const i=$('#vb-dp');if(i)i.focus();},50);};
 A.vbDRm=el=>{vbDraft.items.splice(+el.dataset.i,1);rerender();};
 A.vbDCancel=()=>{vbDraft=null;vbOTab='lista';rerender();};
-A.vbDSave=()=>{const r=vbOrderCreate(vbDraft);if(r.err)return toast(r.err,1);vbDraft=null;vbOTab='lista';vbOSel=r.o.id;rerender();toast('Pedido '+r.o.n+' guardado'+(r.warn.length?' · ojo: falta stock de '+r.warn.length+' artículo(s)':''));};
+A.vbDSave=()=>{const src=vbDraft&&vbDraft.src;const r=vbOrderCreate(vbDraft);if(r.err)return toast(r.err,1);vbDraft=null;vbOTab='lista';vbOSel=r.o.id;if(src==='preventa'&&SCREENS.preventa&&user&&user.role==='preventista'){go('preventa');}else rerender();toast('Pedido '+r.o.n+' guardado'+(r.warn.length?' · ojo: falta stock de '+r.warn.length+' artículo(s)':''));};
 A.vbONew=()=>{vbDraftNew();vbOTab='nuevo';rerender();};
 function vbOrdersList(){const F={abiertos:o=>VB_OPEN.concat('entregado').includes(o.state),todos:()=>true,facturado:o=>o.state==='facturado',anulado:o=>o.state==='anulado'};const L=vbArr('sordr').filter(F[vbOF]||F.abiertos).slice().reverse().slice(0,300);
- return`<div class="row" style="gap:.4rem;flex-wrap:wrap;margin:.5rem 0">${[['abiertos','Abiertos'],['facturado','Facturados'],['anulado','Anulados'],['todos','Todos']].map(([k,t])=>`<button class="btn sm ${vbOF===k?'gold':''}" data-act="vbOF" data-f="${k}">${t}</button>`).join('')}<span class="sp"></span><button class="btn gold" data-act="vbONew">+ Nuevo pedido</button></div>
- ${L.length?`<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Origen</th><th class="r">Total</th><th>Estado</th><th></th></tr></thead><tbody>${L.map(o=>`<tr><td><b>${esc(o.n)}</b></td><td>${fmtDT(o.ts)}</td><td>${esc(o.custName)}</td><td>${esc({mostrador:'Mostrador',preventa:'Preventa',whatsapp:'WhatsApp',portal:'Portal'}[o.src]||o.src)}</td><td class="r">${money(o.total)}</td><td>${vbTag(o.state)}</td><td class="r"><button class="btn sm" data-act="vbOOpen" data-id="${o.id}">Abrir</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="okbox">No hay pedidos en esta vista.</div>'}`;}
+ return`<div class="row" style="gap:.4rem;flex-wrap:wrap;margin:.5rem 0">${[['abiertos','Abiertos'],['facturado','Facturados'],['anulado','Anulados'],['todos','Todos']].map(([k,t])=>`<button class="btn sm ${vbOF===k?'gold':''}" data-act="vbOF" data-f="${k}">${t}</button>`).join('')}<span class="sp"></span>${vbRepOk()&&vbArr('sordr').some(o=>VB_OPEN.includes(o.state)&&!vbEnvVivo(o))?'<button class="btn" data-act="vbORepAll">🚚 Mandar abiertos a reparto</button>':''}<button class="btn gold" data-act="vbONew">+ Nuevo pedido</button></div>
+ ${L.length?`<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Origen</th><th class="r">Total</th><th>Estado</th><th></th></tr></thead><tbody>${L.map(o=>`<tr><td><b>${esc(o.n)}</b></td><td>${fmtDT(o.ts)}</td><td>${esc(o.custName)}</td><td>${esc({mostrador:'Mostrador',preventa:'Preventa',whatsapp:'WhatsApp',portal:'Portal'}[o.src]||o.src)}</td><td class="r">${money(o.total)}</td><td>${vbTag(o.state)}${vbEnvVivo(o)?' <span class="tag ok">🚚 en reparto</span>':''}</td><td class="r"><button class="btn sm" data-act="vbOOpen" data-id="${o.id}">Abrir</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="okbox">No hay pedidos en esta vista.</div>'}`;}
 A.vbOF=el=>{vbOF=el.dataset.f;rerender();};
 A.vbOOpen=el=>{vbOSel=el.dataset.id;vbOTab='detalle';rerender();};
 function vbOrderDetail(){const o=vbOrd(vbOSel);if(!o)return'<p>Elegí un pedido.</p>';const R=vbArr('remitos').filter(r=>r.ord===o.id);const open=VB_OPEN.includes(o.state);const uninv=R.filter(r=>!r.inv&&r.state!=='anulado');
@@ -176,7 +197,8 @@ function vbOrderDetail(){const o=vbOrd(vbOSel);if(!o)return'<p>Elegí un pedido.
  <div class="row" style="gap:.5rem;flex-wrap:wrap;margin:.6rem 0">
  <button class="btn sm" data-act="vbODoc" data-id="${o.id}">Imprimir pedido</button>
  ${['pendiente','armado'].includes(o.state)?`<button class="btn sm" data-act="vbOPickDoc" data-id="${o.id}">Lista de armado</button><button class="btn sm" data-act="vbOPick" data-id="${o.id}">Registrar armado</button>`:''}
- ${open?`<button class="btn gold" data-act="vbORem" data-id="${o.id}">Emitir remito</button>`:''}
+ ${open&&vbRepOk()&&!vbEnvVivo(o)?`<button class="btn gold" data-act="vbORep" data-id="${o.id}">🚚 Mandar a reparto</button>`:''}${vbEnvVivo(o)?`<span class="tag ok">En reparto · envío #${esc(vbEnvOf(o).n)} · ${esc((typeof REP_EST!=='undefined'&&REP_EST[vbEnvOf(o).estado])||vbEnvOf(o).estado)}</span>`:''}
+ ${open?`<button class="btn ${vbRepOk()?'sm':'gold'}" data-act="vbORem" data-id="${o.id}">${vbRepOk()?'Remito (lo retira el cliente)':'Emitir remito'}</button>`:''}
  ${uninv.length?`<button class="btn gold" data-act="vbOInv" data-id="${o.id}">Facturar ${uninv.length} remito(s)</button>`:''}
  ${!['facturado','anulado'].includes(o.state)?`<button class="btn sm red" data-act="vbOCancel" data-id="${o.id}">${o.items.some(i=>(i.inv||0)>0)?'Cerrar pedido':'Anular pedido'}</button>`:''}</div>
  ${R.length?`<h3>Remitos</h3><div class="tw"><table data-nosort><thead><tr><th>N.º</th><th>Fecha</th><th>Artículos</th><th>Factura</th><th></th></tr></thead><tbody>${R.map(r=>`<tr><td>${esc(r.n)}${r.state==='anulado'?' <span class="tag bad">Anulado</span>':''}</td><td>${fmtDT(r.ts)}</td><td>${r.items.map(i=>i.qty+' '+esc(i.name)).join(', ')}</td><td>${r.inv?esc(r.invN||''):'—'}</td>

@@ -12,7 +12,7 @@
      Cloud API). Las claves Pro NUNCA pasan por el navegador: viven como secretos de la función «reparto-pro» en Supabase. */
 IC.route='M6 19a2 2 0 1 0 0-.01M18 5a2 2 0 1 0 0-.01M6 17V9a4 4 0 0 1 4-4h2M18 7v8a4 4 0 0 1-4 4h-2';
 const REP_EST={nuevo:'Nuevo',preparando:'Preparando',listo:'Listo para salir',en_ruta:'En camino',entregado:'Entregado',ausente:'Cliente ausente',devuelto:'Volvió al local',cancelado:'Cancelado'};
-const REP_ORIG={pos:['🧾','Mostrador'],tel:['📞','Teléfono'],wa:['💬','WhatsApp'],menu:['📱','Menú digital']};
+const REP_ORIG={ped:['📦','Pedido de venta'],pos:['🧾','Mostrador'],tel:['📞','Teléfono'],wa:['💬','WhatsApp'],menu:['📱','Menú digital']};
 const REP_SEG={nuevo:'confirmado',preparando:'preparando',listo:'listo',en_ruta:'en_camino',entregado:'entregado',ausente:'ausente',devuelto:'ausente',cancelado:'cancelado'};
 const REP_PICK_DEF='bebida, gaseosa, agua, cerveza, vino, hielo, postre, helado, salsa, aderezo, envase, retornable, cubiertos, servilleta';
 function repCfg(){const c=S.cfg.rep||(S.cfg.rep={});const d={on:false,menu:false,origen:{lat:null,lng:null,dir:''},zonas:[],reps:[],cap:8,ausenteMin:5,pin:true,foto:false,pick:REP_PICK_DEF,
@@ -61,16 +61,18 @@ const repWaNum=t=>{const d=String(t||'').replace(/\D/g,'');if(d.length<8)return 
 const repWaUrl=(t,msg)=>{const n=repWaNum(t);return n?'https://wa.me/'+n+'?text='+encodeURIComponent(msg||''):'';};
 const repTelUrl=t=>{const d=String(t||'').replace(/[^\d+]/g,'');return d.length>=6?'tel:'+d:'';};
 /* ---------- dinero de cada envío ---------- */
-const repCobrar=e=>e.cobro&&e.cobro.modo!=='pagado'?e.total:0;
+/* V27.14 · «cc» = va a la cuenta corriente del cliente: no se cobra en la puerta, se factura al rendir */
+const repNoCob=e=>!e||!e.cobro||e.cobro.modo==='pagado'||e.cobro.modo==='cc';
+const repCobrar=e=>!repNoCob(e)?e.total:0;
 const repVuelto=e=>e.cobro&&e.cobro.modo==='efectivo'&&e.cobro.abona>e.total?e.cobro.abona-e.total:0;
-function repCobroTxt(e){const c=e.cobro||{};if(c.modo==='pagado')return 'Ya está pagado.';if(c.modo==='efectivo')return 'Abonás '+money(e.total)+' en efectivo'+(c.abona>e.total?' (llevamos vuelto de '+money(c.abona)+')':'')+'.';return 'Abonás '+money(e.total)+' con QR o transferencia al recibir.';}
+function repCobroTxt(e){const c=e.cobro||{};if(c.modo==='pagado')return 'Ya está pagado.';if(c.modo==='cc')return 'Va a tu cuenta corriente: no tenés que pagar al recibir.';if(c.modo==='efectivo')return 'Abonás '+money(e.total)+' en efectivo'+(c.abona>e.total?' (llevamos vuelto de '+money(c.abona)+')':'')+'.';return 'Abonás '+money(e.total)+' con QR o transferencia al recibir.';}
 function repComision(rep,E){if(!rep)return 0;const c=repCfg();return E.reduce((a,e)=>{if(e.estado!=='entregado'&&!(c.ausentePaga&&(e.estado==='ausente'||e.estado==='devuelto')))return a;return a+(+rep.fijo||0)+Math.round((+e.tarifa||0)*(+rep.pct||0)/100);},0);}
 /* ---------- seguimiento del cliente (sólo el estado; en la nube por su referencia secreta) ---------- */
 async function repSeg(e){if(!e||!e.tok)return;const st=REP_SEG[e.estado]||'confirmado';e.segSt=st;
  if(!(typeof CLOUD!=='undefined'&&CLOUD.on&&cl.ready&&cl.comercio))return;
  try{const r=e.rutaId?repRuta(e.rutaId):null;await rpc('reparto_estado_poner',{p_comercio:cl.comercio.id,p_ref:e.tok,p_estado:st,p_eta:e.eta||null,p_rep:r?String(r.repNom||'').split(' ')[0]:null,p_nota:e.estado==='ausente'?'No te encontramos: escribinos para coordinar.':null});e.segPend=0;}catch(x){e.segPend=1;}}
 setInterval(()=>{if(!user||!repOn())return;(S.envios||[]).filter(e=>e.segPend&&now()-e.ts<2*86400000).slice(0,5).forEach(repSeg);},30000);
-function repSetEst(e,est,extra){if(!e||e.estado===est)return;const old=e.estado;e.estado=est;repHist(e,est,extra);audit('REPARTO_ESTADO','#'+e.n+' · '+(REP_EST[old]||old)+' → '+(REP_EST[est]||est)+(extra&&extra.nota?' · '+String(extra.nota).slice(0,80):''));repSeg(e);}
+function repSetEst(e,est,extra){if(!e||e.estado===est)return;if(est==='cancelado'&&e.rem&&!e.saleId&&typeof vbRemitoVoid==='function'){const rv=vbRemitoVoid(e.rem,'Envío #'+e.n+' cancelado');if(!rv.err)repHist(e,'remito anulado');}const old=e.estado;e.estado=est;repHist(e,est,extra);audit('REPARTO_ESTADO','#'+e.n+' · '+(REP_EST[old]||old)+' → '+(REP_EST[est]||est)+(extra&&extra.nota?' · '+String(extra.nota).slice(0,80):''));repSeg(e);}
 /* ---------- producto «Envío a domicilio» (cargo de envío en el ticket; no figura en el menú ni controla stock) ---------- */
 function repProd(){let p=S.products.find(x=>x.id==='p_envio');const rb=(repCfg().rubro&&rub(repCfg().rubro))?repCfg().rubro:(S.rubros.find(r=>!r.kind||r.kind==='normal')||S.rubros[0]||{}).id;
  if(!p){p={id:'p_envio',code:'ENVIO',name:'Envío a domicilio',sub:'',rubro:rb,price:0,cost:0,stock:1e6,unit:'u',active:true,menu:false,archived:false,envio:true};S.products.push(p);}
@@ -81,7 +83,7 @@ function repNuevo(o){const c=repCfg();const z=repZona(o.zona);
   cobro:o.cobro||{modo:'pagado'},saleId:o.saleId||'',sold:!!o.saleId,pin:o.pin||repPin(),tok:o.tok||repTok(),vd:o.vd||'',vh:o.vh||'',prio:o.prio||'normal',nota:String(o.nota||'').slice(0,200),
   eta:z&&z.eta?z.eta:'',cupon:o.cupon||'',disc:o.disc||0,benLabel:o.benLabel||'',custId:o.custId||'',user:user?user.name:'sistema',hist:[]};
  repHist(e,'nuevo',{orig:e.orig});S.envios.push(e);
- audit('REPARTO_NUEVO','#'+e.n+' · '+(REP_ORIG[e.orig]||['',''])[1]+' · '+(e.zonaNom||'sin zona')+' · '+money(e.total)+' · '+(e.cobro.modo==='pagado'?'pagado':'cobrar en la puerta'));
+ audit('REPARTO_NUEVO','#'+e.n+' · '+(REP_ORIG[e.orig]||['',''])[1]+' · '+(e.zonaNom||'sin zona')+' · '+money(e.total)+' · '+(repNoCob(e)?'pagado':'cobrar en la puerta'));
  emit('delivery.created',{n:e.n,orig:e.orig});repSeg(e);save();return e;}
 /* ---------- POS: «Envío a domicilio» ---------- */
 let repDraft=null;
@@ -137,7 +139,7 @@ A.repPos=()=>{if(!pos.lines.length)return;if(!can('reparto'))return toast('Sin p
    /* cargo de envío como una línea del ticket */
    pos.lines=base();if(o.tarifa>0){const p=repProd();pos.lines.push({pid:p.id,name:p.name+(z?' · '+z.nombre:''),rubro:p.rubro,qty:1,price:o.tarifa,cost:0,unit:'u',list:o.tarifa});}
    const total=posTotal();if(o.cobro.modo==='efectivo'&&o.cobro.abona&&o.cobro.abona<total){toast('«Abona con» ('+money(o.cobro.abona)+') es menor al total ('+money(total)+').',1);return false;}
-   if(o.cobro.modo==='pagado'){repDraft={from:'pos',o,sig:repSig(pos.lines),ts:now()};posCart();setTimeout(()=>A.cobrar(),60);return;}
+   if(repNoCob(o)){repDraft={from:'pos',o,sig:repSig(pos.lines),ts:now()};posCart();setTimeout(()=>A.cobrar(),60);return;}
    /* cobrar en la puerta: el pedido viaja sin venta (la venta se registra al rendir) y el mostrador queda libre */
    const B=posBen();const e=repNuevo(Object.assign({},o,{items:repItemsOf(pos.lines),total,custId:pos.cust||'',cupon:pos.coupon||'',disc:B.disc||0,benLabel:B.label||''}));
    pos.lines=[];pos.sel=-1;pos.cust='';pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];repDraft=null;posCart();if(typeof posGrid==='function')posGrid();
@@ -196,7 +198,7 @@ setInterval(()=>{if(user&&!$('#panel').hidden&&!document.hidden)repImport();},80
 /* ---------- BANDEJA ÚNICA DE DESPACHO ---------- */
 let repTab='bandeja',repFil={zona:'',orig:''},repSel=new Set();
 const repHoy=e=>now()-e.ts<36*3600000;
-function repBadgeCobro(e){return e.cobro&&e.cobro.modo!=='pagado'?`<span class="rep-cb-b cobrar">COBRAR ${money(e.total)}${e.cobro.modo==='digital'?' · QR':''}</span>`:'<span class="rep-cb-b pagado">PAGADO</span>';}
+function repBadgeCobro(e){if(e.cobro&&e.cobro.modo==='cc')return '<span class="rep-cb-b pagado">CUENTA CORRIENTE</span>';return !repNoCob(e)?`<span class="rep-cb-b cobrar">COBRAR ${money(e.total)}${e.cobro.modo==='digital'?' · QR':''}</span>`:'<span class="rep-cb-b pagado">PAGADO</span>';}
 function repCardHtml(e){const o=REP_ORIG[e.orig]||['📦','Otro'];const late=e.vh&&(()=>{const d=new Date(now());const[h,m]=e.vh.split(':');d.setHours(+h,+m,0,0);return d.getTime()<now()&&!['entregado','cancelado'].includes(e.estado);})();
  const sel=e.estado==='listo'&&!e.rutaId;
  return `<article class="rep-card ${e.prio==='urgente'?'urg':''} ${late?'late':''}" data-id="${esc(e.id)}">
@@ -237,8 +239,8 @@ A.repVer=el=>{const e=repEnv(el.dataset.id);if(!e)return;const r=e.rutaId?repRut
  ${!['entregado','cancelado','en_ruta'].includes(e.estado)&&!e.rutaId?`<button class="btn sm" data-act="repEdit" data-id="${esc(e.id)}">Editar</button><button class="btn sm red" data-act="repCancel" data-id="${esc(e.id)}">Cancelar envío</button>`:''}</div>`,{wide:true,okText:'Cerrar',noCancel:true});};
 A.repEdit=el=>{const e=repEnv(el.dataset.id);if(!e)return;$$('#modal-root .ov').forEach(o=>o.remove());
  const w=modal('Editar envío #'+e.n,repFormHtml(e),{wide:true,okText:'Guardar',onOk:()=>{const r=repFormRead(w,e);if(r.err&&!r.soft){toast(r.err,1);return false;}const o=r.o;
-   if(!e.saleId&&o.cobro.modo==='pagado'){toast('Este pedido no se cobró en el mostrador: elegí cobrar en la puerta (o cancelalo y cobralo en el POS).',1);return false;}
-   if(e.saleId&&o.cobro.modo!=='pagado'){toast('Este pedido ya está cobrado: queda como pagado.',1);o.cobro={modo:'pagado'};}
+   if(!e.saleId&&repNoCob(o)){toast('Este pedido no se cobró en el mostrador: elegí cobrar en la puerta (o cancelalo y cobralo en el POS).',1);return false;}
+   if(e.saleId&&!repNoCob(o)){toast('Este pedido ya está cobrado: queda como pagado.',1);o.cobro={modo:'pagado'};}
    const z=repZona(o.zona);const dif=o.tarifa-(e.tarifa||0);
    if(dif&&e.saleId){toast('El costo de envío de una venta ya cobrada no se cambia acá (hacé una nota de crédito o un cobro aparte).',1);return false;}
    if(dif){const ln=e.items.find(i=>i.pid==='p_envio');if(ln){ln.price=o.tarifa;ln.list=o.tarifa;if(!o.tarifa)e.items=e.items.filter(i=>i!==ln);}else if(o.tarifa>0){const p=repProd();e.items.push({pid:p.id,name:p.name+(z?' · '+z.nombre:''),rubro:p.rubro,qty:1,price:o.tarifa,cost:0,unit:'u',list:o.tarifa});}e.total+=dif;}
@@ -297,12 +299,12 @@ function repRutasHtml(){const R=(S.rutas||[]).filter(r=>r.estado!=='anulada').sl
  return (act.length?act.map(fila).join(''):'<p class="mut">No hay rutas activas. Elegí pedidos «Listos para salir» en la bandeja y armá una hoja de ruta.</p>')+(hist.length?`<h3 style="margin-top:1rem">Rendidas</h3>`+hist.map(fila).join(''):'');}
 /* ---------- RENDICIÓN CIEGA EN CAJA ---------- */
 function repCuentas(r){const E=r.envios.map(repEnv).filter(Boolean);let ef=0,dg=0;const pend=[];
- E.forEach(e=>{if(e.estado==='entregado'&&e.cobro.modo!=='pagado'){const cb=(e.ent&&e.ent.cobrado)||{modo:e.cobro.modo,monto:e.total};if(cb.modo==='efectivo')ef+=cb.monto||0;else dg+=cb.monto||0;}if(e.estado==='en_ruta')pend.push(e);});
+ E.forEach(e=>{if(e.estado==='entregado'&&!repNoCob(e)){const cb=(e.ent&&e.ent.cobrado)||{modo:e.cobro.modo,monto:e.total};if(cb.modo==='efectivo')ef+=cb.monto||0;else dg+=cb.monto||0;}if(e.estado==='en_ruta')pend.push(e);});
  return{E,ef,dg,pend,esperado:(r.cambio||0)+ef,com:repComision(repRep(r.rep),E),viajes:E.filter(e=>e.estado==='entregado').length,aus:E.filter(e=>['ausente','devuelto'].includes(e.estado)).length};}
 A.repRendir=el=>{const r=repRuta(el.dataset.id);if(!r||!['en_curso','cerrada'].includes(r.estado))return;if(!can('reparto_rend'))return toast('Sin permiso para recibir rendiciones',1);
  if(!openSess())return toast('Abrí la caja: la rendición entra a la caja abierta.',1);const K=repCuentas(r);
  const w=modal('Rendición '+r.n+' · '+r.repNom,`<p class="sm mut"><b>Rendición ciega:</b> contá el efectivo que entrega el repartidor y escribí el total <b>antes</b> de ver el cálculo del sistema.</p>
- <ul class="sm">${K.E.map(e=>`<li>#${e.n} · ${esc(e.cli.nombre)} · <b>${esc(REP_EST[e.estado]||e.estado)}</b>${e.estado==='entregado'&&e.cobro.modo!=='pagado'?' · cobró '+esc(((e.ent&&e.ent.cobrado&&e.ent.cobrado.modo)==='efectivo')?'efectivo':'QR/transferencia'):''}</li>`).join('')}</ul>
+ <ul class="sm">${K.E.map(e=>`<li>#${e.n} · ${esc(e.cli.nombre)} · <b>${esc(REP_EST[e.estado]||e.estado)}</b>${e.estado==='entregado'&&!repNoCob(e)?' · cobró '+esc(((e.ent&&e.ent.cobrado&&e.ent.cobrado.modo)==='efectivo')?'efectivo':'QR/transferencia'):''}</li>`).join('')}</ul>
  ${K.pend.length?`<div class="warnbox sm">${K.pend.length} pedido(s) siguen «en camino»: si rendís ahora vuelven al local como no entregados.</div>`:''}
  <label for="rr-cnt">Efectivo contado ($)</label>${numIn('rr-cnt',0,'0')}`,{okText:'Comparar',onOk:()=>{const cnt=cents(val('rr-cnt')||'0');if(isNaN(cnt)||cnt<0){toast('Escribí el efectivo contado.',1);return false;}setTimeout(()=>repRendir2(r,cnt),30);}});
  setTimeout(()=>{const i=w.querySelector('#rr-cnt');if(i)i.focus();},60);};
@@ -317,7 +319,11 @@ function repRendir2(r,cnt){const K=repCuentas(r);const dif=cnt-K.esperado;const 
  <p class="sm mut">Al confirmar: se registran las ventas cobradas en la puerta con su medio real, vuelve el cambio a la caja${dif?', la diferencia queda como movimiento a nombre del repartidor':''} y los no entregados vuelven a la bandeja.</p>`,{wide:true,okText:'Confirmar rendición',onOk:()=>{const pay=!!(w.querySelector('#rr-pay')||{}).checked;const er=repRendirAplicar(r,cnt,pay);if(er){toast(er,1);return false;}}});}
 function repRendirAplicar(r,cnt,pay){if(!openSess())return 'Abrí la caja.';const K=repCuentas(r);const rb=repRubroCaja();if(!rb)return 'Falta un rubro para registrar los movimientos (Configuración → Rubros).';const errs=[];
  /* 1) ventas de lo cobrado en la puerta (una sola vez por envío: si algo falla, rendir de nuevo continúa donde quedó) */
- K.E.forEach(e=>{if(e.estado!=='entregado'||e.sold||e.saleId)return;const cb=(e.ent&&e.ent.cobrado)||{modo:e.cobro.modo,monto:e.total};const m=cb.modo==='efectivo'?'efectivo':'transferencia';
+ K.E.forEach(e=>{if(e.estado!=='entregado'||e.sold||e.saleId||!e.rem)return;const cb=(e.ent&&e.ent.cobrado)||null;
+  const m=e.cobro.modo==='cc'?'fiado':(cb&&cb.modo==='efectivo'?'efectivo':'transferencia');
+  const res=typeof vbInvoice==='function'?vbInvoice([e.rem],{method:m}):{err:'falta el módulo Pedidos de venta'};if(res.err){errs.push('#'+e.n+': '+res.err);return;}
+  e.saleId=res.sale.id;e.sold=true;res.sale.envio=e.id;res.sale.ref=(cb&&cb.ref)||'';repHist(e,'factura '+res.sale.n);});
+ K.E.forEach(e=>{if(e.estado!=='entregado'||e.sold||e.saleId||e.rem)return;const cb=(e.ent&&e.ent.cobrado)||{modo:e.cobro.modo,monto:e.total};const m=cb.modo==='efectivo'?'efectivo':'transferencia';
   const res=commitSale(m,false,'reparto',e.items.map(i=>Object.assign({},i)),{custId:'',coupon:'',recv:0,noAdj:true,pdSkip:true,extraDisc:e.disc||0,extraKind:'reparto',extraLabel:e.benLabel||'Beneficio aplicado al tomar el pedido'});
   if(res.err){errs.push('#'+e.n+': '+res.err);return;}
   const cu=e.custId&&custById(e.custId);if(cu){res.sale.cust=cu.id;res.sale.custName=cu.name+' '+cu.last;}
@@ -365,7 +371,7 @@ function repBilletera(rp){const hoy=dkey(now());const R=(S.rutas||[]).filter(r=>
  return{viajes:E.filter(e=>e.estado==='entregado').length,com:R.reduce((a,r)=>a+repComision(rp,r.envios.map(repEnv).filter(Boolean)),0),bol};}
 function repGPS(){return new Promise(res=>{if(!navigator.geolocation)return res(null);let done=false;const t=setTimeout(()=>{if(!done){done=true;res(null);}},6000);
  try{navigator.geolocation.getCurrentPosition(p=>{if(done)return;done=true;clearTimeout(t);res({lat:Math.round(p.coords.latitude*1e6)/1e6,lng:Math.round(p.coords.longitude*1e6)/1e6,acc:Math.round(p.coords.accuracy||0)});},()=>{if(!done){done=true;clearTimeout(t);res(null);}},{enableHighAccuracy:true,timeout:5500,maximumAge:30000});}catch(e){done=true;clearTimeout(t);res(null);}});}
-function repMoneyBanner(e){if(e.cobro.modo==='pagado')return `<div class="cop-money ok" role="status"><b>PAGADO</b><span>No cobrar nada</span></div>`;
+function repMoneyBanner(e){if(e.cobro&&e.cobro.modo==='cc')return `<div class="cop-money ok" role="status"><b>CUENTA CORRIENTE</b><span>No cobrar: se factura a su cuenta</span></div>`;if(repNoCob(e))return `<div class="cop-money ok" role="status"><b>PAGADO</b><span>No cobrar nada</span></div>`;
  const v=repVuelto(e);return `<div class="cop-money cobrar" role="alert"><b>COBRAR ${money(e.total)}</b><span>${e.cobro.modo==='efectivo'?'En efectivo'+(v?` · abona con ${money(e.cobro.abona)} → <b>VUELTO ${money(v)}</b>`:''):'Con QR o transferencia'}</span></div>`;}
 function repCopHtml(){const c=repCfg();const rp=repMine();const off=!navigator.onLine;
  const sel=(can('reparto')||can('config'))?`<div class="row sm"><label for="cop-ver">Ver como</label><select id="cop-ver"><option value="">—</option>${c.reps.map(r=>`<option value="${esc(r.id)}" ${repVer===r.id?'selected':''}>${esc(r.nombre)}</option>`).join('')}</select></div>`:'';
@@ -399,7 +405,7 @@ A.repContactar=el=>{const e=repEnv(el.dataset.id);if(!e)return;const nm=String(e
  const L=[['📞 Llamar',repTelUrl(e.cli.tel)],['💬 «Estoy llegando»',repWaUrl(e.cli.tel,'¡Hola '+nm+'! Soy el repartidor de '+S.tenant.name+'. Estoy llegando con tu pedido #'+e.n+'.')],['💬 «Estoy en la puerta»',repWaUrl(e.cli.tel,'¡Hola '+nm+'! Estoy en la puerta con tu pedido #'+e.n+' de '+S.tenant.name+'.')],['💬 «No encuentro la dirección»',repWaUrl(e.cli.tel,'Hola '+nm+', no encuentro la dirección '+repDirTxt(e)+'. ¿Me compartís tu ubicación por WhatsApp?')]].filter(x=>x[1]);
  modal('Contactar a '+e.cli.nombre,`<div class="cop-list">${L.map(x=>`<a class="btn cop-big" ${x[1].startsWith('tel:')?'':'target="_blank" rel="noopener"'} href="${esc(x[1])}">${esc(x[0])}</a>`).join('')||'<p>No hay teléfono cargado.</p>'}</div>`,{okText:'Cerrar',noCancel:true});};
 A.repEntregar=el=>{const e=repEnv(el.dataset.id);if(!e||e.estado!=='en_ruta')return;const c=repCfg();let fails=0,foto='';
- const cob=e.cobro.modo!=='pagado';const qrImg=c.cobro.qrImg&&/^data:image\/(png|jpe?g|webp);base64,/.test(c.cobro.qrImg)?c.cobro.qrImg:'';
+ const cob=!repNoCob(e);const qrImg=c.cobro.qrImg&&/^data:image\/(png|jpe?g|webp);base64,/.test(c.cobro.qrImg)?c.cobro.qrImg:'';
  const w=modal('Entrega #'+e.n,`${repMoneyBanner(e)}
  ${c.pin?`<label for="ce-pin">Código de entrega (PIN) que te dice el cliente</label><input id="ce-pin" inputmode="numeric" maxlength="4" autocomplete="off" class="cop-pin">
  <label class="chk"><input type="checkbox" id="ce-nopin"> El cliente no tiene el código (se pide foto de respaldo)</label>`:''}

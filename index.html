@@ -21,7 +21,7 @@
 <meta property="og:locale" content="es_AR">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "LiquorStore", "name": "Almacén y Licorería RAVE", "url": "https://raveholding.github.io/AlmacenRAVE/", "telephone": "+54 9 387 457 4892", "address": {"@type": "PostalAddress", "streetAddress": "Urquiza 1052", "addressLocality": "Salta", "addressRegion": "Salta", "addressCountry": "AR"}}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242220'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23c9963e' font-family='Georgia,serif' font-weight='700'%3ER%3C/text%3E%3C/svg%3E">
-<script>window.RAVE_BUILD={"ver": "2026-11-17 02:42 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
+<script>window.RAVE_BUILD={"ver": "2026-11-17 19:53 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
 <style>
 :root{--ink:#242220;--gold:#c9963e;--gold2:#a87a28;--bg:#f6f3ee;--card:#fff;--line:#e6e0d6;--mut:#6d675f;--red:#c0392b;--redbg:#fdecea;--ok:#1e7a46;--okbg:#e6f4ec;--warnbg:#fff4dc;--r:16px}
 *{box-sizing:border-box}
@@ -990,7 +990,7 @@ function rolesMigrate(r){if(!r)return r;if(Array.isArray(r.admin))for(const p of
  for(const perm of['purchases','price_lists','credit_ov','audit_read','pay_detail_edit']){const any=Object.values(r).some(a=>Array.isArray(a)&&a.includes(perm));if(!any){if(Array.isArray(r.supervisor))r.supervisor.push(perm);if(Array.isArray(r.admin))r.admin.push(perm);}}return r;}
 function mergeDefaults(st){const d=DEF();for(const k of Object.keys(d)){if(st[k]===undefined)st[k]=d[k];}rolesMigrate(st.roles);if(st.cfg&&!st.cfg.rep69&&st.roles){['supervisor','mostrador'].forEach(k=>{const L=st.roles[k];if(Array.isArray(L))['reparto','reparto_rend'].forEach(p=>{if(!L.includes(p))L.push(p);});});st.cfg.rep69=1;} /* V26.69: una sola vez; después decide el dueño */if(st.cfg&&st.cfg.permNotice===undefined)st.cfg.permNotice={ack:false};if(!IS_CLIENT&&st.cfg&&st.cfg.wholesale===undefined)wsDemoSeed(st);wsMigrate(st);bizMigrate(st);if(!IS_CLIENT&&typeof comboDemoSeed==='function')comboDemoSeed(st);if(!IS_CLIENT&&typeof hrDemoSeed==='function')hrDemoSeed(st);if(!IS_CLIENT&&typeof repDemoSeed==='function')repDemoSeed(st);if(!IS_CLIENT&&typeof finDemoSeed==='function'&&st.cfg&&!st.cfg.fin)finDemoSeed(st);if(!IS_CLIENT&&typeof pushDemoSeed==='function'&&st.cfg&&!st.cfg.push)pushDemoSeed(st);return st;}
 /* V26.14: el viejo «perfil sin rubros» de traspasos pasa a ser el tipo de negocio; el dueño (administrador) mueve fondos con su propia autorización */
-function bizMigrate(st){if(!st.cfg)return;if(typeof isSoloBuild==='function'&&isSoloBuild()){st.cfg.biz='owner';st.cfg.bizLocked=1;}if(typeof isKiniBuild==='function'&&isKiniBuild()){st.cfg.biz='owner';st.cfg.bizLocked=1;if(!st.cfg.kiniOnlyV&&st.cfg.wholesale){st.cfg.wholesale.only=true;(st.customers||[]).forEach(c=>{c.channel='mayorista';});st.cfg.kiniOnlyV=1;}}if(!st.cfg.biz)st.cfg.biz=(st.cfg.xfer&&st.cfg.xfer.noRubro)?'owner':'rubros';
+function bizMigrate(st){if(!st.cfg)return;if(typeof isSoloBuild==='function'&&isSoloBuild()){st.cfg.biz='owner';st.cfg.bizLocked=1;}if(typeof isKiniBuild==='function'&&isKiniBuild()){st.cfg.biz='owner';st.cfg.bizLocked=1;if(!st.cfg.kiniOnlyV&&st.cfg.wholesale){st.cfg.wholesale.only=true;(st.customers||[]).forEach(c=>{c.channel='mayorista';});st.cfg.kiniOnlyV=1;}const D0=typeof window!=='undefined'&&window.RAVE_DEMO;if(D0&&D0.fijo&&D0.canal==='may'&&D0.cli&&st.cfg.wholesale&&!st.cfg.wholesale.cli){st.cfg.wholesale.on=true;st.cfg.wholesale.only=true;st.cfg.wholesale.cli=true;} /* V27.9: la demo Mayorista vende sólo a comercios, también con datos ya guardados */}if(!st.cfg.biz)st.cfg.biz=(st.cfg.xfer&&st.cfg.xfer.noRubro)?'owner':'rubros';
  st.cfg.xfer=st.cfg.xfer||{};if(!st.cfg.xfer.ownerV){st.cfg.xfer.selfAuth=true;st.cfg.xfer.ownerV=1;}}
 
 /* ---------- Permisos, auditoría ---------- */
@@ -2026,7 +2026,7 @@ function commitSale(method,arca,channel,lines,opts){
  pays.forEach(p=>{p.fee=(digital||p.m==='fiado')?0:Math.round(p.a*((S.cfg.fee[p.m]||0))/100);});
  const fiadoAmt=pc.fiadoAmt;
  const sale={id:opts.saleId||uid(),n:c+'-'+S.seq[c],ts:now(),user:user?user.name:'sistema',caja:c,sessId:sess.id,items:lines.map((l,i)=>({pid:l.pid,name:l.name,rubro:l.rubro,qty:l.qty,price:l.price,cost:isKit(prod(l.pid))?kitCost(prod(l.pid)):l.cost,list:l.list,disc:alloc[i]||0,...(isKit(prod(l.pid))?{kit:kitSnap(l.pid)}:{}),...(W&&l.rule?{lr:l.rule,ll:l.lst||'',lb:l.base||0}:{}),...(l.src?{src:l.src}:{})})),total,method,
-  doc:arca?'factura_pendiente_cae':'ticket_interno',status:digital?'pendiente':'ok',fee:0,channel:channel||'local',cust:cust?cust.id:'',custName:cust?cust.name+' '+cust.last:'',
+  doc:arca?'factura_pendiente_cae':'ticket_interno',status:digital?'pendiente':'ok',fee:0,channel:channel||'local',cust:cust?cust.id:'',custName:cust?cust.name+' '+cust.last:'',cliTipo:opts.cliTipo||'',
   coupon:ben.kind==='coupon'?ben.code:'',benefit:ben.disc?{kind:ben.kind,label:ben.label,disc:ben.disc}:null,recv:opts.recv||0,fiado:fiadoAmt>0,
   pays,fiadoAmt,paid:total-fiadoAmt,balance:fiadoAmt,vuelto:pc.vuelto,pstate:fiadoAmt<=0?'pagada':(fiadoAmt>=total?'pendiente':'parcial')};
  if(PA){const al=paAlloc(sale.items.map(lineTotal),total-(gross-ben.disc));sale.items.forEach((it,i)=>{if(al[i])it.pa=al[i];});sale.sub=gross;sale.adj=PA.adj;}
@@ -2111,6 +2111,15 @@ function mixSummaryHTML(tot){
  if(ef&&rc>0){if(rc>=efA&&efA>0){const v=rc-efA;h+=v>0?`<div class="vuelto" role="alert" aria-live="assertive"><span>VUELTO A ENTREGAR</span><b>${money(v)}</b><small>Recibido ${money(rc)} − efectivo imputado ${money(efA)}</small></div>`:'<div class="okbox sm">Efectivo justo: sin vuelto.</div>';}
   else if(efA>0)h+=`<div class="errbox sm"><b>Efectivo recibido insuficiente:</b> faltan ${money(efA-rc)} para el importe en efectivo.</div>`;}
  return h;}
+/* V27.12 · tipo de cliente en el cobro: nunca limita la venta, sólo define el comprobante */
+const CLI_TIPOS=[['5','Consumidor final'],['6','Monotributista'],['4','Exento'],['1','Resp. Inscripto']];
+function cliTipo(){if(pos.arca&&pos.rcp&&pos.rcp.c)return pos.rcp.c;if(pos.ctip)return pos.ctip;const c=custById(pos.cust);return (c&&c.ivaCond)||'5';}
+function cbLetra(t){const e=String((S.tenant&&S.tenant.iva)||'');if(/monotrib|exento/i.test(e))return 'C';return t==='1'?'A':'B';}
+function cliTipoHTML(){if(pos.arca){if(typeof arcaRcpAuto==='function')arcaRcpAuto();const r=pos.rcp||(pos.rcp={t:'99',n:'',c:'5',nm:''});if(pos.ctip&&r.c!==pos.ctip&&r._ct!==pos.ctip){r.c=pos.ctip;if(pos.ctip==='1'&&r.t!=='80')r.t='80';r._ct=pos.ctip;}pos.ctip=r.c;}const t=cliTipo(),L=cbLetra(t),nm=(CLI_TIPOS.find(x=>x[0]===t)||CLI_TIPOS[0])[1];
+ const doc=pos.arca?'Factura '+L+' electrónica (CAE al cobrar)':'Ticket interno — DOCUMENTO NO VÁLIDO COMO FACTURA';
+ const tip=!pos.arca&&t!=='5'?`<div class="sm mut">A un ${esc(nm)} le corresponde Factura ${L}: activá ARCA (F8) para emitirla.</div>`:(pos.arca&&t==='1'&&!(pos.rcp&&pos.rcp.n)?'<div class="warnbox sm">Factura A: cargá el CUIT del cliente en «Receptor de la factura».</div>':'');
+ return `<div class="card" id="cb-ctip" style="margin:.4rem 0;padding:.6rem"><b class="sm">¿Qué tipo de cliente es?</b> <span class="sm mut">(se le vende igual; define el comprobante)</span><div class="row" style="margin:.35rem 0;flex-wrap:wrap;gap:.3rem">${CLI_TIPOS.map(([k,n])=>`<button type="button" class="btn sm ${t===k?'on':''}" data-act="cbctip" data-v="${k}" aria-pressed="${t===k}">${n}</button>`).join('')}</div><p class="sm" style="margin:.2rem 0"><b>Comprobante:</b> ${doc} <button class="btn sm" data-act="parca">${pos.arca?'CON ARCA':'SIN ARCA'} (F8)</button></p>${tip}</div>`;}
+A.cbctip=el=>{cobroSync();const v=el.dataset.v;pos.ctip=v;if(pos.arca){if(typeof arcaRcpAuto==='function')arcaRcpAuto();const r=pos.rcp||(pos.rcp={t:'99',n:'',c:'5',nm:''});r.c=v;r._ct=v;if(v==='1'&&r.t!=='80')r.t='80';else if(v==='5'&&r.t==='80'&&!r.n)r.t='99';}cobroRender();};
 function cobroView(){
  if(typeof wsRecalc==='function')wsRecalc();
  const cust=custById(pos.cust);const ben=posBen();const gross=posGross();const tot=gross-ben.disc;const m=pos.mix?'mixto':pos.method;
@@ -2129,7 +2138,7 @@ function cobroView(){
  return `<div class="card" style="margin-bottom:.6rem">${pos.lines.map(l=>`<div class="row sm"><span class="sp">${esc(l.name)} × ${numAR(l.qty,3)}${typeof wsLineTag==='function'?wsLineTag(l):''}</span><b>${money(Math.round(l.qty*l.price))}</b></div>`).join('')}${ben.disc?`<div class="row sm"><span class="sp">Subtotal</span><span>${money(gross)}</span></div><div class="row sm" style="color:var(--ok)"><span class="sp">${esc(ben.label)}</span><b>− ${money(ben.disc)}</b></div>`:''}${typeof paCobroTotHTML==='function'?paCobroTotHTML(tot,gross,ben):`<hr><div class="row"><span class="sp">TOTAL</span><span class="total">${money(tot)}</span></div>`}</div>
  ${rcvBoxHTML(m)}
  <div class="row" style="margin-bottom:.5rem">${chips}</div>
- <p class="sm"><b>Documento:</b> ${pos.arca?'Factura electrónica (CAE al cobrar)':'Ticket interno — DOCUMENTO NO VÁLIDO COMO FACTURA'} <button class="btn sm" data-act="parca">${pos.arca?'CON ARCA':'SIN ARCA'} (F8)</button></p>
+ ${cliTipoHTML()}
  ${custBox}
  ${mixHtml}
  ${typeof fidCobroHTML==='function'?fidCobroHTML(m,cust,tot):''}
@@ -2171,9 +2180,9 @@ A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin perm
   const ag=typeof accGate==='function'?accGate():{acc:null};if(ag.err){toast(ag.err,1);return false;}
   if(typeof ckNeeded==='function'&&ckNeeded()&&!pos.ck){toast('Elegí «Mandar a Fiado» o «Mandar a Cuenta Corriente».',1);const k=$('#ckpick');if(k)k.scrollIntoView({block:'center'});return false;}
   if(pos.mix){const L=mixParsed();const ef=L.find(p=>p.m==='efectivo');recv=ef?ef.r:0;}
-  const r=commitSale(pos.mix?'mixto':pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv,pays,det:pg.det,acc:ag.acc,ws:wsOn()?{chan:wsChan()}:null,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null,ck:pos.ck,gift:pos.gift||'',quote:pos.quote||''});
+  const r=commitSale(pos.mix?'mixto':pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv,pays,det:pg.det,acc:ag.acc,ws:wsOn()?{chan:wsChan()}:null,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null,cliTipo:cliTipo(),ck:pos.ck,gift:pos.gift||'',quote:pos.quote||''});
   if(r.err){wsCommitErr(r);return false;}
-  const sale=r.sale;if(typeof repAfterSale==='function')repAfterSale(sale);pos.lines=[];pos.sel=-1;pos.cust='';pos.chanSet=null;pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];pos.pdet={};pos.acc={};pos.ck='';pos.gift='';pos.quote='';posCart();posGrid();
+  const sale=r.sale;if(typeof repAfterSale==='function')repAfterSale(sale);pos.lines=[];pos.sel=-1;pos.cust='';pos.ctip='';pos.chanSet=null;pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];pos.pdet={};pos.acc={};pos.ck='';pos.gift='';pos.quote='';posCart();posGrid();
   toast('Venta '+sale.n+' registrada'+(r.stamp?' · sello sumado':''));if(typeof csPaid==='function')csPaid(sale);
   setTimeout(()=>{if(sale.status==='pendiente')payModal(sale);else if(sale.doc!=='ticket_interno'&&typeof arcaPostSale==='function')arcaPostSale(sale,r.stamp);else receiptModal(sale,r.stamp);},50);}});
  if(typeof pdBind==='function')pdBind(w);
@@ -2191,7 +2200,7 @@ A.cbmadd=()=>{const used=pos.pays.map(p=>p.m);const m=payMix().find(k=>!used.inc
 A.cbmrm=el=>{pos.pays.splice(+el.dataset.i,1);cobroRender();};
 A.cbrest=el=>{const L=mixParsed();const i=+el.dataset.i;const others=L.reduce((a,p,j)=>a+(j===i||isNaN(p.a)?0:p.a),0);const rest=posTotal()-others;if(rest<=0)return toast('No queda resto: los otros medios ya cubren el total.',1);pos.pays[i].a=pesosStr(rest);cobroRender();};
 A.cbmet=el=>{pos.method=el.dataset.m;pos.mix=false;pos.pays=[];cobroRender();posCart();if(pos.method==='efectivo')rcvFocus();};
-A.cbcust=el=>{pos.cust=el.dataset.id||'';pos.chanSet=null;cobroRender();posCart();};
+A.cbcust=el=>{pos.cust=el.dataset.id||'';pos.ctip='';pos.chanSet=null;cobroRender();posCart();};
 A.cbcup=()=>{cobroRender();};
 const cbSetStamp=t=>{const i=document.getElementById('cb-code');if(i)i.value=t;pos.stamp=t;cobroRender();};
 A.cbQr=()=>qrScan(cbSetStamp);
@@ -3509,7 +3518,7 @@ function bizCard(){const cur=ownerMode()?'owner':'rubros';const adm=!!user&&user
  <div class="bm-sec"><h4>2 · ¿A quién le vendés?</h4>${sec2}</div></div>`;}
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.closest||!t.closest('#biz-card')||t.type!=='radio')return;t.closest('.bm-grid').querySelectorAll('.bm-opt').forEach(l=>l.classList.toggle('on',l.querySelector('input').checked));});
 A.chanSave=()=>{if(!user||user.role!=='admin')return toast('Sólo el administrador',1);const el=document.querySelector('input[name="chan"]:checked');const nv=el?el.value:'';if(!CHANNELS[nv])return;const ov=chanCur();if(nv===ov)return toast('Ya vendés así');
- const msg={min:'Se vuelve a vender como minorista. Las presentaciones, acuerdos y precios mayoristas quedan guardados y las ventas anteriores no cambian.',both:'Aparecen el canal de cada cliente, los precios por presentación (Unidad, Display, Fardo, Pallet…), los acuerdos y el crédito con plazo. Las ventas anteriores no cambian.',may:'Toda venta pasa a ser mayorista y desaparece «Cambiar canal». Las ventas anteriores no cambian.'}[nv];
+ const msg={min:'Se vuelve a vender como minorista. Las presentaciones, acuerdos y precios mayoristas quedan guardados y las ventas anteriores no cambian.',both:'Se le vende a cualquiera con precios por presentación (Unidad, Display, Fardo, Pallet…), los acuerdos y el crédito con plazo. Las ventas anteriores no cambian.',may:'Se le vende a cualquiera: unidades sueltas al precio por unidad y presentaciones completas a precio mayorista. Las ventas anteriores no cambian.'}[nv];
  confirmBox('Cambiar canales de venta',`De «${CHANNELS[ov][0]}» a «${CHANNELS[nv][0]}». ${msg}${typeof giPackTxt==='function'?giPackTxt(nv):''}`,()=>{const before=JSON.stringify(S.cfg.wholesale||{});const W=Object.assign({},S.cfg.wholesale||{});W.on=nv!=='min';W.only=nv==='may';delete W.lists;S.cfg.wholesale=W;
   audit(nv==='min'?'MAYORISTA_APAGAR':ov==='min'?'MAYORISTA_ACTIVAR':'MAYORISTA_CONFIG','canales: '+CHANNELS[ov][0]+' → '+CHANNELS[nv][0]+' · antes '+before.slice(0,120));save();const act=typeof giPackApply==='function'?giPackApply(nv):[];rerender();toast('Canales de venta: '+CHANNELS[nv][0]+(act.length?' · se activaron '+act.length+' función(es)':''));},'Cambiar');};
 A.bizSave=()=>{if(!user||user.role!=='admin')return toast('Sólo el administrador',1);if(bizLocked())return toast('Este sistema es de un solo dueño: el tipo de negocio no se cambia.',1);const el=document.querySelector('input[name="biz"]:checked');const nv=el?el.value:'';
@@ -3745,6 +3754,7 @@ function kiniBase(d){
  if(D){d.tenant=Object.assign({},d.tenant,{name:D.nombre,legal:D.nombre,slogan:D.slogan,cuit:D.canal==='min'?'27-31245678-3':'30-71654321-4',iva:D.canal==='min'?'Responsable Monotributo (ejemplo)':'IVA Responsable Inscripto (ejemplo)',address:'Av. San Martín 1250, Salta (ejemplo)',phone:'(0387) 400-1250'});
   d.menu=Object.assign({},d.menu,{title:D.nombre.toUpperCase(),sub:{es:D.slogan,en:D.slogan},footer:{es:D.nombre+' · demo de Vincular Business',en:D.nombre+' · Vincular Business demo'}});
   if(d.cfg.wholesale&&D.canal==='both')d.cfg.wholesale.only=false;
+  if(d.cfg.wholesale&&D.canal==='may'&&D.cli)d.cfg.wholesale.cli=true; /* V27.9 · demo Mayorista: sólo comercios con CUIT */
   d.cfg.plan=D.plan||'total';d.cfg.mods=Object.assign({},d.cfg.mods||{});(D.mods||[]).forEach(k=>{d.cfg.mods[k]=true;});if(D.catalogo==='almacen')almBase(d);}
  const t=Math.max(Date.now()-2*3600000,new Date().setHours(0,5,0,0));
  d.sessions=[{id:'k-s1',caja:1,regId:'r1',regName:'Caja 1',branchId:'',openedBy:'ADMIN',openedAt:t,opening:15000000,closedAt:0},
@@ -3754,7 +3764,7 @@ function kiniBase(d){
 /* historial de ejemplo de la distribuidora (reemplaza al del almacén): ventas minoristas y mayoristas por presentación,
    algunas a cuenta corriente de los comercios. Marcadas «demo»: no tocan stock ni caja. */
 function kiniExtras(){if(!isKiniBuild())return;
- S.customers=(window.RAVE_DEMO&&window.RAVE_DEMO.catalogo==='almacen')?almCustomers():kiniCustomers();S.loyalty.ledger=[];S.members=[];S.plans=[];
+ S.customers=(window.RAVE_DEMO&&window.RAVE_DEMO.catalogo==='almacen')?almCustomers():kiniCustomers();if(S.cfg.wholesale&&S.cfg.wholesale.cli)S.customers=S.customers.filter(c=>c.taxid);S.loyalty.ledger=[];S.members=[];S.plans=[];
  S.coupons.forEach(c=>{c.uses=[];});
  S.sales=S.sales.filter(s=>!(s.demo&&/^hs/.test(s.id)));
  let seed=11;const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
@@ -3769,13 +3779,61 @@ function kiniExtras(){if(!isKiniBuild())return;
    else items.push({pid:p.id,name:p.name+(p.sub?' ('+p.sub+')':''),rubro:p.rubro,qty:1+Math.floor(rnd()*3),price:p.price,cost:p.cost,list:p.price,disc:0,...(ws?{lr:'L1',ll:'',lb:p.price}:{})});}
   if(!items.length)continue;
   const total=items.reduce((a,i)=>a+Math.round(i.qty*i.price),0);S.seq[cj]=(S.seq[cj]||0)+1;const ts=Date.now()-d*86400000-Math.floor(rnd()*8*3600000)-3*3600000;
-  const lib=S.customers.filter(c=>c.limit>0&&c.channel!=='mayorista');const cu=ws&&!(S.cfg.wholesale&&S.cfg.wholesale.only&&rnd()<0.3)?mays[Math.floor(rnd()*mays.length)]:(!ws&&lib.length&&rnd()<0.18?lib[Math.floor(rnd()*lib.length)]:null);let m=cu?metM[Math.floor(rnd()*metM.length)]:metm[Math.floor(rnd()*metm.length)];
+  const lib=S.customers.filter(c=>c.limit>0&&c.channel!=='mayorista');const cu=ws&&(S.cfg.wholesale&&S.cfg.wholesale.cli||!(S.cfg.wholesale&&S.cfg.wholesale.only&&rnd()<0.3))?mays[Math.floor(rnd()*mays.length)]:(!ws&&lib.length&&rnd()<0.18?lib[Math.floor(rnd()*lib.length)]:null);let m=cu?metM[Math.floor(rnd()*metM.length)]:metm[Math.floor(rnd()*metm.length)];
   if(m==='fiado'&&(!cu||d<2||(cu.term>0&&d>=cu.term)||((dbt[cu.id]||0)+total)>cu.limit*0.35))m='transferencia';const fi=m==='fiado'?total:0;if(fi)dbt[cu.id]=(dbt[cu.id]||0)+fi;
   const s={id:'hs'+d+'_'+k,n:cj+'-'+S.seq[cj],ts,user:ws?'ADMIN':'Mostrador',caja:cj,sessId:'hist-demo',items,total,method:m,doc:'ticket_interno',status:'ok',fee:0,channel:'local',
    cust:cu?cu.id:'',custName:cu?custFull(cu):'',coupon:'',benefit:null,recv:0,fiado:fi>0,pays:[{m,a:total,fee:0}],fiadoAmt:fi,paid:total-fi,balance:fi,vuelto:0,pstate:fi?'pendiente':'pagada',demo:true};
   if(ws)s.wch='mayorista';if(fi&&cu&&cu.term>0){s.term=cu.term;s.due=ts+cu.term*86400000;}
   S.sales.push(s);}}}
 /* proveedores, deudas y una orden pendiente: se cargan con el mismo motor que usa la pantalla (validaciones reales) */
+/* V27.10 · Distribuidora de ejemplo: cartera de comercios con zona y días de visita, preventista, pedidos de venta en distintos estados
+   (pendiente, armado, entregado en parte, entregado), visitas y cobranza en la calle de HOY, reparto con zonas, repartidores, envíos y una
+   hoja de ruta, y un acopio. Usa las mismas funciones que el sistema, así todo queda enlazado (stock reservado, remitos, cuenta corriente). */
+function demoDistriSeed(){if(!window.RAVE_DEMO||!giOn('orders')||S.cfg.distriSeeded)return;S.cfg.distriSeeded=1;
+ const t0=now(),H=3600000,DAY=86400000,adm=S.users.find(u=>u.role==='admin')||user;const prevU=user;user=adm;
+ try{
+  if(!S.roles.preventista)S.roles.preventista=['presale','orders','sell','customers'];
+  if(!S.users.some(u=>u.role==='preventista'))S.users.push({id:'u-prev',name:'Lucas (preventista)',role:'preventista',pin:'5555',active:true});
+  const Z=['Centro','Zona Norte','Zona Sur'],LL=[[-24.7883,-65.4106],[-24.7701,-65.4093],[-24.8052,-65.4201]],DIAS=[[1,4],[2,5],[3,6]];
+  const N=[['Despensa San Cayetano','27301112225','Av. Belgrano 1450',0,1500000,15],['Kiosco La Terminal','20334445551','Av. Hipólito Yrigoyen 200',0,800000,7],['Autoservicio El Tunal','30715556665','Av. Bolivia 4100',1,4000000,30],
+   ['Almacén Los Pinos','27389990006','Pasaje Los Pinos 120',1,1000000,15],['Minimercado Tres Cerritos','30716667770','Los Ceibos 55',1,2500000,30],['Despensa Don Julio','20298887771','Av. Tavella 3300',2,1200000,15],
+   ['Kiosco Universitario','27412223336','Av. Bolivia 5150',2,600000,7],['Bar El Patio','30717778886','Caseros 980',0,900000,15]];
+  N.forEach(([n,cuit,dir,z,lim,term],i)=>{if(!arcaCuitOk(cuit)||S.customers.some(c=>c.taxid===cuit))return;
+   S.customers.push({id:'dc'+i,num:100+i,name:n,last:'',birth:'',wa:'+5493874'+String(600000+i*137),dni:'',cards:[],cardSecrets:{},origin:'ejemplo',consent:{club:false,comm:true,analytics:false,version:'v1-2026-demo',ts:t0-40*DAY},ts:t0-40*DAY,
+    status:'activo',limit:lim*100,secret:'dc-ej-'+i+'-0000000000',notes:'',channel:'mayorista',taxid:cuit,term,zone:Z[z],seller:'u-prev',addr:dir+', Salta',example:true,
+    pv:{zona:Z[z],dias:DIAS[i%3],seller:'u-prev',ord:i,lat:LL[z][0]+((i*37)%9-4)*0.002,lng:LL[z][1]+((i*53)%9-4)*0.002}});});
+  S.customers.filter(c=>c.channel==='mayorista'&&!c.pv).forEach((c,i)=>{c.pv={zona:'Centro',dias:DIAS[i%3],seller:'u-prev',ord:20+i,lat:LL[0][0]+i*0.003,lng:LL[0][1]-i*0.003};c.zone=c.zone||'Centro';});
+  const P=S.products.filter(p=>!p.archived&&p.active!==false&&p.price>0&&!isKit(p)),pid=k=>P[(k*7)%P.length].id;
+  const ord=(cid,items,cond,src,note,hAtras)=>{const r=vbOrderCreate({cust:cid,items,cond,src,note,deliv:new Date(t0+DAY).toISOString().slice(0,10)});if(!r||r.err)return null;r.o.ts=t0-hAtras*H;if(r.o.hist[0])r.o.hist[0].ts=r.o.ts;return r.o;};
+  const o1=ord('dc0',[{pid:pid(1),qty:12},{pid:pid(2),qty:6}],'cc','preventa','Entregar a la mañana',2);
+  const o2=ord('dc2',[{pid:pid(3),qty:24},{pid:pid(4),qty:12},{pid:pid(5),qty:6}],'cc','preventa','',20);
+  const o3=ord('dc4',[{pid:pid(6),qty:18},{pid:pid(7),qty:6}],'contado','whatsapp','Pidió por WhatsApp',28);
+  const o4=ord('dc5',[{pid:pid(8),qty:12}],'cc','mostrador','',50);ord('dc1',[{pid:pid(9),qty:6},{pid:pid(10),qty:6}],'contado','preventa','',1);
+  if(o2){const k={};o2.items.forEach(it=>k[it.pid]=it.qty);vbPick(o2.id,k);}
+  if(o3){const k={};o3.items.forEach(it=>k[it.pid]=it.qty);vbRemito(o3.id,k);}
+  if(o4){const k={};o4.items.forEach(it=>k[it.pid]=Math.floor(it.qty/2));vbRemito(o4.id,k);}
+  user=S.users.find(u=>u.id==='u-prev')||adm;
+  const ruta=pvRoute('',new Date(t0).getDay());ruta.slice(0,3).forEach((c,i)=>pvVisit(c.id,['Compró','Tiene stock','Cerrado'][i],['Pedido cargado','Vuelve en la próxima visita',''][i]));
+  S.customers.filter(c=>debtOf(c.id)>200000).slice(0,2).forEach((c,i)=>pvCobro(c.id,Math.min(debtOf(c.id),[5000000,3000000][i]),i?'transferencia':'efectivo',i?'TRF 4512':''));
+  user=adm;
+  if(typeof repCfg==='function'){const rc=repCfg();rc.on=true;rc.origen={lat:-24.7859,lng:-65.4117,dir:'Depósito · Av. Ex Combatientes de Malvinas 3900, Salta (ejemplo)'};
+   rc.zonas=[{id:'rz1',nombre:'Centro',tarifa:0,minimo:0,eta:'2 a 4 h',radio:3,activo:true},{id:'rz2',nombre:'Zona Norte',tarifa:0,minimo:0,eta:'en el día',radio:6,activo:true},{id:'rz3',nombre:'Zona Sur',tarifa:0,minimo:0,eta:'en el día',radio:6,activo:true}];
+   rc.reps=[{id:'rr1',nombre:'Martín (camioneta)',tel:'3874001001',veh:'Camioneta',cap:12,fijo:0,pct:0,login:(S.users.find(u=>u.role==='repartidor')||{}).id||'',activo:true},{id:'rr2',nombre:'Diego (moto)',tel:'3874001002',veh:'Moto con baúl',cap:6,fijo:0,pct:0,login:'',activo:true}];
+   const env=[];['dc0','dc2','dc3','dc5','dc6','dc4'].forEach((cid,i)=>{const c=custById(cid);if(!c||!c.pv)return;const zi=Math.max(0,Z.indexOf(c.pv.zona));
+    const items=[0,1,2].slice(0,1+i%3).map(k=>{const p=prod(pid(i*3+k));const q=6*(1+(i+k)%3);return{pid:p.id,name:pfull(p),rubro:p.rubro,qty:q,price:p.price,cost:p.cost||0,unit:p.unit||'u'};});
+    const e=repNuevo({orig:i%2?'pos':'menu',cli:{nombre:c.name,tel:c.wa,dir:c.addr,loc:'Salta',ref:'',lat:c.pv.lat,lng:c.pv.lng,custId:c.id},zona:['rz1','rz2','rz3'][zi],tarifa:0,items,total:items.reduce((a,x)=>a+x.price*x.qty,0),cobro:{modo:i%2?'pagado':'efectivo',abona:0},nota:''});
+    e.ts=t0-(6-i)*H;env.push(e);});
+   if(env.length>=6){repSetEst(env[0],'preparando');['listo'].forEach(s=>{repSetEst(env[1],s);repSetEst(env[2],s);repSetEst(env[3],s);});repSetEst(env[5],'entregado');
+    const ids=[env[1].id,env[2].id];const r={id:uid(),n:repRutaNum(),ts:t0,rep:'rr1',repNom:'Martín (camioneta)',envios:ids,estado:'armada',cambio:0,km:repKm(ids),via:'cálculo propio (gratis)',url:repMapsUrl(ids),user:adm.name};
+    S.rutas.push(r);ids.forEach(id=>{const e=repEnv(id);e.rutaId=r.id;repHist(e,'en ruta '+r.n);});
+    /* V27.14 · el circuito completo: dos pedidos del preventista van al camión (uno contado, uno en cuenta corriente) y la ruta de Martín sale a la calle */
+    if(typeof vbToReparto==='function'){const P2=vbArr('sordr').filter(o=>VB_OPEN.includes(o.state)).slice(0,2);const add=[];P2.forEach((o,k)=>{if(k===0)o.cond='contado';const x=vbToReparto(o.id);if(!x.err)add.push(x.e.id);});
+     if(add.length){add.forEach(id=>{const e=repEnv(id);e.rutaId=r.id;repHist(e,'en ruta '+r.n);});r.envios=add.concat(r.envios);r.km=repKm(r.envios);r.url=repMapsUrl(r.envios);}}
+    r.estado='en_curso';r.salida=t0;r.envios.map(repEnv).forEach(e=>{if(e&&e.estado==='listo')repSetEst(e,'en_ruta',{nota:r.n});});}}
+  if(giOn('stockpile'))vbAcopioCreate({cust:'dc2',items:[{pid:pid(11),qty:60}],note:'Mercadería pagada que retira en partes (ejemplo)'});
+  audit('DEMO_EJEMPLOS','Distribuidora: cartera, pedidos, preventa, reparto y acopio de ejemplo');
+ }catch(e){console.warn('demoDistriSeed',e&&e.message);}
+ user=prevU;save();}
 async function kiniSeedAsync(){if(!isKiniBuild()||!S.cfg||S.cfg.kiniSeeded)return;S.cfg.kiniSeeded=1;
  const prev=user;user=user||{id:'u1',name:'ADMIN',role:'admin'};
  const prods=S.products.filter(p=>p.unit==='u'&&!isKit(p)&&!p.archived&&p.price>0);const pick=(i)=>prods[i%prods.length];
@@ -3795,7 +3853,7 @@ async function kiniSeedAsync(){if(!isKiniBuild()||!S.cfg||S.cfg.kiniSeeded)retur
   if(ids[0])await LOCAL.ocSave({idempotency_key:'kini-ej-oc-1',proveedor_id:ids[0],estado:'Solicitada',observaciones:'Orden de ejemplo pendiente de recibir',
    items:['k-cer-lata','k-cer-negra'].map(id=>prod(id)||pick(2)).map(p=>({producto_id:p.id,cantidad:240,precio_costo_pactado:cost(p)}))});
  }catch(e){console.warn('kiniSeed',e&&e.message);}
- user=prev;audit('DEMO_EJEMPLOS','Kini: proveedores, deudas y orden de ejemplo');save();}
+ user=prev;audit('DEMO_EJEMPLOS','Kini: proveedores, deudas y orden de ejemplo');save();try{demoDistriSeed();}catch(e){console.warn('distri',e&&e.message);}}
 /* «Borrar todo y empezar vacío»: sin productos, clientes, proveedores, ventas ni cajas abiertas. Quedan los usuarios, las cajas definidas y la configuración */
 function emptyState(){const d=DEF();
  d.products=[];d.customers=[];d.sales=[];d.sessions=[];d.movs=[];d.closures=[];d.seq={};d.suppliers=[];d.pOrders=[];d.receipts=[];d.supLedger=[];
@@ -3813,11 +3871,32 @@ A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, 
    · Celular y tablet: barra inferior (Inicio, Caja, Vender, Stock, Más), el menú lateral se cierra al tocar afuera o con Escape. */
 {const D=(typeof window!=='undefined'&&window.RAVE_DEMO)||null;
  if(D){if(typeof facCfgCard==='function'){const _fc=facCfgCard;facCfgCard=function(){return typeof giPlan==='function'&&giPlan()!=='total'?'':_fc.apply(this,arguments);};}
+  /* V27.7 · Plan Esencial (plan bajo): sin servicios que se venden aparte o van en planes superiores.
+     NFC (lector, tarjetas, sello con el celular): se vende aparte como combo, en la reunión. Portero y seguridad: siempre opcional.
+     Asistente de texto y voz / IA y bots: planes superiores. Se ocultan de la vista; los datos y funciones no se tocan. */
+  {const BAJO=()=>typeof giPlan==='function'&&giPlan()==='esencial';
+   /* en vez de esconder: se muestran como adicionales bloqueados, con el beneficio y un botón que arma el pedido por WhatsApp (ticket más alto) */
+   const ADD=[['nfc','📡','Combo NFC','Tarjetas y llaveros NFC para el Club, sello con el celular del cliente y lector en el mostrador: el cliente apoya la tarjeta y suma puntos al instante.','Se suma aparte: lector, tarjetas o llaveros con tu marca, instalación y capacitación.'],
+    ['ia','🎙️','Asistente de voz e IA','Le pedís al sistema por voz o por escrito («vendeme 2 gaseosas», «¿cuánto vendí hoy?») y lee las facturas de tus proveedores con IA.','Viene con el plan Total.'],
+    ['portero','🛡️','Portero y seguridad','Control de quién entra y sale, alarmas y avisos al celular del dueño.','Adicional opcional para cualquier plan.']];
+   window.vbAddonsHTML=function(cl){const nom=(window.RAVE_DEMO&&RAVE_DEMO.nombre)||'Sistema VB';const wa=t=>'https://wa.me/5493874484132?text='+encodeURIComponent('Hola Vincular Business, probé la demo «'+nom+'» y quiero información sobre: '+t);
+    return`<div class="card vb-add ${cl||''}" style="margin-top:1rem"><h3 style="margin-top:0">✨ Adicionales para tu negocio</h3><p class="sm mut">Tu plan es <b>${esc(GI_PLANS[giPlan()].t)}</b>. Estos servicios se suman cuando los necesites; los coordinamos en la reunión.</p>
+    <div class="vb-add-l">${ADD.map(([k,ic,t,d,c])=>`<div class="vb-add-i"><span class="vb-add-ic" aria-hidden="true">${ic}</span><span class="sp"><b>${esc(t)}</b> <span class="tag">🔒 adicional</span><br><span class="sm">${esc(d)}</span><br><span class="sm mut">${esc(c)}</span></span><a class="btn sm" target="_blank" rel="noopener" href="${wa(t)}">Pedir información</a></div>`).join('')}</div></div>`;};
+   if(typeof nfcCfgCard==='function'){const o=nfcCfgCard;nfcCfgCard=function(){return BAJO()?window.vbAddonsHTML():o.apply(this,arguments);};}
+   if(typeof nfcFieldHTML==='function'){const o=nfcFieldHTML;nfcFieldHTML=function(){return BAJO()?'':o.apply(this,arguments);};}
+   if(typeof nfcStatusHTML==='function'){const o=nfcStatusHTML;nfcStatusHTML=function(){return BAJO()?'':o.apply(this,arguments);};}
+   if(typeof nfcMiniHTML==='function'){const o=nfcMiniHTML;nfcMiniHTML=function(){return BAJO()?'':o.apply(this,arguments);};}
+   if(typeof selloNfcCardHtml==='function'){const o=selloNfcCardHtml;selloNfcCardHtml=function(){return BAJO()?'':o.apply(this,arguments);};}
+   if(typeof ptCfgCardHtml==='function'){const o=ptCfgCardHtml;ptCfgCardHtml=function(){return BAJO()?'':o.apply(this,arguments);};}
+   if(typeof assistCfgCard==='function'){const o=assistCfgCard;assistCfgCard=function(){return BAJO()?'':o.apply(this,arguments);};}
+   const st=document.createElement('style');st.textContent='html.vb-bajo #as-open,html.vb-bajo #as-dock,html.vb-bajo [data-act=fdNfc],html.vb-bajo [data-act=cbNfc],html.vb-bajo [data-act=hrNfcWrite],html.vb-bajo [data-act=cuNfc],html.vb-bajo [data-act=nfcLink],html.vb-bajo [data-act=nfcManual],html.vb-bajo [data-act=nfcSetup],html.vb-bajo [data-act=nfcTest],html.vb-bajo [data-act=nfcList],html.vb-bajo [data-act=nfcLiveToggle]{display:none!important}.vb-add-l{display:grid;gap:.6rem;margin-top:.6rem}.vb-add-i{display:flex;gap:.8rem;align-items:center;padding:.85rem 1rem;border:1px dashed var(--line);border-radius:14px;background:color-mix(in srgb,var(--gold) 6%,var(--card))}.vb-add-ic{font-size:1.5rem;flex:0 0 auto}.vb-add-i .btn{flex:0 0 auto}@media(max-width:600px){.vb-add-i{flex-wrap:wrap}.vb-add-i .btn{width:100%;text-align:center}}';
+   (document.head||document.documentElement).appendChild(st);
+   const marca=()=>{try{document.documentElement.classList.toggle('vb-bajo',BAJO());}catch(e){}};marca();setInterval(marca,1500);}
   const COM=['inicio','vender','caja','arqueo','cierres','presup','mermas','inventario','precios','etiquetas','inventariof','proveedores','clientes','fidel','cupones','config','roles','modulos','dispositivos','auditoria'];
   const DIS=['inicio','vender','caja','arqueo','cierres','pedidosv','preventa','reparto','copiloto','depositos','acopios','inventario','inventariof','precios','etiquetas','proveedores','clientes','portalb2b','personal','vales','equipo','config','roles','modulos','dispositivos','auditoria'];
   const IC={min:'M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6',both:'M3 21V9l9-6 9 6v12M8 21v-7h8v7M3 12h18',may:'M2 6h11v10H2zM13 9h4l4 4v3h-8zM6 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',todo:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5'};
-  const T={min:{t:'Mostrador',d:'Vendés al consumidor final, en el mostrador o con autoservicio.',ej:'Kiosco · almacén · autoservicio · ropa · ferretería',plan:'esencial',p:COM},
-   both:{t:'Minorista y mayorista',d:'Vendés al público y también por mayor, con precios por presentación.',ej:'Mayorista · autoservicio mayorista · bebidas',plan:'esencial',p:COM},
+  const T={min:{t:'Mostrador',d:'Vendés al consumidor final, en el mostrador o con autoservicio.',ej:'Kiosco · almacén · autoservicio · ropa · ferretería',plan:'esencial',p:COM.filter(x=>x!=='inventariof')},
+   both:{t:'Minorista y mayorista',d:'Vendés al público y también por mayor, con precios por presentación.',ej:'Mayorista · autoservicio mayorista · bebidas',plan:'mayorista',p:COM},
    may:{t:'Despacho y reparto',d:'Tomás pedidos, se arman en el depósito y se reparten.',ej:'Distribuidora · materiales · mayorista con reparto',plan:'mayorista',p:DIS},
    todo:{t:'Libre',d:'Todos los módulos visibles, sin molde.',ej:'Para quien prefiere decidir módulo por módulo',plan:'total',p:null}};
   const RUB=[['Kiosco / almacén','min'],['Autoservicio','min'],['Bebidas','both'],['Ropa y calzado','min'],['Ferretería','min'],['Materiales de construcción','may'],['Distribuidora','may'],['Mayorista','both'],['Otro','todo']];
@@ -3846,10 +3925,10 @@ A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, 
   const modulosHTML=()=>{const fijo=t=>`<div class="vbm-row off-ro"><span class="vbm-sw on ro" aria-hidden="true"></span><span class="sp"><b>${esc(t)}</b><br><span class="sm mut">Fijo: no se puede apagar.</span></span></div>`;
    const fila=m=>{const lock=!giInPlan(m.plan),on=giOn(m.k);const sc=m.scr&&SCREENS[m.scr];
     return`<div class="vbm-row ${lock?'lock':''}"><button class="vbm-sw ${on?'on':''}" ${lock?'disabled':''} data-act="giMod" data-k="${m.k}" data-on="${on?0:1}" role="switch" aria-checked="${on}" aria-label="${esc(m.t)}"></button><span class="sp"><b>${esc(m.t)}</b><br><span class="sm mut">${lock?'Viene con el modelo «Despacho y reparto» o «Libre».':esc(m.d)}</span></span>${on&&sc?`<button class="btn sm" data-act="nav" data-id="${m.scr}">Abrir</button>`:''}</div>`;};
-   const L=GI_MODS.slice().sort((a,b)=>(giInPlan(a.plan)?0:1)-(giInPlan(b.plan)?0:1));
+   const L=GI_MODS.filter(m=>!(tipo()==='min'&&m.k==='count')).sort((a,b)=>(giInPlan(a.plan)?0:1)-(giInPlan(b.plan)?0:1));
    return`<div class="row"><h1 class="sp">Módulos</h1></div>${modeloCard()}
     <div class="card"><h3 style="margin-top:0">Módulos del sistema</h3><p class="sm mut">Cada interruptor vale para todo el negocio. Apagar un módulo lo saca del menú; lo que ya existe se sigue viendo y no se borra nada. Cada cambio queda en Auditoría.</p>
-    <div class="vbm-list">${FIJOS.map(fijo).join('')}${L.map(fila).join('')}</div></div>`;};
+    <div class="vbm-list">${FIJOS.map(fijo).join('')}${L.map(fila).join('')}</div></div>${typeof giPlan==='function'&&giPlan()==='esencial'&&window.vbAddonsHTML?window.vbAddonsHTML():''}`;};
   const CSS=`.vbm-h{margin:1.1rem 0 .5rem;font-size:1rem;color:var(--mut)}.vbm-chips{display:flex;flex-wrap:wrap;gap:.5rem}
 .vbm-chip{font:inherit;padding:.6rem 1rem;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}.vbm-chip.on{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,transparent);font-weight:700}
 .vbm-opts{display:grid;gap:.6rem}.vbm-opt{font:inherit;text-align:left;display:flex;gap:.8rem;align-items:flex-start;padding:.9rem 1rem;border-radius:14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;line-height:1.4}
@@ -5083,7 +5162,7 @@ const WS_DAY=86400000;
 const WS_LV0=[{id:'d',name:'Display'},{id:'f',name:'Fardo'},{id:'p',name:'Pallet'}];
 function wsConf(){const w=(S.cfg&&S.cfg.wholesale)||{};
  const lv=(Array.isArray(w.levels)?w.levels:WS_LV0).filter(x=>x&&x.id&&x.name).slice(0,7).map(x=>({id:String(x.id).replace(/[^a-z0-9_]/gi,'').slice(0,12),name:String(x.name).replace(/[<>]/g,'').slice(0,24)}));
- return{on:!!w.on,only:!!(w.on&&w.only),allowClub:!!w.allowClub,grace:Math.max(0,Math.min(60,Math.round(+w.grace||0))),example:!!w.example,levels:lv};}
+ return{on:!!w.on,only:!!(w.on&&w.only),cli:!!(w.on&&w.only&&w.cli),allowClub:!!w.allowClub,grace:Math.max(0,Math.min(60,Math.round(+w.grace||0))),example:!!w.example,levels:lv};}
 const wsOn=()=>wsConf().on;
 const wsDateOk=(f,t)=>{const k=dkey(now());return(!f||k>=f)&&(!t||k<=t);};
 function wsLvName(id){if(id==='u')return'Unidad';const l=wsConf().levels.find(x=>x.id===id);return l?l.name:String(id);}
@@ -5093,7 +5172,12 @@ const wsOnly=()=>wsConf().only;
 const wsIsWh=c=>!!(c&&(c.channel==='mayorista'||wsOnly()));
 /* V26.33 · «Sólo mayorista» (distribuidora): toda venta es mayorista —precio por unidad y, al completar una presentación,
    el precio mayorista de esa presentación—, para cualquier cliente o consumidor final. No hay canal minorista ni «Cambiar canal». */
-function wsChan(){if(wsOnly())return'mayorista';if(pos.chanSet&&pos.chanSet.cust===pos.cust)return pos.chanSet.v;return wsIsWh(custById(pos.cust))?'mayorista':'minorista';}
+/* V27.10 · consumidor final para todos: también una distribuidora «sólo mayorista» puede venderle al público sin preguntar */
+/* V27.13 · sin canales: un mayorista o distribuidora le vende a cualquiera. El precio sale de la cantidad de cada línea:
+   cada presentación completa (Display, Fardo, Pallet…) a su precio mayorista y las unidades sueltas al precio por unidad.
+   No se cambia de canal ni se exige cliente con CUIT; el cliente (opcional) sólo trae acuerdos, crédito y datos de factura. */
+function wsChan(){return'mayorista';}
+const wsHasWh=L=>(L||[]).some(l=>/^(P-|MIX)/.test(l.rule||''));
 function wsAgreement(cid,p){const A_=(S.agreements||[]).filter(a=>a&&a.active!==false&&a.cust===cid&&wsDateOk(a.from,a.to));
  return A_.find(a=>a.pid&&a.pid===p.id)||A_.find(a=>!a.pid&&a.rubro&&a.rubro===p.rubro)||null;}
 /* desglose del stock en presentaciones: «2 Pallet + 3 Fardo + 5 u» (sólo productos por unidad con presentaciones cargadas) */
@@ -5107,8 +5191,7 @@ function priceResolve(p,qty,ctx){
  const R={price:p.price,base:p.price,alt:p.price,rule:'L1',list:'L1',why:'precio de venta',missing:'',below:false,warn:''};
  if(!wsOn())return R;
  const fin=()=>{R.below=!!(p.floor>0&&R.price<p.floor);return R;};
- if(chan==='mayorista'&&!wsOnly()&&!(cust&&arcaCuitOk(cust.taxid||''))){R.warn='cuit';R.why='Consumidor final (sin cliente con CUIT): precio por unidad';return fin();}
- const ag=cust?wsAgreement(cust.id,p):null;
+  const ag=cust?wsAgreement(cust.id,p):null;
  if(ag){R.price=ag.price>0?ag.price:Math.round(p.price*(1-ag.pct/100));R.rule='ACU';R.list='ACU';R.agr=ag.id;R.why='Acuerdo especial'+(ag.pid?'':' ('+RW()+')')+' · '+(ag.price>0?money(ag.price):ag.pct+' % off');return fin();}
  if(chan!=='mayorista')return fin();
  R.why='Unidad (precio de venta)';
@@ -5136,19 +5219,20 @@ function wsGate(lines,cust,opts){
  const conf=wsConf();let chan=opts.ws.chan==='mayorista'?'mayorista':'minorista';
  /* V26.34 · sin cliente identificado con CUIT NO se bloquea la venta: es consumidor final y se cobra al precio por unidad
     (salvo «Sólo mayorista», donde los precios por presentación rigen para todos) */
- if(chan==='mayorista'&&!conf.only&&!(cust&&arcaCuitOk(cust.taxid||'')))chan='minorista';
- if(chan==='mayorista'){
-  if(!conf.allowClub){if(opts.coupon)return{err:'Los cupones del Club no se aplican a ventas mayoristas.'};if(opts.stampCode)return{err:'Los sellos del Club no se otorgan en ventas mayoristas.'};}}
+ /* V27.9 · «Sólo a comercios»: en el modo sólo mayorista se puede exigir un cliente mayorista con CUIT en cada venta */
+ if(conf.cli&&!(cust&&arcaCuitOk(cust.taxid||'')))return{err:'Vendemos sólo a comercios: elegí el cliente mayorista (con CUIT) antes de cobrar.'};
   const agg={};lines.forEach(l=>agg[l.pid]=(agg[l.pid]||0)+l.qty);
  for(const l of lines){const p=prod(l.pid);if(!p||l.pid==='p_envio')continue;
   if(l.man){l.rule='MAN';l.lst='';delete l.tr;delete l.amt;}
   else{const dup=lines.filter(x=>x.pid===l.pid).length>1;const r=priceResolve(p,dup?l.qty:agg[l.pid],{cust,chan});l.tr=r.tr;l.amt=r.amt;if(l.price!==r.price)delete l.flrOk;l.price=r.price;l.rule=r.rule;l.lst=r.list;l.base=r.base;l.why=r.why;}
   if(p.floor>0&&Math.min(l.price,...((l.tr||[]).map(t=>t.price)))<p.floor&&!l.flrOk)return{err:'El precio de '+p.name+' ('+money(l.price)+') está por debajo del piso ('+money(p.floor)+'): lo tiene que autorizar un supervisor con motivo.'};}
+ chan=wsHasWh(lines)?'mayorista':'minorista';
+ if(chan==='mayorista'&&!conf.allowClub){if(opts.coupon)return{err:'Los cupones del Club no se aplican a precios mayoristas (presentaciones).'};if(opts.stampCode)return{err:'Los sellos del Club no se otorgan con precios mayoristas (presentaciones).'};}
  return{chan,club:conf.allowClub};}
 /* importe exacto de una línea (con tramos) y desglose en renglones para guardar la venta: cada renglón cumple cantidad × precio */
 const lnAmt=l=>l.amt>0&&l.tr?l.amt:Math.round(l.qty*l.price);
 function wsSplit(lines){const out=[];lines.forEach(l=>{if(l.tr&&l.tr.length>1){l.tr.forEach(t=>out.push(Object.assign({},l,{qty:t.qty,price:t.price,rule:t.rule,lst:t.lst,list:t.price,tr:undefined,amt:undefined})));}else out.push(l.tr&&l.tr.length===1?Object.assign({},l,{rule:l.tr[0].rule,lst:l.tr[0].lst,tr:undefined,amt:undefined}):l);});return out;}
-const wsNoClub=()=>wsOn()&&wsChan()==='mayorista'&&!wsConf().allowClub;
+const wsNoClub=()=>wsOn()&&!wsConf().allowClub&&wsHasWh(pos.lines);
 
 /* ---- crédito: límite + plazo + mora + excepción autorizada (4.22.2) ---- */
 const wsDue=(s,c)=>s.due||((c&&c.term>0)?s.ts+c.term*WS_DAY:0);
@@ -5186,14 +5270,11 @@ A.wsCredOv=el=>{if(!can('credit_ov'))return toast('Sin permiso para autorizar ex
 function wsCustFind(q){q=String(q||'').trim().toLowerCase();if(!q)return[];const qd=q.replace(/\D/g,'');
  return S.customers.filter(c=>c.status!=='baja'&&((c.name+' '+c.last).toLowerCase().includes(q)||(qd&&c.wa.replace(/\D/g,'').includes(qd))||pad4(c.num)===q||(c.dni&&normDni(q).length>=6&&normDni(c.dni)===normDni(q))||(qd.length>=8&&(c.taxid||'').replace(/\D/g,'')===qd))).slice(0,8);}
 function wsCartBar(){if(!wsOn())return'';
- const c=custById(pos.cust),ch=wsChan();
- if(wsOnly())return`<div class="card" style="margin:.5rem 0" id="wsbar"><div class="row" style="flex-wrap:wrap"><span class="tag ok">Venta mayorista</span><b class="sp">${c?esc(custFull(c)):'Cliente sin identificar'}</b><button class="btn sm" data-act="wsPick">${c?'Cambiar cliente':'Elegir cliente'}</button>${c?'<button class="btn sm" data-act="wsPickClear">Quitar</button>':''}</div>
- <p class="sm mut" style="margin:.3rem 0 0">Precio por unidad; al completar una presentación (Display, Fardo, Pallet…) se cobra su precio mayorista.${c?' · crédito: debe '+money(debtOf(c.id))+' de '+money(c.limit||0)+(c.term>0?' · plazo '+c.term+' días':''):' Para cuenta corriente elegí el cliente.'}</p></div>`;
- const miss=ch==='mayorista'&&!(c&&arcaCuitOk(c.taxid||''));
- return`<div class="card" style="margin:.5rem 0" id="wsbar"><div class="row" style="flex-wrap:wrap"><span class="tag ${ch==='mayorista'?'ok':''}">Canal: ${ch==='mayorista'?'Mayorista':'Minorista'}</span><b class="sp">${c?esc(custFull(c)):'Consumidor final'}</b><button class="btn sm" data-act="wsPick">${c?'Cambiar cliente':'Elegir cliente'}</button>${c?'<button class="btn sm" data-act="wsPickClear">Quitar</button>':''}<button class="btn sm" data-act="wsChan">Cambiar canal</button></div>
- ${miss?'<div class="warnbox sm" role="status">Sin cliente con CUIT es una venta a <b>consumidor final</b>: se cobra al precio por unidad. Para los precios mayoristas elegí un cliente con CUIT.</div>':`<p class="sm mut" style="margin:.3rem 0 0">${ch==='mayorista'?'Precio por volumen: cada producto toma el precio de la presentación (Display, Fardo, Pallet…) que alcance su cantidad.':'Precio de venta al público.'}${c&&ch==='mayorista'?' · crédito: debe '+money(debtOf(c.id))+' de '+money(c.limit||0)+(c.term>0?' · plazo '+c.term+' días':''):''}</p>`}</div>`;}
+ const c=custById(pos.cust),cli=wsConf().cli,bad=cli&&!(c&&arcaCuitOk(c.taxid||''));
+ return`<div class="card" style="margin:.5rem 0" id="wsbar"><div class="row" style="flex-wrap:wrap"><b class="sp">${c?esc(custFull(c)):'Consumidor final'}</b><button class="btn sm" data-act="wsPick">${c?'Cambiar cliente':'Elegir cliente (opcional)'}</button>${c?'<button class="btn sm" data-act="wsPickClear">Quitar</button>':''}</div>
+ <p class="sm mut" style="margin:.3rem 0 0">Se le vende a cualquiera: las unidades sueltas van al precio por unidad y cada presentación completa (Display, Fardo, Pallet…) a su precio mayorista.${c?' · crédito: debe '+money(debtOf(c.id))+' de '+money(c.limit||0)+(c.term>0?' · plazo '+c.term+' días':''):''}</p>${bad?'<div class="warnbox sm" role="status">Esta empresa vende sólo a comercios: para cobrar elegí un cliente mayorista con CUIT.</div>':''}</div>`;}
 function wsLineInfo(l,i){if(!wsOn())return'';const p=prod(l.pid);let h='';
- if(l.why)h+=`<div class="sm ${l.rule==='MAN'?'mut':''}" style="margin-top:.3rem"><b>${esc(l.rule==='L1'||!l.rule?(wsOnly()?'Por unidad':'Minorista'):l.rule==='MAN'?'A mano':l.rule==='ACU'?'Acuerdo':'Mayorista')}</b> · ${esc(l.why)}</div>`;
+ if(l.why)h+=`<div class="sm ${l.rule==='MAN'?'mut':''}" style="margin-top:.3rem"><b>${esc(l.rule==='L1'||!l.rule?'Por unidad':l.rule==='MAN'?'A mano':l.rule==='ACU'?'Acuerdo':'Mayorista')}</b> · ${esc(l.why)}</div>`;
  if(l.miss)h+=`<div class="sm mut">${esc(l.miss)}</div>`;
  if(p){
   if(p.floor>0&&l.price<p.floor)h+=`<div class="tag bad" style="margin-top:.3rem">Debajo del piso (${money(p.floor)})${l.flrOk?' · autorizado':''}</div>${!l.flrOk&&can('price_lists')?` <button class="btn sm" data-act="wsFloor" data-i="${i}">Autorizar</button>`:''}`;
@@ -5225,11 +5306,12 @@ A.wsPick=()=>{const w=modal('Elegir cliente',`<label for="wk-q">Buscar por nombr
  setTimeout(()=>{const q=$('#wk-q');if(q)q.focus();},30);};
 A.wsPickSet=el=>{pos.cust=el.dataset.id||'';pos.chanSet=null;$$('#modal-root .ov').forEach(o=>o.remove());posCart();};
 A.wsPickClear=()=>{pos.cust='';pos.chanSet=null;posCart();};
-A.wsChan=()=>{if(wsOnly())return toast('Esta distribuidora vende sólo por mayor: no hay canal minorista.',1);const c=custById(pos.cust),cur=wsChan(),to=cur==='mayorista'?'minorista':'mayorista',inh=wsIsWh(c)?'mayorista':'minorista';
- if(to===inh){pos.chanSet=null;posCart();return;}
- if(!can('price_lists'))return toast('Cambiar el canal de la operación requiere autorización (listas de precio).',1);
- modal('Cambiar canal de la operación',`<p class="sm">De <b>${cur}</b> a <b>${to}</b>. Queda en auditoría.</p><label for="wc-why">Motivo (obligatorio)</label><input id="wc-why" maxlength="80" autocomplete="off">`,
- {okText:'Cambiar',onOk:w=>{const why=val('wc-why').trim();if(why.length<5)return w._err('Escribí el motivo (mínimo 5 letras).'),false;pos.chanSet={cust:pos.cust,v:to};audit('CANAL_OPERACION',cur+' → '+to+' · '+why);posCart();}});};
+A.wsChan=()=>{/* V27.10 · sin preguntar: cambia al toque y queda en auditoría. Pasar a precio mayorista a alguien sin CUIT sigue pidiendo el permiso de listas de precio */
+ const c=custById(pos.cust),cur=wsChan(),to=cur==='mayorista'?'minorista':'mayorista';
+ if(wsOnly()){if(pos.cust&&to==='minorista')return toast('Para venderle al público, quitá el cliente: queda como consumidor final.',1);pos.chanSet=to==='minorista'?{cust:'',v:'minorista'}:null;audit('CANAL_OPERACION',cur+' → '+to+' · consumidor final');posCart();return;}
+ const inh=wsIsWh(c)?'mayorista':'minorista';if(to===inh){pos.chanSet=null;audit('CANAL_OPERACION',cur+' → '+to);posCart();return;}
+ if(to==='mayorista'&&!can('price_lists'))return toast('Pasar la venta a precio mayorista requiere el permiso de listas de precio.',1);
+ pos.chanSet={cust:pos.cust,v:to};audit('CANAL_OPERACION',cur+' → '+to+(c?' · '+custFull(c):' · consumidor final'));posCart();};
 
 /* ventas a cuenta corriente que el servidor marcó para revisar (superaron el límite mientras el equipo estaba sin conexión) */
 const wsReview=cid=>S.sales.filter(s=>s.credit_review&&(!cid||s.cust===cid));
@@ -5238,7 +5320,7 @@ const wsCrw={sin_limite:'cliente sin límite',supera_limite:'superó el límite'
 function wsCustCard(c){if(!wsOn()||!c)return'';const ed=custAdm()?'':'disabled';
  const ag=wsAging(c.id);const od=wsOverdue(c.id);
  return`<div class="card" style="margin:.6rem 0"><h3 style="margin-top:0">Mayorista y crédito</h3>
- <div class="grid g2" ${wsOnly()?'hidden':''}><div><label for="wc-ch">Canal habitual</label><select id="wc-ch" ${ed}><option value="minorista" ${!wsIsWh(c)?'selected':''}>Minorista</option><option value="mayorista" ${wsIsWh(c)?'selected':''}>Mayorista</option></select></div>
+ <div class="grid g2" hidden><div><label for="wc-ch">Canal habitual</label><select id="wc-ch" ${ed}><option value="minorista" ${!wsIsWh(c)?'selected':''}>Minorista</option><option value="mayorista" ${wsIsWh(c)?'selected':''}>Mayorista</option></select></div>
  </div>
  <div class="grid g2"><div><p class="sm mut" style="margin-top:1.6rem">CUIT ${wsOnly()?'(opcional)':'(obligatorio para vender como mayorista)'}: se carga en «Datos para facturar (ARCA)».</p></div>
  <div><label for="wc-tm">Plazo máximo de pago (días)</label><input id="wc-tm" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="Sin plazo" value="${c.term>0?esc(String(c.term)):''}" ${ed}></div></div>
@@ -5338,7 +5420,7 @@ function wsCfgCard(){if(!(can('config')||can('price_lists')))return'';const c=ws
  const ag=(S.agreements||[]).slice().reverse();const ov=(S.creditOv||[]).slice(-5).reverse();
  return`<div class="card" style="margin-top:1rem" id="ws-card"><h3>Mayorista: presentaciones, acuerdos y crédito ${c.example?'<span class="tag sim">datos de ejemplo</span>':''}</h3>
  <p class="sm mut">Precios por presentación (Unidad, Display, Fardo, Pallet…) según el volumen, acuerdos por cliente y crédito con plazo. Apagado, el sistema vende exactamente como siempre.</p>
- <p class="sm">Canal: <b>${c.only?'Sólo mayorista (distribuidora)':'Minorista y mayorista'}</b> · se cambia en <a href="#" data-act="bmGo">Modelo de negocio</a>.</p>
+ <p class="sm">Canal: <b>${c.only?'Sólo mayorista (distribuidora)':'Minorista y mayorista'}</b> · se cambia en <a href="#" data-act="bmGo">Modelo de negocio</a>.</p>${c.only?`<label class="chk"><input type="checkbox" id="ws-cli" ${c.cli?'checked':''} ${adm}> Vender sólo a comercios: cada venta necesita un cliente mayorista con CUIT</label>`:''}
  ${c.on?`<h4 style="margin:.8rem 0 .2rem">Presentaciones de venta</h4>
  <p class="sm mut">Son los «tipos de precio» que se cargan en cada producto según el volumen: <b>Unidad</b> (siempre; es el precio de venta) y las que definas acá. Podés renombrarlas y agregar las que necesites (Media caja, Bolsón…). En cada producto se carga cuántas unidades trae cada una y su precio.</p>
  <div id="ws-lv">${c.levels.map(l=>`<div class="row" style="margin-bottom:.3rem"><input id="ws-ln-${esc(l.id)}" maxlength="24" value="${esc(l.name)}" aria-label="Nombre de la presentación" style="max-width:240px" ${adm}>${adm===''?`<button class="btn sm red" type="button" data-act="wsLvDel" data-id="${esc(l.id)}" aria-label="Quitar ${esc(l.name)}">Quitar</button>`:''}<span class="sm mut">${(S.products||[]).filter(p=>(p.pres||[]).some(k=>k.lv===l.id)).length} producto(s) la usan</span></div>`).join('')||'<p class="sm mut">Sin presentaciones: sólo se vende por Unidad.</p>'}</div>
@@ -5366,7 +5448,7 @@ A.wsLvDel=el=>{if(!can('config'))return toast('Sólo el administrador',1);const 
  confirmBox('Quitar presentación','Se quita «'+l.name+'» de la lista. Ningún producto la usa.',()=>{wsLvSave(L.levels.filter(x=>x.id!==l.id),'quitada «'+l.name+'»');},'Quitar');};
 A.wsSave=()=>{if(!can('config'))return toast('Sólo el administrador',1);const cur=wsConf();const on=$('#ws-on')?$('#ws-on').checked:cur.on;
  const W=Object.assign({},S.cfg.wholesale||{},{on,allowClub:cur.allowClub,grace:cur.grace,example:cur.example,levels:cur.levels.map(l=>({...l}))});delete W.lists;
- if(on&&cur.on){W.only=$('#ws-only')?$('#ws-only').checked:!!cur.only;W.allowClub=!!($('#ws-club')&&$('#ws-club').checked);const g=val('ws-gr').trim()===''?0:Math.round(parseNum(val('ws-gr')));if(isNaN(g)||g<0||g>60)return toast('La tolerancia de mora va de 0 a 60 días.',1);W.grace=g;
+ if(on&&cur.on){W.only=$('#ws-only')?$('#ws-only').checked:!!cur.only;W.cli=!!(W.only&&($('#ws-cli')?$('#ws-cli').checked:cur.cli));W.allowClub=!!($('#ws-club')&&$('#ws-club').checked);const g=val('ws-gr').trim()===''?0:Math.round(parseNum(val('ws-gr')));if(isNaN(g)||g<0||g>60)return toast('La tolerancia de mora va de 0 a 60 días.',1);W.grace=g;
   const L=wsLvRead();if(L.err)return toast(L.err,1);W.levels=L.levels;}
  const apply=()=>{const before=JSON.stringify(S.cfg.wholesale||{});S.cfg.wholesale=W;audit(on!==cur.on?(on?'MAYORISTA_ACTIVAR':'MAYORISTA_APAGAR'):'MAYORISTA_CONFIG','antes '+before.slice(0,160)+' · ahora '+JSON.stringify(W).slice(0,160));save();rerender();toast('Guardado');};
  if(on!==cur.on)confirmBox(on?'Activar canal mayorista':'Apagar canal mayorista',on?'Aparecen los precios por presentación (Unidad, Display, Fardo, Pallet…), los acuerdos por cliente y el crédito con plazo. Las ventas anteriores no cambian.':'Se vende como minorista otra vez. Las presentaciones, acuerdos y precios quedan guardados y las ventas anteriores no cambian.',apply,on?'Activar':'Apagar');else apply();};
@@ -6762,11 +6844,19 @@ reg('personal','Personal y fichaje','users','tasks',()=>{const adm=can('staff');
  ['pf-f','pf-t','pf-e'].forEach(id=>{const el=$('#'+id);el&&el.addEventListener('change',()=>{perF.from=val('pf-f');perF.to=val('pf-t');perF.emp=val('pf-e');rerender();});});const p=$('#fp-p');p&&p.addEventListener('keydown',e=>{if(e.key==='Enter')A.fichar();});},'Equipo');
 A.perTab=el=>{perTab=el.dataset.t;rerender();};
 A.fichar=()=>{const r=punch(val('fp-e'),val('fp-p'),'pin');if(r.err){$('#fp-err').textContent=r.err;return;}toast(empName(val('fp-e'))+': '+(r.kind==='in'?'entrada':'salida')+' registrada '+hm(r.p.ts));rerender();};
+/* V27.14 · puestos sugeridos según los módulos activos (se crean al guardar la ficha) */
+function puSug(){const on=k=>typeof giOn==='function'&&giOn(k);const L=['Encargado/a','Cajero/a'];if(on('presale'))L.push('Preventista');if(on('reparto')||on('delivery')||(typeof repOn==='function'&&repOn()))L.push('Repartidor/a');if(on('orders')||on('depots'))L.push('Depósito y armado');
+ const has=n=>(S.puestos||[]).some(p=>p.name.toLowerCase()===n.toLowerCase());return L.filter(n=>!has(n));}
+document.addEventListener('change',ev=>{if(ev.target&&ev.target.id==='em-p'){const b=document.getElementById('em-pnw');if(b){b.hidden=ev.target.value!=='new:';if(!b.hidden){const i=document.getElementById('em-pn');i&&i.focus();}}}});
 A.empEdit=el=>{if(!can('staff'))return;const e=S.employees.find(x=>x.id===el.dataset.id)||null;
- modal(e?'Editar empleado':'Nuevo empleado',`<label for="em-n">Nombre</label><input id="em-n" value="${esc(e?e.name:'')}" maxlength="60"><label for="em-p">Puesto</label><select id="em-p">${S.puestos.map(p=>`<option value="${p.id}" ${e&&e.puestoId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
+ modal(e?'Editar empleado':'Nuevo empleado',`<label for="em-n">Nombre</label><input id="em-n" value="${esc(e?e.name:'')}" maxlength="60"><label for="em-p">Puesto</label><select id="em-p">${S.puestos.map(p=>`<option value="${p.id}" ${e&&e.puestoId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}${puSug().length?`<optgroup label="Agregar puesto">${puSug().map(n=>`<option value="new:${esc(n)}">+ ${esc(n)}</option>`).join('')}</optgroup>`:''}<option value="new:">+ Otro puesto…</option></select>
+ <div id="em-pnw" hidden><label for="em-pn">Nombre del puesto nuevo</label><input id="em-pn" maxlength="60" placeholder="Ej.: Cadete, Encargado de turno"></div>
+ <p class="sm mut" style="margin:.3rem 0 0">El puesto ordena el organigrama y las tareas. Para que use el sistema (preventa, reparto, caja) dale un usuario con ese rol en <a href="#" data-act="nav" data-id="roles">Usuarios y permisos</a>.</p>
  <label for="em-r">Costo horario ($)</label>${numIn('em-r',e?e.rate:0)}<label for="em-pin">PIN de fichaje (4 dígitos)</label><input id="em-pin" inputmode="numeric" maxlength="4" value="${esc(e?e.pin:'')}" autocomplete="off"><label class="chk"><input type="checkbox" id="em-a" ${!e||e.active?'checked':''}> Activo</label>`,
  {onOk:w=>{const n=val('em-n').trim(),r=cents(val('em-r')),pin=val('em-pin');if(!n)return w._err('Falta el nombre.'),false;if(!(r>=0)||isNaN(r))return w._err('Costo horario inválido.'),false;if(!/^\d{4}$/.test(pin))return w._err('El PIN debe tener 4 dígitos.'),false;
-  const d={name:n,puestoId:val('em-p'),rate:r,pin,active:$('#em-a',w).checked};const was=e?!!e.active:null;if(e){if(e.rate!==r)audit('COSTO_HORARIO',n+' '+money(e.rate)+' → '+money(r));Object.assign(e,d);}else S.employees.push(Object.assign({id:uid()},d));audit('EMPLEADO',n);save();if(was!==d.active){const emp=e||S.employees[S.employees.length-1];if(!d.active)emp.leftAt=now();else delete emp.leftAt;if(typeof hrPlanSync==='function')hrPlanSync((d.active?'alta':'baja')+' de '+n);}rerender();}});};
+  let pid=val('em-p');if(pid.startsWith('new:')){const pn=(pid.slice(4)||val('em-pn')).trim().replace(/[<>]/g,'').slice(0,60);if(!pn)return w._err('Escribí el nombre del puesto nuevo.'),false;
+   const ex=S.puestos.find(x=>x.name.toLowerCase()===pn.toLowerCase());if(ex)pid=ex.id;else{const root=(S.puestos.find(x=>!x.parent)||{}).id||'';const np={id:uid(),name:pn,parent:root,holders:''};S.puestos.push(np);pid=np.id;audit('PUESTO',pn+' (desde la ficha de '+n+')');}}
+  const d={name:n,puestoId:pid,rate:r,pin,active:$('#em-a',w).checked};const was=e?!!e.active:null;if(e){if(e.rate!==r)audit('COSTO_HORARIO',n+' '+money(e.rate)+' → '+money(r));Object.assign(e,d);}else S.employees.push(Object.assign({id:uid()},d));audit('EMPLEADO',n);save();if(was!==d.active){const emp=e||S.employees[S.employees.length-1];if(!d.active)emp.leftAt=now();else delete emp.leftAt;if(typeof hrPlanSync==='function')hrPlanSync((d.active?'alta':'baja')+' de '+n);}rerender();}});};
 A.punchManual=()=>{if(!can('staff'))return;modal('Fichada manual',`<p class="sm mut">Para corregir un olvido. Queda marcada como manual, con motivo y en auditoría.</p><label for="pm-e">Empleado</label><select id="pm-e">${S.employees.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')}</select><label for="pm-d">Fecha y hora</label><input type="datetime-local" id="pm-d"><label for="pm-k">Tipo</label><select id="pm-k"><option value="in">Entrada</option><option value="out">Salida</option></select><label for="pm-r">Motivo</label><input id="pm-r" maxlength="100">`,
  {onOk:w=>{const d=val('pm-d');if(!d)return w._err('Elegí fecha y hora.'),false;if(val('pm-r').trim().length<3)return w._err('El motivo es obligatorio.'),false;const ts=new Date(d).getTime();if(isNaN(ts)||ts>now())return w._err('Fecha inválida o futura.'),false;
   punch(val('pm-e'),'', 'manual',{manual:true,kind:val('pm-k'),ts,reason:val('pm-r')});toast('Fichada manual registrada');rerender();}});};
@@ -8753,7 +8843,7 @@ function ticketModel(sale,W){const T=S.tenant,cfg=S.cfg.ticket;const B=[];const 
   if(cb.sim)add('c',{s:'COMPROBANTE SIMULADO · SIN VALIDEZ FISCAL',b:1});
   add('l',{l:'Pto. Vta. '+String(cb.pto).padStart(4,'0')+' Nro. '+String(cb.nro).padStart(8,'0'),r:''});add('l',{l:'Fecha '+String(cb.fecha||'').split('-').reverse().join('/'),r:'Caja '+sale.caja});add('t',{s:'Interno N.º '+sale.n+' · Atendió: '+sale.user});
   const rc=cb.receptor;if(rc&&+rc.docTipo!==99){add('t',{s:'Cliente: '+(rc.nombre||'(sin nombre)')});add('t',{s:(+rc.docTipo===80?'CUIT ':+rc.docTipo===86?'CUIL ':'DNI ')+rc.docNro});}else add('t',{s:'A CONSUMIDOR FINAL'});}
- else{add('c',{s:arca?'FACTURA — PENDIENTE DE CAE':'TICKET',b:1});add('l',{l:'N.º '+sale.n,r:fmtDT(sale.ts)});add('l',{l:'Atendió: '+sale.user,r:'Caja '+sale.caja});}
+ else{add('c',{s:arca?'FACTURA — PENDIENTE DE CAE':'TICKET',b:1});add('l',{l:'N.º '+sale.n,r:fmtDT(sale.ts)});add('l',{l:'Atendió: '+sale.user,r:'Caja '+sale.caja});if(sale.cliTipo&&sale.cliTipo!=='5'&&typeof ivaTxt==='function')add('t',{s:'Cliente: '+ivaTxt(sale.cliTipo)});}
  if(sale.custName)add('t',{s:'Cliente: '+sale.custName});
  add('sep');
  sale.items.forEach(it=>{wrapTxt(it.name,W).forEach(l=>add('t',{s:l}));const q=Number.isInteger(it.qty)?String(it.qty):numAR(it.qty,3);add('l',{l:'  '+q+(it.qty!==1||true?' x ':'')+money(it.price),r:money(Math.round(it.qty*it.price))});if(it.disc)add('l',{l:'  Descuento',r:'- '+money(it.disc).replace(/^- /,'')});});
@@ -9772,7 +9862,7 @@ function cloudApiWrap(local){if(!CLOUD.on)return local;
   openPanel:local.openPanel};}
 /* ---- Equipo: invitar, roles y quitar (se usa en Nube y en Usuarios y permisos) ---- */
 function teamCardHtml(){return `<div class="card" id="team-card" style="margin-top:1rem"><h3>Equipo (personas con acceso)</h3><div id="nb-team" class="sm mut">Cargando…</div>
- <h4>Invitar a una persona</h4><div class="grid g2"><div><label for="nb-em">Correo</label><input id="nb-em" type="email"></div><div><label for="nb-nm">Nombre</label><input id="nb-nm" maxlength="60"></div><div><label for="nb-rl">Rol</label><select id="nb-rl"><option value="mostrador">Mostrador</option><option value="supervisor">Supervisor</option><option value="operador">Operador</option><option value="repartidor">Repartidor</option><option value="admin">Administrador</option></select></div></div>
+ <h4>Invitar a una persona</h4><div class="grid g2"><div><label for="nb-em">Correo</label><input id="nb-em" type="email"></div><div><label for="nb-nm">Nombre</label><input id="nb-nm" maxlength="60"></div><div><label for="nb-rl">Rol</label><select id="nb-rl">${Object.keys(ROLES_LBL).filter(r=>r!=='admin').concat(['admin']).map(r=>`<option value="${r}" ${r==='mostrador'?'selected':''}>${esc(ROLES_LBL[r])}</option>`).join('')}</select></div></div>
  <div class="row" style="margin-top:.5rem"><button class="btn gold" data-act="nbInvite">Generar código de acceso</button></div>
  <p class="sm mut">La persona entra a "Tengo una invitación", escribe ese correo, elige su contraseña y pega el código. <b>Si alguien olvida su contraseña, te la pide a vos</b> (no al soporte del desarrollador): tocá <b>«Restablecer acceso»</b> al lado de su nombre y pasale la clave temporal (por WhatsApp o en persona). Entra con su correo y esa clave, y elige su contraseña nueva: no pierde nada.</p>
  <h4>Código de recuperación</h4><p class="sm">Permite volver a abrir los datos si el administrador pierde su contraseña. Si lo perdiste, generá uno nuevo (el anterior deja de servir).</p><button class="btn" data-act="nbRecov">Generar código nuevo</button></div>`;}
@@ -10595,7 +10685,7 @@ A.appClubQr=()=>{const u=((window.RAVE_BUILD&&RAVE_BUILD.publicUrl)||'')+'#mitar
      Cloud API). Las claves Pro NUNCA pasan por el navegador: viven como secretos de la función «reparto-pro» en Supabase. */
 IC.route='M6 19a2 2 0 1 0 0-.01M18 5a2 2 0 1 0 0-.01M6 17V9a4 4 0 0 1 4-4h2M18 7v8a4 4 0 0 1-4 4h-2';
 const REP_EST={nuevo:'Nuevo',preparando:'Preparando',listo:'Listo para salir',en_ruta:'En camino',entregado:'Entregado',ausente:'Cliente ausente',devuelto:'Volvió al local',cancelado:'Cancelado'};
-const REP_ORIG={pos:['🧾','Mostrador'],tel:['📞','Teléfono'],wa:['💬','WhatsApp'],menu:['📱','Menú digital']};
+const REP_ORIG={ped:['📦','Pedido de venta'],pos:['🧾','Mostrador'],tel:['📞','Teléfono'],wa:['💬','WhatsApp'],menu:['📱','Menú digital']};
 const REP_SEG={nuevo:'confirmado',preparando:'preparando',listo:'listo',en_ruta:'en_camino',entregado:'entregado',ausente:'ausente',devuelto:'ausente',cancelado:'cancelado'};
 const REP_PICK_DEF='bebida, gaseosa, agua, cerveza, vino, hielo, postre, helado, salsa, aderezo, envase, retornable, cubiertos, servilleta';
 function repCfg(){const c=S.cfg.rep||(S.cfg.rep={});const d={on:false,menu:false,origen:{lat:null,lng:null,dir:''},zonas:[],reps:[],cap:8,ausenteMin:5,pin:true,foto:false,pick:REP_PICK_DEF,
@@ -10644,16 +10734,18 @@ const repWaNum=t=>{const d=String(t||'').replace(/\D/g,'');if(d.length<8)return 
 const repWaUrl=(t,msg)=>{const n=repWaNum(t);return n?'https://wa.me/'+n+'?text='+encodeURIComponent(msg||''):'';};
 const repTelUrl=t=>{const d=String(t||'').replace(/[^\d+]/g,'');return d.length>=6?'tel:'+d:'';};
 /* ---------- dinero de cada envío ---------- */
-const repCobrar=e=>e.cobro&&e.cobro.modo!=='pagado'?e.total:0;
+/* V27.14 · «cc» = va a la cuenta corriente del cliente: no se cobra en la puerta, se factura al rendir */
+const repNoCob=e=>!e||!e.cobro||e.cobro.modo==='pagado'||e.cobro.modo==='cc';
+const repCobrar=e=>!repNoCob(e)?e.total:0;
 const repVuelto=e=>e.cobro&&e.cobro.modo==='efectivo'&&e.cobro.abona>e.total?e.cobro.abona-e.total:0;
-function repCobroTxt(e){const c=e.cobro||{};if(c.modo==='pagado')return 'Ya está pagado.';if(c.modo==='efectivo')return 'Abonás '+money(e.total)+' en efectivo'+(c.abona>e.total?' (llevamos vuelto de '+money(c.abona)+')':'')+'.';return 'Abonás '+money(e.total)+' con QR o transferencia al recibir.';}
+function repCobroTxt(e){const c=e.cobro||{};if(c.modo==='pagado')return 'Ya está pagado.';if(c.modo==='cc')return 'Va a tu cuenta corriente: no tenés que pagar al recibir.';if(c.modo==='efectivo')return 'Abonás '+money(e.total)+' en efectivo'+(c.abona>e.total?' (llevamos vuelto de '+money(c.abona)+')':'')+'.';return 'Abonás '+money(e.total)+' con QR o transferencia al recibir.';}
 function repComision(rep,E){if(!rep)return 0;const c=repCfg();return E.reduce((a,e)=>{if(e.estado!=='entregado'&&!(c.ausentePaga&&(e.estado==='ausente'||e.estado==='devuelto')))return a;return a+(+rep.fijo||0)+Math.round((+e.tarifa||0)*(+rep.pct||0)/100);},0);}
 /* ---------- seguimiento del cliente (sólo el estado; en la nube por su referencia secreta) ---------- */
 async function repSeg(e){if(!e||!e.tok)return;const st=REP_SEG[e.estado]||'confirmado';e.segSt=st;
  if(!(typeof CLOUD!=='undefined'&&CLOUD.on&&cl.ready&&cl.comercio))return;
  try{const r=e.rutaId?repRuta(e.rutaId):null;await rpc('reparto_estado_poner',{p_comercio:cl.comercio.id,p_ref:e.tok,p_estado:st,p_eta:e.eta||null,p_rep:r?String(r.repNom||'').split(' ')[0]:null,p_nota:e.estado==='ausente'?'No te encontramos: escribinos para coordinar.':null});e.segPend=0;}catch(x){e.segPend=1;}}
 setInterval(()=>{if(!user||!repOn())return;(S.envios||[]).filter(e=>e.segPend&&now()-e.ts<2*86400000).slice(0,5).forEach(repSeg);},30000);
-function repSetEst(e,est,extra){if(!e||e.estado===est)return;const old=e.estado;e.estado=est;repHist(e,est,extra);audit('REPARTO_ESTADO','#'+e.n+' · '+(REP_EST[old]||old)+' → '+(REP_EST[est]||est)+(extra&&extra.nota?' · '+String(extra.nota).slice(0,80):''));repSeg(e);}
+function repSetEst(e,est,extra){if(!e||e.estado===est)return;if(est==='cancelado'&&e.rem&&!e.saleId&&typeof vbRemitoVoid==='function'){const rv=vbRemitoVoid(e.rem,'Envío #'+e.n+' cancelado');if(!rv.err)repHist(e,'remito anulado');}const old=e.estado;e.estado=est;repHist(e,est,extra);audit('REPARTO_ESTADO','#'+e.n+' · '+(REP_EST[old]||old)+' → '+(REP_EST[est]||est)+(extra&&extra.nota?' · '+String(extra.nota).slice(0,80):''));repSeg(e);}
 /* ---------- producto «Envío a domicilio» (cargo de envío en el ticket; no figura en el menú ni controla stock) ---------- */
 function repProd(){let p=S.products.find(x=>x.id==='p_envio');const rb=(repCfg().rubro&&rub(repCfg().rubro))?repCfg().rubro:(S.rubros.find(r=>!r.kind||r.kind==='normal')||S.rubros[0]||{}).id;
  if(!p){p={id:'p_envio',code:'ENVIO',name:'Envío a domicilio',sub:'',rubro:rb,price:0,cost:0,stock:1e6,unit:'u',active:true,menu:false,archived:false,envio:true};S.products.push(p);}
@@ -10664,7 +10756,7 @@ function repNuevo(o){const c=repCfg();const z=repZona(o.zona);
   cobro:o.cobro||{modo:'pagado'},saleId:o.saleId||'',sold:!!o.saleId,pin:o.pin||repPin(),tok:o.tok||repTok(),vd:o.vd||'',vh:o.vh||'',prio:o.prio||'normal',nota:String(o.nota||'').slice(0,200),
   eta:z&&z.eta?z.eta:'',cupon:o.cupon||'',disc:o.disc||0,benLabel:o.benLabel||'',custId:o.custId||'',user:user?user.name:'sistema',hist:[]};
  repHist(e,'nuevo',{orig:e.orig});S.envios.push(e);
- audit('REPARTO_NUEVO','#'+e.n+' · '+(REP_ORIG[e.orig]||['',''])[1]+' · '+(e.zonaNom||'sin zona')+' · '+money(e.total)+' · '+(e.cobro.modo==='pagado'?'pagado':'cobrar en la puerta'));
+ audit('REPARTO_NUEVO','#'+e.n+' · '+(REP_ORIG[e.orig]||['',''])[1]+' · '+(e.zonaNom||'sin zona')+' · '+money(e.total)+' · '+(repNoCob(e)?'pagado':'cobrar en la puerta'));
  emit('delivery.created',{n:e.n,orig:e.orig});repSeg(e);save();return e;}
 /* ---------- POS: «Envío a domicilio» ---------- */
 let repDraft=null;
@@ -10720,7 +10812,7 @@ A.repPos=()=>{if(!pos.lines.length)return;if(!can('reparto'))return toast('Sin p
    /* cargo de envío como una línea del ticket */
    pos.lines=base();if(o.tarifa>0){const p=repProd();pos.lines.push({pid:p.id,name:p.name+(z?' · '+z.nombre:''),rubro:p.rubro,qty:1,price:o.tarifa,cost:0,unit:'u',list:o.tarifa});}
    const total=posTotal();if(o.cobro.modo==='efectivo'&&o.cobro.abona&&o.cobro.abona<total){toast('«Abona con» ('+money(o.cobro.abona)+') es menor al total ('+money(total)+').',1);return false;}
-   if(o.cobro.modo==='pagado'){repDraft={from:'pos',o,sig:repSig(pos.lines),ts:now()};posCart();setTimeout(()=>A.cobrar(),60);return;}
+   if(repNoCob(o)){repDraft={from:'pos',o,sig:repSig(pos.lines),ts:now()};posCart();setTimeout(()=>A.cobrar(),60);return;}
    /* cobrar en la puerta: el pedido viaja sin venta (la venta se registra al rendir) y el mostrador queda libre */
    const B=posBen();const e=repNuevo(Object.assign({},o,{items:repItemsOf(pos.lines),total,custId:pos.cust||'',cupon:pos.coupon||'',disc:B.disc||0,benLabel:B.label||''}));
    pos.lines=[];pos.sel=-1;pos.cust='';pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];repDraft=null;posCart();if(typeof posGrid==='function')posGrid();
@@ -10779,7 +10871,7 @@ setInterval(()=>{if(user&&!$('#panel').hidden&&!document.hidden)repImport();},80
 /* ---------- BANDEJA ÚNICA DE DESPACHO ---------- */
 let repTab='bandeja',repFil={zona:'',orig:''},repSel=new Set();
 const repHoy=e=>now()-e.ts<36*3600000;
-function repBadgeCobro(e){return e.cobro&&e.cobro.modo!=='pagado'?`<span class="rep-cb-b cobrar">COBRAR ${money(e.total)}${e.cobro.modo==='digital'?' · QR':''}</span>`:'<span class="rep-cb-b pagado">PAGADO</span>';}
+function repBadgeCobro(e){if(e.cobro&&e.cobro.modo==='cc')return '<span class="rep-cb-b pagado">CUENTA CORRIENTE</span>';return !repNoCob(e)?`<span class="rep-cb-b cobrar">COBRAR ${money(e.total)}${e.cobro.modo==='digital'?' · QR':''}</span>`:'<span class="rep-cb-b pagado">PAGADO</span>';}
 function repCardHtml(e){const o=REP_ORIG[e.orig]||['📦','Otro'];const late=e.vh&&(()=>{const d=new Date(now());const[h,m]=e.vh.split(':');d.setHours(+h,+m,0,0);return d.getTime()<now()&&!['entregado','cancelado'].includes(e.estado);})();
  const sel=e.estado==='listo'&&!e.rutaId;
  return `<article class="rep-card ${e.prio==='urgente'?'urg':''} ${late?'late':''}" data-id="${esc(e.id)}">
@@ -10820,8 +10912,8 @@ A.repVer=el=>{const e=repEnv(el.dataset.id);if(!e)return;const r=e.rutaId?repRut
  ${!['entregado','cancelado','en_ruta'].includes(e.estado)&&!e.rutaId?`<button class="btn sm" data-act="repEdit" data-id="${esc(e.id)}">Editar</button><button class="btn sm red" data-act="repCancel" data-id="${esc(e.id)}">Cancelar envío</button>`:''}</div>`,{wide:true,okText:'Cerrar',noCancel:true});};
 A.repEdit=el=>{const e=repEnv(el.dataset.id);if(!e)return;$$('#modal-root .ov').forEach(o=>o.remove());
  const w=modal('Editar envío #'+e.n,repFormHtml(e),{wide:true,okText:'Guardar',onOk:()=>{const r=repFormRead(w,e);if(r.err&&!r.soft){toast(r.err,1);return false;}const o=r.o;
-   if(!e.saleId&&o.cobro.modo==='pagado'){toast('Este pedido no se cobró en el mostrador: elegí cobrar en la puerta (o cancelalo y cobralo en el POS).',1);return false;}
-   if(e.saleId&&o.cobro.modo!=='pagado'){toast('Este pedido ya está cobrado: queda como pagado.',1);o.cobro={modo:'pagado'};}
+   if(!e.saleId&&repNoCob(o)){toast('Este pedido no se cobró en el mostrador: elegí cobrar en la puerta (o cancelalo y cobralo en el POS).',1);return false;}
+   if(e.saleId&&!repNoCob(o)){toast('Este pedido ya está cobrado: queda como pagado.',1);o.cobro={modo:'pagado'};}
    const z=repZona(o.zona);const dif=o.tarifa-(e.tarifa||0);
    if(dif&&e.saleId){toast('El costo de envío de una venta ya cobrada no se cambia acá (hacé una nota de crédito o un cobro aparte).',1);return false;}
    if(dif){const ln=e.items.find(i=>i.pid==='p_envio');if(ln){ln.price=o.tarifa;ln.list=o.tarifa;if(!o.tarifa)e.items=e.items.filter(i=>i!==ln);}else if(o.tarifa>0){const p=repProd();e.items.push({pid:p.id,name:p.name+(z?' · '+z.nombre:''),rubro:p.rubro,qty:1,price:o.tarifa,cost:0,unit:'u',list:o.tarifa});}e.total+=dif;}
@@ -10880,12 +10972,12 @@ function repRutasHtml(){const R=(S.rutas||[]).filter(r=>r.estado!=='anulada').sl
  return (act.length?act.map(fila).join(''):'<p class="mut">No hay rutas activas. Elegí pedidos «Listos para salir» en la bandeja y armá una hoja de ruta.</p>')+(hist.length?`<h3 style="margin-top:1rem">Rendidas</h3>`+hist.map(fila).join(''):'');}
 /* ---------- RENDICIÓN CIEGA EN CAJA ---------- */
 function repCuentas(r){const E=r.envios.map(repEnv).filter(Boolean);let ef=0,dg=0;const pend=[];
- E.forEach(e=>{if(e.estado==='entregado'&&e.cobro.modo!=='pagado'){const cb=(e.ent&&e.ent.cobrado)||{modo:e.cobro.modo,monto:e.total};if(cb.modo==='efectivo')ef+=cb.monto||0;else dg+=cb.monto||0;}if(e.estado==='en_ruta')pend.push(e);});
+ E.forEach(e=>{if(e.estado==='entregado'&&!repNoCob(e)){const cb=(e.ent&&e.ent.cobrado)||{modo:e.cobro.modo,monto:e.total};if(cb.modo==='efectivo')ef+=cb.monto||0;else dg+=cb.monto||0;}if(e.estado==='en_ruta')pend.push(e);});
  return{E,ef,dg,pend,esperado:(r.cambio||0)+ef,com:repComision(repRep(r.rep),E),viajes:E.filter(e=>e.estado==='entregado').length,aus:E.filter(e=>['ausente','devuelto'].includes(e.estado)).length};}
 A.repRendir=el=>{const r=repRuta(el.dataset.id);if(!r||!['en_curso','cerrada'].includes(r.estado))return;if(!can('reparto_rend'))return toast('Sin permiso para recibir rendiciones',1);
  if(!openSess())return toast('Abrí la caja: la rendición entra a la caja abierta.',1);const K=repCuentas(r);
  const w=modal('Rendición '+r.n+' · '+r.repNom,`<p class="sm mut"><b>Rendición ciega:</b> contá el efectivo que entrega el repartidor y escribí el total <b>antes</b> de ver el cálculo del sistema.</p>
- <ul class="sm">${K.E.map(e=>`<li>#${e.n} · ${esc(e.cli.nombre)} · <b>${esc(REP_EST[e.estado]||e.estado)}</b>${e.estado==='entregado'&&e.cobro.modo!=='pagado'?' · cobró '+esc(((e.ent&&e.ent.cobrado&&e.ent.cobrado.modo)==='efectivo')?'efectivo':'QR/transferencia'):''}</li>`).join('')}</ul>
+ <ul class="sm">${K.E.map(e=>`<li>#${e.n} · ${esc(e.cli.nombre)} · <b>${esc(REP_EST[e.estado]||e.estado)}</b>${e.estado==='entregado'&&!repNoCob(e)?' · cobró '+esc(((e.ent&&e.ent.cobrado&&e.ent.cobrado.modo)==='efectivo')?'efectivo':'QR/transferencia'):''}</li>`).join('')}</ul>
  ${K.pend.length?`<div class="warnbox sm">${K.pend.length} pedido(s) siguen «en camino»: si rendís ahora vuelven al local como no entregados.</div>`:''}
  <label for="rr-cnt">Efectivo contado ($)</label>${numIn('rr-cnt',0,'0')}`,{okText:'Comparar',onOk:()=>{const cnt=cents(val('rr-cnt')||'0');if(isNaN(cnt)||cnt<0){toast('Escribí el efectivo contado.',1);return false;}setTimeout(()=>repRendir2(r,cnt),30);}});
  setTimeout(()=>{const i=w.querySelector('#rr-cnt');if(i)i.focus();},60);};
@@ -10900,7 +10992,11 @@ function repRendir2(r,cnt){const K=repCuentas(r);const dif=cnt-K.esperado;const 
  <p class="sm mut">Al confirmar: se registran las ventas cobradas en la puerta con su medio real, vuelve el cambio a la caja${dif?', la diferencia queda como movimiento a nombre del repartidor':''} y los no entregados vuelven a la bandeja.</p>`,{wide:true,okText:'Confirmar rendición',onOk:()=>{const pay=!!(w.querySelector('#rr-pay')||{}).checked;const er=repRendirAplicar(r,cnt,pay);if(er){toast(er,1);return false;}}});}
 function repRendirAplicar(r,cnt,pay){if(!openSess())return 'Abrí la caja.';const K=repCuentas(r);const rb=repRubroCaja();if(!rb)return 'Falta un rubro para registrar los movimientos (Configuración → Rubros).';const errs=[];
  /* 1) ventas de lo cobrado en la puerta (una sola vez por envío: si algo falla, rendir de nuevo continúa donde quedó) */
- K.E.forEach(e=>{if(e.estado!=='entregado'||e.sold||e.saleId)return;const cb=(e.ent&&e.ent.cobrado)||{modo:e.cobro.modo,monto:e.total};const m=cb.modo==='efectivo'?'efectivo':'transferencia';
+ K.E.forEach(e=>{if(e.estado!=='entregado'||e.sold||e.saleId||!e.rem)return;const cb=(e.ent&&e.ent.cobrado)||null;
+  const m=e.cobro.modo==='cc'?'fiado':(cb&&cb.modo==='efectivo'?'efectivo':'transferencia');
+  const res=typeof vbInvoice==='function'?vbInvoice([e.rem],{method:m}):{err:'falta el módulo Pedidos de venta'};if(res.err){errs.push('#'+e.n+': '+res.err);return;}
+  e.saleId=res.sale.id;e.sold=true;res.sale.envio=e.id;res.sale.ref=(cb&&cb.ref)||'';repHist(e,'factura '+res.sale.n);});
+ K.E.forEach(e=>{if(e.estado!=='entregado'||e.sold||e.saleId||e.rem)return;const cb=(e.ent&&e.ent.cobrado)||{modo:e.cobro.modo,monto:e.total};const m=cb.modo==='efectivo'?'efectivo':'transferencia';
   const res=commitSale(m,false,'reparto',e.items.map(i=>Object.assign({},i)),{custId:'',coupon:'',recv:0,noAdj:true,pdSkip:true,extraDisc:e.disc||0,extraKind:'reparto',extraLabel:e.benLabel||'Beneficio aplicado al tomar el pedido'});
   if(res.err){errs.push('#'+e.n+': '+res.err);return;}
   const cu=e.custId&&custById(e.custId);if(cu){res.sale.cust=cu.id;res.sale.custName=cu.name+' '+cu.last;}
@@ -10948,7 +11044,7 @@ function repBilletera(rp){const hoy=dkey(now());const R=(S.rutas||[]).filter(r=>
  return{viajes:E.filter(e=>e.estado==='entregado').length,com:R.reduce((a,r)=>a+repComision(rp,r.envios.map(repEnv).filter(Boolean)),0),bol};}
 function repGPS(){return new Promise(res=>{if(!navigator.geolocation)return res(null);let done=false;const t=setTimeout(()=>{if(!done){done=true;res(null);}},6000);
  try{navigator.geolocation.getCurrentPosition(p=>{if(done)return;done=true;clearTimeout(t);res({lat:Math.round(p.coords.latitude*1e6)/1e6,lng:Math.round(p.coords.longitude*1e6)/1e6,acc:Math.round(p.coords.accuracy||0)});},()=>{if(!done){done=true;clearTimeout(t);res(null);}},{enableHighAccuracy:true,timeout:5500,maximumAge:30000});}catch(e){done=true;clearTimeout(t);res(null);}});}
-function repMoneyBanner(e){if(e.cobro.modo==='pagado')return `<div class="cop-money ok" role="status"><b>PAGADO</b><span>No cobrar nada</span></div>`;
+function repMoneyBanner(e){if(e.cobro&&e.cobro.modo==='cc')return `<div class="cop-money ok" role="status"><b>CUENTA CORRIENTE</b><span>No cobrar: se factura a su cuenta</span></div>`;if(repNoCob(e))return `<div class="cop-money ok" role="status"><b>PAGADO</b><span>No cobrar nada</span></div>`;
  const v=repVuelto(e);return `<div class="cop-money cobrar" role="alert"><b>COBRAR ${money(e.total)}</b><span>${e.cobro.modo==='efectivo'?'En efectivo'+(v?` · abona con ${money(e.cobro.abona)} → <b>VUELTO ${money(v)}</b>`:''):'Con QR o transferencia'}</span></div>`;}
 function repCopHtml(){const c=repCfg();const rp=repMine();const off=!navigator.onLine;
  const sel=(can('reparto')||can('config'))?`<div class="row sm"><label for="cop-ver">Ver como</label><select id="cop-ver"><option value="">—</option>${c.reps.map(r=>`<option value="${esc(r.id)}" ${repVer===r.id?'selected':''}>${esc(r.nombre)}</option>`).join('')}</select></div>`:'';
@@ -10982,7 +11078,7 @@ A.repContactar=el=>{const e=repEnv(el.dataset.id);if(!e)return;const nm=String(e
  const L=[['📞 Llamar',repTelUrl(e.cli.tel)],['💬 «Estoy llegando»',repWaUrl(e.cli.tel,'¡Hola '+nm+'! Soy el repartidor de '+S.tenant.name+'. Estoy llegando con tu pedido #'+e.n+'.')],['💬 «Estoy en la puerta»',repWaUrl(e.cli.tel,'¡Hola '+nm+'! Estoy en la puerta con tu pedido #'+e.n+' de '+S.tenant.name+'.')],['💬 «No encuentro la dirección»',repWaUrl(e.cli.tel,'Hola '+nm+', no encuentro la dirección '+repDirTxt(e)+'. ¿Me compartís tu ubicación por WhatsApp?')]].filter(x=>x[1]);
  modal('Contactar a '+e.cli.nombre,`<div class="cop-list">${L.map(x=>`<a class="btn cop-big" ${x[1].startsWith('tel:')?'':'target="_blank" rel="noopener"'} href="${esc(x[1])}">${esc(x[0])}</a>`).join('')||'<p>No hay teléfono cargado.</p>'}</div>`,{okText:'Cerrar',noCancel:true});};
 A.repEntregar=el=>{const e=repEnv(el.dataset.id);if(!e||e.estado!=='en_ruta')return;const c=repCfg();let fails=0,foto='';
- const cob=e.cobro.modo!=='pagado';const qrImg=c.cobro.qrImg&&/^data:image\/(png|jpe?g|webp);base64,/.test(c.cobro.qrImg)?c.cobro.qrImg:'';
+ const cob=!repNoCob(e);const qrImg=c.cobro.qrImg&&/^data:image\/(png|jpe?g|webp);base64,/.test(c.cobro.qrImg)?c.cobro.qrImg:'';
  const w=modal('Entrega #'+e.n,`${repMoneyBanner(e)}
  ${c.pin?`<label for="ce-pin">Código de entrega (PIN) que te dice el cliente</label><input id="ce-pin" inputmode="numeric" maxlength="4" autocomplete="off" class="cop-pin">
  <label class="chk"><input type="checkbox" id="ce-nopin"> El cliente no tiene el código (se pide foto de respaldo)</label>`:''}
@@ -12259,6 +12355,27 @@ function vbInvoice(rids,o){o=o||{};if(!can('orders')||!can('sell'))return{err:'S
  R.forEach(rm=>{rm.inv=sale.id;rm.invN=sale.n;const od=vbOrd(rm.ord);if(od){ords.add(od);rm.items.forEach(x=>{const it=od.items.find(i=>i.pid===x.pid);if(it)it.inv=Math.round(((it.inv||0)+x.qty)*1000)/1000;});}});
  ords.forEach(od=>{od.sales.push(sale.id);sale.ord=od.n;if(od.items.every(i=>(i.inv||0)>=i.qty-1e-9))vbSetState(od,'facturado');});
  audit('FACTURA_REMITOS',sale.n+' · '+R.map(x=>x.n).join(', ')+' · '+custFull(c)+' · '+money(sale.total)+' · '+(MET[sale.method]||sale.method));save();return{sale};}
+/* ---------- V27.14 · del pedido al camión: remito + envío en la bandeja de Reparto («Listo para salir») ----------
+   Contado → el repartidor cobra en la puerta · Cuenta corriente → no cobra · al rendir se factura el remito con el medio real. */
+const vbRepOk=()=>typeof repNuevo==='function'&&typeof repOn==='function'&&repOn();
+const vbEnvOf=o=>o&&o.envio&&typeof repEnv==='function'?repEnv(o.envio):null;
+function vbEnvVivo(o){const e=vbEnvOf(o);return e&&!['entregado','cancelado'].includes(e.estado)?e:null;}
+function vbToReparto(id){const o=vbOrd(id);if(!o)return{err:'Pedido inexistente.'};if(!vbRepOk())return{err:'Activá Reparto y despacho para mandar pedidos al camión.'};if(!can('orders'))return{err:'Sin permiso.'};
+ if(vbEnvVivo(o))return{err:o.n+' ya está en reparto (envío #'+vbEnvOf(o).n+').'};if(!VB_OPEN.includes(o.state))return{err:'El pedido no tiene nada pendiente de entregar.'};
+ const q={};o.items.forEach(it=>{const pend=Math.round((it.qty-(it.del||0))*1000)/1000;const lim=it.pick===null||it.pick===undefined?pend:Math.max(0,Math.min(pend,it.pick-(it.del||0)));if(lim>0)q[it.pid]=lim;});
+ if(!Object.keys(q).length)return{err:'Lo armado ya se entregó: registrá el armado de lo que falta.'};
+ const rr=vbRemito(o.id,q);if(rr.err)return rr;const rm=rr.r,c=custById(o.cust)||{};
+ const items=rm.items.map(x=>{const it=o.items.find(i=>i.pid===x.pid)||{};const p=prod(x.pid)||{};const amt=it.qty?Math.round((it.amt||it.price*it.qty)*x.qty/it.qty):Math.round(x.price*x.qty);
+  return{pid:x.pid,name:x.name,rubro:p.rubro,qty:x.qty,price:x.qty?Math.round(amt/x.qty):x.price,amt,cost:p.cost||0,unit:p.unit||'u'};});
+ const total=items.reduce((a,i)=>a+i.amt,0);const pv=c.pv||{};const zs=repCfg().zonas||[];const z=zs.find(x=>x.activo!==false&&pv.zona&&String(x.nombre).toLowerCase()===String(pv.zona).toLowerCase())||zs.find(x=>x.activo!==false);
+ const e=repNuevo({orig:'ped',cli:{nombre:o.custName,tel:c.wa||'',dir:o.addr||c.addr||'',loc:'',ref:'',lat:pv.lat!=null?pv.lat:null,lng:pv.lng!=null?pv.lng:null,custId:c.id||''},custId:c.id||'',zona:z?z.id:'',tarifa:0,items,total,
+  cobro:o.cond==='cc'?{modo:'cc'}:{modo:'efectivo',abona:0},nota:o.n+' · remito '+rm.n+(o.note?' · '+o.note:'')});
+ e.ord=o.id;e.rem=rm.id;e.ordN=o.n;repSetEst(e,'listo',{nota:'pedido '+o.n+' armado'});o.envio=e.id;o.hist.push({ts:now(),u:user?user.name:'sistema',s:'en reparto'});
+ audit('PEDIDO_A_REPARTO',o.n+' · remito '+rm.n+' · envío #'+e.n+' · '+(o.cond==='cc'?'cuenta corriente':'cobrar '+money(total)));save();return{o,e,rm};}
+A.vbORep=el=>{const r=vbToReparto(el.dataset.id);if(r.err)return toast(r.err,1);toast(r.o.n+' → Reparto: envío #'+r.e.n+' listo para salir');rerender();};
+A.vbORepAll=()=>{const L=vbArr('sordr').filter(o=>VB_OPEN.includes(o.state)&&!vbEnvVivo(o));if(!L.length)return toast('No hay pedidos abiertos para mandar.',1);
+ confirmBox('Mandar '+L.length+' pedido(s) a Reparto',`Se emite el remito de lo pendiente (o de lo armado) y cada pedido queda «Listo para salir» en la bandeja de Reparto, con su cobro: contado se cobra en la puerta, cuenta corriente no.`,()=>{let ok=0;const bad=[];L.forEach(o=>{const r=vbToReparto(o.id);if(r.err)bad.push(o.n+': '+r.err);else ok++;});
+  toast(ok+' pedido(s) en Reparto'+(bad.length?' · '+bad.length+' con problema':''),!!bad.length);if(bad.length)modal('No se pudieron mandar',`<ul class="sm">${bad.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`,{okText:'Entendido',noCancel:true});rerender();},'Mandar');};
 function vbOrderCancel(id,why){const o=vbOrd(id);if(!o)return{err:'Pedido inexistente.'};if(!can('orders'))return{err:'Sin permiso.'};if(['facturado','anulado'].includes(o.state))return{err:'Ese pedido ya está cerrado.'};
  if(vbArr('remitos').some(r=>r.ord===o.id&&r.state!=='anulado'&&!r.inv))return{err:'Tiene remitos sin facturar: facturalos o anulalos primero.'};if(!why||String(why).trim().length<3)return{err:'Escribí el motivo.'};
  const closed=o.items.some(i=>(i.inv||0)>0);vbSetState(o,closed?'facturado':'anulado');o.cancelWhy=String(why).trim().slice(0,120);
@@ -12322,11 +12439,11 @@ A.vbDCust=el=>{vbDraft.cust=el.dataset.id||'';rerender();};
 A.vbDAdd=el=>{const x=vbDraft.items.find(i=>i.pid===el.dataset.id);if(x)x.qty+=1;else vbDraft.items.push({pid:el.dataset.id,qty:1});rerender();setTimeout(()=>{const i=$('#vb-dp');if(i)i.focus();},50);};
 A.vbDRm=el=>{vbDraft.items.splice(+el.dataset.i,1);rerender();};
 A.vbDCancel=()=>{vbDraft=null;vbOTab='lista';rerender();};
-A.vbDSave=()=>{const r=vbOrderCreate(vbDraft);if(r.err)return toast(r.err,1);vbDraft=null;vbOTab='lista';vbOSel=r.o.id;rerender();toast('Pedido '+r.o.n+' guardado'+(r.warn.length?' · ojo: falta stock de '+r.warn.length+' artículo(s)':''));};
+A.vbDSave=()=>{const src=vbDraft&&vbDraft.src;const r=vbOrderCreate(vbDraft);if(r.err)return toast(r.err,1);vbDraft=null;vbOTab='lista';vbOSel=r.o.id;if(src==='preventa'&&SCREENS.preventa&&user&&user.role==='preventista'){go('preventa');}else rerender();toast('Pedido '+r.o.n+' guardado'+(r.warn.length?' · ojo: falta stock de '+r.warn.length+' artículo(s)':''));};
 A.vbONew=()=>{vbDraftNew();vbOTab='nuevo';rerender();};
 function vbOrdersList(){const F={abiertos:o=>VB_OPEN.concat('entregado').includes(o.state),todos:()=>true,facturado:o=>o.state==='facturado',anulado:o=>o.state==='anulado'};const L=vbArr('sordr').filter(F[vbOF]||F.abiertos).slice().reverse().slice(0,300);
- return`<div class="row" style="gap:.4rem;flex-wrap:wrap;margin:.5rem 0">${[['abiertos','Abiertos'],['facturado','Facturados'],['anulado','Anulados'],['todos','Todos']].map(([k,t])=>`<button class="btn sm ${vbOF===k?'gold':''}" data-act="vbOF" data-f="${k}">${t}</button>`).join('')}<span class="sp"></span><button class="btn gold" data-act="vbONew">+ Nuevo pedido</button></div>
- ${L.length?`<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Origen</th><th class="r">Total</th><th>Estado</th><th></th></tr></thead><tbody>${L.map(o=>`<tr><td><b>${esc(o.n)}</b></td><td>${fmtDT(o.ts)}</td><td>${esc(o.custName)}</td><td>${esc({mostrador:'Mostrador',preventa:'Preventa',whatsapp:'WhatsApp',portal:'Portal'}[o.src]||o.src)}</td><td class="r">${money(o.total)}</td><td>${vbTag(o.state)}</td><td class="r"><button class="btn sm" data-act="vbOOpen" data-id="${o.id}">Abrir</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="okbox">No hay pedidos en esta vista.</div>'}`;}
+ return`<div class="row" style="gap:.4rem;flex-wrap:wrap;margin:.5rem 0">${[['abiertos','Abiertos'],['facturado','Facturados'],['anulado','Anulados'],['todos','Todos']].map(([k,t])=>`<button class="btn sm ${vbOF===k?'gold':''}" data-act="vbOF" data-f="${k}">${t}</button>`).join('')}<span class="sp"></span>${vbRepOk()&&vbArr('sordr').some(o=>VB_OPEN.includes(o.state)&&!vbEnvVivo(o))?'<button class="btn" data-act="vbORepAll">🚚 Mandar abiertos a reparto</button>':''}<button class="btn gold" data-act="vbONew">+ Nuevo pedido</button></div>
+ ${L.length?`<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Origen</th><th class="r">Total</th><th>Estado</th><th></th></tr></thead><tbody>${L.map(o=>`<tr><td><b>${esc(o.n)}</b></td><td>${fmtDT(o.ts)}</td><td>${esc(o.custName)}</td><td>${esc({mostrador:'Mostrador',preventa:'Preventa',whatsapp:'WhatsApp',portal:'Portal'}[o.src]||o.src)}</td><td class="r">${money(o.total)}</td><td>${vbTag(o.state)}${vbEnvVivo(o)?' <span class="tag ok">🚚 en reparto</span>':''}</td><td class="r"><button class="btn sm" data-act="vbOOpen" data-id="${o.id}">Abrir</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="okbox">No hay pedidos en esta vista.</div>'}`;}
 A.vbOF=el=>{vbOF=el.dataset.f;rerender();};
 A.vbOOpen=el=>{vbOSel=el.dataset.id;vbOTab='detalle';rerender();};
 function vbOrderDetail(){const o=vbOrd(vbOSel);if(!o)return'<p>Elegí un pedido.</p>';const R=vbArr('remitos').filter(r=>r.ord===o.id);const open=VB_OPEN.includes(o.state);const uninv=R.filter(r=>!r.inv&&r.state!=='anulado');
@@ -12338,7 +12455,8 @@ function vbOrderDetail(){const o=vbOrd(vbOSel);if(!o)return'<p>Elegí un pedido.
  <div class="row" style="gap:.5rem;flex-wrap:wrap;margin:.6rem 0">
  <button class="btn sm" data-act="vbODoc" data-id="${o.id}">Imprimir pedido</button>
  ${['pendiente','armado'].includes(o.state)?`<button class="btn sm" data-act="vbOPickDoc" data-id="${o.id}">Lista de armado</button><button class="btn sm" data-act="vbOPick" data-id="${o.id}">Registrar armado</button>`:''}
- ${open?`<button class="btn gold" data-act="vbORem" data-id="${o.id}">Emitir remito</button>`:''}
+ ${open&&vbRepOk()&&!vbEnvVivo(o)?`<button class="btn gold" data-act="vbORep" data-id="${o.id}">🚚 Mandar a reparto</button>`:''}${vbEnvVivo(o)?`<span class="tag ok">En reparto · envío #${esc(vbEnvOf(o).n)} · ${esc((typeof REP_EST!=='undefined'&&REP_EST[vbEnvOf(o).estado])||vbEnvOf(o).estado)}</span>`:''}
+ ${open?`<button class="btn ${vbRepOk()?'sm':'gold'}" data-act="vbORem" data-id="${o.id}">${vbRepOk()?'Remito (lo retira el cliente)':'Emitir remito'}</button>`:''}
  ${uninv.length?`<button class="btn gold" data-act="vbOInv" data-id="${o.id}">Facturar ${uninv.length} remito(s)</button>`:''}
  ${!['facturado','anulado'].includes(o.state)?`<button class="btn sm red" data-act="vbOCancel" data-id="${o.id}">${o.items.some(i=>(i.inv||0)>0)?'Cerrar pedido':'Anular pedido'}</button>`:''}</div>
  ${R.length?`<h3>Remitos</h3><div class="tw"><table data-nosort><thead><tr><th>N.º</th><th>Fecha</th><th>Artículos</th><th>Factura</th><th></th></tr></thead><tbody>${R.map(r=>`<tr><td>${esc(r.n)}${r.state==='anulado'?' <span class="tag bad">Anulado</span>':''}</td><td>${fmtDT(r.ts)}</td><td>${r.items.map(i=>i.qty+' '+esc(i.name)).join(', ')}</td><td>${r.inv?esc(r.invN||''):'—'}</td>
@@ -12653,6 +12771,8 @@ reg('preventa','Preventa','route','presale',()=>{const sup=user.role==='admin'||
   $$('.pv-d').forEach(i=>i.addEventListener('change',()=>{const c=custById(i.dataset.id);if(!c)return;const p=pvOf(c);const d=+i.dataset.d;p.dias=(p.dias||[]).filter(x=>x!==d);if(i.checked)p.dias.push(d);save();}));
   $$('.pv-c').forEach(i=>i.addEventListener('change',()=>{const P=S.cfg.presale||(S.cfg.presale={});(P.com||(P.com={}))[i.dataset.id]=Math.max(0,Math.min(30,+i.value||0));audit('COMISION_PREVENTA',i.dataset.id+' · '+i.value+' %');save();}));},'Operación');
 SCREENS.preventa.show=()=>giOn('presale');NAV.push(['preventa','Operación']);
+/* V27.14 · el preventista entra directo a su recorrido del día */
+{const _pvHome=homeScreen;homeScreen=function(){if(user&&user.role==='preventista'&&giOn('presale')&&SCREENS.preventa)return 'preventa';return _pvHome();};}
 
 /* ---------- Bot de pedidos por WhatsApp ---------- */
 const waS=()=>S.waSess||(S.waSess={});
