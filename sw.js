@@ -1,11 +1,11 @@
-/* Sistema VB · service worker de la app instalable (V26.69) · versión 2026-11-16 05:03 UTC cliente
+/* Sistema VB · service worker de la app instalable (V26.69) · versión 2026-11-17 02:42 UTC cliente
    Sólo maneja archivos del MISMO sitio (el sistema es un único HTML). Nunca toca la nube ni otros servicios:
    esas consultas van directo a la red (y el sistema ya trabaja sin conexión con sus datos locales).
    Página: primero la red (para tener siempre la última versión) y, sin señal, la copia guardada. */
-const C='svb-app-2026-11-16 05:03 UTC cliente';
+const C='svb-app-rave-almacenrave-v1|2026-11-17 02:42 UTC cliente';
 const PRE=['./','./app.webmanifest','./club.webmanifest','./app-192.png','./app-512.png','./app-512m.png','./app-180.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(PRE)).catch(()=>{}).then(()=>self.skipWaiting()));});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>n.startsWith('svb-app-')&&n!==C).map(n=>caches.delete(n)))).then(()=>self.clients.claim()));});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>n!==C&&(n.startsWith('svb-app-rave-almacenrave-v1|')||/^svb-app-\d/.test(n))).map(n=>caches.delete(n)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',e=>{const r=e.request;if(r.method!=='GET')return;let u;try{u=new URL(r.url);}catch(x){return;}if(u.origin!==location.origin)return;
  if(r.mode==='navigate'||u.pathname.endsWith('/')||u.pathname.endsWith('/index.html')){
   const net=fetch(r).then(res=>{if(res&&res.ok){const cp=res.clone();caches.open(C).then(c=>c.put('./',cp));}return res;});
