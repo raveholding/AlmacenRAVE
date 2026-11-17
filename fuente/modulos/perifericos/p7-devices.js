@@ -35,7 +35,7 @@ function ticketModel(sale,W){const T=S.tenant,cfg=S.cfg.ticket;const B=[];const 
   if(cb.sim)add('c',{s:'COMPROBANTE SIMULADO · SIN VALIDEZ FISCAL',b:1});
   add('l',{l:'Pto. Vta. '+String(cb.pto).padStart(4,'0')+' Nro. '+String(cb.nro).padStart(8,'0'),r:''});add('l',{l:'Fecha '+String(cb.fecha||'').split('-').reverse().join('/'),r:'Caja '+sale.caja});add('t',{s:'Interno N.º '+sale.n+' · Atendió: '+sale.user});
   const rc=cb.receptor;if(rc&&+rc.docTipo!==99){add('t',{s:'Cliente: '+(rc.nombre||'(sin nombre)')});add('t',{s:(+rc.docTipo===80?'CUIT ':+rc.docTipo===86?'CUIL ':'DNI ')+rc.docNro});}else add('t',{s:'A CONSUMIDOR FINAL'});}
- else{add('c',{s:arca?'FACTURA — PENDIENTE DE CAE':'TICKET',b:1});add('l',{l:'N.º '+sale.n,r:fmtDT(sale.ts)});add('l',{l:'Atendió: '+sale.user,r:'Caja '+sale.caja});}
+ else{add('c',{s:arca?'FACTURA — PENDIENTE DE CAE':'TICKET',b:1});add('l',{l:'N.º '+sale.n,r:fmtDT(sale.ts)});add('l',{l:'Atendió: '+sale.user,r:'Caja '+sale.caja});if(sale.cliTipo&&sale.cliTipo!=='5'&&typeof ivaTxt==='function')add('t',{s:'Cliente: '+ivaTxt(sale.cliTipo)});}
  if(sale.custName)add('t',{s:'Cliente: '+sale.custName});
  add('sep');
  sale.items.forEach(it=>{wrapTxt(it.name,W).forEach(l=>add('t',{s:l}));const q=Number.isInteger(it.qty)?String(it.qty):numAR(it.qty,3);add('l',{l:'  '+q+(it.qty!==1||true?' x ':'')+money(it.price),r:money(Math.round(it.qty*it.price))});if(it.disc)add('l',{l:'  Descuento',r:'- '+money(it.disc).replace(/^- /,'')});});

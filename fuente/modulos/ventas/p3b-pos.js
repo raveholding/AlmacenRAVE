@@ -84,7 +84,7 @@ function commitSale(method,arca,channel,lines,opts){
  pays.forEach(p=>{p.fee=(digital||p.m==='fiado')?0:Math.round(p.a*((S.cfg.fee[p.m]||0))/100);});
  const fiadoAmt=pc.fiadoAmt;
  const sale={id:opts.saleId||uid(),n:c+'-'+S.seq[c],ts:now(),user:user?user.name:'sistema',caja:c,sessId:sess.id,items:lines.map((l,i)=>({pid:l.pid,name:l.name,rubro:l.rubro,qty:l.qty,price:l.price,cost:isKit(prod(l.pid))?kitCost(prod(l.pid)):l.cost,list:l.list,disc:alloc[i]||0,...(isKit(prod(l.pid))?{kit:kitSnap(l.pid)}:{}),...(W&&l.rule?{lr:l.rule,ll:l.lst||'',lb:l.base||0}:{}),...(l.src?{src:l.src}:{})})),total,method,
-  doc:arca?'factura_pendiente_cae':'ticket_interno',status:digital?'pendiente':'ok',fee:0,channel:channel||'local',cust:cust?cust.id:'',custName:cust?cust.name+' '+cust.last:'',
+  doc:arca?'factura_pendiente_cae':'ticket_interno',status:digital?'pendiente':'ok',fee:0,channel:channel||'local',cust:cust?cust.id:'',custName:cust?cust.name+' '+cust.last:'',cliTipo:opts.cliTipo||'',
   coupon:ben.kind==='coupon'?ben.code:'',benefit:ben.disc?{kind:ben.kind,label:ben.label,disc:ben.disc}:null,recv:opts.recv||0,fiado:fiadoAmt>0,
   pays,fiadoAmt,paid:total-fiadoAmt,balance:fiadoAmt,vuelto:pc.vuelto,pstate:fiadoAmt<=0?'pagada':(fiadoAmt>=total?'pendiente':'parcial')};
  if(PA){const al=paAlloc(sale.items.map(lineTotal),total-(gross-ben.disc));sale.items.forEach((it,i)=>{if(al[i])it.pa=al[i];});sale.sub=gross;sale.adj=PA.adj;}
@@ -169,6 +169,15 @@ function mixSummaryHTML(tot){
  if(ef&&rc>0){if(rc>=efA&&efA>0){const v=rc-efA;h+=v>0?`<div class="vuelto" role="alert" aria-live="assertive"><span>VUELTO A ENTREGAR</span><b>${money(v)}</b><small>Recibido ${money(rc)} − efectivo imputado ${money(efA)}</small></div>`:'<div class="okbox sm">Efectivo justo: sin vuelto.</div>';}
   else if(efA>0)h+=`<div class="errbox sm"><b>Efectivo recibido insuficiente:</b> faltan ${money(efA-rc)} para el importe en efectivo.</div>`;}
  return h;}
+/* V27.12 · tipo de cliente en el cobro: nunca limita la venta, sólo define el comprobante */
+const CLI_TIPOS=[['5','Consumidor final'],['6','Monotributista'],['4','Exento'],['1','Resp. Inscripto']];
+function cliTipo(){if(pos.arca&&pos.rcp&&pos.rcp.c)return pos.rcp.c;if(pos.ctip)return pos.ctip;const c=custById(pos.cust);return (c&&c.ivaCond)||'5';}
+function cbLetra(t){const e=String((S.tenant&&S.tenant.iva)||'');if(/monotrib|exento/i.test(e))return 'C';return t==='1'?'A':'B';}
+function cliTipoHTML(){if(pos.arca){if(typeof arcaRcpAuto==='function')arcaRcpAuto();const r=pos.rcp||(pos.rcp={t:'99',n:'',c:'5',nm:''});if(pos.ctip&&r.c!==pos.ctip&&r._ct!==pos.ctip){r.c=pos.ctip;if(pos.ctip==='1'&&r.t!=='80')r.t='80';r._ct=pos.ctip;}pos.ctip=r.c;}const t=cliTipo(),L=cbLetra(t),nm=(CLI_TIPOS.find(x=>x[0]===t)||CLI_TIPOS[0])[1];
+ const doc=pos.arca?'Factura '+L+' electrónica (CAE al cobrar)':'Ticket interno — DOCUMENTO NO VÁLIDO COMO FACTURA';
+ const tip=!pos.arca&&t!=='5'?`<div class="sm mut">A un ${esc(nm)} le corresponde Factura ${L}: activá ARCA (F8) para emitirla.</div>`:(pos.arca&&t==='1'&&!(pos.rcp&&pos.rcp.n)?'<div class="warnbox sm">Factura A: cargá el CUIT del cliente en «Receptor de la factura».</div>':'');
+ return `<div class="card" id="cb-ctip" style="margin:.4rem 0;padding:.6rem"><b class="sm">¿Qué tipo de cliente es?</b> <span class="sm mut">(se le vende igual; define el comprobante)</span><div class="row" style="margin:.35rem 0;flex-wrap:wrap;gap:.3rem">${CLI_TIPOS.map(([k,n])=>`<button type="button" class="btn sm ${t===k?'on':''}" data-act="cbctip" data-v="${k}" aria-pressed="${t===k}">${n}</button>`).join('')}</div><p class="sm" style="margin:.2rem 0"><b>Comprobante:</b> ${doc} <button class="btn sm" data-act="parca">${pos.arca?'CON ARCA':'SIN ARCA'} (F8)</button></p>${tip}</div>`;}
+A.cbctip=el=>{cobroSync();const v=el.dataset.v;pos.ctip=v;if(pos.arca){if(typeof arcaRcpAuto==='function')arcaRcpAuto();const r=pos.rcp||(pos.rcp={t:'99',n:'',c:'5',nm:''});r.c=v;r._ct=v;if(v==='1'&&r.t!=='80')r.t='80';else if(v==='5'&&r.t==='80'&&!r.n)r.t='99';}cobroRender();};
 function cobroView(){
  if(typeof wsRecalc==='function')wsRecalc();
  const cust=custById(pos.cust);const ben=posBen();const gross=posGross();const tot=gross-ben.disc;const m=pos.mix?'mixto':pos.method;
@@ -187,7 +196,7 @@ function cobroView(){
  return `<div class="card" style="margin-bottom:.6rem">${pos.lines.map(l=>`<div class="row sm"><span class="sp">${esc(l.name)} × ${numAR(l.qty,3)}${typeof wsLineTag==='function'?wsLineTag(l):''}</span><b>${money(Math.round(l.qty*l.price))}</b></div>`).join('')}${ben.disc?`<div class="row sm"><span class="sp">Subtotal</span><span>${money(gross)}</span></div><div class="row sm" style="color:var(--ok)"><span class="sp">${esc(ben.label)}</span><b>− ${money(ben.disc)}</b></div>`:''}${typeof paCobroTotHTML==='function'?paCobroTotHTML(tot,gross,ben):`<hr><div class="row"><span class="sp">TOTAL</span><span class="total">${money(tot)}</span></div>`}</div>
  ${rcvBoxHTML(m)}
  <div class="row" style="margin-bottom:.5rem">${chips}</div>
- <p class="sm"><b>Documento:</b> ${pos.arca?'Factura electrónica (CAE al cobrar)':'Ticket interno — DOCUMENTO NO VÁLIDO COMO FACTURA'} <button class="btn sm" data-act="parca">${pos.arca?'CON ARCA':'SIN ARCA'} (F8)</button></p>
+ ${cliTipoHTML()}
  ${custBox}
  ${mixHtml}
  ${typeof fidCobroHTML==='function'?fidCobroHTML(m,cust,tot):''}
@@ -229,9 +238,9 @@ A.cobrar=()=>{if(!pos.lines.length)return;if(!can('sell'))return toast('Sin perm
   const ag=typeof accGate==='function'?accGate():{acc:null};if(ag.err){toast(ag.err,1);return false;}
   if(typeof ckNeeded==='function'&&ckNeeded()&&!pos.ck){toast('Elegí «Mandar a Fiado» o «Mandar a Cuenta Corriente».',1);const k=$('#ckpick');if(k)k.scrollIntoView({block:'center'});return false;}
   if(pos.mix){const L=mixParsed();const ef=L.find(p=>p.m==='efectivo');recv=ef?ef.r:0;}
-  const r=commitSale(pos.mix?'mixto':pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv,pays,det:pg.det,acc:ag.acc,ws:wsOn()?{chan:wsChan()}:null,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null,ck:pos.ck,gift:pos.gift||'',quote:pos.quote||''});
+  const r=commitSale(pos.mix?'mixto':pos.method,pos.arca,'local',pos.lines,{custId:pos.cust,coupon:pos.coupon,stampCode:pos.stamp,recv,pays,det:pg.det,acc:ag.acc,ws:wsOn()?{chan:wsChan()}:null,receptor:pos.arca&&typeof arcaRcpGet==='function'?arcaRcpGet():null,cliTipo:cliTipo(),ck:pos.ck,gift:pos.gift||'',quote:pos.quote||''});
   if(r.err){wsCommitErr(r);return false;}
-  const sale=r.sale;if(typeof repAfterSale==='function')repAfterSale(sale);pos.lines=[];pos.sel=-1;pos.cust='';pos.chanSet=null;pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];pos.pdet={};pos.acc={};pos.ck='';pos.gift='';pos.quote='';posCart();posGrid();
+  const sale=r.sale;if(typeof repAfterSale==='function')repAfterSale(sale);pos.lines=[];pos.sel=-1;pos.cust='';pos.ctip='';pos.chanSet=null;pos.rcp=null;pos.coupon='';pos.stamp='';pos.recv='';pos.mix=false;pos.pays=[];pos.pdet={};pos.acc={};pos.ck='';pos.gift='';pos.quote='';posCart();posGrid();
   toast('Venta '+sale.n+' registrada'+(r.stamp?' · sello sumado':''));if(typeof csPaid==='function')csPaid(sale);
   setTimeout(()=>{if(sale.status==='pendiente')payModal(sale);else if(sale.doc!=='ticket_interno'&&typeof arcaPostSale==='function')arcaPostSale(sale,r.stamp);else receiptModal(sale,r.stamp);},50);}});
  if(typeof pdBind==='function')pdBind(w);
@@ -249,7 +258,7 @@ A.cbmadd=()=>{const used=pos.pays.map(p=>p.m);const m=payMix().find(k=>!used.inc
 A.cbmrm=el=>{pos.pays.splice(+el.dataset.i,1);cobroRender();};
 A.cbrest=el=>{const L=mixParsed();const i=+el.dataset.i;const others=L.reduce((a,p,j)=>a+(j===i||isNaN(p.a)?0:p.a),0);const rest=posTotal()-others;if(rest<=0)return toast('No queda resto: los otros medios ya cubren el total.',1);pos.pays[i].a=pesosStr(rest);cobroRender();};
 A.cbmet=el=>{pos.method=el.dataset.m;pos.mix=false;pos.pays=[];cobroRender();posCart();if(pos.method==='efectivo')rcvFocus();};
-A.cbcust=el=>{pos.cust=el.dataset.id||'';pos.chanSet=null;cobroRender();posCart();};
+A.cbcust=el=>{pos.cust=el.dataset.id||'';pos.ctip='';pos.chanSet=null;cobroRender();posCart();};
 A.cbcup=()=>{cobroRender();};
 const cbSetStamp=t=>{const i=document.getElementById('cb-code');if(i)i.value=t;pos.stamp=t;cobroRender();};
 A.cbQr=()=>qrScan(cbSetStamp);
