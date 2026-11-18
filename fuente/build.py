@@ -75,6 +75,8 @@ if EX('p17-gestion.js') and (KINI or V=='cliente' or os.environ.get('GI')=='1') 
     # V26.78 · circuito mayorista, preventa/GPS/bot/portal, depósitos e inventario (todo apagado en el cliente hasta activarlo)
     for f in ('p19-mayorista.js','p21-stock.js','p20-campo.js','p23-calle.js','p22-pipeline.js'):
         if EX(f): parts.insert(parts.index('p5c-menusec.js'),f)
+# V27.18 · Licencia, avisos de vencimiento, Consola VB y copias de seguridad: sólo el sistema con nube (cliente).
+if V=='cliente' and EX('p24-licencia.js'): parts.insert(parts.index('p5c-menusec.js'),'p24-licencia.js')
 # V26.37 · Centro Inteligente (p10-centro.js): módulo aislado.
 # V26.40: aprobado por el dueño para Almacén RAVE (apagado por defecto; lo activa el administrador). Kini no lo lleva salvo CI=1.
 # raveV2 (solo) y Kini no llevan el Centro Inteligente: es de raveV3 y de Almacén RAVE (apagado)
