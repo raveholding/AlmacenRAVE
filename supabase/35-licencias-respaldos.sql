@@ -243,6 +243,7 @@ revoke all on function public.vb_respaldos_listar(uuid), public.vb_respaldo_baja
   public.vb_licencia_accion(uuid,text,int,text,text[],text), public.vb_licencia_contacto(uuid,text,text),
   public.vb_licencia_avisado(uuid,text), public.mi_licencia_pague(uuid), public.vb_comercios_listar(),
   public.vb_lic_prueba_nueva() from public, anon;
+revoke all on function public.vb_lic_prueba_nueva() from authenticated;
 grant execute on function public.vb_respaldos_listar(uuid), public.vb_respaldo_bajar(bigint), public.vb_respaldo_ahora(uuid),
   public.vb_licencia_accion(uuid,text,int,text,text[],text), public.vb_licencia_contacto(uuid,text,text),
   public.vb_licencia_avisado(uuid,text), public.mi_licencia_pague(uuid), public.vb_comercios_listar() to authenticated;
