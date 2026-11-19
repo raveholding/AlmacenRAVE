@@ -20,11 +20,11 @@ const GI_EXIST=[
  {t:'Recursos Humanos',plan:'mayorista',on:()=>typeof hrOn==='function'&&hrOn(),scr:'rrhh'},
  {t:'Finanzas',plan:'total',on:()=>typeof finOn==='function'&&finOn(),scr:'finanzas'},
  {t:'Contabilidad de gestión',plan:'total',on:()=>typeof acOn==='function'&&acOn(),scr:'contable'},
- {t:'Atención al cliente (CRM omnicanal)',plan:'total',on:()=>typeof crmCfg==='function'&&!!crmCfg().on,scr:'crm'},
- {t:'Notificaciones push',plan:'total',on:()=>typeof pushOn==='function'&&pushOn(),scr:'push'}];
+ {t:'Atención al cliente (CRM omnicanal)',plan:'mayorista',on:()=>typeof crmCfg==='function'&&!!crmCfg().on,scr:'crm'},
+ {t:'Notificaciones push',plan:'mayorista',on:()=>typeof pushOn==='function'&&pushOn(),scr:'push'}];
 /* lo que sigue en la hoja de ruta (prompt V26.76, etapas C y D): se muestra para la venta, rotulado «en construcción» */
 const GI_NEXT=[['Circuito pedido → armado → remito → factura → recibo','mayorista'],['Preventa (app del preventista)','mayorista'],['GPS del equipo en tiempo real','mayorista'],['Stock por sucursal y depósito','mayorista'],['Toma de inventario con el celular','mayorista'],['Acopio','mayorista'],['Precios por escala de volumen','mayorista'],['Bot de pedidos por WhatsApp','total'],['Portal B2B del cliente mayorista','total']];
-const GI_PLANS={esencial:{t:'VB Esencial',d:'Comercio chico: vender, caja, ARCA, stock, precios y etiquetas, Club.'},mayorista:{t:'VB Mayorista',d:'Esencial + mayorista, reparto, personal y vales; preventa y depósitos al terminar la etapa C.'},total:{t:'VB Total',d:'Todo: además CRM omnicanal, finanzas, contabilidad y bots.'}};
+const GI_PLANS={esencial:{t:'VB Esencial',d:'Comercio chico: vender, caja, ARCA, stock, precios y etiquetas, Club.'},mayorista:{t:'VB Mayorista',d:'Esencial + mayorista, reparto, personal y vales, Club completo y Atención al cliente; preventa y depósitos al terminar la etapa C.'},total:{t:'VB Total',d:'Todo: además finanzas, contabilidad y bots.'}};
 const GI_PORD=['esencial','mayorista','total'];
 function giCfg(){const c=S.cfg.mods||(S.cfg.mods={});return c;}
 const giPlan=()=>GI_PORD.includes(S.cfg.plan)?S.cfg.plan:'total';
