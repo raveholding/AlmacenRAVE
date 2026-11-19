@@ -21,7 +21,7 @@
 <meta property="og:locale" content="es_AR">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "LiquorStore", "name": "Almacén y Licorería RAVE", "url": "https://raveholding.github.io/AlmacenRAVE/", "telephone": "+54 9 387 457 4892", "address": {"@type": "PostalAddress", "streetAddress": "Urquiza 1052", "addressLocality": "Salta", "addressRegion": "Salta", "addressCountry": "AR"}}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242220'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23c9963e' font-family='Georgia,serif' font-weight='700'%3ER%3C/text%3E%3C/svg%3E">
-<script>window.RAVE_BUILD={"ver": "2026-11-19 01:38 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
+<script>window.RAVE_BUILD={"ver": "2026-11-19 02:18 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
 <style>
 :root{--ink:#242220;--gold:#c9963e;--gold2:#a87a28;--bg:#f6f3ee;--card:#fff;--line:#e6e0d6;--mut:#6d675f;--red:#c0392b;--redbg:#fdecea;--ok:#1e7a46;--okbg:#e6f4ec;--warnbg:#fff4dc;--r:16px}
 *{box-sizing:border-box}
@@ -11317,48 +11317,100 @@ A.canOff=el=>{const k=el.dataset.k;if(!can('config'))return;const I=CANAL_I[k];c
  audit('CANALES_DESCONECTAR',I.t);save();if(typeof pubRefresh==='function')pubRefresh();rerender();},'Desconectar');};
 A.canProbarBtn=async el=>{const k=el.dataset.k;el.disabled=true;const r=await canProbar(k);el.disabled=false;const c=canCfg()[k];c.ok={ts:now(),ok:!!r.ok,msg:String(r.msg||r.error||'').slice(0,80)};save();rerender();toast(CANAL_I[k].t+': '+(r.msg||(r.ok?'funciona':'no responde')),!r.ok);};
 /* ---------- pantalla ---------- */
-function canalesHTML(){const adm=can('config');const on=canOnList();const n=on.length,tot=CANAL_L.length;
- const card=k=>{const I=CANAL_I[k],st=canEstado(k),c=canRead(k);const u=k==='web'?((window.RAVE_BUILD&&RAVE_BUILD.publicUrl)||''):canLink(k);
-  const tag=st==='api'?'<span class="tag ok">● Integrado</span>':st==='link'?'<span class="tag warn">● Botón activo</span>':'<span class="tag">○ Sin conectar</span>';
-  return `<article class="can-card ${st}" style="--cc:${I.col}"><div class="row"><span class="can-ic" aria-hidden="true">${I.ic}</span><b class="sp">${esc(I.t)}</b>${tag}</div><p class="sm mut">${esc(I.d)}</p>
-  ${u&&st!=='off'?`<p class="sm can-u">${esc(u.replace(/^mailto:/,''))}</p>`:''}${c.ok&&c.ok.msg?`<p class="sm ${c.ok.ok===false?'neg':''}">${c.ok.ok===false?'✗':'✓'} ${esc(c.ok.msg)}</p>`:''}
-  ${adm?`<div class="row">${st==='off'?`<button class="btn gold sm" data-act="canAbrir" data-k="${k}">Conectar</button>`:`<button class="btn sm" data-act="canAbrir" data-k="${k}">${st==='link'&&I.api&&k!=='tn'?'Pasar a integrado':'Ver / cambiar'}</button>${st==='api'&&!['web','tn'].includes(k)?`<button class="btn sm" data-act="canProbarBtn" data-k="${k}">Probar</button>`:''}<button class="btn sm ghost" data-act="canOff" data-k="${k}">Desconectar</button>`}</div>`:''}</article>`;};
- return `<div class="card can-head"><div class="row"><div class="sp"><h3 style="margin:0">Canales conectados: ${n} de ${tot}</h3><div class="can-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${n}"><i style="width:${Math.round(n/tot*100)}%"></i></div></div>
- ${adm?'<button class="btn gold" data-act="canTodo">⚡ Conectar todo con un clic</button>':''}</div><p class="sm mut">«Conectar todo» usa el WhatsApp del comercio y las redes cargadas en el menú: publica los botones oficiales al instante. Para recibir y responder desde la Bandeja, pasá cada canal a <b>Integrado</b> (asistente paso a paso; las claves quedan sólo en el servidor).</p></div>
- <div class="can-grid">${CANAL_L.filter(k=>!CAN_META.includes(k)||k==='wa').map(k=>k==='wa'?canMetaCard(adm):k==='mail'?canMailCard(adm):card(k)).join('')}</div>`;}
-/* V27.21 · Una tarjeta por servicio, sin repetidos:
-   «Meta» junta WhatsApp, Instagram y Messenger (una sola ventana de Meta) y «Correo» junta Gmail, Outlook y el correo simple.
-   Las conexiones con un clic las hace la función «conectar»; los botones simples (wa.me, ig.me, m.me, mailto) quedan como alternativa. */
+/* V27.22 · Pantalla de canales profesional: todas las tarjetas con el mismo diseño, tres estados claros
+   (Conectado · Enlace activo · Sin activar), una acción principal por tarjeta y sin textos técnicos para el comercio
+   (el detalle técnico sólo lo ve el equipo de Vincular Business). Meta junta WhatsApp, Instagram y Messenger y Correo junta Gmail y Outlook. */
 const CAN_META=['wa','ig','fb'];
 function canOA(){const oa=(typeof omniOA!=='undefined'&&omniOA)?omniOA:null;return{oa,ok:!!(oa&&!oa.err),disp:(oa&&oa.disponibles)||{},cuentas:(oa&&oa.cuentas)||[]};}
 function canOAFalta(prov){const O=canOA();if(typeof pushCloud==='function'&&!pushCloud())return'Necesita la nube del comercio conectada.';
  if(!O.oa)return'Consultando la conexión…';if(O.oa.err)return'La función «conectar» no responde ('+O.oa.err+').';
  if(!O.disp.llave)return'La clave OAUTH_KEY de Supabase tiene que tener 32 caracteres o más.';
  return{meta:'Falta cargar la app de Meta de Vincular Business (META_APP_ID, META_APP_SECRET y META_CONFIG_ID).',google:'Falta registrar la app de Google (GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET).',microsoft:'Falta registrar la app de Microsoft (MS_CLIENT_ID y MS_CLIENT_SECRET).'}[prov];}
-function canFila(k,adm,via){const I=CANAL_I[k],st=canEstado(k),u=canLink(k),c=canRead(k);
- const tag=via?'<span class="tag ok">● Integrado</span>':st==='api'?'<span class="tag ok">● Integrado</span>':st==='link'?'<span class="tag warn">● Botón simple</span>':'<span class="tag">○ Apagado</span>';
- const acc=!adm||via?'':st==='off'?`<button class="can-lk" data-act="canAbrir" data-k="${k}">Activar botón</button>`:`<button class="can-lk" data-act="canAbrir" data-k="${k}">Cambiar</button><button class="can-lk" data-act="canOff" data-k="${k}">Quitar</button>`;
- return`<li class="can-mr"><span class="can-mi" aria-hidden="true">${I.ic}</span><div class="can-mt"><b>${esc(k==='mail'?'Correo simple':I.t)}</b>${u&&st!=='off'?`<small class="can-u">${esc(u.replace(/^mailto:/,''))}</small>`:''}${c.ok&&c.ok.ok===false&&!via?`<small class="neg">✗ ${esc(c.ok.msg||'')}</small>`:''}</div>${tag}<span class="can-ma">${acc}</span></li>`;}
-function canMetaCard(adm){
- const O=canOA();const act=O.cuentas.find(x=>x.proveedor==='meta'&&x.estado==='activa');const via=k=>!!(act&&(act.canales||[]).includes(k));
- const est=act?'<span class="tag ok">● Conectado</span>':CAN_META.some(k=>canEstado(k)!=='off')?'<span class="tag warn">● Botones simples</span>':'<span class="tag">○ Sin conectar</span>';
- const top=!adm?'':act?`<div class="row can-conn"><span class="sm">Conectado: <b>${esc(act.cuenta)}</b>${act.error?' · <span class="neg">'+esc(act.error)+'</span>':''}</span><button class="btn sm" data-act="omniOAOff" data-id="${act.id}">Desconectar</button></div>`
-  :`<button class="btn gold" data-act="omniOAGo" data-p="meta" ${O.disp.meta?'':'disabled'}>Conectar con Meta</button><p class="sm mut">${O.disp.meta?'Se abre Meta: elegís tu número de WhatsApp Business, tu página y tu Instagram. Los mensajes entran a la Bandeja.':esc(canOAFalta('meta'))}</p>`;
- return`<article class="can-card can-wide ${act?'api':''}" style="--cc:#1877f2"><div class="row"><span class="can-ic" aria-hidden="true">∞</span><b class="sp">Meta: WhatsApp, Instagram y Messenger</b>${est}</div>
-  <p class="sm mut">${act?'Los mensajes de los tres entran a la Bandeja y se responden desde acá.':'Una sola conexión para los tres. Mientras tanto, cada uno funciona como botón simple que abre el chat.'}</p><div class="can-mb">${top}</div>
-  <ul class="can-ml">${CAN_META.map(k=>canFila(k,adm,via(k))).join('')}</ul></article>`;}
-function canMailCard(adm){
- const O=canOA();const mb=O.cuentas.filter(x=>x.proveedor==='google'||x.proveedor==='microsoft');const act=mb.some(x=>x.estado==='activa');
- const est=act?`<span class="tag ok">● ${mb.length} casilla${mb.length>1?'s':''}</span>`:canEstado('mail')!=='off'?'<span class="tag warn">● Botón simple</span>':'<span class="tag">○ Sin conectar</span>';
- const btn=(p,t)=>`<button class="btn ${O.disp[p]?'gold':''} sm" data-act="omniOAGo" data-p="${p}" ${O.disp[p]?'':'disabled'} title="${esc(O.disp[p]?'':canOAFalta(p))}">${mb.some(x=>x.proveedor===p)?'+ Otra casilla de '+t:'Conectar '+t}</button>`;
- const falta=['google','microsoft'].filter(p=>!O.disp[p]);
- return`<article class="can-card can-wide ${act?'api':''}" style="--cc:#5b5b5b"><div class="row"><span class="can-ic" aria-hidden="true">✉️</span><b class="sp">Correo: Gmail y Outlook</b>${est}</div>
-  <p class="sm mut">Los correos de tus clientes entran a la Bandeja y respondés desde acá. Podés conectar varias casillas.</p>
-  ${mb.length?`<ul class="can-ml">${mb.map(x=>`<li class="can-mr"><span class="can-mi" aria-hidden="true">${x.proveedor==='google'?'G':'O'}</span><div class="can-mt"><b>${esc(x.cuenta)}</b>${x.error?`<small class="neg">${esc(x.error)}</small>`:''}</div><span class="tag ${x.estado==='activa'?'ok':'warn'}">${x.estado==='activa'?'● Conectada':esc(x.estado)}</span><span class="can-ma">${adm?`<button class="can-lk" data-act="omniOAOff" data-id="${x.id}">Desconectar</button>`:''}</span></li>`).join('')}</ul>`:''}
-  ${adm?`<div class="row can-mb" style="gap:.4rem;flex-wrap:wrap">${btn('google','Gmail')}${btn('microsoft','Outlook')}</div>${falta.length===2?`<p class="sm mut">${esc(canOAFalta('google'))}</p>`:''}`:''}
-  <ul class="can-ml">${canFila('mail',adm,false)}</ul></article>`;}
-(function(){if(typeof document==='undefined'||document.getElementById('can-meta-css'))return;const st=document.createElement('style');st.id='can-meta-css';
- st.textContent='.can-wide{grid-column:span 2}.can-mb{margin:.5rem 0 .6rem}.can-conn{gap:.5rem;align-items:center;justify-content:space-between;flex-wrap:wrap}.can-ml{list-style:none;margin:.2rem 0 0;padding:0}.can-mr{display:flex;gap:.55rem;align-items:center;padding:.45rem 0;border-top:1px solid var(--line);flex-wrap:wrap}.can-mi{width:1.6rem;text-align:center;font-size:1.05rem}.can-mt{flex:1 1 140px;min-width:0;display:flex;flex-direction:column}.can-mt small{color:var(--mut);word-break:break-all}.can-ma{display:flex;gap:.6rem}.can-lk{background:none;border:0;padding:.3rem 0;font:inherit;font-size:.85rem;color:inherit;text-decoration:underline;cursor:pointer;min-height:32px}.can-lk:hover{color:var(--gold2)}@media(max-width:760px){.can-wide{grid-column:auto}}';
+const canStaff=()=>typeof VBL!=='undefined'&&!!VBL.staff;
+const CX_ST={api:['ok','Conectado'],link:['warn','Enlace activo'],off:['off','Sin activar']};
+const cxSt=st=>`<span class="cx-st cx-${CX_ST[st][0]}">${CX_ST[st][1]}</span>`;
+function cxCard(o){return`<article class="cx-card${o.wide?' cx-wide':''}" style="--cc:${o.col}"><header class="cx-h"><span class="cx-ic" aria-hidden="true">${o.ic}</span><div class="cx-t"><h4>${esc(o.t)}</h4><p>${esc(o.d)}</p></div>${o.st?cxSt(o.st):''}</header>
+ ${o.body?`<div class="cx-b">${o.body}</div>`:'<div class="cx-b"></div>'}${o.nota?`<p class="cx-n">${o.nota}</p>`:''}${o.tech&&canStaff()?`<p class="cx-tech">Vincular Business: ${esc(o.tech)}</p>`:''}
+ ${o.foot?`<footer class="cx-f">${o.foot}</footer>`:''}</article>`;}
+const cxBtn=(t,act,extra,prim)=>`<button class="btn sm ${prim?'gold':''}" data-act="${act}" ${extra||''}>${t}</button>`;
+const cxLk=(t,act,extra)=>`<button class="cx-lk" data-act="${act}" ${extra||''}>${t}</button>`;
+function canalesHTML(){const adm=can('config');const O=canOA();const on=canOnList().length;
+ const meta=O.cuentas.find(x=>x.proveedor==='meta'&&x.estado==='activa');const viaM=k=>!!(meta&&(meta.canales||[]).includes(k));
+ const mails=O.cuentas.filter(x=>(x.proveedor==='google'||x.proveedor==='microsoft'));
+ const cards=[];
+ // Tienda web y chat
+ {const st=canEstado('web');cards.push(cxCard({t:'Tienda web y chat',d:'Chat cifrado en tu menú online y en la app del Club.',ic:'🛍️',col:'#7a5a22',st,
+  body:st!=='off'?`<p class="cx-u">${esc(((window.RAVE_BUILD&&RAVE_BUILD.publicUrl)||'').replace(/^https?:\/\//,''))}</p>`:'',
+  foot:adm?(st==='off'?cxBtn('Activar','canAbrir','data-k="web"',1):cxBtn('Configurar','canAbrir','data-k="web"')+cxLk('Desactivar','canOff','data-k="web"')):''}));}
+ // Meta
+ {const sts=CAN_META.map(k=>viaM(k)?'api':canEstado(k));const st=meta?'api':sts.some(x=>x!=='off')?'link':'off';
+  const chip=(k,s)=>`<li class="cx-chip cx-${CX_ST[s][0]}"><span aria-hidden="true">${CANAL_I[k].ic}</span>${esc({wa:'WhatsApp',ig:'Instagram',fb:'Messenger'}[k])}<small>${s==='api'?'Bandeja':s==='link'?'Enlace':'—'}</small></li>`;
+  const foot=!adm?'':meta?cxBtn('Editar enlaces','canMetaLinks','')+cxLk('Desconectar Meta','omniOAOff',`data-id="${meta.id}"`)
+   :O.disp.meta?cxBtn('Conectar con Meta','omniOAGo','data-p="meta"',1)+cxLk('Editar enlaces','canMetaLinks',''):cxBtn(st==='off'?'Cargar enlaces':'Editar enlaces','canMetaLinks','',st==='off');
+  cards.push(cxCard({wide:1,t:'Meta: WhatsApp, Instagram y Messenger',d:meta?'Conectado: los mensajes de los tres entran a la Bandeja y se responden desde acá.':'Tus clientes te escriben por WhatsApp, Instagram y Messenger desde el menú y la app del Club.',ic:'<b style="color:#fff">∞</b>',col:'#1877f2',st,
+   body:`<ul class="cx-chips">${CAN_META.map((k,i)=>chip(k,sts[i])).join('')}</ul>${meta?`<p class="cx-u">Cuenta: ${esc(meta.cuenta)}${meta.error?' · <span class="neg">'+esc(meta.error)+'</span>':''}</p>`:''}`,
+   nota:meta||O.disp.meta?'':'Con la conexión directa a Meta, los mensajes entran a la Bandeja. La habilita Vincular Business.',tech:meta||O.disp.meta?'':canOAFalta('meta'),foot}));}
+ // Telegram
+ {const st=canEstado('tg'),c=canRead('tg');cards.push(cxCard({t:'Telegram',d:'Bot propio del comercio para que tus clientes te escriban.',ic:'✈️',col:'#229ed9',st,
+  body:st!=='off'&&canLink('tg')?`<p class="cx-u">${esc(canLink('tg').replace(/^https?:\/\//,''))}</p>`:'',
+  foot:adm?(st==='off'?cxBtn('Conectar','canAbrir','data-k="tg"',1):cxBtn('Configurar','canAbrir','data-k="tg"')+cxLk('Desactivar','canOff','data-k="tg"')):''}));}
+ // Correo
+ {const act=mails.some(x=>x.estado==='activa');const st=act?'api':canEstado('mail');const g=O.disp.google,m=O.disp.microsoft;
+  const foot=!adm?'':(g?cxBtn(mails.some(x=>x.proveedor==='google')?'+ Gmail':'Conectar Gmail','omniOAGo','data-p="google"',!act):'')+(m?cxBtn(mails.some(x=>x.proveedor==='microsoft')?'+ Outlook':'Conectar Outlook','omniOAGo','data-p="microsoft"',!act&&!g):'')
+   +(g||m?cxLk(canEstado('mail')==='off'?'Usar enlace de correo':'Editar enlace','canLinkEdit','data-k="mail"'):cxBtn(canEstado('mail')==='off'?'Cargar correo':'Editar correo','canLinkEdit','data-k="mail"',canEstado('mail')==='off'));
+  cards.push(cxCard({wide:1,t:'Correo electrónico',d:act?'Los correos de tus clientes entran a la Bandeja.':'Botón para que tus clientes te escriban por mail.',ic:'✉️',col:'#5b5b5b',st,
+   body:mails.length?`<ul class="cx-list">${mails.map(x=>`<li><span>${esc(x.cuenta)}</span>${x.estado==='activa'?'<span class="cx-st cx-ok">Conectada</span>':`<span class="cx-st cx-warn">${esc(x.estado)}</span>`}${adm?cxLk('Quitar','omniOAOff',`data-id="${x.id}"`):''}</li>`).join('')}</ul>`:canEstado('mail')!=='off'?`<p class="cx-u">${esc(canRead('mail').addr||'')}</p>`:'',
+   tech:g||m?'':canOAFalta('google'),foot}));}
+ // TikTok
+ {const st=canEstado('tt');cards.push(cxCard({t:'TikTok',d:'Botón a tu perfil para que te escriban.',ic:'🎵',col:'#111',st,
+  body:st!=='off'?`<p class="cx-u">${esc(canLink('tt').replace(/^https?:\/\/(www\.)?/,''))}</p>`:'',
+  foot:adm?(st==='off'?cxBtn('Cargar perfil','canLinkEdit','data-k="tt"',1):cxBtn('Editar','canLinkEdit','data-k="tt"')+cxLk('Desactivar','canOff','data-k="tt"')):''}));}
+ // Tiendanube
+ {const st=canEstado('tn');cards.push(cxCard({t:'Tiendanube',d:'Pedidos y stock de tu tienda online, sincronizados.',ic:'🛒',col:'#2b4b9b',st,
+  foot:adm?(st==='off'?cxBtn('Conectar','canAbrir','data-k="tn"',1):cxBtn('Configurar','canAbrir','data-k="tn"')):''}));}
+  const [cWeb,cMeta,cTg,cMail,cTt,cTn]=cards;
+  const cBand=cxCard({t:'Bandeja de entrada',d:'Todas las conversaciones en un solo lugar, con respuestas rápidas y asignación al equipo.',ic:'💬',col:'#334155',st:null,
+   body:'',foot:`<button class="btn sm" data-act="crmTab" data-t="inbox">Ir a la Bandeja</button>`});
+  cards.length=0;cards.push(cWeb,cMeta,cMail,cTg,cTt,cTn,cBand);
+ return`<div class="card cx-head"><div><h3>Canales de atención</h3><p class="sm mut">Por dónde te escriben tus clientes. Los canales conectados llegan a la Bandeja; los enlaces aparecen en tu menú y en la app del Club.</p></div>
+  <div class="cx-sum"><b>${on}</b><span>activos</span></div>${adm?`<button class="btn sm" data-act="canTodo" title="Usa el WhatsApp del comercio y las redes cargadas en el menú">Completar desde el menú</button>`:''}</div>
+  <div class="cx-grid">${cards.join('')}</div>`;}
+/* un solo formulario para los tres enlaces de Meta */
+A.canMetaLinks=()=>{if(!can('config'))return;const c=canCfg();
+ const w=modal('Enlaces de WhatsApp, Instagram y Messenger',`<p class="sm mut">Se publican como botones en tu menú online y en la app del Club. Dejá vacío el que no uses.</p>
+  <label for="cm-wa">WhatsApp (número con código de área)</label><input id="cm-wa" inputmode="tel" placeholder="387 457-4892" value="${esc(c.wa.num||'')}">
+  <label for="cm-ig">Instagram (usuario)</label><input id="cm-ig" placeholder="@tu_negocio" value="${esc(c.ig.user||'')}">
+  <label for="cm-fb">Facebook (usuario de la página)</label><input id="cm-fb" placeholder="TuNegocio" value="${esc(c.fb.user||'')}">`,{okText:'Guardar',onOk:x=>{
+  const wa=val('cm-wa').trim(),ig=val('cm-ig').trim(),fb=val('cm-fb').trim();const nwa=wa?canWa(wa):'';
+  if(wa&&!nwa){x._err('Revisá el número de WhatsApp: tiene que tener el código de área.');return false;}
+  const set=(k,campo,v)=>{const cc=c[k];if(v){cc[campo]=v;if(cc.modo!=='api')cc.modo='link';}else if(cc.modo!=='api')cc.modo='off';};
+  set('wa','num',nwa);set('ig','user',ig?canHandle(ig):'');set('fb','user',fb?canHandle(fb):'');
+  canChansSync();audit('CANALES_CONECTAR','enlaces de Meta');save();if(typeof pubRefresh==='function')pubRefresh();rerender();toast('Enlaces guardados');}});};
+/* enlace simple de correo o TikTok */
+A.canLinkEdit=el=>{if(!can('config'))return;const k=el.dataset.k,c=canCfg()[k];const mail=k==='mail';
+ modal(mail?'Correo de contacto':'Perfil de TikTok',`<label for="cl-v">${mail?'Correo':'Usuario de TikTok'}</label><input id="cl-v" ${mail?'type="email" inputmode="email"':''} placeholder="${mail?'ventas@tunegocio.com':'@tu_negocio'}" value="${esc(mail?c.addr||'':c.user||'')}">`,{okText:'Guardar',onOk:x=>{
+  const v=val('cl-v').trim();if(!v){if(c.modo!=='api')c.modo='off';}else if(mail){if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){x._err('Escribí un correo válido.');return false;}c.addr=v.toLowerCase();if(c.modo!=='api')c.modo='link';}
+  else{c.user=canHandle(v);if(!c.user){x._err('Escribí el usuario.');return false;}c.modo='link';}
+  canChansSync();audit('CANALES_CONECTAR',CANAL_I[k].t+' · enlace');save();if(typeof pubRefresh==='function')pubRefresh();rerender();toast('Guardado');}});};
+(function(){if(typeof document==='undefined'||document.getElementById('cx-css'))return;const st=document.createElement('style');st.id='cx-css';
+ st.textContent=`.cx-head{display:flex;gap:1rem;align-items:center;flex-wrap:wrap}.cx-head>div:first-child{flex:1 1 320px}.cx-head h3{margin:0 0 .2rem}.cx-head p{margin:0}
+.cx-sum{display:flex;align-items:baseline;gap:.35rem;padding:.4rem .8rem;border-radius:12px;background:var(--bg)}.cx-sum b{font-size:1.4rem}.cx-sum span{color:var(--mut);font-size:.85rem}
+.cx-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin-top:.8rem;align-items:stretch}
+.cx-card{display:flex;flex-direction:column;gap:.6rem;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1rem;min-height:190px;box-shadow:0 1px 3px rgba(0,0,0,.04);position:relative;overflow:hidden}
+.cx-card:before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--cc)}
+.cx-wide{grid-column:span 2}.cx-h{display:flex;gap:.7rem;align-items:flex-start}.cx-ic{width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:12px;background:var(--cc);font-size:1.15rem}
+.cx-t{flex:1;min-width:0}.cx-t h4{margin:0;font-size:1rem}.cx-t p{margin:.15rem 0 0;color:var(--mut);font-size:.84rem;line-height:1.35}
+.cx-st{flex:none;font-size:.72rem;font-weight:700;padding:.2rem .55rem;border-radius:99px;white-space:nowrap}.cx-ok{background:var(--okbg);color:var(--ok)}.cx-warn{background:var(--warnbg);color:#8a5a00}.cx-off{background:var(--bg);color:var(--mut)}
+.cx-b{flex:1}.cx-u{margin:0;font-size:.82rem;color:var(--mut);word-break:break-all}
+.cx-chips{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
+.cx-chip{display:flex;flex-direction:column;align-items:center;gap:.15rem;padding:.6rem .4rem;border-radius:12px;font-weight:600;font-size:.88rem;border:1px solid var(--line)}
+.cx-chip span{font-size:1.2rem}.cx-chip small{font-size:.7rem;font-weight:700}.cx-chip.cx-ok,.cx-chip.cx-warn{background:transparent;color:inherit}.cx-chip.cx-ok{border-color:#a6d7b9}.cx-chip.cx-ok small{color:var(--ok)}.cx-chip.cx-warn small{color:#8a5a00}.cx-chip.cx-off{opacity:.55;background:transparent}.cx-chip.cx-off small{color:var(--mut)}
+.cx-list{list-style:none;margin:0;padding:0}.cx-list li{display:flex;gap:.5rem;align-items:center;padding:.35rem 0;border-bottom:1px solid var(--line);font-size:.86rem}.cx-list li span:first-child{flex:1;min-width:0;word-break:break-all}.cx-list li:last-child{border-bottom:0}
+.cx-n{margin:0;font-size:.8rem;color:var(--mut)}.cx-tech{margin:0;font-size:.74rem;color:#8a5a00;background:var(--warnbg);border-radius:8px;padding:.35rem .5rem}
+.cx-f{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin-top:auto;padding-top:.6rem;border-top:1px solid var(--line)}
+.cx-lk{background:none;border:0;padding:.3rem 0;min-height:36px;font:inherit;font-size:.85rem;color:var(--mut);text-decoration:underline;text-underline-offset:3px;cursor:pointer}.cx-lk:hover{color:var(--ink)}
+@media(max-width:1100px){.cx-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.cx-grid{grid-template-columns:1fr}.cx-wide{grid-column:auto}.cx-card{min-height:0}}`;
  document.head.appendChild(st);})();
 
 /* =====================================================================
