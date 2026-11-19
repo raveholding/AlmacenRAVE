@@ -51,7 +51,7 @@ if V=='demo': cfg=cfg.replace('</script>','(function(){/* V27.6 · Reiniciar dem
 if V=='demo': cfg=cfg.replace('</script>',"(function(){/* V27.11 · demo siempre al día: si se publicó una versión nueva, se borran SÓLO los datos de esta demo guardados en el navegador y arranca con los ejemplos de la versión nueva */var B=window.RAVE_BUILD;if(!B||B.variant!=='demo'||!window.__vbNS)return;var ns=window.__vbNS,k='__build',cur=String(B.ver||'');try{if(localStorage.getItem(k)===cur)return;var ks=[];for(var i=0;i<localStorage.length;i++){var x=localStorage.key(i);if(x&&x.indexOf(ns)===0)ks.push(x);}ks.forEach(function(x){localStorage.removeItem(x);});try{sessionStorage.clear();}catch(e){}try{indexedDB.deleteDatabase(B.db);indexedDB.deleteDatabase('rave-card');}catch(e){}localStorage.setItem(k,cur);}catch(e){}})();"+'</script>',1)
 if DEMO: cfg=cfg.replace('</script>','window.RAVE_DEMO=%s;</script>'%json.dumps({k:DEMO[k] for k in ('nombre','slogan','canal','mods','plan','pantallas','catalogo','fijo','cli')},ensure_ascii=False),1)
 head=B('p1-head.html')
-head=head.replace("connect-src 'none'","connect-src "+((url+' ') if url else '')+"https://ntfy.sh https://nominatim.openstreetmap.org").replace("img-src data: blob:","img-src 'self' data: blob: https://ntfy.sh https://tile.openstreetmap.org")  # V26.68: portero SeguridadRave (avisos por ntfy y foto del timbre)
+head=head.replace("connect-src 'none'","connect-src "+((url+' ') if url else '')+"https://ntfy.sh https://nominatim.openstreetmap.org https://router.project-osrm.org").replace("img-src data: blob:","img-src 'self' data: blob: https://ntfy.sh https://tile.openstreetmap.org https://*.basemaps.cartocdn.com")  # V27.19: mapa CARTO y ruteo OSRM de la Torre de Control · V26.68: portero SeguridadRave (avisos por ntfy y foto del timbre)
 if V=='cliente':
     # SEO del menú público (V26.33): título, descripción, dirección canónica y datos del local para buscadores.
     # Reemplaza en Google la dirección vieja (raveholding.github.io/menu-rave) por la actual.
@@ -75,6 +75,10 @@ if EX('p17-gestion.js') and (KINI or V=='cliente' or os.environ.get('GI')=='1') 
     # V26.78 · circuito mayorista, preventa/GPS/bot/portal, depósitos e inventario (todo apagado en el cliente hasta activarlo)
     for f in ('p19-mayorista.js','p21-stock.js','p20-campo.js','p23-calle.js','p22-pipeline.js'):
         if EX(f): parts.insert(parts.index('p5c-menusec.js'),f)
+# V27.19 · Torre de Control (mapa, simulación y tablero de reparto). Por ahora sólo en la demo Distribuidora,
+# con los datos de ejemplo de Salta (p25b). Mayorista y AlmacenRAVE la suman después, con sus datos.
+if KINI and DEMO and 'presale' in DEMO['mods'] and EX('p25-torre.js') and 'p23-calle.js' in parts:
+    parts.insert(parts.index('p5c-menusec.js'),'p25b-torre-salta.js');parts.insert(parts.index('p5c-menusec.js'),'p25-torre.js')
 # V27.18 · Licencia, avisos de vencimiento, Consola VB y copias de seguridad: sólo el sistema con nube (cliente).
 if V=='cliente' and EX('p24-licencia.js'): parts.insert(parts.index('p5c-menusec.js'),'p24-licencia.js')
 # V26.37 · Centro Inteligente (p10-centro.js): módulo aislado.
