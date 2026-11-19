@@ -75,9 +75,9 @@ if EX('p17-gestion.js') and (KINI or V=='cliente' or os.environ.get('GI')=='1') 
     # V26.78 · circuito mayorista, preventa/GPS/bot/portal, depósitos e inventario (todo apagado en el cliente hasta activarlo)
     for f in ('p19-mayorista.js','p21-stock.js','p20-campo.js','p23-calle.js','p22-pipeline.js'):
         if EX(f): parts.insert(parts.index('p5c-menusec.js'),f)
-# V27.19 · Torre de Control (mapa, simulación y tablero de reparto). Por ahora sólo en la demo Distribuidora,
-# con los datos de ejemplo de Salta (p25b). Mayorista y AlmacenRAVE la suman después, con sus datos.
-if KINI and DEMO and 'presale' in DEMO['mods'] and EX('p25-torre.js') and 'p23-calle.js' in parts:
+# V27.19 · Torre de Control (mapa, simulación y tablero de reparto) con los datos de ejemplo de Salta (p25b).
+# V27.23 · también en la demo Mayorista. AlmacenRAVE la suma después, con sus datos reales.
+if KINI and DEMO and DEMO['plan']=='mayorista' and DEMO['canal'] in ('may','both') and EX('p25-torre.js') and 'p23-calle.js' in parts:
     parts.insert(parts.index('p5c-menusec.js'),'p25b-torre-salta.js');parts.insert(parts.index('p5c-menusec.js'),'p25-torre.js')
 # V27.18 · Licencia, avisos de vencimiento, Consola VB y copias de seguridad: sólo el sistema con nube (cliente).
 if V=='cliente' and EX('p24-licencia.js'): parts.insert(parts.index('p5c-menusec.js'),'p24-licencia.js')
