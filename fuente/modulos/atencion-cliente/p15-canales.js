@@ -120,4 +120,25 @@ function canalesHTML(){const adm=can('config');const on=canOnList();const n=on.l
   ${adm?`<div class="row">${st==='off'?`<button class="btn gold sm" data-act="canAbrir" data-k="${k}">Conectar</button>`:`<button class="btn sm" data-act="canAbrir" data-k="${k}">${st==='link'&&I.api&&k!=='tn'?'Pasar a integrado':'Ver / cambiar'}</button>${st==='api'&&!['web','tn'].includes(k)?`<button class="btn sm" data-act="canProbarBtn" data-k="${k}">Probar</button>`:''}<button class="btn sm ghost" data-act="canOff" data-k="${k}">Desconectar</button>`}</div>`:''}</article>`;};
  return `<div class="card can-head"><div class="row"><div class="sp"><h3 style="margin:0">Canales conectados: ${n} de ${tot}</h3><div class="can-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${n}"><i style="width:${Math.round(n/tot*100)}%"></i></div></div>
  ${adm?'<button class="btn gold" data-act="canTodo">⚡ Conectar todo con un clic</button>':''}</div><p class="sm mut">«Conectar todo» usa el WhatsApp del comercio y las redes cargadas en el menú: publica los botones oficiales al instante. Para recibir y responder desde la Bandeja, pasá cada canal a <b>Integrado</b> (asistente paso a paso; las claves quedan sólo en el servidor).</p></div>
- <div class="can-grid">${CANAL_L.map(card).join('')}</div>`;}
+ <div class="can-grid">${CANAL_L.filter(k=>!CAN_META.includes(k)||k==='wa').map(k=>k==='wa'?canMetaCard(adm,card):card(k)).join('')}</div>`;}
+/* V27.20 · WhatsApp, Instagram y Messenger van en UNA tarjeta de Meta: con «Conectar con Meta» se vinculan los tres
+   en una sola ventana (función «conectar»); los botones simples (wa.me, ig.me, m.me) quedan adentro como alternativa. */
+const CAN_META=['wa','ig','fb'];
+function canMetaCard(adm){
+ const oa=(typeof omniOA!=='undefined'&&omniOA&&!omniOA.err)?omniOA:null;const disp=!!(oa&&oa.disponibles&&oa.disponibles.meta);
+ const acc=(oa&&oa.cuentas||[]).filter(x=>x.proveedor==='meta');const act=acc.find(x=>x.estado==='activa');const via=k=>!!(act&&(act.canales||[]).includes(k));
+ const fila=k=>{const I=CANAL_I[k],st=canEstado(k),u=canLink(k),c=canRead(k);
+  const tag=via(k)?'<span class="tag ok">● Integrado con Meta</span>':st==='api'?'<span class="tag ok">● Integrado</span>':st==='link'?'<span class="tag warn">● Botón activo</span>':'<span class="tag">○ Sin conectar</span>';
+  return`<li class="can-mr"><div class="row"><span aria-hidden="true">${I.ic}</span><b class="sp">${esc(I.t)}</b>${tag}</div>
+   ${u&&st!=='off'?`<p class="sm can-u">${esc(u)}</p>`:''}${c.ok&&c.ok.msg&&!via(k)?`<p class="sm ${c.ok.ok===false?'neg':''}">${c.ok.ok===false?'✗':'✓'} ${esc(c.ok.msg)}</p>`:''}
+   ${adm&&!via(k)?`<div class="row">${st==='off'?`<button class="btn sm" data-act="canAbrir" data-k="${k}">Botón simple</button>`:`<button class="btn sm" data-act="canAbrir" data-k="${k}">Ver / cambiar</button><button class="btn sm ghost" data-act="canOff" data-k="${k}">Quitar</button>`}</div>`:''}</li>`;};
+ const est=act?'<span class="tag ok">● Conectado</span>':CAN_META.some(k=>canEstado(k)!=='off')?'<span class="tag warn">● Botones activos</span>':'<span class="tag">○ Sin conectar</span>';
+ const boton=!adm?'':act?`<p class="sm"><b>${esc(act.cuenta)}</b>${act.error?'<br><small class="neg">'+esc(act.error)+'</small>':''}</p><button class="btn sm" data-act="omniOAOff" data-id="${act.id}">Desconectar Meta</button>`
+  :`<button class="btn gold" data-act="omniOAGo" data-p="meta" ${disp?'':'disabled'}>Conectar con Meta</button>${disp?'<p class="sm mut">Se abre Meta: elegís tu número de WhatsApp Business, tu página de Facebook y tu Instagram. Los mensajes entran a la Bandeja.</p>':`<p class="sm mut">${typeof pushCloud==='function'&&!pushCloud()?'Necesita la nube del comercio conectada.':oa?(oa.disponibles&&oa.disponibles.llave?'Falta cargar la app de Meta de Vincular Business (META_APP_ID, META_APP_SECRET y META_CONFIG_ID).':'Falta el secreto OAUTH_KEY.'):'Consultando la conexión…'}</p>`}`;
+ return`<article class="can-card can-meta ${act?'api':''}" style="--cc:#1877f2"><div class="row"><span class="can-ic" aria-hidden="true">∞</span><b class="sp">Meta: WhatsApp, Instagram y Messenger</b>${est}</div>
+  <p class="sm mut">Una sola conexión para los tres. Si todavía no la hacés, cada uno puede funcionar como botón simple que abre el chat.</p>
+  <div class="can-mb">${boton}</div><ul class="can-ml">${CAN_META.map(fila).join('')}</ul></article>`;
+}
+(function(){if(typeof document==='undefined'||document.getElementById('can-meta-css'))return;const st=document.createElement('style');st.id='can-meta-css';
+ st.textContent='.can-meta{grid-column:span 2}.can-mb{margin:.5rem 0 .7rem}.can-ml{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}.can-mr{border-top:1px solid var(--line);padding-top:.5rem}.can-mr .row{gap:.4rem;flex-wrap:wrap;align-items:center}@media(max-width:760px){.can-meta{grid-column:auto}}';
+ document.head.appendChild(st);})();

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://ntfy.sh https://tile.openstreetmap.org; frame-src https://www.google.com; connect-src https://rdvwrrroerxikfqvpgnh.supabase.co https://ntfy.sh https://nominatim.openstreetmap.org; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://ntfy.sh https://tile.openstreetmap.org https://*.basemaps.cartocdn.com; frame-src https://www.google.com; connect-src https://rdvwrrroerxikfqvpgnh.supabase.co https://ntfy.sh https://nominatim.openstreetmap.org https://router.project-osrm.org; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="theme-color" content="#242220">
 <link rel="manifest" id="pwa-man" href="app.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,7 +21,7 @@
 <meta property="og:locale" content="es_AR">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "LiquorStore", "name": "Almacén y Licorería RAVE", "url": "https://raveholding.github.io/AlmacenRAVE/", "telephone": "+54 9 387 457 4892", "address": {"@type": "PostalAddress", "streetAddress": "Urquiza 1052", "addressLocality": "Salta", "addressRegion": "Salta", "addressCountry": "AR"}}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242220'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23c9963e' font-family='Georgia,serif' font-weight='700'%3ER%3C/text%3E%3C/svg%3E">
-<script>window.RAVE_BUILD={"ver": "2026-11-18 02:08 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
+<script>window.RAVE_BUILD={"ver": "2026-11-19 01:05 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
 <style>
 :root{--ink:#242220;--gold:#c9963e;--gold2:#a87a28;--bg:#f6f3ee;--card:#fff;--line:#e6e0d6;--mut:#6d675f;--red:#c0392b;--redbg:#fdecea;--ok:#1e7a46;--okbg:#e6f4ec;--warnbg:#fff4dc;--r:16px}
 *{box-sizing:border-box}
@@ -3893,7 +3893,7 @@ A.emptyDemo=()=>confirmBox('Borrar todo y empezar vacío','Se borran productos, 
    (document.head||document.documentElement).appendChild(st);
    const marca=()=>{try{document.documentElement.classList.toggle('vb-bajo',BAJO());}catch(e){}};marca();setInterval(marca,1500);}
   const COM=['inicio','vender','caja','arqueo','cierres','presup','mermas','inventario','precios','etiquetas','inventariof','proveedores','clientes','fidel','cupones','config','roles','modulos','dispositivos','auditoria'];
-  const DIS=['inicio','vender','caja','arqueo','cierres','pedidosv','preventa','pvcli','pvped','pvlisto','cambios','devoluciones','carga','reparto','copiloto','depositos','acopios','inventario','inventariof','precios','etiquetas','proveedores','clientes','portalb2b','personal','vales','equipo','config','roles','modulos','dispositivos','auditoria'];
+  const DIS=['inicio','vender','caja','arqueo','cierres','pedidosv','preventa','pvcli','pvped','pvlisto','cambios','devoluciones','carga','torre','reparto','copiloto','depositos','acopios','inventario','inventariof','precios','etiquetas','proveedores','clientes','portalb2b','personal','vales','equipo','config','roles','modulos','dispositivos','auditoria'];
   const IC={min:'M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6',both:'M3 21V9l9-6 9 6v12M8 21v-7h8v7M3 12h18',may:'M2 6h11v10H2zM13 9h4l4 4v3h-8zM6 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',todo:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5'};
   const T={min:{t:'Mostrador',d:'Vendés al consumidor final, en el mostrador o con autoservicio.',ej:'Kiosco · almacén · autoservicio · ropa · ferretería',plan:'esencial',p:COM.filter(x=>x!=='inventariof')},
    both:{t:'Minorista y mayorista',d:'Vendés al público y también por mayor, con precios por presentación.',ej:'Mayorista · autoservicio mayorista · bebidas',plan:'mayorista',p:COM},
@@ -6675,9 +6675,9 @@ A.omniKeyDel=el=>{confirmBox('Revocar clave','La aplicación que la usa deja de 
 /* ---------- Centro de canales: conexión automática (OAuth) ---------- */
 let omniOA=null;
 async function omniOALoad(){if(!pushCloud()||!isAdm())return;try{omniOA=await hreq('/functions/v1/conectar',{method:'POST',fn:true,body:{accion:'estado',comercio:cl.comercio.id}});}catch(e){omniOA={err:String(e.message||e)};}if(crmTab==='canales')crmPaint();}
-const OMNI_OA=[['google','Gmail (Google)','✉️','Lee la bandeja de entrada y responde desde tu Gmail. Podés conectar varias casillas.'],['microsoft','Outlook / Office 365','📧','Lee y responde desde tu correo de Microsoft (Outlook, Hotmail u Office 365).'],['meta','Meta: WhatsApp, Instagram y Messenger','🟢','En una sola ventana vinculás tu número de WhatsApp Business, tu página de Facebook y tu Instagram.']];
+const OMNI_OA=[['google','Gmail (Google)','✉️','Lee la bandeja de entrada y responde desde tu Gmail. Podés conectar varias casillas.'],['microsoft','Outlook / Office 365','📧','Lee y responde desde tu correo de Microsoft (Outlook, Hotmail u Office 365).']]; // V27.20: Meta tiene su propia tarjeta junto a los canales (p15-canales.js)
 function omniOAHTML(){if(!omniOn()||!isAdm())return'';if(pushCloud()&&!omniOA)omniOALoad();const d=omniOA&&omniOA.disponibles||{};const L=omniOA&&omniOA.cuentas||[];
- return `<div class="card om-oa" style="margin-top:.8rem"><h3 style="margin-top:0">⚡ Conexión automática (con un clic)</h3><p class="sm mut">Iniciás sesión en Google, Microsoft o Meta y das permiso: los tokens quedan cifrados en el servidor y se renuevan solos. Nadie copia claves.</p>
+ return `<div class="card om-oa" style="margin-top:.8rem"><h3 style="margin-top:0">⚡ Conexión automática (con un clic)</h3><p class="sm mut">Correo: iniciás sesión en Google o Microsoft y das permiso: los tokens quedan cifrados en el servidor y se renuevan solos. Nadie copia claves.</p>
   ${!pushCloud()?'<p class="sm warnbox">Necesita la nube del comercio conectada.</p>':omniOA&&omniOA.err?`<p class="sm warnbox">La función «conectar» no responde (${esc(omniOA.err)}). Falta desplegarla y pegar 29-omnicanal-finanzas.sql.</p>`:''}
   <div class="om-oag">${OMNI_OA.map(([k,t,ic,ds])=>{const on=!!d[k];const mine=L.filter(x=>x.proveedor===k);return `<div class="om-oac"><div class="row"><span style="font-size:1.4rem" aria-hidden="true">${ic}</span><b class="sp">${t}</b></div><p class="sm">${ds}</p>
    ${mine.map(x=>`<p class="sm"><span class="tag ${x.estado==='activa'?'ok':'warn'}">${x.estado==='activa'?'conectada':x.estado}</span> ${esc(x.cuenta)}${x.error?'<br><small class="neg">'+esc(x.error)+'</small>':''} <button class="btn sm" data-act="omniOAOff" data-id="${x.id}" aria-label="Desconectar ${esc(x.cuenta)}">Desconectar</button></p>`).join('')}
@@ -11324,7 +11324,28 @@ function canalesHTML(){const adm=can('config');const on=canOnList();const n=on.l
   ${adm?`<div class="row">${st==='off'?`<button class="btn gold sm" data-act="canAbrir" data-k="${k}">Conectar</button>`:`<button class="btn sm" data-act="canAbrir" data-k="${k}">${st==='link'&&I.api&&k!=='tn'?'Pasar a integrado':'Ver / cambiar'}</button>${st==='api'&&!['web','tn'].includes(k)?`<button class="btn sm" data-act="canProbarBtn" data-k="${k}">Probar</button>`:''}<button class="btn sm ghost" data-act="canOff" data-k="${k}">Desconectar</button>`}</div>`:''}</article>`;};
  return `<div class="card can-head"><div class="row"><div class="sp"><h3 style="margin:0">Canales conectados: ${n} de ${tot}</h3><div class="can-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${n}"><i style="width:${Math.round(n/tot*100)}%"></i></div></div>
  ${adm?'<button class="btn gold" data-act="canTodo">⚡ Conectar todo con un clic</button>':''}</div><p class="sm mut">«Conectar todo» usa el WhatsApp del comercio y las redes cargadas en el menú: publica los botones oficiales al instante. Para recibir y responder desde la Bandeja, pasá cada canal a <b>Integrado</b> (asistente paso a paso; las claves quedan sólo en el servidor).</p></div>
- <div class="can-grid">${CANAL_L.map(card).join('')}</div>`;}
+ <div class="can-grid">${CANAL_L.filter(k=>!CAN_META.includes(k)||k==='wa').map(k=>k==='wa'?canMetaCard(adm,card):card(k)).join('')}</div>`;}
+/* V27.20 · WhatsApp, Instagram y Messenger van en UNA tarjeta de Meta: con «Conectar con Meta» se vinculan los tres
+   en una sola ventana (función «conectar»); los botones simples (wa.me, ig.me, m.me) quedan adentro como alternativa. */
+const CAN_META=['wa','ig','fb'];
+function canMetaCard(adm){
+ const oa=(typeof omniOA!=='undefined'&&omniOA&&!omniOA.err)?omniOA:null;const disp=!!(oa&&oa.disponibles&&oa.disponibles.meta);
+ const acc=(oa&&oa.cuentas||[]).filter(x=>x.proveedor==='meta');const act=acc.find(x=>x.estado==='activa');const via=k=>!!(act&&(act.canales||[]).includes(k));
+ const fila=k=>{const I=CANAL_I[k],st=canEstado(k),u=canLink(k),c=canRead(k);
+  const tag=via(k)?'<span class="tag ok">● Integrado con Meta</span>':st==='api'?'<span class="tag ok">● Integrado</span>':st==='link'?'<span class="tag warn">● Botón activo</span>':'<span class="tag">○ Sin conectar</span>';
+  return`<li class="can-mr"><div class="row"><span aria-hidden="true">${I.ic}</span><b class="sp">${esc(I.t)}</b>${tag}</div>
+   ${u&&st!=='off'?`<p class="sm can-u">${esc(u)}</p>`:''}${c.ok&&c.ok.msg&&!via(k)?`<p class="sm ${c.ok.ok===false?'neg':''}">${c.ok.ok===false?'✗':'✓'} ${esc(c.ok.msg)}</p>`:''}
+   ${adm&&!via(k)?`<div class="row">${st==='off'?`<button class="btn sm" data-act="canAbrir" data-k="${k}">Botón simple</button>`:`<button class="btn sm" data-act="canAbrir" data-k="${k}">Ver / cambiar</button><button class="btn sm ghost" data-act="canOff" data-k="${k}">Quitar</button>`}</div>`:''}</li>`;};
+ const est=act?'<span class="tag ok">● Conectado</span>':CAN_META.some(k=>canEstado(k)!=='off')?'<span class="tag warn">● Botones activos</span>':'<span class="tag">○ Sin conectar</span>';
+ const boton=!adm?'':act?`<p class="sm"><b>${esc(act.cuenta)}</b>${act.error?'<br><small class="neg">'+esc(act.error)+'</small>':''}</p><button class="btn sm" data-act="omniOAOff" data-id="${act.id}">Desconectar Meta</button>`
+  :`<button class="btn gold" data-act="omniOAGo" data-p="meta" ${disp?'':'disabled'}>Conectar con Meta</button>${disp?'<p class="sm mut">Se abre Meta: elegís tu número de WhatsApp Business, tu página de Facebook y tu Instagram. Los mensajes entran a la Bandeja.</p>':`<p class="sm mut">${typeof pushCloud==='function'&&!pushCloud()?'Necesita la nube del comercio conectada.':oa?(oa.disponibles&&oa.disponibles.llave?'Falta cargar la app de Meta de Vincular Business (META_APP_ID, META_APP_SECRET y META_CONFIG_ID).':'Falta el secreto OAUTH_KEY.'):'Consultando la conexión…'}</p>`}`;
+ return`<article class="can-card can-meta ${act?'api':''}" style="--cc:#1877f2"><div class="row"><span class="can-ic" aria-hidden="true">∞</span><b class="sp">Meta: WhatsApp, Instagram y Messenger</b>${est}</div>
+  <p class="sm mut">Una sola conexión para los tres. Si todavía no la hacés, cada uno puede funcionar como botón simple que abre el chat.</p>
+  <div class="can-mb">${boton}</div><ul class="can-ml">${CAN_META.map(fila).join('')}</ul></article>`;
+}
+(function(){if(typeof document==='undefined'||document.getElementById('can-meta-css'))return;const st=document.createElement('style');st.id='can-meta-css';
+ st.textContent='.can-meta{grid-column:span 2}.can-mb{margin:.5rem 0 .7rem}.can-ml{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}.can-mr{border-top:1px solid var(--line);padding-top:.5rem}.can-mr .row{gap:.4rem;flex-wrap:wrap;align-items:center}@media(max-width:760px){.can-meta{grid-column:auto}}';
+ document.head.appendChild(st);})();
 
 /* =====================================================================
    V26.73 · NOTIFICACIONES PUSH a los clientes del Club (Web Push estándar con VAPID, sin Firebase ni costo)
