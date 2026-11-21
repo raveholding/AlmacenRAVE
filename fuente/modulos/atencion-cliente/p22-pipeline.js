@@ -171,7 +171,7 @@ A.crmAgentT=()=>{const on=!crmAgentOn();try{localStorage.setItem('vb.crm.agent',
  else if(ag)h=h.replace(/<div class="ux-tabs" role="tablist" aria-label="Atención al cliente">[\s\S]*?<\/div>/,'');
  h=h.replace('<h1 class="sp">Atención al cliente</h1>','<h1 class="sp">Atención al cliente</h1><button class="btn sm '+(ag?'gold':'')+'" data-act="crmAgentT" aria-pressed="'+ag+'" title="Muestra sólo tus conversaciones y la cola sin asignar">'+(ag?'👤 Modo agente':'👥 Vista completa')+'</button>');
  if(ag)h=h.replace(/<button class="btn" data-act="crmTab" data-t="(stats|canales)">[^<]*<\/button>/g,'').replace(/<button class="btn" data-act="crmCfgOpen">Ajustes<\/button>/,'').replace(/<button class="btn" data-act="crmSim">[^<]*<\/button>/,'');
- if(ag&&crmTab!=='inbox'&&crmTab!=='deals'){crmTab='inbox';}
+ if(ag&&!['inbox','deals','hoy','agenda'].includes(crmTab)){crmTab='inbox';}
  return h+DL_CSS;};}
 
 /* ---------- 6) Nube: colección «deal» (SQL 31) ---------- */

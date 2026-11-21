@@ -73,7 +73,8 @@ if EX('p17-gestion.js') and (KINI or V=='cliente' or os.environ.get('GI')=='1') 
     parts.insert(parts.index('p5c-menusec.js'),'p17-gestion.js')
     if EX('p18-etiquetas.js'): parts.insert(parts.index('p5c-menusec.js'),'p18-etiquetas.js')
     # V26.78 · circuito mayorista, preventa/GPS/bot/portal, depósitos e inventario (todo apagado en el cliente hasta activarlo)
-    for f in ('p19-mayorista.js','p21-stock.js','p20-campo.js','p23-calle.js','p22-pipeline.js'):
+    # V27.25 · p26: «Hoy» (centro de trabajo diario) y Agenda de Atención al cliente, sobre el pipeline (p22).
+    for f in ('p19-mayorista.js','p21-stock.js','p20-campo.js','p23-calle.js','p22-pipeline.js','p26-agenda-hoy.js'):
         if EX(f): parts.insert(parts.index('p5c-menusec.js'),f)
 # V27.19 · Torre de Control (mapa, simulación y tablero de reparto) con los datos de ejemplo de Salta (p25b).
 # V27.23 · también en la demo Mayorista. AlmacenRAVE la suma después, con sus datos reales.
