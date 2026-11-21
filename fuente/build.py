@@ -80,6 +80,9 @@ if EX('p17-gestion.js') and (KINI or V=='cliente' or os.environ.get('GI')=='1') 
 # V27.23 · también en la demo Mayorista. AlmacenRAVE la suma después, con sus datos reales.
 if KINI and DEMO and DEMO['plan']=='mayorista' and DEMO['canal'] in ('may','both') and EX('p25-torre.js') and 'p23-calle.js' in parts:
     parts.insert(parts.index('p5c-menusec.js'),'p25b-torre-salta.js');parts.insert(parts.index('p5c-menusec.js'),'p25-torre.js')
+# V27.26 · Preventistas y rutas + reposición automática (p27), sobre Proveedores y compras (p4c/p4d).
+if EX('p27-preventistas.js') and 'p4d-compras-ui.js' in parts:
+    parts.insert(parts.index('p4e-factura.js' if 'p4e-factura.js' in parts else 'p4d-compras-ui.js')+1,'p27-preventistas.js')
 # V27.18 · Licencia, avisos de vencimiento, Consola VB y copias de seguridad: sólo el sistema con nube (cliente).
 if V=='cliente' and EX('p24-licencia.js'): parts.insert(parts.index('p5c-menusec.js'),'p24-licencia.js')
 # V26.37 · Centro Inteligente (p10-centro.js): módulo aislado.
