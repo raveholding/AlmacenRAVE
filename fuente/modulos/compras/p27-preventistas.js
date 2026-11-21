@@ -257,7 +257,10 @@ function vb38Enable(){if(vb38||typeof COLS==='undefined')return;[{c:'prevr',key:
 if(typeof pushAll==='function'){const _pa=pushAll;pushAll=async function(){if(!vb38&&typeof cl!=='undefined'&&cl.comercio&&Date.now()-vb38At>600000){vb38At=Date.now();try{const v=await rpc('vb_version',{});if(+v>=38)vb38Enable();}catch(e){}}return _pa.apply(this,arguments);};}
 
 /* ---------- 10) Datos de ejemplo (sólo demos) ---------- */
-function prvDemoSeed(){if(IS_CLIENT||S.prvDemo>=1)return;const sup=cmpArr('suppliers').filter(s=>s.activo!==false);const P=S.products.filter(p=>!p.archived&&p.active!==false&&!(typeof isKit==='function'&&isKit(p))&&(+stockOf(p)||0)>0).sort((a,b)=>(+stockOf(a)||0)-(+stockOf(b)||0));if(!sup.length||P.length<6)return;S.prvDemo=1;
+const prvCuit=b=>{const d=String(b).slice(0,10).split('').map(Number);const w=[5,4,3,2,7,6,5,4,3,2];let t=d.reduce((a,x,i)=>a+x*w[i],0);let v=11-t%11;if(v===11)v=0;if(v===10)return prvCuit(String(+b+1));return String(b).slice(0,10)+v;};
+function prvDemoSeed(){if(IS_CLIENT||S.prvDemo>=1)return;const X0=window.PRV_SEED||{};
+ if(!cmpArr('suppliers').filter(s=>s.activo!==false).length&&X0.sup)X0.sup.forEach((r,i)=>cmpArr('suppliers').push({id:uid(),razon:r,cuit:prvCuit(3071000000+i*1111),iva:'Responsable Inscripto',email:'',tel:'',dir:'',saldo:0,activo:true,ts:now()}));
+ const sup=cmpArr('suppliers').filter(s=>s.activo!==false);const P=S.products.filter(p=>!p.archived&&p.active!==false&&!(typeof isKit==='function'&&isKit(p))&&(+stockOf(p)||0)>0).sort((a,b)=>(+stockOf(a)||0)-(+stockOf(b)||0));if(!sup.length||P.length<6)return;S.prvDemo=1;
  const X=window.PRV_SEED||{n:['Martín (preventa)','Carla (preventa)','Diego (preventa)']};const k=prvToday();const di=prvDayIdx(k);const day=i=>PRV_DAYS[(di+i)%7][0];
  const mk=(i,days,hora)=>{const s=sup[i%sup.length];const r={id:uid(),ts:now(),upd:now(),ocs:[],name:X.n[i],provId:s.id,wa:'54938755500'+(10+i),days,freq:i===2?'quincenal':'semanal',hora,avisaVacio:false,activo:true};r.next=prvFirstFrom(r,k);prvReps().push(r);return r;};
  const r0=mk(0,[day(0),day(3)],'08:30'),r1=mk(1,[day(2)],'09:00'),r2=sup.length>2?mk(2,[day(4)],'10:00'):null;
