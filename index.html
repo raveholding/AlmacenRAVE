@@ -21,7 +21,7 @@
 <meta property="og:locale" content="es_AR">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "LiquorStore", "name": "Almacén y Licorería RAVE", "url": "https://raveholding.github.io/AlmacenRAVE/", "telephone": "+54 9 387 457 4892", "address": {"@type": "PostalAddress", "streetAddress": "Urquiza 1052", "addressLocality": "Salta", "addressRegion": "Salta", "addressCountry": "AR"}}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242220'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23c9963e' font-family='Georgia,serif' font-weight='700'%3ER%3C/text%3E%3C/svg%3E">
-<script>window.RAVE_BUILD={"ver": "2026-11-21 02:57 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
+<script>window.RAVE_BUILD={"ver": "2026-11-21 15:03 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
 <style>
 :root{--ink:#242220;--gold:#c9963e;--gold2:#a87a28;--bg:#f6f3ee;--card:#fff;--line:#e6e0d6;--mut:#6d675f;--red:#c0392b;--redbg:#fdecea;--ok:#1e7a46;--okbg:#e6f4ec;--warnbg:#fff4dc;--r:16px}
 *{box-sizing:border-box}
@@ -8427,7 +8427,10 @@ function vb38Enable(){if(vb38||typeof COLS==='undefined')return;[{c:'prevr',key:
 if(typeof pushAll==='function'){const _pa=pushAll;pushAll=async function(){if(!vb38&&typeof cl!=='undefined'&&cl.comercio&&Date.now()-vb38At>600000){vb38At=Date.now();try{const v=await rpc('vb_version',{});if(+v>=38)vb38Enable();}catch(e){}}return _pa.apply(this,arguments);};}
 
 /* ---------- 10) Datos de ejemplo (sólo demos) ---------- */
-function prvDemoSeed(){if(IS_CLIENT||S.prvDemo>=1)return;const sup=cmpArr('suppliers').filter(s=>s.activo!==false);const P=S.products.filter(p=>!p.archived&&p.active!==false&&!(typeof isKit==='function'&&isKit(p))&&(+stockOf(p)||0)>0).sort((a,b)=>(+stockOf(a)||0)-(+stockOf(b)||0));if(!sup.length||P.length<6)return;S.prvDemo=1;
+const prvCuit=b=>{const d=String(b).slice(0,10).split('').map(Number);const w=[5,4,3,2,7,6,5,4,3,2];let t=d.reduce((a,x,i)=>a+x*w[i],0);let v=11-t%11;if(v===11)v=0;if(v===10)return prvCuit(String(+b+1));return String(b).slice(0,10)+v;};
+function prvDemoSeed(){if(IS_CLIENT||S.prvDemo>=1)return;const X0=window.PRV_SEED||{};
+ if(!cmpArr('suppliers').filter(s=>s.activo!==false).length&&X0.sup)X0.sup.forEach((r,i)=>cmpArr('suppliers').push({id:uid(),razon:r,cuit:prvCuit(3071000000+i*1111),iva:'Responsable Inscripto',email:'',tel:'',dir:'',saldo:0,activo:true,ts:now()}));
+ const sup=cmpArr('suppliers').filter(s=>s.activo!==false);const P=S.products.filter(p=>!p.archived&&p.active!==false&&!(typeof isKit==='function'&&isKit(p))&&(+stockOf(p)||0)>0).sort((a,b)=>(+stockOf(a)||0)-(+stockOf(b)||0));if(!sup.length||P.length<6)return;S.prvDemo=1;
  const X=window.PRV_SEED||{n:['Martín (preventa)','Carla (preventa)','Diego (preventa)']};const k=prvToday();const di=prvDayIdx(k);const day=i=>PRV_DAYS[(di+i)%7][0];
  const mk=(i,days,hora)=>{const s=sup[i%sup.length];const r={id:uid(),ts:now(),upd:now(),ocs:[],name:X.n[i],provId:s.id,wa:'54938755500'+(10+i),days,freq:i===2?'quincenal':'semanal',hora,avisaVacio:false,activo:true};r.next=prvFirstFrom(r,k);prvReps().push(r);return r;};
  const r0=mk(0,[day(0),day(3)],'08:30'),r1=mk(1,[day(2)],'09:00'),r2=sup.length>2?mk(2,[day(4)],'10:00'):null;
@@ -11902,6 +11905,69 @@ function pushDemoSeed(d){d.cfg=d.cfg||{};if(!d.cfg.push)d.cfg.push={on:true,soft
  if(!Array.isArray(d.pushCamps)||!d.pushCamps.length)d.pushCamps=[{id:'pcejemplo01',tipo:'ESTANDAR',titulo:'¡Fin de semana con descuentos!',cuerpo:'Mostrá tu tarjeta del Club y llevate 10 % en toda la tienda.',img:'',url:'#mitarjeta/ben',prio:'normal',ttl:86400,seg:{k:'socios'},when:'ahora',estado:'FINALIZADA',ts:Date.now()-3*864e5,by:'ADMIN',ex:true,res:{env:412,ent:388,ab:61,err:9}},
   {id:'pcejemplo02',tipo:'GEOLOCALIZADO',titulo:'Estás cerca 👋',cuerpo:'Pasá por el local: hoy tenemos promo para socios.',img:'',url:'#mitarjeta/ben',prio:'normal',ttl:3600,seg:{k:'todos'},estado:'PAUSADA',ts:Date.now()-864e5,by:'ADMIN',ex:true,
    geo:{lat:-24.7859,lng:-65.4117,r:300,disparo:'ENTRAR',min:10,dias:[1,2,3,4,5,6],desde:'09:00',hasta:'21:00',expira:'',enfriar:240,hist:30,activa:false}}];}
+
+/* ===== V27.27 · Notificaciones push: clientes que aceptaron mensajes =====
+   Por qué «no figura ningún cliente»: el aviso push es un permiso de cada celular. El cliente que aceptó
+   «recibir promociones» en el Club recién aparece como suscripto cuando abre la app del Club en su celular
+   y toca «Activar avisos». Además, en los sistemas con licencia los avisos venían apagados y sin llave,
+   así que la app del Club no ofrecía el botón.
+   Este módulo:
+   · en los sistemas propios de VB (Almacén RAVE) enciende los avisos y obtiene la llave una sola vez
+     (el menú se vuelve a publicar solo y la app del Club empieza a ofrecer «Activar avisos»);
+   · en «Suscriptos» muestra a TODOS los clientes que aceptaron mensajes, con su estado
+     (avisos activos o todavía no), invitación por WhatsApp de a uno o a todos, y el envío de una campaña
+     por WhatsApp a quienes todavía no tienen los avisos activos. */
+
+const pushOpt=()=>S.customers.filter(c=>c.comm===true&&c.status!=='baja'&&!c.archived);
+let pushSubIds=null,pushSubAt=0;
+async function pushSubLoad(){if(!pushCloud()||Date.now()-pushSubAt<60000)return;pushSubAt=Date.now();
+ try{const r=await rpc('push_subs_clientes',{p_comercio:cl.comercio.id});pushSubIds=new Set((r||[]).map(String));if(curScreen==='push'&&pushTab==='subs'){const b=$('#push-body');if(b)b.innerHTML=pushBody();}}catch(e){pushSubIds=null;}}
+const pushClubUrl=()=>location.href.split('#')[0]+'#menu';
+const pushBiz=()=>(typeof cl!=='undefined'&&cl.comercio&&cl.comercio.nombre)||(S.tenant&&S.tenant.name)||'el local';
+const pushInvTxt=c=>`¡Hola ${String(c.name||'').split(' ')[0]}! 🔔 Activá los avisos de ${pushBiz()} para enterarte primero de las promos y del estado de tus pedidos: entrá a ${pushClubUrl()} y tocá «Activar avisos». Los podés desactivar cuando quieras.`;
+const pushWaOf=c=>typeof waOk==='function'&&waOk(c)?waDigits(c):'';
+
+/* 1) puesta en marcha automática en los sistemas propios */
+let pushAutoDone=false;
+async function pushAuto(){if(pushAutoDone||!pushCloud()||!isAdm())return;pushAutoDone=true;const c=pushCfg();
+ const propio=typeof VBL!=='undefined'&&VBL.lic&&VBL.lic.propio;
+ try{if(!c.pub){const r=await hreq('/functions/v1/push',{method:'POST',fn:true,body:{accion:'llave',comercio:cl.comercio.id}});if(r&&r.pub){c.pub=r.pub;try{await rpc('push_url',{p_comercio:cl.comercio.id,p_url:CLOUD.url.replace(/\/$/,'')+'/functions/v1/push'});}catch(e){}audit('PUSH_LLAVE','llave pública obtenida automáticamente');}}
+  if(propio&&!c.on&&!c.autoOn&&c.pub){c.on=true;c.autoOn=1;audit('PUSH_MODULO','activado (sistema propio)');}
+  save();if(typeof pubReload==='function')try{pubReload();}catch(e){}}catch(e){pushAutoDone=false;}}
+{const _sp=showPanel;showPanel=function(){const r=_sp.apply(this,arguments);setTimeout(()=>{try{pushAuto();}catch(e){}},1500);return r;};}
+
+/* 2) «Suscriptos»: todos los que aceptaron mensajes */
+function pushOptHTML(){const L=pushOpt();const c=pushCfg();const on=!!(c.on&&c.pub);const sub=pushSubIds;
+ const act=sub?L.filter(x=>sub.has(String(x.id))):[];const pend=sub?L.filter(x=>!sub.has(String(x.id))):L;const sinWa=pend.filter(x=>!pushWaOf(x)).length;
+ const camps=pushCamps().filter(x=>x.tipo==='ESTANDAR'&&x.titulo);
+ return`<div class="card po-card"><h2>Clientes que aceptaron mensajes del negocio <span class="po-n">${L.length}</span></h2>
+ <div class="po-st ${on?'ok':'warn'}">${on?'✅ Los avisos push están activos: la app del Club le ofrece «Activar avisos» a cada cliente.':`⚠ Los avisos push están <b>apagados${c.pub?'':' o sin llave'}</b>: la app del Club todavía no le ofrece el botón a tus clientes.${isAdm()?' <button class="btn sm gold" data-act="pushOptFix">Activarlos ahora</button>':''}`}</div>
+ <p class="sm mut">Aceptar promociones en el Club no alcanza para recibir notificaciones: el celular tiene que dar el permiso. Cada cliente lo hace una sola vez desde la app del Club tocando «Activar avisos». Mientras tanto, les podés llegar por WhatsApp.</p>
+ <div class="po-k"><div><b>${L.length}</b><span>aceptaron mensajes</span></div><div><b>${sub?act.length:'—'}</b><span>con avisos activos</span></div><div><b>${sub?pend.length:'—'}</b><span>todavía no los activaron</span></div><div><b>${sinWa}</b><span>sin WhatsApp cargado</span></div></div>
+ ${L.length?`<div class="row po-bar"><button class="btn gold" data-act="pushOptInvAll" ${pend.length-sinWa?'':'disabled'}>💬 Invitar a activar avisos (${pend.length-sinWa})</button>
+  ${camps.length?`<select id="po-camp" aria-label="Campaña"><option value="">Mandar una campaña por WhatsApp…</option>${camps.slice(-20).reverse().map(x=>`<option value="${x.id}">${esc(x.titulo)}</option>`).join('')}</select><button class="btn" data-act="pushOptCamp">Armar envío</button>`:''}</div>
+ <div class="tw po-tw"><table><thead><tr><th>Cliente</th><th>WhatsApp</th><th>Avisos push</th><th></th></tr></thead><tbody>${L.slice().sort((a,b)=>(sub&&sub.has(String(a.id))?1:0)-(sub&&sub.has(String(b.id))?1:0)||String(a.name).localeCompare(String(b.name))).slice(0,400).map(x=>{const w=pushWaOf(x);const ok=sub&&sub.has(String(x.id));
+  return`<tr><td><b>${esc(custFull(x))}</b></td><td>${w?'+'+esc(w):'<span class="mut">sin cargar</span>'}</td><td>${ok?'<span class="po-ok">● Activos</span>':sub?'<span class="po-pe">● Todavía no</span>':'<span class="mut">se ve con la nube</span>'}</td>
+  <td>${!ok&&w?`<a class="btn sm" href="${waLink(pushInvTxt(x),w)}" target="_blank" rel="noopener">Invitar</a>`:''}</td></tr>`;}).join('')}</tbody></table></div>${L.length>400?'<p class="sm mut">Se muestran 400.</p>':''}`
+ :'<p class="sm">Todavía ningún cliente marcó «Acepto recibir promociones» al sumarse al Club. Se puede marcar también desde la ficha del cliente.</p>'}</div>`;}
+{const _b=pushBody;pushBody=function(){const h=_b.apply(this,arguments);if(pushTab!=='subs')return h;setTimeout(pushSubLoad,0);return pushOptHTML()+h+PO_CSS;};}
+A.pushOptFix=async()=>{if(!isAdm())return;const c=pushCfg();pushAutoDone=false;
+ try{if(!c.pub){await A.pushKey();}if(!c.pub)return;c.on=true;audit('PUSH_MODULO','activado');save();if(typeof pubReload==='function')try{pubReload();}catch(e){}toast('Avisos activados: la app del Club ya ofrece «Activar avisos»');rerender();}catch(e){toast(String(e&&e.message||e),1);}};
+/* lista para mandar de a uno (WhatsApp no permite envíos masivos desde un enlace) */
+function pushWaList(titulo,L,txt){const w=modal(titulo,`<p class="sm">Tocá cada botón: se abre WhatsApp con el mensaje listo y queda tildado. WhatsApp no permite mandar a todos juntos desde la web.</p>
+ <ol class="po-list">${L.map(x=>`<li><span>${esc(custFull(x))}</span><a class="btn sm" href="${waLink(txt(x),pushWaOf(x))}" target="_blank" rel="noopener" data-po="1">Enviar</a></li>`).join('')}</ol>`,{ok:false,cancelText:'Listo'});
+ w.addEventListener('click',e=>{const a=e.target.closest('[data-po]');if(a){a.textContent='✓ Enviado';a.classList.add('gold');}});return w;}
+A.pushOptInvAll=()=>{const sub=pushSubIds;const L=pushOpt().filter(x=>pushWaOf(x)&&!(sub&&sub.has(String(x.id))));if(!L.length)return toast('No hay clientes para invitar',1);
+ audit('PUSH_INVITAR',L.length+' cliente(s) por WhatsApp');pushWaList('Invitar a activar avisos · '+L.length,L,pushInvTxt);};
+A.pushOptCamp=()=>{const id=val('po-camp');const x=pushCamps().find(c=>c.id===id);if(!x)return toast('Elegí una campaña',1);const sub=pushSubIds;
+ const L=pushOpt().filter(c=>pushWaOf(c)&&!(sub&&sub.has(String(c.id))));if(!L.length)return toast('Todos los que aceptaron ya tienen avisos activos',1);
+ const txt=c=>`¡Hola ${String(c.name||'').split(' ')[0]}! ${x.titulo}\n${x.cuerpo||''}\n${pushClubUrl()}`.trim();audit('PUSH_WHATSAPP',x.titulo+' · '+L.length+' cliente(s)');pushWaList('«'+x.titulo+'» por WhatsApp · '+L.length,L,txt);};
+const PO_CSS=`<style>.po-card h2{display:flex;align-items:center;gap:.5rem}.po-n{font-size:.85rem;background:var(--gold);color:#1a1307;border-radius:999px;padding:.05rem .55rem}
+.po-st{border-radius:12px;padding:.6rem .8rem;margin:.3rem 0 .5rem;font-size:.92rem}.po-st.ok{background:rgba(46,154,85,.12);border:1px solid rgba(46,154,85,.4)}.po-st.warn{background:rgba(201,150,62,.12);border:1px solid var(--gold)}
+.po-k{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.4rem;margin:.5rem 0}.po-k>div{border:1px solid var(--line);border-radius:12px;padding:.5rem;text-align:center}.po-k b{display:block;font-size:1.35rem}.po-k span{font-size:.75rem;color:var(--mut)}
+.po-bar{flex-wrap:wrap;gap:.4rem;margin:.4rem 0}.po-bar select{min-width:0;flex:1 1 14rem}.po-tw{max-height:55vh;overflow:auto}.po-ok{color:#2e9a55;font-weight:700}.po-pe{color:var(--crm-m,#b7791f);font-weight:700}
+.po-list{padding-left:1.2rem;max-height:60vh;overflow:auto}.po-list li{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.3rem 0;border-bottom:1px solid var(--line)}
+@media (max-width:560px){.po-k{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>`;
 
 /* ===== V26.76 · Gestión integral — Etapa B (Kini primero) =====
    Panel de Módulos de Vincular Business · Ticket en espera · Precios (historial, etiquetas de góndola pendientes,

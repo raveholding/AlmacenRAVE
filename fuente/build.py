@@ -80,6 +80,9 @@ if EX('p17-gestion.js') and (KINI or V=='cliente' or os.environ.get('GI')=='1') 
 # V27.23 · también en la demo Mayorista. AlmacenRAVE la suma después, con sus datos reales.
 if KINI and DEMO and DEMO['plan']=='mayorista' and DEMO['canal'] in ('may','both') and EX('p25-torre.js') and 'p23-calle.js' in parts:
     parts.insert(parts.index('p5c-menusec.js'),'p25b-torre-salta.js');parts.insert(parts.index('p5c-menusec.js'),'p25-torre.js')
+# V27.27 · Notificaciones push: clientes que aceptaron mensajes, invitación y envío por WhatsApp (p28), sobre p16.
+if EX('p28-push-optin.js') and 'p16-push.js' in parts:
+    parts.insert(parts.index('p16-push.js')+1,'p28-push-optin.js')
 # V27.26 · Preventistas y rutas + reposición automática (p27), sobre Proveedores y compras (p4c/p4d).
 if EX('p27-preventistas.js') and 'p4d-compras-ui.js' in parts:
     parts.insert(parts.index('p4e-factura.js' if 'p4e-factura.js' in parts else 'p4d-compras-ui.js')+1,'p27-preventistas.js')
