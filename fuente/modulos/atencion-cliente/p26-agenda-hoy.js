@@ -296,24 +296,28 @@ function vb36Enable(){if(vb36||typeof COLS==='undefined')return;const x={c:'ctas
 if(typeof pushAll==='function'){const _pa=pushAll;pushAll=async function(){if(!vb36&&typeof cl!=='undefined'&&cl.comercio&&Date.now()-vb36At>600000){vb36At=Date.now();try{const v=await rpc('vb_version',{});if(+v>=36)vb36Enable();}catch(e){}}return _pa.apply(this,arguments);};}
 
 /* ---------- 9) Datos de ejemplo (sólo demos) ---------- */
+/* textos por rubro: cada demo puede definir window.CT_SEED antes de este módulo (d: oportunidades [título, monto $, próximo paso], t: tareas) */
+const CT_SEED_DEF={d:[['Provisión mensual',480000,'Llamar para cerrar'],['Pedido para evento',215000],['Alta de cuenta corriente',98000],['Reposición semanal',156000,'Visita al local'],['Primera compra',62000],['Combo aniversario',123000,'Enviar propuesta ajustada'],['Pedido inaugural',270000],['Cotización especial',80000]],
+ t:['Llamar para cerrar la provisión','Visita al local para relevar góndola','Confirmar cantidades del evento','Presentación de lista de precios','Preparar lista de precios mayorista'],goal:1500000};
 function ctDemoSeed(){if(IS_CLIENT||S.ctDemo>=1)return;const L=S.customers.filter(c=>c.status!=='baja');if(L.length<4||!ctDl())return;S.ctDemo=1;
+ const X=window.CT_SEED||CT_SEED_DEF;const Dd=X.d,Tt=X.t;
  const ag=(S.users||[]).map(u=>u.name);const a0=ag[0]||crmMe(),a1=ag[1]||a0,a2=ag[2]||a0;const k0=dkey(now());const day=n=>ctAddDays(k0,n);const t=now();
  const mk=(o,ageD)=>{const r=dlCreate(Object.assign({noTask:1},o));if(r.d){r.d.stAt=t-ageD*864e5;r.d.ts=Math.min(r.d.ts,r.d.stAt);}return r.d;};
- const C=i=>L[i%L.length];const st=k=>(dlStages().find(s=>s.k===k)||dlStages()[0]).k;
- const d1=mk({title:'Provisión mensual',cust:C(0).id,amount:48000000,stage:st('negociacion'),prio:'alta',owner:a0,src:'referido',next:'Llamar para cerrar',nextAt:day(-1)},4);
- const d2=mk({title:'Pedido para evento',cust:C(1).id,amount:21500000,stage:st('propuesta'),prio:'media',owner:a1,src:'whatsapp'},3);
- const d3=mk({title:'Alta de cuenta corriente',cust:C(2).id,amount:9800000,stage:st('contacto'),prio:'media',owner:a2,src:'web'},9);
- const d4=mk({title:'Reposición semanal',cust:C(3).id,amount:15600000,stage:st('reunion'),prio:'baja',owner:a0,src:'preventa',next:'Visita al local',nextAt:k0},2);
- const d5=mk({title:'Primera compra',cust:C(4).id,amount:6200000,stage:st('calificado'),prio:'media',owner:a1,src:'instagram'},1);
- mk({title:'Combo aniversario',cust:C(5).id,amount:12300000,stage:st('propuesta'),prio:'alta',owner:a2,src:'web',next:'Enviar propuesta ajustada',nextAt:day(2)},1);
- if(d1)ctCreate({kind:'llamada',title:'Llamar para cerrar la provisión',at:ctTs(day(-1),'11:00'),deal:d1.id,owner:a0});
- if(d4)ctCreate({kind:'visita',title:'Visita al local para relevar góndola',at:ctTs(k0,'16:30'),deal:d4.id,owner:a0,dur:45});
- if(d2)ctCreate({kind:'whatsapp',title:'Confirmar cantidades del evento',at:ctTs(k0,'12:00'),deal:d2.id,owner:a1});
- if(d5)ctCreate({kind:'reunion',title:'Presentación de lista de precios',at:ctTs(day(1),'10:00'),deal:d5.id,owner:a1,dur:60});
- ctCreate({kind:'tarea',title:'Preparar lista de precios mayorista',at:ctTs(day(3),'09:00'),owner:a2});
- if(d3)d3.nextAt='';const won=mk({title:'Pedido inaugural',cust:C(6).id,amount:27000000,stage:st('negociacion'),owner:a0,src:'referido'},6);if(won){dlWin(won.id);won.closedAt=t-2*864e5;}
- const lost=mk({title:'Cotización especial',cust:C(7).id,amount:8000000,stage:st('propuesta'),owner:a1,src:'web'},8);if(lost){dlLose(lost.id,'Precio');lost.closedAt=t-3*864e5;}
- if(!crmCfg().goal)crmSet({goal:150000000});save();}
+ const C=i=>L[i%L.length];const st=k=>(dlStages().find(s=>s.k===k)||dlStages()[0]).k;const A=i=>Dd[i][1]*100;
+ const d1=mk({title:Dd[0][0],cust:C(0).id,amount:A(0),stage:st('negociacion'),prio:'alta',owner:a0,src:'referido',next:Dd[0][2]||'',nextAt:day(-1)},4);
+ const d2=mk({title:Dd[1][0],cust:C(1).id,amount:A(1),stage:st('propuesta'),prio:'media',owner:a1,src:'whatsapp'},3);
+ const d3=mk({title:Dd[2][0],cust:C(2).id,amount:A(2),stage:st('contacto'),prio:'media',owner:a2,src:'web'},9);
+ const d4=mk({title:Dd[3][0],cust:C(3).id,amount:A(3),stage:st('reunion'),prio:'baja',owner:a0,src:'preventa',next:Dd[3][2]||'',nextAt:k0},2);
+ const d5=mk({title:Dd[4][0],cust:C(4).id,amount:A(4),stage:st('calificado'),prio:'media',owner:a1,src:'instagram'},1);
+ mk({title:Dd[5][0],cust:C(5).id,amount:A(5),stage:st('propuesta'),prio:'alta',owner:a2,src:'web',next:Dd[5][2]||'',nextAt:day(2)},1);
+ if(d1)ctCreate({kind:'llamada',title:Tt[0],at:ctTs(day(-1),'11:00'),deal:d1.id,owner:a0});
+ if(d4)ctCreate({kind:'visita',title:Tt[1],at:ctTs(k0,'16:30'),deal:d4.id,owner:a0,dur:45});
+ if(d2)ctCreate({kind:'whatsapp',title:Tt[2],at:ctTs(k0,'12:00'),deal:d2.id,owner:a1});
+ if(d5)ctCreate({kind:'reunion',title:Tt[3],at:ctTs(day(1),'10:00'),deal:d5.id,owner:a1,dur:60});
+ ctCreate({kind:'tarea',title:Tt[4],at:ctTs(day(3),'09:00'),owner:a2});
+ if(d3)d3.nextAt='';const won=mk({title:Dd[6][0],cust:C(6).id,amount:A(6),stage:st('negociacion'),owner:a0,src:'referido'},6);if(won){dlWin(won.id);won.closedAt=t-2*864e5;}
+ const lost=mk({title:Dd[7][0],cust:C(7).id,amount:A(7),stage:st('propuesta'),owner:a1,src:'web'},8);if(lost){dlLose(lost.id,'Precio');lost.closedAt=t-3*864e5;}
+ if(!crmCfg().goal)crmSet({goal:(X.goal||1500000)*100});save();}
 
 /* ---------- 10) Diseño (variables del sistema, claro/oscuro, 320–1440 px, AA) ---------- */
 const CT_CSS=`<style>
