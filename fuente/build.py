@@ -178,6 +178,8 @@ def solo_brand(h,v3=False):
     h=h.replace('</style>','.btn.gold,.fk.gold,.fk.gold small,.cmp .btn.gold,html[data-theme=dark] .btn.gold,html[data-theme=dark] .fk.gold,html[data-theme=dark] .fk.gold small{color:#000!important}html[data-theme=dark] .cmp-tab.on{color:%s}html[data-theme=dark]{--gold2:%s}\n</style>'%(lt,lt),1)
     return h
 vbj='const VB_BANNER="data:image/webp;base64,'+base64.b64encode(open('assets/vb-banner.webp','rb').read()).decode()+'";\n'
+# V27.28 · kit CRUD (editar, borrar con deshacer, selección múltiple): va al final, después de todos los módulos.
+if EX('p29-crud.js'): parts.append('p29-crud.js')
 html=head+'\n'+vbj+B('build/p0-data.js')+B('build/p0-pub.js')+"const SOCIAL_ICONS_OK=1;\n"+B('build/qr.js')+'\n'+'\n'.join(B(p) for p in parts)+'\n</script>\n</body></html>\n'
 if KINI: html=kini_brand(html)
 if DEMO:
