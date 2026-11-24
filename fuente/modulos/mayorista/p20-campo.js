@@ -209,11 +209,13 @@ reg('portalb2b','Portal de clientes','users','customers',()=>{const q=giNorm(val
  ()=>{const q=$('#b2-q');if(q)q.addEventListener('change',()=>rerender());},'Clientes');
 SCREENS.portalb2b.show=()=>giOn('b2b');NAV.push(['portalb2b','Clientes']);
 /* vista del cliente: #b2b=… (no requiere sesión ni datos del equipo) */
+/* V27.32 · el último portal abierto en este celular queda guardado para la pestaña «Mi cuenta» de la app del Club (sólo en este equipo) */
+function b2bSave(tok,d){try{const o=JSON.parse(localStorage.getItem('rave.b2b.portal')||'null');if(o&&o.t>d.t&&o.n===d.c.n)return;localStorage.setItem('rave.b2b.portal',JSON.stringify({tok,t:d.t,n:String(d.c.n||'').slice(0,80),s:String(d.shop.n||'').slice(0,80)}));}catch(e){}}
 let b2bData=null,b2bCart={},b2bTab='cat';
 function b2bView(){const d=b2bData;if(!d)return;let k=$('#b2b-v');if(!k){k=document.createElement('div');k.id='b2b-v';document.body.appendChild(k);}['#pub','#login','#panel'].forEach(s=>{const e=$(s);if(e)e.hidden=true;});
  k.setAttribute('style','position:fixed;inset:0;z-index:60;overflow:auto;background:var(--bg,#fff);color:var(--ink,#111);padding:1rem;font-size:16px');const q=giNorm((($('#b2-s')||{}).value)||'');
  const items=Object.entries(b2bCart).filter(([,v])=>v>0);const tot=items.reduce((t,[code,v])=>{const p=d.P.find(x=>x[0]===code);return t+(p?Math.round(p[2]*v):0);},0);
- k.innerHTML=`<div style="max-width:46rem;margin:0 auto"><h1 style="margin:.2rem 0">${esc(d.shop.n)}</h1><p class="sm">Portal de <b>${esc(d.c.n)}</b> · datos al ${fmtDT(d.t)}</p>
+ k.innerHTML=`<div style="max-width:46rem;margin:0 auto"><div class="row" style="gap:.5rem;align-items:center"><h1 class="sp" style="margin:.2rem 0">${esc(d.shop.n)}</h1><a class="btn sm" href="#mitarjeta">← App del Club</a></div><p class="sm mut" style="margin:0">Quedó guardado en tu app, en «Mi cuenta».</p><p class="sm">Portal de <b>${esc(d.c.n)}</b> · datos al ${fmtDT(d.t)}</p>
  <div class="card"><div class="row"><span class="sp">Saldo en cuenta corriente</span><b style="font-size:1.4rem">${money(d.deb)}</b></div>${d.od?`<p class="sm"><span class="tag bad">${d.od} comprobante(s) vencido(s)</span></p>`:''}</div>
  <div class="ux-tabs" role="tablist">${[['cat','Pedir'],['docs','Comprobantes'],['ac','Acopios']].map(([x,t])=>`<a role="tab" tabindex="0" data-act="b2bT" data-t="${x}" aria-selected="${x===b2bTab}" class="${x===b2bTab?'on':''}">${t}</a>`).join('')}</div>
  ${b2bTab==='docs'?`<div class="tw"><table data-nosort><thead><tr><th>Comprobante</th><th>Fecha</th><th class="r">Total</th><th class="r">Debe</th><th>Vence</th></tr></thead><tbody>${d.docs.map(x=>`<tr><td>${esc(x[0])}</td><td>${dmy(dkey(x[1]))}</td><td class="r">${money(x[2])}</td><td class="r">${money(x[3])}</td><td>${x[4]?dmy(dkey(x[4])):'—'}</td></tr>`).join('')}</tbody></table></div><h3>Pagos</h3><ul>${d.pays.map(p=>`<li>${dmy(dkey(p[0]))} · ${money(p[1])}</li>`).join('')||'<li>—</li>'}</ul>`
@@ -227,8 +229,10 @@ A.b2bRep=()=>{b2bCart={};b2bData.last.forEach(([c,q])=>b2bCart[c]=q);b2bView();}
 A.b2bClr=()=>{b2bCart={};b2bView();};
 function b2bMsg(){const d=b2bData;return'Pedido de '+d.c.n+':\n'+Object.entries(b2bCart).filter(([,v])=>v>0).map(([code,v])=>{const p=d.P.find(x=>x[0]===code);return p?v+' x ['+code+'] '+p[1]:'';}).filter(Boolean).join('\n');}
 A.b2bSend=()=>{const u='https://wa.me/'+b2bData.shop.wa+'?text='+encodeURIComponent(b2bMsg());window.open(u,'_blank','noopener');};
-{const _rt=route;route=function(){const h=location.hash||'';if(h.startsWith('#b2b=')){const tok=h.slice(5);b2bUnpack(tok).then(d=>{if(!d||d.v!==1)throw new Error('formato');b2bData=d;b2bView();}).catch(()=>{document.body.insertAdjacentHTML('beforeend','<div class="card" style="margin:2rem">El enlace del portal no es válido o está incompleto. Pedile uno nuevo al comercio.</div>');});return;}
+{const _rt=route;route=function(){const h=location.hash||'';if(h.startsWith('#b2b=')){const tok=h.slice(5);b2bUnpack(tok).then(d=>{if(!d||d.v!==1)throw new Error('formato');b2bData=d;b2bSave(tok,d);b2bView();}).catch(()=>{document.body.insertAdjacentHTML('beforeend','<div class="card" style="margin:2rem">El enlace del portal no es válido o está incompleto. Pedile uno nuevo al comercio.</div>');});return;}
  const v=$('#b2b-v');if(v)v.remove();return _rt.apply(this,arguments);};}
+/* V27.32 · al salir del portal (por ejemplo «← App del Club») se cierra aunque otra ruta atienda primero el cambio */
+window.addEventListener('hashchange',()=>{if(!(location.hash||'').startsWith('#b2b=')){const v=$('#b2b-v');if(v)v.remove();}else setTimeout(()=>{try{route();}catch(e){}},0);});
 
 /* paquete «Todo el sistema» (después de que todos los archivos sumaron sus módulos) */
 if(typeof GI_PACKS!=='undefined'&&!GI_PACKS.todo)GI_PACKS.todo={t:'Todo el sistema',k:GI_MODS.map(m=>m.k),x:['Reparto, despacho y rendición','Finanzas','Contabilidad de gestión','Atención al cliente']};

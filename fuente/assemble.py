@@ -51,7 +51,8 @@ rp("  var cart = {}; // id -> {name, price(number|null), qty}",
    "    canUndo:function(){ return undoStack.length > 0; },\n"
    "    undo:function(){ if(!undoStack.length) return false; cart = JSON.parse(undoStack.pop()); lastCleared = null; syncCatalogUI(); refreshBar(); renderPanel(); if(window.RAVE_UNDO_CHANGED) window.RAVE_UNDO_CHANGED(undoStack.length, 'undo', ''); return true; },\n"
    "    note:function(id, t){ if(cart[id]) cart[id].note = String(t || '').replace(/[\\r\\n\\t]+/g, ' ').slice(0, 120); },\n"
-   "    gram:function(id, g, price, name){ if(!cart[id]) return; rvSnap('gram', name); cart[id].g = g; cart[id].price = price; cart[id].name = name; refreshBar(); if(overlay.style.display === 'flex') renderPanel(); }\n"
+   "    gram:function(id, g, price, name){ if(!cart[id]) return; rvSnap('gram', name); cart[id].g = g; cart[id].price = price; cart[id].name = name; refreshBar(); if(overlay.style.display === 'flex') renderPanel(); },\n"
+   "    addMany:function(list){ if(!list || !list.length) return 0; rvSnap('add', 'evento'); var n = 0; list.forEach(function(x){ var q = Math.floor(+x.qty || 0); if(!x.id || q <= 0) return; if(!cart[x.id]) cart[x.id] = { name: String(x.name || '').slice(0, 120), price: (x.price === null || x.price === undefined) ? null : Math.round(+x.price), qty: 0 }; cart[x.id].qty += q; n++; }); syncCatalogUI(); refreshBar(); if(overlay.style.display === 'flex') renderPanel(); return n; }\n"
    "  };")
 rp("    if(!cart[id]) cart[id] = { name: name, price: price, qty: 0 };\n    cart[id].qty += delta;",
    "    rvSnap(delta > 0 ? 'add' : ((cart[id] ? cart[id].qty : 0) + delta <= 0 ? 'remove' : 'dec'), name);\n"

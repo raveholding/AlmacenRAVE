@@ -69,6 +69,8 @@ parts=[p for p in parts if EX(p)]
 # V26.76 · Gestión integral (p17-gestion.js). GI=1 lo fuerza y GI=0 lo saca (pruebas).
 # V26.77: Almacén RAVE pasa a ser el sistema único y lleva la gestión integral (todo APAGADO hasta que el administrador lo activa en Sistema → Módulos).
 # V26.77 · Precios y etiquetas profesionales (p18-etiquetas.js), mismo criterio. raveV2 y raveV3 no lo llevan.
+# V27.32 · calculador de eventos (Ventas → Eventos y «Armá tu evento» en el menú): por ahora sólo Almacén RAVE
+if (V=='cliente' or os.environ.get('EV')=='1') and EX('p30-eventos.js'): parts.insert(parts.index('p5c-menusec.js'),'p30-eventos.js')
 if EX('p17-gestion.js') and (KINI or V=='cliente' or os.environ.get('GI')=='1') and os.environ.get('GI')!='0':
     parts.insert(parts.index('p5c-menusec.js'),'p17-gestion.js')
     if EX('p18-etiquetas.js'): parts.insert(parts.index('p5c-menusec.js'),'p18-etiquetas.js')
