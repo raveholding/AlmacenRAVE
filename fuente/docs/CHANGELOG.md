@@ -4,6 +4,16 @@ Sistema de gestión (POS + inventario + caja + clientes + menú público) para *
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
 Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
+## V27.33 — Menú público compacto y orientado a la venta (sólo Almacén RAVE)
+- Nueva capa `pub/v3.css` + `pub/v3.js` sobre la tienda premium (no borra nada de lo que funcionaba): la página en celular pasa de ~15.500 a ~10.400 px.
+- Encabezado compacto (logo, nombre, horario de alcohol, compartir y tema); el idioma pasa al pie. Banner único de envío gratis y «Armá tu evento» debajo.
+- Categorías con íconos y Combos/Promos primero; tarjetas compactas con precio grande y botón «+ Agregar» (− cantidad + al agregar); botones accesibles.
+- Barra del pedido ancha con total, «Ver pedido» y el progreso del envío gratis; el pedido se recupera al recargar la página (misma pestaña).
+- Club plegado en una tarjeta («Sumarme gratis» / «Ver mi tarjeta»); pie compacto con «Cómo llegar», WhatsApp, reseña, redes, +18 e impuestos; términos, privacidad y arrepentimiento en una ventana; créditos de Vincular Business en una línea con sus datos oficiales (el banner se despliega).
+- Mensaje de WhatsApp: «• 2 x Producto - $ subtotal», «Total estimado» y lugar para dirección y forma de pago cuando no se completaron.
+- «Armá tu evento»: botón «Sugerir productos automáticamente» en Reglas y, si no hay ningún producto vinculado, el menú publica la sugerencia automática.
+- Pruebas: `mv3.py` (22); ajustadas c5, c18, c19, m2 (Club plegado), k2 (pedido recuperado) y ev1.
+
 ## V27.32 — Calculador de eventos y «Mi cuenta» del cliente mayorista (sólo Almacén RAVE)
 - **Calculador y cotizador de eventos** (Ventas → Eventos): adultos, niños, vegetarianos y sin TACC, tipo de evento, duración y margen. Sugiere cantidades de comida para compartir, bebidas, hielo y descartables con los **precios y el stock reales**, redondeadas a unidades de venta (pizzas enteras, medias docenas, packs, bolsas). Se corrigen a mano y se pasan a **Presupuesto** (no descuenta stock) o a **Vender**; imprimir o guardar PDF.
 - Reglas configurables (pestaña «Reglas», permiso de configuración): cada ítem es un producto real con consumo por adulto, «se vende de a», peso en la combinación y aptitud vegetariana / sin TACC; factores por tipo de evento y duración. Redistribución al combinar comidas (+10 % por variedad, tope 30 %).

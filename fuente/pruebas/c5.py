@@ -11,7 +11,7 @@ with sync_playwright() as p:
     chk(len(fr)==1,'el menú público está en un iframe')
     f=fr[0]
     chk(f.locator('#club-form').count()==1,'el formulario del Club está presente')
-    f.click('#ag-yes');C.wait_for_timeout(400);f.evaluate("document.getElementById('club-form').scrollIntoView()")
+    f.click('#ag-yes');C.wait_for_timeout(400);f.evaluate("(()=>{const m=document.getElementById('club-more');if(m)m.hidden=false;document.getElementById('club-form').scrollIntoView()})()")
     f.fill('#club-nombre','Lucía Gómez');f.fill('#club-whatsapp','3875556677');f.fill('#club-cumple','1992-03-14')
     f.check('#club-consent');f.check('#club-comm')
     f.click('#club-form button[type=submit]');C.wait_for_timeout(2500)

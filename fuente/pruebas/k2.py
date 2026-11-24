@@ -73,6 +73,7 @@ with sync_playwright() as p:
     allj=json.dumps(pub)
     chk('cost' not in allj.lower() and 'stock' not in allj.lower() and 'secret' not in allj.lower(),'lo publicado no tiene datos internos')
     # ---- 3) público
+    ev("sessionStorage.removeItem('rave.pub.cart')")  # V27.33: el pedido se recupera al recargar; esta parte arranca con el pedido vacío
     ev("location.hash='#menu'");pg.wait_for_timeout(800);ev("document.getElementById('pubframe').srcdoc=buildPubDoc()");pg.wait_for_timeout(1500);fr=gate()
     pg.evaluate("document.getElementById('pubframe').contentWindow.open=u=>{window.__wa=u;return null}")
     add('ska');fr.locator('#cart-bar').click();pg.wait_for_timeout(500)

@@ -1,7 +1,7 @@
 import re,json
 B=lambda f:open(f,encoding='utf8').read()
 body=B('build/pub_body.html'); css=B('build/pub_css.html'); fonts=B('build/pub_fonts.html')
-extra=B('pub/extra.css')+'\n'+B('pub/v2.css'); blocks=B('pub/blocks.html'); pre=B('pub/pre.js'); post=B('pub/post.js')
+extra=B('pub/extra.css')+'\n'+B('pub/v2.css')+'\n'+B('pub/v3.css'); blocks=B('pub/blocks.html'); pre=B('pub/pre.js'); post=B('pub/post.js')
 logo=B('build/logo_menu.txt')
 import base64
 vbb='data:image/webp;base64,'+base64.b64encode(open('assets/vb-banner.webp','rb').read()).decode()
@@ -52,6 +52,7 @@ rp("  var cart = {}; // id -> {name, price(number|null), qty}",
    "    undo:function(){ if(!undoStack.length) return false; cart = JSON.parse(undoStack.pop()); lastCleared = null; syncCatalogUI(); refreshBar(); renderPanel(); if(window.RAVE_UNDO_CHANGED) window.RAVE_UNDO_CHANGED(undoStack.length, 'undo', ''); return true; },\n"
    "    note:function(id, t){ if(cart[id]) cart[id].note = String(t || '').replace(/[\\r\\n\\t]+/g, ' ').slice(0, 120); },\n"
    "    gram:function(id, g, price, name){ if(!cart[id]) return; rvSnap('gram', name); cart[id].g = g; cart[id].price = price; cart[id].name = name; refreshBar(); if(overlay.style.display === 'flex') renderPanel(); },\n"
+   "    restore:function(obj){ cart = obj || {}; undoStack = []; lastCleared = null; syncCatalogUI(); refreshBar(); },\n"
    "    addMany:function(list){ if(!list || !list.length) return 0; rvSnap('add', 'evento'); var n = 0; list.forEach(function(x){ var q = Math.floor(+x.qty || 0); if(!x.id || q <= 0) return; if(!cart[x.id]) cart[x.id] = { name: String(x.name || '').slice(0, 120), price: (x.price === null || x.price === undefined) ? null : Math.round(+x.price), qty: 0 }; cart[x.id].qty += q; n++; }); syncCatalogUI(); refreshBar(); if(overlay.style.display === 'flex') renderPanel(); return n; }\n"
    "  };")
 rp("    if(!cart[id]) cart[id] = { name: name, price: price, qty: 0 };\n    cart[id].qty += delta;",
@@ -68,15 +69,19 @@ rp("      row.innerHTML = '<div class=\"cp-main\"><div class=\"cp-name\">' + nm 
 rp("        lines.push('- ' + it.qty + 'x ' + it.name + ' — a coordinar');\n      }",
    "        lines.push('- ' + it.qty + 'x ' + it.name + ' — a coordinar');\n      }\n      if(it.note) lines.push('   📝 ' + it.note);")
 rp("    lines.push('');\n    lines.push('Espero su confirmación, gracias!');",
-   "    if(window.RAVE_FREE_LINES) window.RAVE_FREE_LINES(lines, total);\n    if(window.RAVE_CHK_LINES) window.RAVE_CHK_LINES(lines, total);\n    lines.push('');\n    lines.push('Espero su confirmación, gracias!');")
+   "    if(window.RAVE_FREE_LINES) window.RAVE_FREE_LINES(lines, total);\n    if(window.RAVE_CHK_LINES) window.RAVE_CHK_LINES(lines, total);\n    if(window.RAVE_MSG_END) window.RAVE_MSG_END(lines, total);\n    lines.push('');\n    lines.push('Espero su confirmación, gracias!');")
 # selector de tema en la barra superior
 rp('<span class="st-txt">Compartir</span></button>','<span class="st-txt">Compartir</span></button>\n      <button type="button" class="theme-top" id="theme-btn" aria-label="Cambiar a modo claro"><span aria-hidden="true" id="theme-ic">☀️</span></button>')
+# V27.33 · mensaje de WhatsApp más limpio: «• 2 x Producto - $ total»
+rp("        lines.push('- ' + it.qty + 'x ' + it.name + ' — ' + fmt(line));","        lines.push('• ' + it.qty + ' x ' + it.name + ' - ' + fmt(line));")
+rp("        lines.push('- ' + it.qty + 'x ' + it.name + ' — a coordinar');","        lines.push('• ' + it.qty + ' x ' + it.name + ' - a coordinar');")
+rp("    lines.push('Subtotal estimado: ' + fmt(total));","    lines.push('Total estimado: ' + fmt(total));")
 # pre.js antes del script de idioma
 k="var lang = 'es';\n  window.RAVE_LANG"
 i=body.index(k); j=body.rindex('<script>',0,i)
 body=body[:j]+'<script>\n'+pre+'\n</script>\n'+body[j:]
 # post.js al final
-body=body+'\n<script>\n'+post+'\n</script>\n<script>\n'+B('pub/v2.js')+'\n</script>\n</body>'
+body=body+'\n<script>\n'+post+'\n</script>\n<script>\n'+B('pub/v2.js')+'\n</script>\n<script>\n'+B('pub/v3.js')+'\n</script>\n</body>'
 
 # V26.75: el modo oscuro deja de seguir sólo al sistema: lo elige el cliente (botón ☀️/🌙, se guarda en el dispositivo; oscuro por defecto)
 def darkify(c):

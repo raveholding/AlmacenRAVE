@@ -60,7 +60,7 @@ with sync_playwright() as p:
     txt=fr.locator('#evp-res').inner_text()
     chk('Total estimado' in txt and '36' in txt,'calcula al instante con los precios publicados')
     fr.locator('[data-ev=cart]').click();pg2.wait_for_timeout(400)
-    pf=[f for f in pg2.frames if f!=pg2.main_frame and f.evaluate("typeof window.RAVE_CART")!='undefined']
+    pf=[f for f in pg2.frames if f.name=='pubframe']
     print('frames',len(pg2.frames),len(pf))
     n=pf[0].evaluate("Object.values(RAVE_CART.items()).reduce((s,x)=>s+x.qty,0)") if pf else 0
     chk(n>=36,'«Agregar al pedido» suma todo al carrito (%s unidades)'%n)

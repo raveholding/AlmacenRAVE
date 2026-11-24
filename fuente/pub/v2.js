@@ -144,6 +144,7 @@
     var okC=e.combos>0&&co>=e.combos, okV=e.vinos>0&&vi>=e.vinos;
     var pr=Math.max(e.combos>0?co/e.combos:0, e.vinos>0?vi/e.vinos:0);
     return {ok:okC||okV, co:co, vi:vi, faltaC:e.combos>0?Math.max(0,e.combos-co):0, faltaV:e.vinos>0?Math.max(0,e.vinos-vi):0, pr:Math.min(1,pr), e:e, por:okC?'combos':(okV?'vinos':'')}; }
+  window.RAVE_FREE_STATE=function(){ return isEmpty()?null:freeState(); };
   function pl(n,s,p){ return n+' '+(n===1?s:p); }
   function paintFree(){ var s=freeState(); if(!s||isEmpty()){ fb.hidden=true; return; } fb.hidden=false;
     var z=s.e.zona||L('tu zona','your area'), t;

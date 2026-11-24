@@ -35,7 +35,9 @@ function evCalc(R,P,I){const out={lines:[],total:0,avisos:[]};if(!R||!Array.isAr
   if(!p.agot)out.total=Math.round((out.total+sub)*100)/100;});
  out.personas={ad,ni,veg,tacc,tot};return out;}
 /* ---------- lo que se publica (sin costos ni datos internos) ---------- */
-function evPublic(){const c=evCfg();if(!c.on||!c.pub)return null;
+function evPublic(){let c=evCfg();if(!c.on||!c.pub)return null;
+ /* V27.33: si todavía no se vinculó ningún producto, se publica con la sugerencia automática (el dueño la revisa en «Reglas») */
+ if(!c.items.some(x=>x.pid)){c=JSON.parse(JSON.stringify(c));try{evAutoLink(c);}catch(e){}}
  return{margen:c.margen,ninos:c.ninos,tipos:c.tipos,durs:c.durs,items:c.items.filter(x=>{const p=x.pid&&prod(x.pid);return p&&p.menu&&p.active&&!p.archived&&x.on!==false;}).map(x=>({k:x.k,g:x.g,cat:x.cat,pid:x.pid,pp:+x.pp,mult:+x.mult,w:+x.w,veg:!!x.veg,tacc:!!x.tacc,hielo:!!x.hielo}))};}
 /* para el menú público (documento aparte): calcula con las reglas y el catálogo PUBLICADOS */
 window.RAVE_EV={rules:()=>{try{return RAVE_API.site().ev||null;}catch(e){return null;}},
@@ -72,12 +74,12 @@ function evCfgHTML(c){const P=S.products.filter(p=>p.active&&!p.archived).slice(
  <div class="tw"><table data-nosort><thead><tr><th>Tipo de evento</th><th>Factor comida</th><th>Factor bebida</th></tr></thead><tbody>${tp}</tbody></table></div>
  <h4>Ítems (cada uno es un producto real: el precio sale del inventario)</h4>
  <div class="tw"><table data-nosort class="ev-it"><thead><tr><th>Grupo y categoría</th><th>Producto vinculado</th><th>Por adulto</th><th>Se vende de a</th><th>Peso</th><th>Veg.</th><th>Sin TACC</th><th></th></tr></thead><tbody>${c.items.map((x,i)=>`<tr data-i="${i}">
-  <td><select class="evi-g" aria-label="Grupo">${Object.entries(EV_GRUPOS).map(([k,t])=>`<option value="${k}" ${x.g===k?'selected':''}>${esc(t)}</option>`).join('')}</select><select class="evi-c" aria-label="Categoría">${EV_CATS.map(t=>`<option ${x.cat===t?'selected':''}>${esc(t)}</option>`).join('')}</select><div class="sm mut">${esc(x.t||'')}</div></td>
+  <td><select class="evi-g" aria-label="Grupo">${Object.entries(EV_GRUPOS).map(([k,t])=>`<option value="${k}" ${x.g===k?'selected':''}>${esc(t)}</option>`).join('')}</select><select class="evi-c" aria-label="Categoría">${EV_CATS.map(t=>`<option ${x.cat===t?'selected':''}>${esc(t)}</option>`).join('')}</select><div class="sm mut">${esc(x.t||'')}${x.auto?' · <b>sugerido: revisalo</b>':''}</div></td>
   <td><select class="evi-p" aria-label="Producto">${po(x.pid)}</select>${x.pid&&prod(x.pid)&&!prod(x.pid).menu?'<div class="sm warn">No está publicado en el menú: el cliente no lo ve.</div>':''}</td><td><input class="evi-pp" inputmode="decimal" value="${esc(numAR(x.pp,3))}" style="width:5rem" aria-label="Consumo por adulto"></td>
   <td><input class="evi-m" inputmode="decimal" value="${esc(numAR(x.mult,3))}" style="width:4.5rem" aria-label="Se vende de a"></td><td><input class="evi-w" inputmode="decimal" value="${esc(numAR(x.w,2))}" style="width:4rem" aria-label="Peso en la combinación"></td>
   <td><input type="checkbox" class="evi-v" ${x.veg?'checked':''} aria-label="Apto vegetariano"></td><td><input type="checkbox" class="evi-t" ${x.tacc?'checked':''} aria-label="Sin TACC"></td><td><button class="btn sm" data-act="evItDel" data-i="${i}" aria-label="Quitar">✕</button></td></tr>`).join('')}</tbody></table></div>
  <p class="sm mut">«Por adulto» va en la unidad del producto: 0,25 botellas de 2,25 L, 4 empanadas, 0,375 pizzas. «Se vende de a» redondea hacia arriba (6 = media docena). El peso reparte la demanda cuando se combinan varios ítems del mismo grupo. Hielo: se ajusta por duración.</p>
- <div class="row" style="gap:.5rem"><button class="btn" data-act="evItAdd">+ Agregar ítem</button><button class="btn gold" data-act="evCfgSave">Guardar reglas</button></div></div>`;}
+ <div class="row" style="gap:.5rem;flex-wrap:wrap"><button class="btn" data-act="evAuto">✨ Sugerir productos automáticamente</button><button class="btn" data-act="evItAdd">+ Agregar ítem</button><button class="btn gold" data-act="evCfgSave">Guardar reglas</button></div></div>`;}
 reg('eventos','Eventos','file','sell',()=>{const c=evCfg();if(!c.on&&!can('config'))return uiEmpty?uiEmpty('Calculador apagado','Pedile al administrador que lo encienda.'):'<p>Calculador apagado.</p>';
  if(!EVI.sel)EVI.sel=c.items.filter(x=>x.pid&&x.on!==false).map(x=>x.k);
  const tabs=[['calc','Calcular'],can('config')?['cfg','Reglas']:null].filter(Boolean);
@@ -113,6 +115,35 @@ function evPrintDoc(html,doc){doc=doc||document;const f=doc.createElement('ifram
  setTimeout(()=>{try{f.contentWindow.focus();f.contentWindow.print();}catch(e){}setTimeout(()=>f.remove(),4000);},300);}
 window.RAVE_EV.print=(r,doc)=>{try{const s=RAVE_API.site();evPrintDoc(evPrintHTML(r,'p',s.title||S.tenant.name),doc);}catch(e){}};
 A.evPrint=()=>{const r=EVR||evRun();if(!r.lines.length)return;audit('EVENTO_COTIZADO','impreso · '+evResumen(r));evPrintDoc(evPrintHTML(Object.assign({res:evResumen(r)},r),'c',S.tenant.name));};
+/* V27.33 · vinculación sugerida por nombre (sólo productos activos, con precio y publicados en el menú) y ajuste de la unidad del producto:
+   docena de empanadas, tarta entera, litros por botella o lata, «2 x» o «x 3 und» en promos, six pack, bolsa de hielo en kg. Siempre para revisar. */
+const EV_AUTO=[[/\bpizzas?\b/],[/\bempanadas?\b/],[/\bmiga\b|\bsandw/],[/\btabla\b|\bpicada\b|\bfiambre/],[/\bpapas\b|\bsnacks?\b|\bchizit/],[/\bfinger\b|\bbocadit|\bcanape/],[/\btartas?\b|\bempanadon/],[/\btortas?\b|\balfajor|\bbrownie|\bbudin|\bfacturas\b|\bpostre/],
+ [/\bgaseosa|\bcoca\b|\bsprite\b|\bpepsi\b|\bfanta\b|\b7 ?up\b|\bschweppes\b|\bcepita\b|\bjugo\b/],[/\bagua\b/],[/\bcervezas?\b|\blager\b|\bbrul\b|\bcorona\b|\bquilmes\b|\bbrahma\b|\bstella\b|\bheineken\b|\bimperial\b|\bamstel\b/],[/\bvinos?\b|\bmalbec\b|\btinto\b|\bcabernet\b|\bbalbo\b|\btoro\b|\bcolon\b/],
+ [/\bfernet\b|\b1882\b|\bbranca\b/,/\bgancia\b|\bcampari\b|\baperitivo/,/\bgin\b|\bvodka\b|\bsmirnoff\b|\bskyy\b|\bron\b/],[/\bhielo\b/],[/\bvasos?\b/]];
+const EV_ALC=/fernet|1882|branca|gin|vodka|smirnoff|skyy|ron |campari|gancia|jager|whisk|champagne|vino|cerveza|lager|corona|brul|aperitivo|hesperidina|licor/;
+function evLitros(t){t=' '+t+' ';let m=/(\d+(?:[.,]\d+)?)\s*(?:lt|lts|l|litros?)\b/.exec(t);if(m)return +m[1].replace(',','.');m=/\b(\d{3,4})\s*(?:ml|cc)?\b/.exec(t);if(m&&+m[1]>=180&&+m[1]<=2500)return +m[1]/1000;return 0;}
+function evMultiplo(t){let m=/\b(\d)\s*x\s*\$?\s*\d/.exec(t)||/\bx\s*(\d+)\s*und/.exec(t)||/\b(\d)\s*x\b/.exec(t);if(/six ?pack/.test(t))return 6;return m?Math.max(1,Math.min(12,+m[1])):1;}
+function evAjuste(i,t){const n=evMultiplo(t),L=evLitros(t)||0;
+ if(i===1)return /media docena/.test(t)?{pp:4/6,mult:1}:/docena/.test(t)?{pp:4/12,mult:1}:{pp:4,mult:6};
+ if(i===2)return /docena/.test(t)?{pp:4/12,mult:1}:{pp:4,mult:12};
+ if(i===6)return /porci/.test(t)?{pp:1,mult:1}:{pp:0.125,mult:1};
+ if(i===8)return{pp:+(0.6/((L||2.25)*n)).toFixed(3),mult:1};
+ if(i===9)return{pp:+(0.35/((L||2)*n)).toFixed(3),mult:1};
+ if(i===10){const l=/six ?pack/.test(t)?(L||6):(L||0.473)*n;return{pp:+(0.95/l).toFixed(3),mult:/lata/.test(t)&&!/six/.test(t)&&l<0.6?6:1};}
+ if(i===11)return{pp:+(0.25/((L||0.75)*n)).toFixed(3),mult:1};
+ if(i===12)return{pp:/\+|combo|promo/.test(t)?0.12:0.1,mult:1};
+ if(i===13){const kg=(/(\d+(?:[.,]\d+)?)\s*kg/.exec(t)||[])[1];return{pp:+(0.3/(kg?+kg.replace(',','.'):2)).toFixed(3),mult:1};}
+ return null;}
+function evAutoLink(c){const P=S.products.filter(p=>p.active&&!p.archived&&p.menu&&p.price>0&&p.id!=='p_envio');const N=p=>(' '+pfull(p)+' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');let n=0;const used=new Set(c.items.map(x=>x.pid).filter(Boolean));
+ c.items.forEach((x,ix)=>{if(x.pid)return;const base=EV_EJ.findIndex(e=>e[2]===x.t);const i=base>=0?base:-1;if(i<0||!EV_AUTO[i])return;
+  const sc=p=>{const t=N(p);const k=EV_AUTO[i].findIndex(re=>re.test(t));if(k<0)return -1;const combo=/\+|\bcombo\b/.test(t);if(i!==12&&combo)return -1;
+   return 100-k*20+(i===12&&combo?10:0)+(stockOf(p)>0?5:0)-(i!==12&&/\bpromo\b/.test(t)?3:0);};
+  let C=P.filter(p=>!used.has(p.id)&&sc(p)>=0);
+  if(x.g==='sin')C=C.filter(p=>!EV_ALC.test(N(p)));
+  if(!C.length)return;C.sort((a,b)=>sc(b)-sc(a));const p=C[0];const a=evAjuste(i,N(p));x.pid=p.id;used.add(p.id);if(a){x.pp=a.pp;x.mult=a.mult;}x.auto=true;n++;});
+ return n;}
+A.evAuto=()=>{if(!can('config'))return toast('Sin permiso',1);const c=evCfg();A.evCfgRead(true);const n=evAutoLink(c);rerender();
+ toast(n?'Vinculé '+n+' ítem(s) con tus productos publicados. Revisá las cantidades por adulto y tocá «Guardar reglas».':'No encontré productos publicados en el menú que coincidan. Elegilos a mano.',n?0:1);};
 A.evItAdd=()=>{const c=evCfg();A.evCfgRead(true);c.items.push({k:'e'+uid().slice(0,8),g:'com',cat:EV_CATS[0],t:'',pid:'',pp:1,mult:1,w:1,veg:false,tacc:false,hielo:false});rerender();};
 A.evItDel=el=>{const c=evCfg();A.evCfgRead(true);c.items.splice(+el.dataset.i,1);rerender();};
 A.evCfgRead=(quiet)=>{const c=evCfg();if(!$('#ev-cfg'))return true;const n=(v,a,b)=>{const x=parseNum(v);return x>=a&&x<=b?x:NaN;};let err='';
@@ -124,5 +155,5 @@ A.evCfgRead=(quiet)=>{const c=evCfg();if(!$('#ev-cfg'))return true;const n=(v,a,
   return Object.assign({},x,{g:tr.querySelector('.evi-g').value,cat,pid:tr.querySelector('.evi-p').value,pp,mult:mu,w,veg:tr.querySelector('.evi-v').checked,tacc:tr.querySelector('.evi-t').checked,hielo:cat==='Hielo'});});
  if(err){if(!quiet)toast(err,1);return false;}c.on=$('#evc-on').checked;c.pub=$('#evc-pub').checked;c.margen=mg;c.ninos=ni;c.tipos=tipos;c.durs=durs;c.items=items;return true;};
 A.evCfgSave=()=>{if(!can('config'))return toast('Sin permiso',1);if(!A.evCfgRead())return;const c=evCfg();EVI.sel=null;EVQ={};
- audit('EVENTO_REGLAS',(c.on?'encendido':'apagado')+' · menú '+(c.pub?'sí':'no')+' · '+c.items.filter(x=>x.pid).length+' ítems vinculados');save();if(typeof pubRefresh==='function')pubRefresh();
+ c.items.forEach(x=>{delete x.auto;});audit('EVENTO_REGLAS',(c.on?'encendido':'apagado')+' · menú '+(c.pub?'sí':'no')+' · '+c.items.filter(x=>x.pid).length+' ítems vinculados');save();if(typeof pubRefresh==='function')pubRefresh();
  toast(c.pub?'Guardado. Publicá el menú para que lo vean los clientes.':'Reglas guardadas.');rerender();};

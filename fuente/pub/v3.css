@@ -1,0 +1,129 @@
+/* ===== V27.33 · Menú público compacto y orientado a la venta (brief de rediseño UX/UI) =====
+   Capa sobre la «Tienda premium» (v2): menos alto, una sola acción de compra con el color dorado, tarjetas compactas
+   con «Agregar», barra de pedido con el progreso del envío gratis, Club plegado y pie compacto con los legales en una ventana. */
+:root{--v3-gap:10px}
+html{scroll-padding-top:128px}
+
+/* 1) encabezado compacto: logo + nombre + estado a la izquierda, compartir y tema a la derecha */
+header{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"logo title tools" "logo sub tools" "pill pill pill";align-items:center;column-gap:12px;row-gap:2px;padding:12px 14px 10px!important;text-align:left!important}
+header img.logo{grid-area:logo;width:auto!important;max-width:104px!important;height:auto!important;max-height:46px!important;object-fit:contain;margin:0!important}
+header h1.brand-title{grid-area:title;font-size:19px!important;line-height:1.15!important;margin:0!important;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+header .brand-sub{grid-area:sub;font-size:10.5px!important;margin:0!important;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+header .top-tools{grid-area:tools;position:static!important;display:flex;gap:6px;align-items:center;margin:0!important;padding:0!important}
+header .top-tools .share-top{min-width:44px;min-height:44px;padding:0 10px!important}
+header .top-tools .share-top .st-txt{display:none}
+header .theme-top{min-width:44px;min-height:44px}
+header #alc-pill{grid-area:pill;margin:8px 0 0!important;justify-self:start}
+header .v3-open{grid-area:pill;justify-self:end;margin-top:8px;font:600 12px/1.3 Poppins,sans-serif;color:var(--muted)}
+
+/* lo que alargaba la página sin vender: queda en el pie o en ventanas */
+.sheet > p.pitch,.sheet > .price-note,.sheet > #alc-legend,.sale-fab,.sheet > .info-block{display:none!important}
+
+/* 2) banner único de propuesta de valor */
+.promo-banner{margin:10px 12px 6px!important;padding:10px 14px!important;border-radius:14px!important;border:1px solid rgba(201,150,62,.55)!important;background:var(--raise)!important;color:var(--ink)!important;display:flex;align-items:center;gap:10px;font:500 13.5px/1.35 Poppins,sans-serif!important}
+.promo-banner .pt,.promo-banner .pt *{color:var(--ink)!important}
+.promo-banner .pi{font-size:22px}
+.promo-banner strong{color:var(--ink)!important;font-weight:800;text-decoration:underline;text-decoration-color:var(--gold);text-decoration-thickness:2px;text-underline-offset:3px}
+
+/* «Armá tu evento»: tarjeta finita debajo del banner */
+#ev-block.v3-ev{display:flex;align-items:center;gap:10px;margin:0 12px 8px!important;padding:10px 12px!important;border-radius:14px;border:1px solid var(--line);background:var(--raise);text-align:left}
+#ev-block.v3-ev h2{font:700 14.5px/1.25 Poppins,sans-serif!important;margin:0!important}
+#ev-block.v3-ev .club-sub{font:12px/1.35 Poppins,sans-serif!important;margin:2px 0 0!important;color:var(--muted)}
+#ev-block.v3-ev .v3-ev-t{flex:1;min-width:0}
+#ev-block.v3-ev .ev-open{flex:none;width:auto!important;min-height:44px!important;margin:0!important;padding:0 14px!important;border-radius:12px!important;font:700 13px Poppins,sans-serif!important;background:transparent!important;border:1px solid var(--gold)!important;color:var(--gold-ink,var(--gold))!important}
+
+/* 3) barra de búsqueda y categorías: fija y más baja */
+#toolbar{padding:8px 12px 6px!important}
+#search-input{min-height:42px!important}
+#cat-filter{gap:6px!important;padding-top:6px!important;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#cat-filter::-webkit-scrollbar{display:none}
+.cat-chip{min-height:38px!important;flex:none;white-space:nowrap}
+.cat-chip .v3-em{margin-right:4px}
+
+/* 4) secciones y tarjetas compactas: 3 a 4 productos por pantalla */
+.section{margin:10px 8px!important;padding:10px 8px 12px!important;border-radius:18px!important}
+.section-head{margin:0 4px 8px!important;padding:0!important}
+.section-head h2{font-size:18px!important;margin:2px 0!important}
+.section-head .hint{display:none}
+.grid{gap:8px!important}
+.card{padding:8px 8px 10px!important;display:flex;flex-direction:column}
+.card img,.card .c-noimg{aspect-ratio:auto!important;height:116px!important;width:100%;margin-bottom:6px!important;padding:4px!important}
+.card .c-name{font:600 15px/1.25 Poppins,sans-serif!important;min-height:2.5em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-align:left}
+.card .c-sub{font-size:13px!important;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .c-price{font:800 19px/1.2 Poppins,sans-serif!important;margin:4px 0 6px!important;padding:0!important;border:0!important;text-align:left}
+.card .qty-row{margin-top:auto!important}
+.featured .desc,.row-name{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.featured .price,.row-price{font:800 18px Poppins,sans-serif!important}
+
+/* «Agregar» grande mientras no está en el pedido; − cantidad + después */
+.card:not(.in-cart) .qty-row .minus,.card:not(.in-cart) .qty-row .qty-val,
+.featured:not(.in-cart) .qty-row .minus,.featured:not(.in-cart) .qty-row .qty-val,
+.row:not(.in-cart) .qty-row .minus,.row:not(.in-cart) .qty-row .qty-val{display:none!important}
+.card:not(.in-cart) .qty-row .plus,.featured:not(.in-cart) .qty-row .plus{width:100%!important;height:44px!important;min-height:44px!important;border-radius:12px!important;border:0!important;background:linear-gradient(135deg,var(--gold-deep),var(--gold))!important;color:#161310!important;font-size:0!important}
+.card:not(.in-cart) .qty-row .plus::before,.featured:not(.in-cart) .qty-row .plus::before{content:"+ Agregar";font:700 14px Poppins,sans-serif}
+.row:not(.in-cart) .qty-row .plus{width:auto!important;min-width:88px;height:40px!important;border-radius:12px!important;border:0!important;background:linear-gradient(135deg,var(--gold-deep),var(--gold))!important;color:#161310!important;font-size:0!important}
+.row:not(.in-cart) .qty-row .plus::before{content:"+ Agregar";font:700 13px Poppins,sans-serif}
+.card.in-cart .qty-row{display:flex;justify-content:space-between;align-items:center}
+.card .qty-row .qty-btn{width:44px!important;height:44px!important}
+.card .c-agot{display:block;margin:-2px 0 4px;font:600 12px Poppins,sans-serif}
+
+/* 5) barra del pedido: ancho completo, total y progreso del envío gratis */
+#cart-bar{left:10px!important;right:10px!important;bottom:calc(10px + env(safe-area-inset-bottom,0px))!important;max-width:560px!important;border-radius:18px!important;padding:10px 12px 10px 16px!important;background:#16130f!important;gap:10px;flex-wrap:wrap}
+#cart-bar .cb-left{font:500 13px/1.3 Poppins,sans-serif!important;color:#f3eee4;flex:1;min-width:0}
+#cart-bar .cb-right{display:flex;align-items:center;gap:10px;font:800 17px Poppins,sans-serif!important;color:#f3eee4!important}
+#cart-bar .v3-go{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border-radius:12px;background:linear-gradient(135deg,var(--gold-deep),var(--gold));color:#161310;font:700 13.5px Poppins,sans-serif;white-space:nowrap}
+#cart-bar .v3-free{flex-basis:100%;order:3;font:600 12px/1.3 Poppins,sans-serif;color:#e8c98d}
+#cart-bar .v3-free.ok{color:#7fe0a5}
+#cart-bar .v3-free i{display:block;height:5px;margin-top:5px;border-radius:999px;background:#3a3329;overflow:hidden}
+#cart-bar .v3-free i b{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold-deep),var(--gold));transition:width .35s}
+#cart-bar .v3-free.ok i b{background:linear-gradient(90deg,#2ea05a,#5fd18c)}
+.sheet{padding-bottom:120px!important}
+
+/* botones flotantes: sólo el chat, redondo y arriba de la barra */
+#rv-chat-fab{right:14px!important;bottom:calc(16px + env(safe-area-inset-bottom,0px))!important;width:52px;padding:0!important;justify-content:center}
+#rv-chat-fab .t{display:none!important}
+body.v3-cart #rv-chat-fab{bottom:calc(104px + env(safe-area-inset-bottom,0px))!important}
+@media (max-width:720px){.to-top{display:none!important}}
+
+/* 6) Club compacto */
+#club-mini{margin:14px 12px!important;padding:14px!important;border-radius:18px;border:1px solid rgba(201,150,62,.5);background:var(--raise);color:var(--ink);text-align:left}
+#club-mini h2,#club-mini p{color:var(--ink)!important}
+#club-mini h2{font:700 17px Poppins,sans-serif!important;margin:0 0 4px!important;text-align:left!important}
+#club-mini p{font:13px/1.45 Poppins,sans-serif;margin:0 0 10px;color:var(--ink)}
+#club-mini .v3-row{display:flex;gap:8px;flex-wrap:wrap}
+#club-mini button{flex:1 1 140px;min-height:46px;border-radius:12px;font:700 13.5px Poppins,sans-serif;cursor:pointer;border:1px solid var(--gold);background:transparent;color:var(--gold-ink,var(--gold))}
+#club-mini button.pri{background:linear-gradient(135deg,var(--gold-deep),var(--gold));color:#161310;border-color:transparent}
+#club-more[hidden]{display:none!important}
+
+/* 7) pie compacto */
+footer.v3-foot{padding:18px 14px calc(110px + env(safe-area-inset-bottom,0px))!important;text-align:center;font:13px/1.5 Poppins,sans-serif}
+footer.v3-foot .v3-fb{font:800 18px Poppins,sans-serif;letter-spacing:2px;color:var(--gold-ink,var(--gold))}
+footer.v3-foot .v3-acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0}
+footer.v3-foot .v3-acts a,footer.v3-foot .v3-acts button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--raise);color:var(--ink);font:600 13px Poppins,sans-serif;text-decoration:none;cursor:pointer}
+footer.v3-foot .v3-acts .wa{background:#0b6b36;border-color:#0b6b36;color:#fff}
+footer.v3-foot .v3-soc{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
+footer.v3-foot .v3-soc a{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);color:var(--ink)}
+footer.v3-foot .v3-soc svg{width:20px;height:20px;fill:currentColor}
+footer.v3-foot .v3-links{display:flex;justify-content:center;flex-wrap:wrap;gap:4px 14px;margin:8px 0}
+footer.v3-foot .v3-links button,footer.v3-foot .v3-links a{background:none;border:0;padding:8px 2px;min-height:40px;color:var(--gold-ink,var(--gold));font:600 12.5px Poppins,sans-serif;text-decoration:underline;cursor:pointer}
+footer.v3-foot .v3-small{font-size:11.5px;color:var(--muted);margin:4px 0}
+footer.v3-foot .lang-toggle{display:inline-flex;margin:6px auto 0}
+footer.v3-foot .v3-dev{display:block;margin:10px auto 0;padding:8px;min-height:40px;background:none;border:0;color:var(--muted);font:500 11.5px Poppins,sans-serif;cursor:pointer}
+footer.v3-foot .v3-dev b{color:var(--ink)}
+footer.v3-foot .v3-vb a{color:var(--gold-ink,var(--gold));text-decoration:underline}
+.dev-credit.v3-col{display:none!important}
+.dev-credit.v3-col.open{display:block!important}
+
+/* ventanas: legales y Wi-Fi */
+.v3-dlg{position:fixed;inset:0;z-index:9990;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.6)}
+.v3-dlg[hidden]{display:none}
+.v3-dlg .v3-box{width:100%;max-width:640px;max-height:86vh;overflow:auto;background:var(--cream);color:var(--ink);border-radius:22px 22px 0 0;padding:14px 14px 24px;box-shadow:0 -20px 50px rgba(0,0,0,.5)}
+.v3-dlg .v3-top{display:flex;align-items:center;gap:8px;position:sticky;top:-14px;background:var(--cream);padding:6px 0 8px;z-index:1}
+.v3-dlg .v3-top h3{flex:1;margin:0;font:700 17px Poppins,sans-serif}
+.v3-dlg .v3-x{min-width:44px;min-height:44px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:18px;cursor:pointer}
+.v3-dlg .club-block,.v3-dlg .info-panel{margin:0!important;box-shadow:none!important}
+@media (min-width:700px){.v3-dlg{align-items:center}.v3-dlg .v3-box{border-radius:22px}}
+
+.featured:not(.in-cart) .qty-row{min-width:120px}
+.featured:not(.in-cart) .qty-row .plus{width:auto!important;min-width:120px;padding:0 12px!important}
+.featured:not(.in-cart) .qty-row .plus::before{white-space:nowrap}

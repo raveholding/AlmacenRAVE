@@ -9,7 +9,7 @@ def frame(C):
         C.wait_for_timeout(250)
 def join(C,nombre,wa,cumple,dni='',comm=True):
     f=frame(C)
-    f.evaluate("document.getElementById('club-form').scrollIntoView()")
+    f.evaluate("(()=>{const m=document.getElementById('club-more');if(m)m.hidden=false;document.getElementById('club-form').scrollIntoView()})()")
     f.fill('#club-nombre',nombre);f.fill('#club-whatsapp',wa);f.fill('#club-cumple',cumple)
     if dni:f.fill('#club-dni',dni)
     f.check('#club-consent')
@@ -34,7 +34,7 @@ with sync_playwright() as p:
     chk(f.locator('#club-dni').count()==1,'el formulario del Club tiene el campo DNI (opcional)')
     chk(f.evaluate("getComputedStyle(document.getElementById('loyalty-block')).display")!='none','la tarjeta del Club se ve en la nube (antes estaba oculta)')
     # DNI inválido: se rechaza en el formulario
-    f.evaluate("document.getElementById('club-form').scrollIntoView()")
+    f.evaluate("(()=>{const m=document.getElementById('club-more');if(m)m.hidden=false;document.getElementById('club-form').scrollIntoView()})()")
     f.fill('#club-nombre','Lucía Gómez');f.fill('#club-whatsapp','3875556677');f.fill('#club-cumple','1992-03-14');f.fill('#club-dni','12');f.check('#club-consent')
     f.click('#club-form button[type=submit]');C.wait_for_timeout(800)
     chk(sql("select count(*) from club_altas")=='0','DNI inválido: no se envía el alta')

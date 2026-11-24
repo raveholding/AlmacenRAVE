@@ -9,6 +9,7 @@ with sync_playwright() as p:
     pg.goto('file:///tmp/rave/index.html');pg.wait_for_timeout(2500)
     fr=pg.frame_locator('#pubframe')
     if fr.locator('#age-gate.open').count(): fr.locator('#ag-yes').click();pg.wait_for_timeout(300)
+    [f for f in pg.frames if f!=pg.main_frame][0].evaluate("(()=>{const m=document.getElementById('club-more');if(m)m.hidden=false})()")
     s=fr.locator('#loy-sample')
     chk(s.count()==1 and 'Así se ve tu tarjeta' in s.inner_text(),'el menú muestra la tarjeta de EJEMPLO del Club')
     g=pg.evaluate("S.loyalty.goal");rw=pg.evaluate("S.loyalty.reward")

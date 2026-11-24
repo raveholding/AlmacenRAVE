@@ -27,7 +27,7 @@ with sync_playwright() as p:
     C.goto(BASE+'/cliente.html#menu');C.wait_for_timeout(4000)
     f=frame(C);f.click('#ag-yes');C.wait_for_timeout(400)
     def join(f,n,w,bd,dni):
-        f.evaluate("document.getElementById('club-form').scrollIntoView()")
+        f.evaluate("(()=>{const m=document.getElementById('club-more');if(m)m.hidden=false;document.getElementById('club-form').scrollIntoView()})()")
         f.fill('#club-nombre',n);f.fill('#club-whatsapp',w);f.fill('#club-cumple',bd);f.fill('#club-dni',dni);f.check('#club-consent')
         f.click('#club-form button[type=submit]');C.wait_for_timeout(2500)
     join(f,'Marta Díaz','3874001111','1988-07-09','28111222')
