@@ -33,7 +33,7 @@ with sync_playwright() as p:
     # ---------- pipeline ----------
     ev("crmSel='%s';crmTab='deals';go('crm')"%cid);pg.wait_for_timeout(600)
     chk(pg.locator('.dl-col').count()==7,'embudo con 5 etapas + Ganado + Perdido')
-    chk(pg.locator('[data-act=crmTab][data-t=deals]').count()==1,'pestaña «Oportunidades» en Atención al cliente')
+    chk(pg.locator('.crm-tabs [data-act=crmTab][data-t=deals]').count()==1,'pestaña «Oportunidades» en Atención al cliente')
     r=ev("(()=>{const r=dlCreate({title:'Provisión mensual',cust:'kc2',amount:5000000,prio:'alta',next:'Llamar',nextAt:'2020-01-01'});return r.err||r.d.id})()")
     d1=r
     r2=ev("dlCreate({title:'Bebidas evento',cust:'kc3',amount:2000000,stage:'propuesta'}).d.id")

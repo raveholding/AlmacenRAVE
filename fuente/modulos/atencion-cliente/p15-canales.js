@@ -91,11 +91,27 @@ function canFormRapido(k){const c=canRead(k);const D=canDetect()[k]||{};const v=
 A.canAbrir=el=>{const k=el.dataset.k;if(!CANAL_I[k])return;if(!can('config'))return toast('Sólo el administrador conecta canales',1);
  if(k==='web'){crmSet({on:true,web:true,chans:[...new Set((crmCfg().chans||[]).concat(['web']))]});audit('CANALES_CONECTAR','tienda web y chat');save();if(typeof pubRefresh==='function')pubRefresh();rerender();return toast('Chat de la tienda web activado ✓');}
  if(k==='tn'){if(typeof tnReal==='function'&&tnReal()&&typeof A.tnConnect==='function')return A.tnConnect();if(typeof A.tnSimConnect==='function'&&!(typeof tnReal==='function'&&tnReal())){A.tnSimConnect();setTimeout(rerender,100);return;}return go('integ');}
- const I=CANAL_I[k],c=canRead(k);const nube=canNube();let modo=c.modo==='api'?'api':'link';
- const body=()=>`<div class="can-modes" role="radiogroup" aria-label="Forma de conexión"><label class="can-mode ${modo==='link'?'on':''}"><input type="radio" name="cn-m" value="link" ${modo==='link'?'checked':''}><b>⚡ Rápido</b><span>1 clic · gratis. Publica el botón oficial en el menú y la app. Respondés desde la app de ${esc(I.t.split(' ')[0])}.</span></label>
- ${I.api?`<label class="can-mode ${modo==='api'?'on':''}"><input type="radio" name="cn-m" value="api" ${modo==='api'?'checked':''} ${nube?'':'disabled'}><b>🔗 Integrado</b><span>Los mensajes entran a la Bandeja y se responden desde acá.${nube?'':' Requiere la nube.'}</span></label>`:`<div class="can-mode off"><b>🔗 Integrado</b><span>${esc(I.t)} no ofrece mensajería abierta para comercios: queda el botón directo.</span></div>`}</div>
- <div id="cn-body">${modo==='api'?canPasosApi(k):canFormRapido(k)}</div>`;
- const w=modal('Conectar '+I.t,body(),{wide:true,okText:modo==='api'?'Probar y activar':'Conectar',onOk:async()=>{
+ const I=CANAL_I[k],c=canRead(k);const nube=canNube();let modo=c.modo==='api'?'api':'link';let est=null;const O=canOA();
+ /* V27.31 · panel guiado: 1) cómo conectarlo (enlace directo o en la Bandeja) · 2) datos o estado de la conexión · 3) activar.
+    El estado se lee de la función «canales» (acción «estado», sólo dice qué secretos están cargados; nunca los valores). */
+ const chk=(ok,t,falta)=>`<li class="${ok?'ok':''}"><span aria-hidden="true">${ok?'✓':'○'}</span><span>${esc(t)}${ok||!falta?'':` <small class="mut">· ${esc(falta)}</small>`}</span></li>`;
+ const estHTML=()=>{if(!nube)return '<p class="sm mut">La conexión en la Bandeja necesita la nube del comercio.</p>';if(!est)return '<p class="sm mut">Revisando la conexión…</p>';if(est.err)return `<p class="sm neg">No pude consultar el estado: ${esc(est.err)}</p>`;
+  const L=[chk(est.comercio,'Comercio vinculado a la función de canales','falta CANALES_COMERCIO'),chk(est.llave,'Llave de cifrado del Club','publicá el menú una vez')];
+  if(CAN_META.includes(k)){L.push(chk(est.meta,'App de Meta verificada (webhook)','faltan META_VERIFY_TOKEN y META_APP_SECRET'));L.push(k==='wa'?chk(est.wa,'Número de WhatsApp con su token','faltan WA_TOKEN y WA_PHONE_ID'):chk(est.page,'Token de la página de Facebook','falta META_PAGE_TOKEN'));}
+  if(k==='tg')L.push(chk(est.tg,'Bot de Telegram con su token','faltan TG_CLIENTES_TOKEN y TG_CLIENTES_SECRET'));
+  if(k==='mail'){L.push(chk(est.mailIn,'Entrada de correo','falta MAIL_IN_SECRET'));L.push(chk(est.mailOut,'Salida de correo','faltan RESEND_API_KEY y MAIL_FROM'));}
+  return `<ul class="can-chk">${L.join('')}</ul>`;};
+ const adv=()=>{const p=[];if(CAN_META.includes(k)&&O.disp.meta)p.push(`<p class="sm">Conexión con un clic (iniciar sesión en Meta): ${cxBtn('Conectar con Meta','omniOAGo','data-p="meta"')}</p>`);
+  if(k==='mail'&&(O.disp.google||O.disp.microsoft))p.push(`<p class="sm">Conectar una casilla: ${O.disp.google?cxBtn('Gmail','omniOAGo','data-p="google"'):''} ${O.disp.microsoft?cxBtn('Outlook','omniOAGo','data-p="microsoft"'):''}</p>`);
+  if(I.api&&nube&&canEstado(k)!=='off'&&k!=='web'&&k!=='tn')p.push(`<p class="sm">Diagnóstico: ${cxBtn('Probar ahora','canProbarBtn',`data-k="${k}"`)}${c.ok?` <span class="sm mut">Última prueba: ${esc(c.ok.msg||'')}</span>`:''}</p>`);
+  if(I.api&&k!=='web'&&k!=='tn')p.push(`<details><summary class="sm">Pasos técnicos (para quien administra la nube)</summary>${canPasosApi(k)}</details>`);
+  return p.length?`<details class="can-adv"><summary>Opciones avanzadas</summary>${p.join('')}</details>`:'';};
+ const body=()=>`${uiSteps(['Cómo conectarlo',modo==='api'?'Revisar la conexión':'Tus datos','Activar'],1)}
+ <div class="can-modes" role="radiogroup" aria-label="Forma de conexión"><label class="can-mode ${modo==='link'?'on':''}"><input type="radio" name="cn-m" value="link" ${modo==='link'?'checked':''}><b>Enlace directo</b><span>Gratis y al instante. Un botón en tu menú y en la app del Club abre ${esc(I.t.split(' ')[0])}; respondés desde esa app.</span></label>
+ ${I.api?`<label class="can-mode ${modo==='api'?'on':''}"><input type="radio" name="cn-m" value="api" ${modo==='api'?'checked':''} ${nube?'':'disabled'}><b>En la Bandeja</b><span>Los mensajes llegan acá y respondés desde el sistema, con historial y equipo.${nube?'':' Requiere la nube.'}</span></label>`:`<div class="can-mode off"><b>En la Bandeja</b><span>${esc(I.t)} no ofrece mensajería abierta para comercios: queda el enlace directo.</span></div>`}</div>
+ <div id="cn-body">${modo==='api'?`<h4 class="can-h4">Estado de la conexión</h4><div id="cn-est">${estHTML()}</div><p class="sm mut">Cuando esté todo ✓, tocá <b>Probar y activar</b>: el sistema verifica el canal y activa la recepción.</p>`:canFormRapido(k)}</div>${adv()}`;
+ const loadEst=async()=>{if(!nube||est)return;try{est=await canFn('estado');}catch(e){est={err:String(e&&e.message||e).slice(0,120)};}const x=w.querySelector('#cn-est');if(x)x.innerHTML=estHTML();};
+ const w=uiDrawer((canEstado(k)==='off'?'Conectar ':'Gestionar ')+I.t,body(),{okText:modo==='api'?'Probar y activar':'Guardar',onOk:async()=>{
    const cc=canCfg()[k];
    if(modo==='link'){const raw=val('cn-v').trim();let v='';if(k==='wa')v=canWa(raw);else if(k==='mail')v=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(raw)?raw.toLowerCase():'';else v=canHandle(raw);
     if(!v){toast(k==='wa'?'Escribí el número con código de área.':k==='mail'?'Escribí un correo válido.':'Escribí el usuario.',1);return false;}
@@ -104,7 +120,8 @@ A.canAbrir=el=>{const k=el.dataset.k;if(!CANAL_I[k])return;if(!can('config'))ret
    const r=await canProbar(k);if(!r.ok){toast(I.t+': '+(r.msg||'todavía no responde'),1);return false;}
    cc.modo='api';if(r.link&&k==='tg')cc.bot=r.link.replace('https://t.me/','');cc.ok={ts:now(),msg:String(r.msg||'').slice(0,80)};
    canChansSync();audit('CANALES_CONECTAR',I.t+' · integrado');save();if(typeof pubRefresh==='function')pubRefresh();rerender();toast(I.t+' integrado ✓');}});
- w.addEventListener('change',e=>{if(e.target.name==='cn-m'){modo=e.target.value;w.querySelector('.mb').innerHTML=body();const ok=w.querySelector('[data-m=ok]');if(ok)ok.textContent=modo==='api'?'Probar y activar':'Conectar';}});};
+ w.addEventListener('change',e=>{if(e.target.name==='cn-m'){modo=e.target.value;w.querySelector('.mb').innerHTML=body();const ok=w.querySelector('[data-m=ok]');if(ok)ok.textContent=modo==='api'?'Probar y activar':'Guardar';if(modo==='api')loadEst();}});
+ if(modo==='api')loadEst();};
 async function canProbar(k){if(!canNube())return{ok:false,msg:'disponible con la nube'};try{const r=await canFn('probar',{canal:k});return r||{ok:false};}catch(e){return{ok:false,msg:String(e&&e.message||e).slice(0,120)};}}
 A.canTgOn=async el=>{el.disabled=true;try{const r=await canFn('tg_conectar');const c=canCfg().tg;c.bot=String(r.bot||'').replace('@','');toast('Telegram conectado: '+r.bot);audit('CANALES_CONECTAR','Telegram · webhook del bot '+r.bot);save();}catch(e){toast('No se pudo: '+String(e&&e.message||e).slice(0,140),1);}el.disabled=false;};
 A.canOff=el=>{const k=el.dataset.k;if(!can('config'))return;const I=CANAL_I[k];confirmBox('Desconectar '+I.t,'Deja de mostrarse en el menú y en la app del Club. Las conversaciones anteriores quedan guardadas.',()=>{
@@ -129,49 +146,33 @@ function cxCard(o){return`<article class="cx-card${o.wide?' cx-wide':''}" style=
  ${o.foot?`<footer class="cx-f">${o.foot}</footer>`:''}</article>`;}
 const cxBtn=(t,act,extra,prim)=>`<button class="btn sm ${prim?'gold':''}" data-act="${act}" ${extra||''}>${t}</button>`;
 const cxLk=(t,act,extra)=>`<button class="cx-lk" data-act="${act}" ${extra||''}>${t}</button>`;
-function canalesHTML(){const adm=can('config');const O=canOA();const on=canOnList().length;
- const meta=O.cuentas.find(x=>x.proveedor==='meta'&&x.estado==='activa');const viaM=k=>!!(meta&&(meta.canales||[]).includes(k));
- const mails=O.cuentas.filter(x=>(x.proveedor==='google'||x.proveedor==='microsoft'));
- const cards=[];
- // Tienda web y chat
- {const st=canEstado('web');cards.push(cxCard({t:'Tienda web y chat',d:'Chat cifrado en tu menú online y en la app del Club.',ic:'🛍️',col:'#7a5a22',st,
-  body:st!=='off'?`<p class="cx-u">${esc(((window.RAVE_BUILD&&RAVE_BUILD.publicUrl)||'').replace(/^https?:\/\//,''))}</p>`:'',
-  foot:adm?(st==='off'?cxBtn('Activar','canAbrir','data-k="web"',1):cxBtn('Configurar','canAbrir','data-k="web"')+cxLk('Desactivar','canOff','data-k="web"')):''}));}
- // Meta
- {const sts=CAN_META.map(k=>viaM(k)?'api':canEstado(k));const st=meta||sts.includes('api')?'api':sts.some(x=>x!=='off')?'link':'off';
-  const chip=(k,s)=>`<li class="cx-chip cx-${CX_ST[s][0]}"><span aria-hidden="true">${CANAL_I[k].ic}</span>${esc({wa:'WhatsApp',ig:'Instagram',fb:'Messenger'}[k])}<small>${s==='api'?'Bandeja':s==='link'?'Enlace':'—'}</small></li>`;
-  const foot=!adm?'':meta?cxBtn('Editar enlaces','canMetaLinks','')+cxLk('Desconectar Meta','omniOAOff',`data-id="${meta.id}"`)
-   :O.disp.meta?cxBtn('Conectar con Meta','omniOAGo','data-p="meta"',1)+cxLk('Editar enlaces','canMetaLinks',''):cxBtn(st==='off'?'Cargar enlaces':'Editar enlaces','canMetaLinks','',st==='off');
-  // V27.30 · WhatsApp Business API con la app y el token propios del comercio (secretos WA_TOKEN / WA_PHONE_ID en la función «canales»)
-  const waTok=adm&&typeof canNube==='function'&&canNube()?CAN_META.filter(k=>!viaM(k)).map((k,i)=>{const n={wa:'WhatsApp',ig:'Instagram',fb:'Messenger'}[k];return cxLk(canEstado(k)==='api'?n+' integrado · Probar':n+' con token propio','canAbrir','data-k="'+k+'"');}).join(''):'';
-  cards.push(cxCard({wide:1,t:'Meta: WhatsApp, Instagram y Messenger',d:meta?'Conectado: los mensajes de los tres entran a la Bandeja y se responden desde acá.':'Tus clientes te escriben por WhatsApp, Instagram y Messenger desde el menú y la app del Club.',ic:'<b style="color:#fff">∞</b>',col:'#1877f2',st,
-   body:`<ul class="cx-chips">${CAN_META.map((k,i)=>chip(k,sts[i])).join('')}</ul>${meta?`<p class="cx-u">Cuenta: ${esc(meta.cuenta)}${meta.error?' · <span class="neg">'+esc(meta.error)+'</span>':''}</p>`:''}`,
-   nota:meta||O.disp.meta?'':'Con la conexión directa a Meta, los mensajes entran a la Bandeja. La habilita Vincular Business.',tech:meta||O.disp.meta?'':canOAFalta('meta'),foot:foot+waTok}));}
- // Telegram
- {const st=canEstado('tg'),c=canRead('tg');cards.push(cxCard({t:'Telegram',d:'Bot propio del comercio para que tus clientes te escriban.',ic:'✈️',col:'#229ed9',st,
-  body:st!=='off'&&canLink('tg')?`<p class="cx-u">${esc(canLink('tg').replace(/^https?:\/\//,''))}</p>`:'',
-  foot:adm?(st==='off'?cxBtn('Conectar','canAbrir','data-k="tg"',1):cxBtn('Configurar','canAbrir','data-k="tg"')+cxLk('Desactivar','canOff','data-k="tg"')):''}));}
- // Correo
- {const act=mails.some(x=>x.estado==='activa');const st=act?'api':canEstado('mail');const g=O.disp.google,m=O.disp.microsoft;
-  const foot=!adm?'':(g?cxBtn(mails.some(x=>x.proveedor==='google')?'+ Gmail':'Conectar Gmail','omniOAGo','data-p="google"',!act):'')+(m?cxBtn(mails.some(x=>x.proveedor==='microsoft')?'+ Outlook':'Conectar Outlook','omniOAGo','data-p="microsoft"',!act&&!g):'')
-   +(g||m?cxLk(canEstado('mail')==='off'?'Usar enlace de correo':'Editar enlace','canLinkEdit','data-k="mail"'):cxBtn(canEstado('mail')==='off'?'Cargar correo':'Editar correo','canLinkEdit','data-k="mail"',canEstado('mail')==='off'));
-  cards.push(cxCard({wide:1,t:'Correo electrónico',d:act?'Los correos de tus clientes entran a la Bandeja.':'Botón para que tus clientes te escriban por mail.',ic:'✉️',col:'#5b5b5b',st,
-   body:mails.length?`<ul class="cx-list">${mails.map(x=>`<li><span>${esc(x.cuenta)}</span>${x.estado==='activa'?'<span class="cx-st cx-ok">Conectada</span>':`<span class="cx-st cx-warn">${esc(x.estado)}</span>`}${adm?cxLk('Quitar','omniOAOff',`data-id="${x.id}"`):''}</li>`).join('')}</ul>`:canEstado('mail')!=='off'?`<p class="cx-u">${esc(canRead('mail').addr||'')}</p>`:'',
-   tech:g||m?'':canOAFalta('google'),foot}));}
- // TikTok
- {const st=canEstado('tt');cards.push(cxCard({t:'TikTok',d:'Botón a tu perfil para que te escriban.',ic:'🎵',col:'#111',st,
-  body:st!=='off'?`<p class="cx-u">${esc(canLink('tt').replace(/^https?:\/\/(www\.)?/,''))}</p>`:'',
-  foot:adm?(st==='off'?cxBtn('Cargar perfil','canLinkEdit','data-k="tt"',1):cxBtn('Editar','canLinkEdit','data-k="tt"')+cxLk('Desactivar','canOff','data-k="tt"')):''}));}
- // Tiendanube
- {const st=canEstado('tn');cards.push(cxCard({t:'Tiendanube',d:'Pedidos y stock de tu tienda online, sincronizados.',ic:'🛒',col:'#2b4b9b',st,
-  foot:adm?(st==='off'?cxBtn('Conectar','canAbrir','data-k="tn"',1):cxBtn('Configurar','canAbrir','data-k="tn"')):''}));}
-  const [cWeb,cMeta,cTg,cMail,cTt,cTn]=cards;
-  const cBand=cxCard({t:'Bandeja de entrada',d:'Todas las conversaciones en un solo lugar, con respuestas rápidas y asignación al equipo.',ic:'💬',col:'#334155',st:null,
-   body:'',foot:`<button class="btn sm" data-act="crmTab" data-t="inbox">Ir a la Bandeja</button>`});
-  cards.length=0;cards.push(cWeb,cMeta,cMail,cTg,cTt,cTn,cBand);
- return`<div class="card cx-head"><div><h3>Canales de atención</h3><p class="sm mut">Por dónde te escriben tus clientes. Los canales conectados llegan a la Bandeja; los enlaces aparecen en tu menú y en la app del Club.</p></div>
-  <div class="cx-sum"><b>${on}</b><span>activos</span></div>${adm?`<button class="btn sm" data-act="canTodo" title="Usa el WhatsApp del comercio y las redes cargadas en el menú">Completar desde el menú</button>`:''}</div>
-  <div class="cx-grid">${cards.join('')}</div>`;}
+/* V27.31 · Rediseño (pedido del dueño, prompt «Atención al cliente»): una tarjeta por canal, todas iguales y sin bordes de color;
+   estados estándar del sistema (uiBadge): «En la Bandeja» (integrado, bidireccional) · «Enlace directo» (botón al canal) ·
+   «Sin conectar» · «Requiere atención» (la última prueba falló). Una sola acción por tarjeta («Conectar» o «Gestionar») que abre el
+   panel guiado; lo técnico (pasos, diagnóstico, conexión con un clic) queda dentro del panel, en «Opciones avanzadas». */
+const CAN_ORDER=['web','wa','ig','fb','tg','mail','tt','tn'];
+const CAN_SHORT={web:'Chat cifrado en tu menú online y en la app del Club.',wa:'Tus clientes te escriben a tu número de WhatsApp.',ig:'Mensajes directos de tu cuenta profesional.',fb:'Mensajes a tu página de Facebook.',
+ tg:'Bot propio del comercio en Telegram.',mail:'Consultas por correo electrónico.',tt:'Botón a tu perfil de TikTok.',tn:'Pedidos y stock de tu tienda online.'};
+function canSt(k){const O=canOA();const meta=O.cuentas.find(x=>x.proveedor==='meta'&&x.estado==='activa');
+ if(CAN_META.includes(k)&&meta&&(meta.canales||[]).includes(k))return 'api';
+ if(k==='mail'&&O.cuentas.some(x=>(x.proveedor==='google'||x.proveedor==='microsoft')&&x.estado==='activa'))return 'api';return canEstado(k);}
+function canBadge(k){const st=canSt(k);const c=canRead(k);if(st!=='off'&&c.ok&&c.ok.ok===false)return uiBadge('warn','Requiere atención');
+ return st==='api'?uiBadge('ok','En la Bandeja'):st==='link'?uiBadge('info','Enlace directo'):uiBadge('off','Sin conectar');}
+function canDetail(k){const st=canSt(k);if(st==='off')return '';if(k==='web')return esc(((window.RAVE_BUILD&&RAVE_BUILD.publicUrl)||'').replace(/^https?:\/\//,''));
+ if(k==='tn')return 'Pedidos y stock sincronizados';const u=canLink(k);const c=canRead(k);
+ if(st==='api')return c.ok&&c.ok.msg?esc(c.ok.msg):'Los mensajes llegan a la Bandeja';return u?esc(u.replace(/^(https?:\/\/(www\.)?|mailto:)/,'')):'';}
+function canalesHTML(){const adm=can('config');const O=canOA();const meta=O.cuentas.find(x=>x.proveedor==='meta'&&x.estado==='activa');
+ const sts=CAN_ORDER.map(canSt);const nApi=sts.filter(x=>x==='api').length,nLk=sts.filter(x=>x==='link').length,nOff=sts.filter(x=>x==='off').length,on=nApi+nLk;
+ const card=k=>{const I=CANAL_I[k];const st=canSt(k);const det=canDetail(k);
+  return `<article class="can-card cx-card" data-k="${k}"><header class="cx-h"><span class="cx-ic" aria-hidden="true">${I.ic}</span><div class="cx-t"><h4>${esc(I.t)}</h4><p>${esc(CAN_SHORT[k]||I.d)}</p></div></header>
+  <div class="cx-b">${canBadge(k)}${det?`<p class="cx-u">${det}</p>`:''}</div>
+  ${adm?`<footer class="cx-f">${st==='off'?cxBtn('Conectar','canAbrir',`data-k="${k}"`,1):cxBtn('Gestionar','canAbrir',`data-k="${k}"`)}${st!=='off'&&k!=='tn'?cxLk('Desconectar','canOff',`data-k="${k}"`):''}</footer>`:''}</article>`;};
+ const metaBanner=!adm?'':meta?`<div class="cx-banner"><span class="cx-bi" aria-hidden="true">∞</span><div class="sp"><b>Meta conectada con un clic</b><p class="sm mut">${esc(meta.cuenta)}${meta.error?' · <span class="neg">'+esc(meta.error)+'</span>':''}</p></div>${cxLk('Desconectar Meta','omniOAOff',`data-id="${meta.id}"`)}</div>`
+  :O.disp.meta?`<div class="cx-banner"><span class="cx-bi" aria-hidden="true">∞</span><div class="sp"><b>Conectá WhatsApp, Instagram y Messenger de una vez</b><p class="sm mut">Iniciás sesión con tu cuenta de Meta y los mensajes de los tres llegan a la Bandeja.</p></div>${cxBtn('Conectar con Meta','omniOAGo','data-p="meta"',1)}</div>`:'';
+ return `<div class="can-head cx-head"><div class="sp"><h3>Canales de atención</h3><p class="sm mut"><b>En la Bandeja</b>: los mensajes llegan acá y respondés desde el sistema. <b>Enlace directo</b>: un botón en tu menú y en la app del Club que abre la app del canal.</p></div>
+  ${adm?`<button class="btn" data-act="canTodo" title="Usa el WhatsApp del comercio y las redes cargadas en el menú">Completar desde el menú</button>`:''}
+  <div class="can-kpis">${uiKpis([{v:on+' de '+CAN_ORDER.length,l:'canales activos'},{v:nApi,l:'en la Bandeja',tone:nApi?'ok':''},{v:nLk,l:'con enlace directo'},{v:nOff,l:'sin conectar'}])}</div></div>
+  ${metaBanner}<div class="cx-grid">${CAN_ORDER.map(card).join('')}</div>`;}
 /* un solo formulario para los tres enlaces de Meta */
 A.canMetaLinks=()=>{if(!can('config'))return;const c=canCfg();
  const w=modal('Enlaces de WhatsApp, Instagram y Messenger',`<p class="sm mut">Se publican como botones en tu menú online y en la app del Club. Dejá vacío el que no uses.</p>
@@ -194,8 +195,7 @@ A.canLinkEdit=el=>{if(!can('config'))return;const k=el.dataset.k,c=canCfg()[k];c
 .cx-sum{display:flex;align-items:baseline;gap:.35rem;padding:.4rem .8rem;border-radius:12px;background:var(--bg)}.cx-sum b{font-size:1.4rem}.cx-sum span{color:var(--mut);font-size:.85rem}
 .cx-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin-top:.8rem;align-items:stretch}
 .cx-card{display:flex;flex-direction:column;gap:.6rem;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1rem;min-height:190px;box-shadow:0 1px 3px rgba(0,0,0,.04);position:relative;overflow:hidden}
-.cx-card:before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--cc)}
-.cx-wide{grid-column:span 2}.cx-h{display:flex;gap:.7rem;align-items:flex-start}.cx-ic{width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:12px;background:var(--cc);font-size:1.15rem}
+.cx-wide{grid-column:span 2}.cx-h{display:flex;gap:.7rem;align-items:flex-start}.cx-ic{width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:1.15rem}
 .cx-t{flex:1;min-width:0}.cx-t h4{margin:0;font-size:1rem}.cx-t p{margin:.15rem 0 0;color:var(--mut);font-size:.84rem;line-height:1.35}
 .cx-st{flex:none;font-size:.72rem;font-weight:700;padding:.2rem .55rem;border-radius:99px;white-space:nowrap}.cx-ok{background:var(--okbg);color:var(--ok)}.cx-warn{background:var(--warnbg);color:#8a5a00}.cx-off{background:var(--bg);color:var(--mut)}
 .cx-b{flex:1}.cx-u{margin:0;font-size:.82rem;color:var(--mut);word-break:break-all}
@@ -206,6 +206,12 @@ A.canLinkEdit=el=>{if(!can('config'))return;const k=el.dataset.k,c=canCfg()[k];c
 .cx-n{margin:0;font-size:.8rem;color:var(--mut)}.cx-tech{margin:0;font-size:.74rem;color:#8a5a00;background:var(--warnbg);border-radius:8px;padding:.35rem .5rem}
 .cx-f{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin-top:auto;padding-top:.6rem;border-top:1px solid var(--line)}
 .cx-lk{background:none;border:0;padding:.3rem 0;min-height:36px;font:inherit;font-size:.85rem;color:var(--mut);text-decoration:underline;text-underline-offset:3px;cursor:pointer}.cx-lk:hover{color:var(--ink)}
+
+.cx-card{min-height:0}.can-head{background:none;border:0;padding:0;box-shadow:none}.can-kpis{flex:1 1 100%}.can-kpis .ui-kpis{margin:.2rem 0 0}.cx-b{display:flex;flex-direction:column;gap:.35rem;align-items:flex-start}
+.cx-banner{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:.8rem 1rem;margin:0 0 .8rem}.cx-banner p{margin:.15rem 0 0}
+.cx-bi{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:#1877f2;color:#fff;font-weight:700;font-size:1.2rem}
+.can-chk{list-style:none;margin:0;padding:0}.can-chk li{display:flex;gap:.55rem;align-items:flex-start;padding:.45rem 0;border-bottom:1px solid var(--line);font-size:.9rem}.can-chk li>span:first-child{width:1.4rem;height:1.4rem;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--bg);color:var(--mut);font-weight:700}.can-chk li.ok>span:first-child{background:var(--okbg);color:var(--ok)}
+.can-adv{margin-top:1rem;border-top:1px solid var(--line);padding-top:.6rem}.can-adv>summary{cursor:pointer;font-weight:600;min-height:40px;display:flex;align-items:center}.can-h4{margin:.9rem 0 .3rem}
 @media(max-width:1100px){.cx-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:680px){.cx-grid{grid-template-columns:1fr}.cx-wide{grid-column:auto}.cx-card{min-height:0}}`;
  document.head.appendChild(st);})();

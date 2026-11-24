@@ -346,8 +346,27 @@ function crmBindCtx(){const q=$('#crm-lq');if(q)q.addEventListener('input',()=>{
   r.innerHTML=L.map(c=>`<button class="btn sm" style="display:block;width:100%;text-align:left;margin-top:.2rem;white-space:normal" data-act="crmLink" data-id="${c.id}">${esc(custFull(c))} · N.º ${pad4(c.num)}</button>`).join('')||'<p class="sm mut">Sin resultados.</p>';});
  const s=$('#crm-st');if(s)s.addEventListener('change',()=>{const c=convById(crmSel);if(!c)return;const v=s.value;if(!CST[v])return;if(v==='cerrado'){crmCloseConv(c);return;}c.state=v;crmAdd(c,'sys','Estado: '+CST[v]+' ('+crmMe()+')',{kind:'estado'});audit('CRM_ESTADO',crmWho(c)+' · '+CST[v]);save();crmPaint();});
  const dd=$('#crm-days');if(dd)dd.addEventListener('change',()=>{crmF.days=+dd.value;crmPaint();});}
-reg('crm','Atención al cliente','chat','crm',()=>{const C=crmCfg();
- const tabs=[['inbox','Bandeja'],['canales','🔌 Canales ('+(typeof canOnList==='function'?canOnList().length:0)+'/8)'],['stats','Analíticas'],['camp','Campañas'],['alerts','Alertas ERP ('+crmAlerts().length+')']];
+/* V27.31 · Registro de pestañas y acciones del encabezado. Cada módulo (Hoy, Oportunidades, Agenda, Automatización…) se suma con
+   crmTabAdd / crmHeadAdd en vez de reescribir el HTML con expresiones regulares (eso era frágil: un cambio de texto rompía pestañas).
+   Pestaña: {k, t(), ic, o (orden), show()?, badge()?, agent (visible en modo agente), bar (false = no va en la barra)} */
+const CRM_TABS=[],CRM_HEAD=[],CRM_MORE=[];
+function crmTabAdd(o){const i=CRM_TABS.findIndex(x=>x.k===o.k);if(i>=0)CRM_TABS[i]=o;else CRM_TABS.push(o);CRM_TABS.sort((a,b)=>a.o-b.o);}
+const crmHeadAdd=f=>CRM_HEAD.push(f),crmMoreAdd=f=>CRM_MORE.push(f);
+const crmAg=()=>typeof crmAgentOn==='function'&&crmAgentOn();
+function crmTabsVis(){const ag=crmAg();return CRM_TABS.filter(x=>(!x.show||x.show())&&(!ag||x.agent));}
+crmTabAdd({k:'inbox',t:()=>crmAg()?'Mis conversaciones':'Bandeja',ic:'💬',o:20,agent:1,badge:()=>convs().filter(c=>crmOpen(c)&&crmVisible(c)&&c.unread).length});
+crmTabAdd({k:'canales',t:()=>'Canales',ic:'🔌',o:60,badge:()=>null,sub:()=>typeof canOnList==='function'?canOnList().length+'/'+(typeof CANAL_L!=='undefined'?CANAL_L.length:8):''});
+crmTabAdd({k:'stats',t:()=>'Analíticas',ic:'📊',o:70});
+crmTabAdd({k:'camp',t:()=>'Campañas',ic:'📣',o:80});
+crmTabAdd({k:'alerts',t:()=>'Alertas ERP',ic:'🔔',o:90,badge:()=>crmAlerts().length});
+function crmTabsHTML(){const L=crmTabsVis().filter(x=>x.bar!==false);if(!L.some(x=>x.k===crmTab)&&!CRM_TABS.some(x=>x.k===crmTab&&x.bar===false&&(!x.show||x.show())))crmTab=(L[0]||{k:'inbox'}).k;
+ if(L.length<2)return '';
+ return `<nav class="ux-tabs crm-tabs" role="tablist" aria-label="Atención al cliente">${L.map(x=>{const b=x.badge?x.badge():0;const sb=x.sub?x.sub():'';
+  return `<a role="tab" tabindex="0" data-act="crmTab" data-t="${x.k}" aria-selected="${crmTab===x.k}" class="${crmTab===x.k?'on':''}"><span aria-hidden="true">${x.ic||''}</span> ${esc(x.t())}${sb?` <small class="mut">${esc(sb)}</small>`:''}${b?` <span class="crm-tb">${b>99?'99+':b}</span>`:''}</a>`;}).join('')}</nav>`;}
+function crmHeadSub(){const C=crmCfg();const st=typeof canEstado==='function'?C.chans.map(k=>canEstado(k)):[];const api=st.filter(x=>x==='api').length,lk=st.filter(x=>x==='link').length;
+ return `${api} ${api===1?'canal':'canales'} en la Bandeja · ${lk} ${lk===1?'enlace directo':'enlaces directos'}${can('config')&&!crmAg()?` · <a href="#" data-act="crmTab" data-t="canales">Administrar canales</a>`:''}`;}
+reg('crm','Atención al cliente','chat','crm',()=>{const C=crmCfg();const ag=crmAg();crmTabsHTML();
+ const more=ag?[]:[crmSup()?{t:'Panel de supervisión',act:'crmTab',attrs:'data-t="stats"',ic:'📊'}:null,CRM_FULL?{t:'Simular mensaje entrante',act:'crmSim',ic:'🧪'}:null,can('config')?{t:'Ajustes de atención',act:'crmCfgOpen',ic:'⚙️'}:null].concat(CRM_MORE.map(f=>f()));
  return `<style>:root{--crm-a:#a8261b;--crm-m:#7a4f00;--crm-n:#1d6234}[data-theme=dark]{--crm-a:#ff9b91;--crm-m:#f2c96b;--crm-n:#8fe0a2}@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--crm-a:#ff9b91;--crm-m:#f2c96b;--crm-n:#8fe0a2}}
  .crm-wrap{display:grid;grid-template-columns:minmax(230px,1fr) minmax(0,2fr) minmax(250px,1.1fr);gap:.8rem;align-items:start}
  @media(max-width:1100px){.crm-wrap{grid-template-columns:minmax(0,1fr)}}.crm-wrap>*{min-width:0}.crm-wrap .row{flex-wrap:wrap}.crm-wrap select,.crm-wrap input{max-width:100%;min-width:0}
@@ -365,12 +384,13 @@ reg('crm','Atención al cliente','chat','crm',()=>{const C=crmCfg();
  .crm-ul{padding-left:1.1rem;margin:.2rem 0}.crm-q{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--line)}
  .crm-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:.2rem;margin-bottom:.4rem}.crm-cd{display:flex;flex-direction:column;align-items:center;border:1px solid var(--line);border-radius:8px;padding:.2rem 0;min-height:44px}.crm-cd.has{border-color:var(--gold);background:rgba(201,150,62,.12)}
  .crm-ap{border-top:1px dashed var(--line);padding:.35rem 0;font-size:.9rem}.crm-al{list-style:none;padding:0;margin:0}.crm-al li{display:flex;gap:.4rem;align-items:center;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--line)}.crm-al li.crit span{color:var(--crm-a);font-weight:600}
- .crm-bars{width:100%}.crm-bars th{text-align:left;font-weight:500;width:35%}.crm-bar-f{display:block;height:12px;border-radius:6px;background:var(--gold);min-width:3px}</style>
- <div class="row"><h1 class="sp">Atención al cliente</h1>${crmSup()?'<button class="btn" data-act="crmTab" data-t="stats">Panel de supervisión</button>':''}${CRM_FULL?'<button class="btn" data-act="crmSim">Simular mensaje entrante</button>':''}${can('config')?'<button class="btn" data-act="crmTab" data-t="canales">🔌 Conectar canales</button>':''}<button class="btn gold" data-act="crmNewBtn">+ Nueva conversación</button>${can('config')?'<button class="btn" data-act="crmCfgOpen">Ajustes</button>':''}</div>
- ${C.on?'':'<div class="warnbox">Atención al cliente está <b>apagada</b>: el chat del menú público no se muestra. Activala en <b>Ajustes</b>.</div>'}${crmSqlNote()}
- <p class="sm mut">Canales: ${C.chans.map(k=>CHAN_IC[k]+' '+CHAN[k]+(chanDemo(k)?' (demostración)':chanApi(k)&&k!=='web'?' (integrado)':'')).join(' · ')}. Chat web cifrado de punta a punta; WhatsApp se abre con el texto listo y el envío lo confirmás vos.</p>
- <div class="grid g4" id="crm-kpi" style="margin:.8rem 0">${crmKpiHTML()}</div>
- <div class="ux-tabs" role="tablist" aria-label="Atención al cliente">${tabs.map(([k,t])=>`<a role="tab" tabindex="0" data-act="crmTab" data-t="${k}" aria-selected="${crmTab===k}" class="${crmTab===k?'on':''}">${esc(t)}</a>`).join('')}</div>
+ .crm-bars{width:100%}.crm-bars th{text-align:left;font-weight:500;width:35%}.crm-bar-f{display:block;height:12px;border-radius:6px;background:var(--gold);min-width:3px}
+ .crm-tabs{margin-top:.2rem;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:thin}.crm-tabs a{flex:0 0 auto;white-space:nowrap}.crm-tabs a{display:inline-flex;align-items:center;gap:.3rem}.crm-tb{display:inline-grid;place-items:center;min-width:1.25rem;height:1.25rem;padding:0 .3rem;border-radius:999px;background:var(--crm-a);color:#fff;font-size:.7rem;font-weight:700}
+ [data-theme=dark] .crm-tb{color:#111}@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .crm-tb{color:#111}}</style>
+ ${uiHead({t:'Atención al cliente',sub:crmHeadSub(),extra:CRM_HEAD.map(f=>f()).join(''),more,prim:{t:'Nueva conversación',ic:'＋',act:'crmNewBtn'}})}
+ ${C.on?'':'<div class="warnbox">Atención al cliente está <b>apagada</b>: el chat del menú público no se muestra. Activala en <b>Más → Ajustes de atención</b>.</div>'}${crmSqlNote()}
+ ${crmTabsHTML()}
+ ${crmTab==='inbox'?`<div class="grid g4" id="crm-kpi" style="margin:.2rem 0 .8rem">${crmKpiHTML()}</div>`:''}
  <div id="crm-body">${crmBody()}</div>`;},
  ()=>{const v=$('#view');const rf=()=>{const l=$('#crm-list');if(l)l.innerHTML=crmListHTML();};
   v.addEventListener('input',e=>{if(e.target.id==='crm-q'){crmF.q=e.target.value;rf();}});

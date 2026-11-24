@@ -165,14 +165,10 @@ A.crmAgentT=()=>{const on=!crmAgentOn();try{localStorage.setItem('vb.crm.agent',
 {const _t=crmThreadHTML;crmThreadHTML=function(){let h=_t.apply(this,arguments);const c=typeof crmCur==='function'?crmCur():null;if(!c||!dlOn())return h;
  const D=dls().filter(d=>d.conv===c.id&&d.status==='open');const chip=D.length?D.map(d=>`<button class="btn sm dl-chip" data-act="dlOpen" data-id="${d.id}" title="Oportunidad">💼 ${esc(d.n)} · ${esc((dlStage(d.stage)||{t:''}).t)} · ${money(dlAmt(d))}</button>`).join(''):'';
  return h.replace('<div class="crm-bar" role="toolbar" aria-label="Acciones de la conversación">','<div class="crm-bar" role="toolbar" aria-label="Acciones de la conversación"><button class="btn sm gold" data-act="dlFromConv">＋ Oportunidad</button>'+chip);};}
-{const s=SCREENS.crm;const _r=s.render;s.render=function(){let h=_r.apply(this,arguments);const ag=crmAgentOn();
- if(dlOn()&&!ag)h=h.replace(/(<a role="tab"[^>]*data-t="inbox"[^>]*>[^<]*<\/a>)/,'$1<a role="tab" tabindex="0" data-act="crmTab" data-t="deals" aria-selected="'+(crmTab==='deals')+'" class="'+(crmTab==='deals'?'on':'')+'">💼 Oportunidades ('+dls().filter(d=>d.status==='open').length+')</a>');
- else if(dlOn()&&ag)h=h.replace(/<div class="ux-tabs" role="tablist" aria-label="Atención al cliente">[\s\S]*?<\/div>/,'<div class="ux-tabs" role="tablist" aria-label="Atención al cliente"><a role="tab" tabindex="0" data-act="crmTab" data-t="inbox" aria-selected="'+(crmTab==='inbox')+'" class="'+(crmTab==='inbox'?'on':'')+'">Mis conversaciones</a><a role="tab" tabindex="0" data-act="crmTab" data-t="deals" aria-selected="'+(crmTab==='deals')+'" class="'+(crmTab==='deals'?'on':'')+'">💼 Mis oportunidades</a></div>');
- else if(ag)h=h.replace(/<div class="ux-tabs" role="tablist" aria-label="Atención al cliente">[\s\S]*?<\/div>/,'');
- h=h.replace('<h1 class="sp">Atención al cliente</h1>','<h1 class="sp">Atención al cliente</h1><button class="btn sm '+(ag?'gold':'')+'" data-act="crmAgentT" aria-pressed="'+ag+'" title="Muestra sólo tus conversaciones y la cola sin asignar">'+(ag?'👤 Modo agente':'👥 Vista completa')+'</button>');
- if(ag)h=h.replace(/<button class="btn" data-act="crmTab" data-t="(stats|canales)">[^<]*<\/button>/g,'').replace(/<button class="btn" data-act="crmCfgOpen">Ajustes<\/button>/,'').replace(/<button class="btn" data-act="crmSim">[^<]*<\/button>/,'');
- if(ag&&!['inbox','deals','hoy','agenda'].includes(crmTab)){crmTab='inbox';}
- return h+DL_CSS;};}
+/* V27.31 · pestaña y modo agente por el registro de Atención al cliente (antes se reescribía el HTML) */
+crmTabAdd({k:'deals',t:()=>crmAgentOn()?'Mis oportunidades':'Oportunidades',ic:'💼',o:30,agent:1,show:()=>dlOn(),badge:()=>0,sub:()=>String(dls().filter(d=>d.status==='open').length)});
+crmHeadAdd(()=>{const ag=crmAgentOn();return `<button class="btn ${ag?'gold':''}" data-act="crmAgentT" aria-pressed="${ag}" title="Muestra sólo tus conversaciones y la cola sin asignar">${ag?'👤 Modo agente':'👥 Vista completa'}</button>`;});
+{const s=SCREENS.crm;const _r=s.render;s.render=function(){return _r.apply(this,arguments)+DL_CSS;};}
 
 /* ---------- 6) Nube: colección «deal» (SQL 31) ---------- */
 let vb31=false,vb31At=0;

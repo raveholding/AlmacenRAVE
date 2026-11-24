@@ -66,9 +66,9 @@ with sync_playwright() as p:
     # simulación y avisos (demo) + permisos
     pg.goto(URL+'#panel/crm');pg.wait_for_timeout(600)
     if pg.locator('#lu').is_visible():pg.select_option('#lu',index=0);pg.fill('#lp','1234');pg.click('[data-act=login]');pg.wait_for_timeout(400);ev("go('crm')");pg.wait_for_timeout(400)
-    k=ev("convs().length");pg.click('[data-act=crmSim]');pg.wait_for_timeout(300)
+    k=ev("convs().length");pg.click('.ui-head [data-act=uiMore]');pg.click('.ui-more-m [data-act=crmSim]');pg.wait_for_timeout(300)
     chk(ev("cmsgs().some(m=>m.via&&m.via.includes('simulado'))"),'«Simular mensaje entrante» agrega un mensaje de ejemplo')
-    pg.click('[data-act=crmTab][data-t=alerts]');pg.wait_for_timeout(300);chk('Avisos sugeridos' in pg.inner_text('#view'),'avisos sugeridos del ERP')
+    pg.click('.crm-tabs [data-act=crmTab][data-t=alerts]');pg.wait_for_timeout(300);chk('Avisos sugeridos' in pg.inner_text('#view'),'avisos sugeridos del ERP')
     chk(ev("S.roles.operador.includes('crm')")==False,'el rol operador no tiene CRM por defecto')
     for w in (360,768):
         pg.set_viewport_size({'width':w,'height':800});ev("rerender()");pg.wait_for_timeout(300)

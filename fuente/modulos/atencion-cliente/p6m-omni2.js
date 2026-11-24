@@ -101,6 +101,9 @@ const omniMin=m=>m==null?'—':m<60?m+' min':m<1440?(m/60).toFixed(1).replace('.
  return h.replace('<div class="card om-cfg"',add+'<div class="card om-cfg"');};}
 /* ---------- pestaña «Automatización e integraciones» (administrador) ---------- */
 {const _body=crmBody;crmBody=function(){return crmTab==='auto'?omniAutoHTML():_body();};}
+/* V27.31 · Automatización: pestaña fuera de la barra, se abre desde «Más» (administrador) */
+crmTabAdd({k:'auto',t:()=>'Automatización',ic:'🤖',o:95,bar:false,show:()=>isAdm()});
+crmMoreAdd(()=>isAdm()&&omniOn()?{t:'Automatización e integraciones',act:'crmTab',attrs:'data-t="auto"',ic:'🤖'}:null);
 let omniInt=null;
 async function omniIntLoad(){if(!pushCloud()||!isAdm())return;try{const [k,w]=await Promise.all([rpc('api_claves_listar',{p_comercio:cl.comercio.id}),rpc('wh_listar',{p_comercio:cl.comercio.id})]);omniInt={k:k||[],w:w||[]};}catch(e){omniInt={err:String(e.message||e)};}if(crmTab==='auto')crmPaint();}
 function omniAutoHTML(){if(!isAdm())return '<p class="mut">Sólo el administrador.</p>';if(!omniOn())return '<p class="mut">Activá Omni-Assist primero.</p>';const C=crmCfg(),H=omniHorario();if(omniIA===null)omniIAState().then(()=>{if(crmTab==='auto')crmPaint();});

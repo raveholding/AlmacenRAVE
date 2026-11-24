@@ -77,7 +77,7 @@ with sync_playwright() as p:
     pg=b.new_page(viewport={'width':1366,'height':900});ev=pg.evaluate;pg.on('pageerror',lambda e:errs.append(str(e)[:200]))
     login(pg,'admin','1234');ev("go('crm');crmTab='stats';rerender()");pg.wait_for_timeout(400)
     t=pg.inner_text('#crm-body');chk('Tiempo promedio de resolución' in t and 'Resueltas sólo por el asistente' in t and 'Demanda esperada' in t,'analíticas: ART, asistente vs personas y proyección de 7 días')
-    pg.click('[data-act=crmTab][data-t=auto]');pg.wait_for_timeout(300)
+    pg.click('.ui-head [data-act=uiMore]');pg.click('.ui-more-m [data-act=crmTab][data-t=auto]');pg.wait_for_timeout(300)
     t=pg.inner_text('#crm-body');chk('Base de conocimiento' in t and 'Ruteo automático' in t and 'Inteligencia artificial' in t and 'API y webhooks' in t,'pestaña de automatización e integraciones')
     chk(pg.locator('#om-ia').is_disabled(),'sin clave de IA el interruptor está deshabilitado (todo con reglas gratis)')
     pg.fill('#om-kbq','¿hacen envíos a domicilio?');pg.click('[data-act=omniKbTry]');pg.wait_for_timeout(100)

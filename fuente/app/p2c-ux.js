@@ -194,7 +194,7 @@ document.addEventListener('keydown',e=>{const a=e.target.closest&&e.target.close
 const uxAfterBase=uxAfter;
 uxAfter=function(id){uxAfterBase(id);try{const v=$('#view');v.classList.remove('cfg2');const row=[...v.children].find(x=>x.querySelector&&(x.matches('h1')||x.querySelector(':scope > h1')));
  const ins=(html)=>{if(!html)return;if(row)row.insertAdjacentHTML('afterend',html);else v.insertAdjacentHTML('afterbegin',html);};
- ins(uxCashHero(id));ins(uxDescHTML(id));v.classList.remove('ux-in');void v.offsetWidth;v.classList.add('ux-in');}catch(e){}};
+ ins(uxCashHero(id));if(!v.querySelector('.ui-head'))ins(uxDescHTML(id)); /* V27.31: las pantallas con encabezado del kit (uiHead) ya traen su línea */v.classList.remove('ux-in');void v.offsetWidth;v.classList.add('ux-in');}catch(e){}};
 
 /* ---------- V26.65 · navegador de secciones en pantallas largas (Configuración, Menú público, Integraciones, Periféricos…) ----------
    Arriba de la pantalla: buscador «¿Qué querés configurar?» que filtra las tarjetas por su texto (sin tildes) y una fila de

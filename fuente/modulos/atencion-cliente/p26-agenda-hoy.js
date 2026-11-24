@@ -277,12 +277,10 @@ A.dlNote=el=>{const d=dlById(el.dataset.id);const t=$('#d360-n');if(!d||!t)retur
 {const _p=crmPaint;crmPaint=function(){const r=_p.apply(this,arguments);if(crmTab==='agenda')agBind();if(crmTab==='deals')dlListBind();
  const v=$('#view');if(v&&!v._ctwa){v._ctwa=1;v.addEventListener('click',e=>{const a=e.target.closest('[data-hywa]');if(a)hoyWaLog(a.dataset.hywa);});}
  if(ctAsk){const id=ctAsk;ctAsk='';setTimeout(()=>{const d=dlById(id);if(d&&d.status==='open')A.ctNext({dataset:{deal:id}});},120);}return r;};}
-{const s=SCREENS.crm;const _r=s.render;s.render=function(){if(typeof ctDemoSeed==='function')try{ctDemoSeed();}catch(e){}let h=_r.apply(this,arguments);
- const I=hoyItems();const urg=I.filter(x=>x.lv===0).length;const tab=(k,t)=>`<a role="tab" tabindex="0" data-act="crmTab" data-t="${k}" aria-selected="${crmTab===k}" class="${crmTab===k?'on':''}">${t}</a>`;
- h=h.replace(/(<div class="ux-tabs" role="tablist" aria-label="Atención al cliente">)/,'$1'+tab('hoy','⚡ Hoy'+(urg?' <span class="hy-badge">'+urg+'</span>':'')));
- h=h.replace(/(<a role="tab"[^>]*data-t="deals"[^>]*>[^<]*<\/a>)/,'$1'+tab('agenda','📅 Agenda'));
- if(!/data-t="agenda"/.test(h))h=h.replace(/(<a role="tab"[^>]*data-t="inbox"[^>]*>[^<]*<\/a>)/,'$1'+tab('agenda','📅 Agenda'));
- return h+CT_CSS;};}
+/* V27.31 · «Hoy» y «Agenda» se suman por el registro de pestañas de Atención al cliente */
+crmTabAdd({k:'hoy',t:()=>'Hoy',ic:'⚡',o:10,agent:1,badge:()=>{try{return hoyItems().filter(x=>x.lv===0).length;}catch(e){return 0;}}});
+crmTabAdd({k:'agenda',t:()=>'Agenda',ic:'📅',o:40,agent:1});
+{const s=SCREENS.crm;const _r=s.render;s.render=function(){if(typeof ctDemoSeed==='function')try{ctDemoSeed();}catch(e){}return _r.apply(this,arguments)+CT_CSS;};}
 /* V27.25 · en los sistemas propios de VB (Almacén RAVE) el Pipeline se enciende una sola vez, si nunca se tocó a mano */
 function ctPipeAuto(){try{if(!IS_CLIENT||typeof VBL==='undefined'||!VBL.lic||!VBL.lic.propio||!user||!giAdm())return;const m=giCfg();if(m.pipeline!==undefined||S.cfg.pipeAuto)return;
  m.pipeline=true;S.cfg.pipeAuto=1;audit('MODULO','Pipeline de ventas encendido (sistema propio)');save();}catch(e){}}

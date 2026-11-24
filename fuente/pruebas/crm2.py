@@ -48,11 +48,11 @@ with sync_playwright() as p:
     ev("RAVE_API.chatNps(9)");pg.wait_for_timeout(200)
     chk(ev("convById('%s').csat===4&&convById('%s').nps===9"%(cid,cid)),'CSAT y NPS llegan a la conversación')
     # analíticas
-    pg.click('[data-act=crmTab][data-t=stats]');pg.wait_for_timeout(300);t=pg.inner_text('#crm-body')
+    pg.click('.crm-tabs [data-act=crmTab][data-t=stats]');pg.wait_for_timeout(300);t=pg.inner_text('#crm-body')
     chk('FRT' in t and 'AHT' in t and 'NPS' in t and 'Conversión' in t,'analíticas: FRT, AHT, CSAT, NPS y conversión')
     chk('Panel de supervisión' in t,'panel de supervisión por agente (administrador)')
     # campañas
-    pg.click('[data-act=crmTab][data-t=camp]');pg.wait_for_timeout(300)
+    pg.click('.crm-tabs [data-act=crmTab][data-t=camp]');pg.wait_for_timeout(300)
     chk('HSM' in pg.inner_text('#crm-body'),'campañas: aclara que las plantillas HSM necesitan la API de Meta')
     n=ev("crmSegList('comm').length")
     if n:
@@ -60,7 +60,7 @@ with sync_playwright() as p:
         chk(ev("crmCfg().camps.length")>=1,'se crea una campaña segmentada (%d destinatarios con consentimiento)'%n)
         chk(ev("crmSegList('comm').every(c=>hasComm(c))"),'las promociones sólo van a quien aceptó recibirlas')
     # alertas
-    pg.click('[data-act=crmTab][data-t=alerts]');pg.wait_for_timeout(300);chk('Alertas del ERP' in pg.inner_text('#crm-body'),'panel de alertas del ERP')
+    pg.click('.crm-tabs [data-act=crmTab][data-t=alerts]');pg.wait_for_timeout(300);chk('Alertas del ERP' in pg.inner_text('#crm-body'),'panel de alertas del ERP')
     # link de pago
     chk(ev("crmPayLinkOk('https://link.mercadopago.com.ar/comercio')") and not ev("crmPayLinkOk('http://link.mercadopago.com.ar/x')") and not ev("crmPayLinkOk('https://evil.com/mercadopago')"),'el link de pago sólo acepta https de Mercado Pago o Stripe')
     ev("crmSet({pay:Object.assign({},crmCfg().pay,{link:'https://link.mercadopago.com.ar/comercio'})})")

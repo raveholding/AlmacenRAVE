@@ -6,6 +6,21 @@ Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. 
 
 ## Versión: SISTEMA VB 26F (`SISTEMA_VB_26F`)
 
+**V27.31 (2026-11-24):** **Rediseño de Atención al cliente, Launch pad y alta de productos desde internet.**
+- **Kit de interfaz común** (`app/p2f-ui.js`): encabezado de pantalla con una acción principal y el resto en «Más», insignias de estado estándar (Activo · Enlace directo · Sin conectar · Requiere atención · Con error), panel lateral, estados vacíos, tiras de indicadores y pasos de asistente.
+- **Atención al cliente:**
+  - Registro de pestañas (`crmTabAdd`): Hoy, Oportunidades, Agenda y Automatización ya no parchean el HTML con expresiones regulares.
+  - Encabezado limpio («Nueva conversación» + «Más»); los indicadores solo se ven en la Bandeja.
+  - **Canales**: 8 tarjetas iguales sin bordes de color, estados claros («En la Bandeja» / «Enlace directo» / «Sin conectar» / «Requiere atención»), una acción por tarjeta y un **panel guiado** (enlace directo o en la Bandeja, estado real de la conexión leído de la función «canales», «Probar y activar») con lo técnico en «Opciones avanzadas».
+- **Launch pad** arriba de Resumen (`app/p2g-launch.js`): buscador, accesos rápidos, favoritos y recientes por usuario, con las mismas reglas de visibilidad que la barra lateral.
+- **Alta de productos desde internet** (`modulos/inventario/p29-producto-web.js`, función `productos`, SQL 40):
+  - Reglas de códigos argentinos: EAN, UPC y DUN-14; los códigos de balanza no se buscan.
+  - Borrador en el formulario de siempre, con el campo **Marca** nuevo. Los precios nunca vienen de internet y el menú queda apagado.
+  - Fotos con licencia (Open Food Facts, CC BY-SA), validadas y achicadas.
+  - Alta desde Vender cuando se escanea un código sin cargar.
+  - Las demos usan un catálogo de ejemplo sin marcas reales. Las fichas compartidas quedan apagadas por defecto.
+- **Canales (V27.30):** WhatsApp, Messenger e Instagram con token propio. «Probar» activa la recepción del número y de la página.
+
 **V27.9 (2026-11-17):** **Mayorista · vender sólo a comercios.** Con «Sólo mayorista» se puede exigir un cliente mayorista con CUIT en cada venta (Configuración → Mayorista); sin comercio elegido no se cobra. La **demo Mayorista** pasa a ser sólo para mayoristas: sin canal minorista, sin «Consumidor final» ni «Cambiar canal», clientes y ventas de ejemplo todos comercios con CUIT, sin modo kiosco/autoservicio (`DEMO_CANAL=may DEMO_CLIENTE=1`; también corrige los datos ya guardados en el navegador).
 
 **V26.71 (2026-11-13):** «Detalle de los cobros digitales» compacto: interruptor y resumen a la vista; los ajustes por medio y campo quedan plegados en «Ajustes avanzados».
