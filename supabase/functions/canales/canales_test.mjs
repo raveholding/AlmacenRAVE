@@ -50,6 +50,7 @@ a=await call('mos',{accion:'estado'});chk(a.st===403,'el estado y la conexión s
 a=await call('adm',{accion:'estado'});chk(a.j.ok&&a.j.tg&&a.j.meta&&a.j.wa&&a.j.mailIn&&a.j.mailOut&&a.j.llave&&!JSON.stringify(a.j).includes('tgsecret'),'estado: qué está configurado, sin mostrar secretos');
 a=await call('adm',{accion:'tg_conectar'});const sw=out.find(x=>x[1]==='setWebhook');chk(a.j.ok&&a.j.bot==='@RaveClientesBot'&&sw&&sw[2].url.endsWith('?c=tg')&&sw[2].secret_token==='tgsecret','Telegram: un clic registra el webhook con su secreto');
 for(const k of ['tg','wa','ig','fb','mail']){a=await call('adm',{accion:'probar',canal:k});chk(a.j.ok,'probar '+k+': '+a.j.msg);}
+{const n0=out.length;env.WA_WABA_ID='1025742035840160';a=await call('adm',{accion:'probar',canal:'wa'});const s=out.slice(n0).find(x=>x[0]==='meta'&&x[1].includes('/1025742035840160/subscribed_apps'));chk(a.j.ok&&!!s&&/recepción activada/.test(a.j.msg),'probar wa suscribe la app a la cuenta de WhatsApp');delete env.WA_WABA_ID;}
 a=await call('rep',{accion:'enviar',canal:'tg',para:'99',texto:'hola'});chk(a.st===403,'un repartidor no responde en Atención al cliente');
 a=await call('mos',{accion:'enviar',canal:'tg',para:'99',texto:'¡Sí, hasta las 23!'});chk(a.j.ok&&out.some(x=>x[1]==='sendMessage'&&x[2].chat_id==='99'),'responder por Telegram');
 a=await call('mos',{accion:'enviar',canal:'wa',para:'5493874',texto:'Sí, tenemos'});chk(a.j.ok,'responder por WhatsApp Business');

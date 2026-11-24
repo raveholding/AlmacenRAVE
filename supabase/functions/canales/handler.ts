@@ -11,7 +11,7 @@
 import { cuentaPara, enviarCorreo } from "../conectar/correo.ts";
 export type Entorno = { OAUTH_KEY?: string; GOOGLE_BASE?: string; MS_BASE?: string; SUPABASE_URL: string; SUPABASE_ANON_KEY: string; SUPABASE_SERVICE_ROLE_KEY: string; ALLOWED_ORIGINS?: string; FUNCTION_URL?: string;
   CANALES_COMERCIO?: string; TG_CLIENTES_TOKEN?: string; TG_CLIENTES_SECRET?: string; META_VERIFY_TOKEN?: string; META_APP_SECRET?: string; META_PAGE_TOKEN?: string;
-  WA_TOKEN?: string; WA_PHONE_ID?: string; RESEND_API_KEY?: string; MAIL_FROM?: string; MAIL_IN_SECRET?: string; TG_API_BASE?: string; GRAPH_BASE?: string };
+  WA_TOKEN?: string; WA_PHONE_ID?: string; WA_WABA_ID?: string; RESEND_API_KEY?: string; MAIL_FROM?: string; MAIL_IN_SECRET?: string; TG_API_BASE?: string; GRAPH_BASE?: string };
 type F = typeof fetch; type J = any;
 const te = new TextEncoder();
 const b64 = (u: Uint8Array) => btoa(String.fromCharCode(...u));
@@ -150,7 +150,10 @@ export async function manejar(req: Request, env: Entorno, f: F = fetch): Promise
       if (k === "tg") { if (!env.TG_CLIENTES_TOKEN) return R({ ok: false, msg: "Falta TG_CLIENTES_TOKEN" }); const i = await tg(env, f, "getWebhookInfo", {}); const me = await tg(env, f, "getMe", {});
         return R({ ok: String(i.url ?? "").startsWith(fn), msg: String(i.url ?? "").startsWith(fn) ? "Bot @" + me.username + " conectado" : "El bot @" + me.username + " existe pero falta tocar «Conectar»", link: "https://t.me/" + me.username }); }
       if (k === "wa") { if (!env.WA_TOKEN || !env.WA_PHONE_ID) return R({ ok: false, msg: "Faltan WA_TOKEN y WA_PHONE_ID" }); const r = await f(`${env.GRAPH_BASE ?? "https://graph.facebook.com"}/v21.0/${encodeURIComponent(env.WA_PHONE_ID)}?fields=display_phone_number,verified_name`, { headers: { authorization: "Bearer " + env.WA_TOKEN } });
-        const j = await r.json().catch(() => ({})); return R({ ok: r.ok && !!env.META_APP_SECRET, msg: r.ok ? "WhatsApp " + String(j.display_phone_number ?? "") + (env.META_APP_SECRET ? "" : " · falta META_APP_SECRET para recibir") : "Meta rechazó el token (" + r.status + ")" }); }
+        const j = await r.json().catch(() => ({}));
+        // V27.30: suscribe la app a la cuenta de WhatsApp (idempotente) para que los mensajes de los clientes lleguen al webhook
+        let sus = ""; if (r.ok && env.WA_WABA_ID && /^\d{6,20}$/.test(env.WA_WABA_ID)) { const s = await f(`${env.GRAPH_BASE ?? "https://graph.facebook.com"}/v21.0/${env.WA_WABA_ID}/subscribed_apps`, { method: "POST", headers: { authorization: "Bearer " + env.WA_TOKEN } }); sus = s.ok ? " · recepción activada" : " · no se pudo activar la recepción (" + s.status + ")"; }
+        return R({ ok: r.ok && !!env.META_APP_SECRET && !sus.includes("no se pudo"), msg: r.ok ? "WhatsApp " + String(j.display_phone_number ?? "") + sus + (env.META_APP_SECRET ? "" : " · falta META_APP_SECRET para recibir") : "Meta rechazó el token (" + r.status + ")" }); }
       if (k === "ig" || k === "fb") { if (!env.META_PAGE_TOKEN) return R({ ok: false, msg: "Falta META_PAGE_TOKEN" }); const r = await f(`${env.GRAPH_BASE ?? "https://graph.facebook.com"}/v21.0/me?fields=name,instagram_business_account{username}`, { headers: { authorization: "Bearer " + env.META_PAGE_TOKEN } });
         const j = await r.json().catch(() => ({})); const ig = j.instagram_business_account?.username;
         return R({ ok: r.ok && !!env.META_APP_SECRET && (k === "fb" || !!ig), msg: r.ok ? (k === "ig" ? (ig ? "Instagram @" + ig : "La página no tiene una cuenta de Instagram profesional vinculada") : "Página «" + String(j.name ?? "") + "»") + (env.META_APP_SECRET ? "" : " · falta META_APP_SECRET") : "Meta rechazó el token (" + r.status + ")" }); }
