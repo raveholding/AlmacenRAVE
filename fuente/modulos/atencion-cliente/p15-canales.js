@@ -138,13 +138,15 @@ function canalesHTML(){const adm=can('config');const O=canOA();const on=canOnLis
   body:st!=='off'?`<p class="cx-u">${esc(((window.RAVE_BUILD&&RAVE_BUILD.publicUrl)||'').replace(/^https?:\/\//,''))}</p>`:'',
   foot:adm?(st==='off'?cxBtn('Activar','canAbrir','data-k="web"',1):cxBtn('Configurar','canAbrir','data-k="web"')+cxLk('Desactivar','canOff','data-k="web"')):''}));}
  // Meta
- {const sts=CAN_META.map(k=>viaM(k)?'api':canEstado(k));const st=meta?'api':sts.some(x=>x!=='off')?'link':'off';
+ {const sts=CAN_META.map(k=>viaM(k)?'api':canEstado(k));const st=meta||sts.includes('api')?'api':sts.some(x=>x!=='off')?'link':'off';
   const chip=(k,s)=>`<li class="cx-chip cx-${CX_ST[s][0]}"><span aria-hidden="true">${CANAL_I[k].ic}</span>${esc({wa:'WhatsApp',ig:'Instagram',fb:'Messenger'}[k])}<small>${s==='api'?'Bandeja':s==='link'?'Enlace':'—'}</small></li>`;
   const foot=!adm?'':meta?cxBtn('Editar enlaces','canMetaLinks','')+cxLk('Desconectar Meta','omniOAOff',`data-id="${meta.id}"`)
    :O.disp.meta?cxBtn('Conectar con Meta','omniOAGo','data-p="meta"',1)+cxLk('Editar enlaces','canMetaLinks',''):cxBtn(st==='off'?'Cargar enlaces':'Editar enlaces','canMetaLinks','',st==='off');
+  // V27.30 · WhatsApp Business API con la app y el token propios del comercio (secretos WA_TOKEN / WA_PHONE_ID en la función «canales»)
+  const waTok=adm&&!viaM('wa')&&typeof canNube==='function'&&canNube()?cxLk(sts[0]==='api'?'WhatsApp integrado · Probar':'WhatsApp con token propio','canAbrir','data-k="wa"'):'';
   cards.push(cxCard({wide:1,t:'Meta: WhatsApp, Instagram y Messenger',d:meta?'Conectado: los mensajes de los tres entran a la Bandeja y se responden desde acá.':'Tus clientes te escriben por WhatsApp, Instagram y Messenger desde el menú y la app del Club.',ic:'<b style="color:#fff">∞</b>',col:'#1877f2',st,
    body:`<ul class="cx-chips">${CAN_META.map((k,i)=>chip(k,sts[i])).join('')}</ul>${meta?`<p class="cx-u">Cuenta: ${esc(meta.cuenta)}${meta.error?' · <span class="neg">'+esc(meta.error)+'</span>':''}</p>`:''}`,
-   nota:meta||O.disp.meta?'':'Con la conexión directa a Meta, los mensajes entran a la Bandeja. La habilita Vincular Business.',tech:meta||O.disp.meta?'':canOAFalta('meta'),foot}));}
+   nota:meta||O.disp.meta?'':'Con la conexión directa a Meta, los mensajes entran a la Bandeja. La habilita Vincular Business.',tech:meta||O.disp.meta?'':canOAFalta('meta'),foot:foot+waTok}));}
  // Telegram
  {const st=canEstado('tg'),c=canRead('tg');cards.push(cxCard({t:'Telegram',d:'Bot propio del comercio para que tus clientes te escriban.',ic:'✈️',col:'#229ed9',st,
   body:st!=='off'&&canLink('tg')?`<p class="cx-u">${esc(canLink('tg').replace(/^https?:\/\//,''))}</p>`:'',

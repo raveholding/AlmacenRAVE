@@ -21,7 +21,7 @@
 <meta property="og:locale" content="es_AR">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "LiquorStore", "name": "Almacén y Licorería RAVE", "url": "https://raveholding.github.io/AlmacenRAVE/", "telephone": "+54 9 387 457 4892", "address": {"@type": "PostalAddress", "streetAddress": "Urquiza 1052", "addressLocality": "Salta", "addressRegion": "Salta", "addressCountry": "AR"}}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242220'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23c9963e' font-family='Georgia,serif' font-weight='700'%3ER%3C/text%3E%3C/svg%3E">
-<script>window.RAVE_BUILD={"ver": "2026-11-22 15:06 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
+<script>window.RAVE_BUILD={"ver": "2026-11-24 12:38 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
 <style>
 :root{--ink:#242220;--gold:#c9963e;--gold2:#a87a28;--bg:#f6f3ee;--card:#fff;--line:#e6e0d6;--mut:#6d675f;--red:#c0392b;--redbg:#fdecea;--ok:#1e7a46;--okbg:#e6f4ec;--warnbg:#fff4dc;--r:16px}
 *{box-sizing:border-box}
@@ -11639,13 +11639,15 @@ function canalesHTML(){const adm=can('config');const O=canOA();const on=canOnLis
   body:st!=='off'?`<p class="cx-u">${esc(((window.RAVE_BUILD&&RAVE_BUILD.publicUrl)||'').replace(/^https?:\/\//,''))}</p>`:'',
   foot:adm?(st==='off'?cxBtn('Activar','canAbrir','data-k="web"',1):cxBtn('Configurar','canAbrir','data-k="web"')+cxLk('Desactivar','canOff','data-k="web"')):''}));}
  // Meta
- {const sts=CAN_META.map(k=>viaM(k)?'api':canEstado(k));const st=meta?'api':sts.some(x=>x!=='off')?'link':'off';
+ {const sts=CAN_META.map(k=>viaM(k)?'api':canEstado(k));const st=meta||sts.includes('api')?'api':sts.some(x=>x!=='off')?'link':'off';
   const chip=(k,s)=>`<li class="cx-chip cx-${CX_ST[s][0]}"><span aria-hidden="true">${CANAL_I[k].ic}</span>${esc({wa:'WhatsApp',ig:'Instagram',fb:'Messenger'}[k])}<small>${s==='api'?'Bandeja':s==='link'?'Enlace':'—'}</small></li>`;
   const foot=!adm?'':meta?cxBtn('Editar enlaces','canMetaLinks','')+cxLk('Desconectar Meta','omniOAOff',`data-id="${meta.id}"`)
    :O.disp.meta?cxBtn('Conectar con Meta','omniOAGo','data-p="meta"',1)+cxLk('Editar enlaces','canMetaLinks',''):cxBtn(st==='off'?'Cargar enlaces':'Editar enlaces','canMetaLinks','',st==='off');
+  // V27.30 · WhatsApp Business API con la app y el token propios del comercio (secretos WA_TOKEN / WA_PHONE_ID en la función «canales»)
+  const waTok=adm&&!viaM('wa')&&typeof canNube==='function'&&canNube()?cxLk(sts[0]==='api'?'WhatsApp integrado · Probar':'WhatsApp con token propio','canAbrir','data-k="wa"'):'';
   cards.push(cxCard({wide:1,t:'Meta: WhatsApp, Instagram y Messenger',d:meta?'Conectado: los mensajes de los tres entran a la Bandeja y se responden desde acá.':'Tus clientes te escriben por WhatsApp, Instagram y Messenger desde el menú y la app del Club.',ic:'<b style="color:#fff">∞</b>',col:'#1877f2',st,
    body:`<ul class="cx-chips">${CAN_META.map((k,i)=>chip(k,sts[i])).join('')}</ul>${meta?`<p class="cx-u">Cuenta: ${esc(meta.cuenta)}${meta.error?' · <span class="neg">'+esc(meta.error)+'</span>':''}</p>`:''}`,
-   nota:meta||O.disp.meta?'':'Con la conexión directa a Meta, los mensajes entran a la Bandeja. La habilita Vincular Business.',tech:meta||O.disp.meta?'':canOAFalta('meta'),foot}));}
+   nota:meta||O.disp.meta?'':'Con la conexión directa a Meta, los mensajes entran a la Bandeja. La habilita Vincular Business.',tech:meta||O.disp.meta?'':canOAFalta('meta'),foot:foot+waTok}));}
  // Telegram
  {const st=canEstado('tg'),c=canRead('tg');cards.push(cxCard({t:'Telegram',d:'Bot propio del comercio para que tus clientes te escriban.',ic:'✈️',col:'#229ed9',st,
   body:st!=='off'&&canLink('tg')?`<p class="cx-u">${esc(canLink('tg').replace(/^https?:\/\//,''))}</p>`:'',
