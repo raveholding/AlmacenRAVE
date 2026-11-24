@@ -63,5 +63,9 @@ A.lpFav=el=>{const k=el.dataset.k;let f=lpGet('fav');f=f.includes(k)?f.filter(x=
 A.lpSearchAll=()=>{if(typeof A.uxSearch==='function')A.uxSearch();else{const e=new KeyboardEvent('keydown',{key:'k',ctrlKey:true,bubbles:true});document.dispatchEvent(e);}};
 A.lpNewProd=()=>{go('inventario');setTimeout(()=>{if(typeof A.pedit==='function')A.pedit({dataset:{}});},120);};
 A.lpNewConv=()=>{go('crm');setTimeout(()=>{if(typeof A.crmNewBtn==='function')A.crmNewBtn();},150);};
+/* V27.31: el Launch pad es para quien maneja el sistema (ve el Resumen o tiene varias pantallas), nunca es la pantalla de inicio
+   y no reemplaza el portal del empleado */
+SCREENS.launch.show=()=>{try{if(!user)return false;if(SCREENS.dashboard&&can('dashboard'))return true;return Object.keys(SCREENS).filter(k=>k!=='launch'&&k!=='portal'&&uxVis(k)).length>=4;}catch(e){return false;}};
+{const _hs=homeScreen;homeScreen=function(){const r=_hs.apply(this,arguments);if(r!=='launch')return r;const f=NAV.map(x=>x[0]).find(k=>k!=='launch'&&scrOk(k))||Object.keys(SCREENS).find(k=>k!=='launch'&&scrOk(k));return f||'inicio';};}
 /* recientes: cada pantalla que se abre (salvo el propio Launch pad) */
 {const _sp=showPanel;showPanel=function(id){const r=_sp.apply(this,arguments);try{if(user&&curScreen&&curScreen!=='launch'){const L=lpGet('rec').filter(x=>x!==curScreen);L.unshift(curScreen);lpSet('rec',L.slice(0,10));}}catch(e){}return r;};}
