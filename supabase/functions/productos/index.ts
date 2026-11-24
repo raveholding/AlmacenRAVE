@@ -1,8 +1,12 @@
 // Punto de entrada de la Edge Function «productos» (alta de productos desde internet, V27.31). «Verify JWT» ENCENDIDO.
-// Secretos opcionales: OFF_USER_AGENT, UPCITEMDB_KEY / UPCITEMDB_TRIAL, BRAVE_API_KEY, ANTHROPIC_API_KEY, PW_AI_MODEL, PW_MAX_DIA, PW_MAX_IA, ALLOWED_ORIGINS.
+// Secretos opcionales: OFF_USER_AGENT, PW_MAX_DIA, PW_MAX_IA, ALLOWED_ORIGINS.
+// GRATIS por defecto: sólo Open Food Facts / Beauty / Products. Las fuentes pagas (UPCitemdb, Brave, IA) quedan APAGADAS aunque
+// existan sus claves (ANTHROPIC_API_KEY la usan otras funciones); se encienden sólo con el secreto PW_PAGOS=si.
 import { manejar, type Entorno } from "./handler.ts";
 Deno.serve((req) => {
-  const e = (k: string) => Deno.env.get(k) ?? undefined;
+  const e0 = (k: string) => Deno.env.get(k) ?? undefined; const pagos = e0("PW_PAGOS") === "si";
+  const PAGAS = ["UPCITEMDB_KEY", "UPCITEMDB_TRIAL", "BRAVE_API_KEY", "ANTHROPIC_API_KEY"];
+  const e = (k: string) => (!pagos && PAGAS.includes(k)) ? undefined : e0(k);
   const env: Entorno = { SUPABASE_URL: e("SUPABASE_URL") ?? "", SUPABASE_ANON_KEY: e("SUPABASE_ANON_KEY") ?? "", SUPABASE_SERVICE_ROLE_KEY: e("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     ALLOWED_ORIGINS: e("ALLOWED_ORIGINS"), OFF_USER_AGENT: e("OFF_USER_AGENT"), UPCITEMDB_KEY: e("UPCITEMDB_KEY"), UPCITEMDB_TRIAL: e("UPCITEMDB_TRIAL"),
     BRAVE_API_KEY: e("BRAVE_API_KEY"), ANTHROPIC_API_KEY: e("ANTHROPIC_API_KEY"), PW_AI_MODEL: e("PW_AI_MODEL"), PW_MAX_DIA: e("PW_MAX_DIA"), PW_MAX_IA: e("PW_MAX_IA") };

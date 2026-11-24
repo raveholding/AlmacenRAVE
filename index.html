@@ -21,7 +21,7 @@
 <meta property="og:locale" content="es_AR">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "LiquorStore", "name": "Almacén y Licorería RAVE", "url": "https://raveholding.github.io/AlmacenRAVE/", "telephone": "+54 9 387 457 4892", "address": {"@type": "PostalAddress", "streetAddress": "Urquiza 1052", "addressLocality": "Salta", "addressRegion": "Salta", "addressCountry": "AR"}}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242220'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23c9963e' font-family='Georgia,serif' font-weight='700'%3ER%3C/text%3E%3C/svg%3E">
-<script>window.RAVE_BUILD={"ver": "2026-11-24 13:38 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
+<script>window.RAVE_BUILD={"ver": "2026-11-24 18:29 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
 <style>
 :root{--ink:#242220;--gold:#c9963e;--gold2:#a87a28;--bg:#f6f3ee;--card:#fff;--line:#e6e0d6;--mut:#6d675f;--red:#c0392b;--redbg:#fdecea;--ok:#1e7a46;--okbg:#e6f4ec;--warnbg:#fff4dc;--r:16px}
 *{box-sizing:border-box}
@@ -1418,7 +1418,7 @@ document.addEventListener('keydown',e=>{const a=e.target.closest&&e.target.close
 const uxAfterBase=uxAfter;
 uxAfter=function(id){uxAfterBase(id);try{const v=$('#view');v.classList.remove('cfg2');const row=[...v.children].find(x=>x.querySelector&&(x.matches('h1')||x.querySelector(':scope > h1')));
  const ins=(html)=>{if(!html)return;if(row)row.insertAdjacentHTML('afterend',html);else v.insertAdjacentHTML('afterbegin',html);};
- ins(uxCashHero(id));ins(uxDescHTML(id));v.classList.remove('ux-in');void v.offsetWidth;v.classList.add('ux-in');}catch(e){}};
+ ins(uxCashHero(id));if(!v.querySelector('.ui-head'))ins(uxDescHTML(id)); /* V27.31: las pantallas con encabezado del kit (uiHead) ya traen su línea */v.classList.remove('ux-in');void v.offsetWidth;v.classList.add('ux-in');}catch(e){}};
 
 /* ---------- V26.65 · navegador de secciones en pantallas largas (Configuración, Menú público, Integraciones, Periféricos…) ----------
    Arriba de la pantalla: buscador «¿Qué querés configurar?» que filtra las tarjetas por su texto (sin tildes) y una fila de
@@ -1518,6 +1518,139 @@ A.mvModelo=()=>{go('config');setTimeout(()=>{const c=document.getElementById('bi
 document.addEventListener('click',e=>{const sd=document.getElementById('side');if(!sd||!sd.classList.contains('open'))return;
  if(e.target.closest('#side')||e.target.closest('#burger')||e.target.closest('#vb-tab'))return;sd.classList.remove('open');e.preventDefault();e.stopPropagation();},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const sd=document.getElementById('side');if(sd)sd.classList.remove('open');}});
+
+/* ===== V27.31 · Kit de interfaz común de SISTEMA VB (encabezado de pantalla, insignias de estado, menú «Más», panel lateral,
+   estados vacíos, tiras de indicadores y secciones). Nace del rediseño de Atención al cliente y lo usa cualquier pantalla:
+   · uiHead({t, sub, prim, acts, more, extra})   encabezado: título, una línea corta, UNA acción principal y el resto en «Más»
+   · uiBadge(estado, texto?)                     insignia estándar: ok · info · off · warn · err (mismo color y forma en todo el sistema)
+   · uiMore(items) / A.uiMore                    menú desplegable «⋯ Más» (accesible con teclado, se cierra con Esc o clic afuera)
+   · uiDrawer(titulo, html, opt)                 ventana como panel lateral derecho (misma API que modal(): onOk, okText, wide…)
+   · uiEmpty(icono, titulo, texto, botón?)       estado vacío con una acción
+   · uiKpis([{v, l, tone?, act?, t?}])           tira de indicadores compacta
+   · uiSec(titulo, sub, cuerpo, extra?)          bloque con título
+   · uiSteps(pasos, actual)                      pasos numerados de un asistente
+   Sin frameworks: HTML + data-act, igual que el resto del sistema. Respeta tema claro/oscuro y contraste ≥ 4,5:1. */
+const UI_TONES={ok:'ok',info:'info',off:'off',warn:'warn',err:'err'};
+const UI_TXT={ok:'Activo',info:'Enlace directo',off:'Sin conectar',warn:'Requiere atención',err:'Con error'};
+function uiBadge(st,t){const k=UI_TONES[st]||'off';return `<span class="ui-bd ui-${k}">${esc(t||UI_TXT[k])}</span>`;}
+/* menú «Más»: items = [{t, act, attrs?, ic?, danger?}] (los vacíos se omiten) */
+function uiMore(items,label){const L=(items||[]).filter(Boolean);if(!L.length)return '';const id='uim'+Math.random().toString(36).slice(2,8);
+ return `<div class="ui-more"><button type="button" class="btn ui-more-b" data-act="uiMore" aria-haspopup="menu" aria-expanded="false" aria-controls="${id}">${esc(label||'Más')} <span aria-hidden="true">▾</span></button>
+ <div class="ui-more-m" role="menu" id="${id}" hidden>${L.map(x=>`<button type="button" role="menuitem" class="${x.danger?'neg':''}" data-act="${esc(x.act)}" ${x.attrs||''}>${x.ic?`<span aria-hidden="true">${x.ic}</span>`:''}${esc(x.t)}</button>`).join('')}</div></div>`;}
+A.uiMore=el=>{const m=el.nextElementSibling;if(!m)return;const open=m.hidden;uiMoreClose();m.hidden=!open;el.setAttribute('aria-expanded',open);if(open){const f=m.querySelector('button');if(f)f.focus();}};
+function uiMoreClose(){$$('.ui-more-m').forEach(m=>{if(!m.hidden){m.hidden=true;const b=m.previousElementSibling;if(b)b.setAttribute('aria-expanded','false');}});}
+document.addEventListener('click',e=>{if(!e.target.closest('.ui-more'))uiMoreClose();else if(e.target.closest('.ui-more-m [data-act]'))setTimeout(uiMoreClose,0);});
+document.addEventListener('keydown',e=>{const m=e.target.closest&&e.target.closest('.ui-more-m');if(e.key==='Escape'&&m){e.stopPropagation();uiMoreClose();const b=m.previousElementSibling;if(b)b.focus();return;}
+ if(m&&(e.key==='ArrowDown'||e.key==='ArrowUp')){e.preventDefault();const L=[...m.querySelectorAll('button')];const i=L.indexOf(e.target);L[(i+(e.key==='ArrowDown'?1:-1)+L.length)%L.length].focus();}},true);
+/* encabezado: prim = {t, act, attrs?} · acts = botones secundarios visibles (máx. 2 recomendados) · more = items del menú «Más» */
+function uiHead(o){const b=x=>x?`<button class="btn ${x.gold?'gold':''}" data-act="${esc(x.act)}" ${x.attrs||''}>${x.ic?`<span aria-hidden="true">${x.ic}</span> `:''}${esc(x.t)}</button>`:'';
+ return `<header class="ui-head"><div class="ui-head-t"><h1>${esc(o.t)}</h1>${o.sub?`<p>${o.sub}</p>`:''}</div><div class="ui-head-a">${o.extra||''}${(o.acts||[]).map(b).join('')}${uiMore(o.more)}${o.prim?b(Object.assign({gold:1},o.prim)):''}</div></header>`;}
+function uiKpis(L){return `<div class="ui-kpis">${(L||[]).map(x=>{const tag=x.act?'button':'div';return `<${tag} class="ui-kpi${x.tone?' ui-'+x.tone:''}" ${x.act?`type="button" data-act="${esc(x.act)}" ${x.attrs||''}`:''} ${x.t?`title="${esc(x.t)}"`:''}><b>${x.v}</b><span>${esc(x.l)}</span></${tag}>`;}).join('')}</div>`;}
+function uiEmpty(ic,t,x,btn){return `<div class="ui-empty"><span class="ui-empty-i" aria-hidden="true">${ic||'✨'}</span><h3>${esc(t)}</h3>${x?`<p>${x}</p>`:''}${btn?`<button class="btn gold" data-act="${esc(btn.act)}" ${btn.attrs||''}>${esc(btn.t)}</button>`:''}</div>`;}
+function uiSec(t,sub,body,extra){return `<section class="ui-sec"><div class="ui-sec-h"><div><h2>${esc(t)}</h2>${sub?`<p>${sub}</p>`:''}</div>${extra||''}</div>${body}</section>`;}
+function uiSteps(L,cur){return `<ol class="ui-steps">${L.map((t,i)=>`<li class="${i<cur?'done':i===cur?'on':''}" ${i===cur?'aria-current="step"':''}><span>${i<cur?'✓':i+1}</span>${esc(t)}</li>`).join('')}</ol>`;}
+/* panel lateral: la misma ventana del sistema, presentada a la derecha (en celulares ocupa toda la pantalla) */
+function uiDrawer(title,body,opt){const w=modal(title,body,Object.assign({wide:true},opt||{}));w.classList.add('ui-drawer');return w;}
+(function(){if(typeof document==='undefined'||document.getElementById('ui-css'))return;const st=document.createElement('style');st.id='ui-css';
+ st.textContent=`
+.ui-head{display:flex;gap:.8rem 1rem;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin:0 0 .9rem}
+.ui-head-t{flex:1 1 280px;min-width:0}.ui-head-t h1{margin:0}.ui-head-t p{margin:.2rem 0 0;color:var(--mut);font-size:.92rem;line-height:1.4}
+.ui-head-a{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.ui-bd{display:inline-flex;align-items:center;gap:.3rem;font-size:.74rem;font-weight:700;line-height:1;padding:.32rem .6rem;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+.ui-bd:before{content:"";width:.5rem;height:.5rem;border-radius:50%;background:currentColor}
+.ui-ok{background:var(--okbg);color:var(--ok)}.ui-info{background:rgba(37,99,235,.1);color:#1d4ed8}.ui-off{background:var(--bg);color:var(--mut);border-color:var(--line)}
+.ui-warn{background:var(--warnbg);color:#8a5a00}.ui-err{background:rgba(185,28,28,.1);color:#a8261b}
+[data-theme=dark] .ui-info{color:#93b4ff;background:rgba(96,165,250,.14)}[data-theme=dark] .ui-warn{color:#f2c96b}[data-theme=dark] .ui-err{color:#ff9b91;background:rgba(255,155,145,.12)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .ui-info{color:#93b4ff;background:rgba(96,165,250,.14)}:root:not([data-theme=light]) .ui-warn{color:#f2c96b}:root:not([data-theme=light]) .ui-err{color:#ff9b91;background:rgba(255,155,145,.12)}}
+.ui-more{position:relative}.ui-more-m{position:absolute;right:0;top:calc(100% + .3rem);z-index:30;min-width:230px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:.3rem;display:flex;flex-direction:column}
+.ui-more-m button{display:flex;gap:.55rem;align-items:center;text-align:left;background:none;border:0;border-radius:8px;padding:.6rem .7rem;min-height:44px;font:inherit;color:inherit;cursor:pointer}
+.ui-more-m button:hover,.ui-more-m button:focus-visible{background:var(--bg);outline:none}.ui-more-m button.neg{color:#a8261b}
+.ui-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem;margin:0 0 .9rem}
+.ui-kpi{display:flex;flex-direction:column;gap:.15rem;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.7rem .85rem;font:inherit;color:inherit;min-height:64px}
+button.ui-kpi{cursor:pointer}button.ui-kpi:hover{border-color:var(--gold)}.ui-kpi b{font-size:1.35rem;line-height:1.1}.ui-kpi span{font-size:.8rem;color:var(--mut)}
+.ui-kpi.ui-warn,.ui-kpi.ui-err,.ui-kpi.ui-ok{background:var(--card)}.ui-kpi.ui-err b{color:#a8261b}.ui-kpi.ui-warn b{color:#8a5a00}.ui-kpi.ui-ok b{color:var(--ok)}
+.ui-empty{text-align:center;padding:2.2rem 1rem;border:1px dashed var(--line);border-radius:16px;background:var(--card)}.ui-empty-i{font-size:2rem;display:block;margin-bottom:.3rem}
+.ui-empty h3{margin:.2rem 0}.ui-empty p{margin:.2rem auto .8rem;color:var(--mut);max-width:46ch}
+.ui-sec{margin:0 0 1.1rem}.ui-sec-h{display:flex;gap:.6rem;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;margin:0 0 .55rem}.ui-sec-h h2{margin:0;font-size:1.05rem}.ui-sec-h p{margin:.15rem 0 0;color:var(--mut);font-size:.85rem}
+.ui-steps{list-style:none;display:flex;gap:.4rem;margin:0 0 1rem;padding:0;flex-wrap:wrap}.ui-steps li{display:flex;align-items:center;gap:.4rem;font-size:.85rem;color:var(--mut);padding:.3rem .6rem .3rem .3rem;border-radius:999px;background:var(--bg)}
+.ui-steps li span{width:1.6rem;height:1.6rem;display:grid;place-items:center;border-radius:50%;border:1px solid var(--line);font-weight:700;font-size:.8rem;background:var(--card)}
+.ui-steps li.on{color:var(--ink);font-weight:600}.ui-steps li.on span{background:var(--gold);border-color:var(--gold);color:#111}.ui-steps li.done span{background:var(--okbg);color:var(--ok);border-color:transparent}
+.ov.ui-drawer{display:flex;justify-content:flex-end;align-items:stretch;padding:0}.ov.ui-drawer .dlg{margin:0;width:min(600px,100%);max-width:100%;height:100%;max-height:none;border-radius:16px 0 0 16px;display:flex;flex-direction:column;overflow:hidden}
+.ov.ui-drawer .dlg>.mb{flex:1;overflow:auto}.ov.ui-drawer .dlg>h3{padding-bottom:.6rem;border-bottom:1px solid var(--line)}
+@media(max-width:640px){.ov.ui-drawer .dlg{border-radius:0}.ui-head-a{width:100%}.ui-head-a>.btn.gold{flex:1}}`;
+ document.head.appendChild(st);})();
+
+/* ===== V27.31 · Launch pad: todo el sistema a un toque (arriba de «Resumen» en la barra lateral) =====
+   · Buscador que filtra mientras escribís (tolerante a tildes), accesos rápidos a lo más usado del día,
+     favoritos fijados por cada usuario (estrella) y «Recientes» (las últimas pantallas que abriste).
+   · Muestra SÓLO lo que el usuario puede usar: mismas reglas que la barra lateral (permisos, módulos encendidos y modo mostrador).
+   · Usa el kit común (uiHead, uiBadge, uiEmpty) y los avisos de la barra (uxBadges): pedidos sin aceptar, stock bajo, etc.
+   · Favoritos y recientes se guardan en este equipo, por usuario (no viajan a la nube ni a la auditoría). */
+IC.grid='M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z';
+IC.star='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z';
+NAV.unshift(['launch','Resumen']);UX_SEC_OF.launch='Resumen';UX_TITLE.launch='Launch pad';if(!UX_COMPACT_OK.includes('launch'))UX_COMPACT_OK.push('launch');
+UX_DESC.launch='Todo el sistema a un toque.';
+/* íconos: los mismos SVG de la barra lateral, para que todo el sistema hable el mismo idioma visual */
+const lpKey=t=>'rave.lp.'+t+'.'+(user?String(user.id||user.name):'');
+const lpGet=t=>{try{const v=JSON.parse(localStorage.getItem(lpKey(t))||'[]');return Array.isArray(v)?v:[];}catch(e){return[];}};
+const lpSet=(t,v)=>{try{localStorage.setItem(lpKey(t),JSON.stringify(v));}catch(e){}};
+let lpQ='';
+/* lista de entradas visibles: igual que la barra lateral (los grupos de Caja y Club son una sola entrada) */
+function lpEntries(){const order=NAV.map(x=>x[0]);const secOf=Object.fromEntries(NAV);const comp=uxCompact();const seen=new Set();const out=[];
+ Object.keys(SCREENS).filter(k=>k!=='launch'&&uxVis(k)).sort((a,b)=>{const i=order.indexOf(a),j=order.indexOf(b);return (i<0?99:i)-(j<0?99:j);}).forEach(k=>{
+  if(comp&&!UX_COMPACT_OK.includes(k))return;const g=uxGroupOf(k);
+  if(g){if(seen.has(g))return;seen.add(g);const it=uxGroupItems(g);if(!it.length)return;out.push({id:it[0][0],key:g,t:UX_GROUPS[g].t(),d:it.map(x=>x[1]).join(' · '),ic:ico(UX_GROUPS[g].icon),sec:uxSecOf(k,secOf)});return;}
+  const s=SCREENS[k];out.push({id:k,key:k,t:UX_TITLE[k]||s.t,d:UX_DESC[k]||'',ic:ico(s.icon),sec:k==='vender'?'Operación comercial':uxSecOf(k,secOf)});});
+ return out;}
+function lpTile(e,fav){const b=typeof uxEntryBadge==='function'?uxEntryBadge(e.key):null;
+ return `<div class="lp-tile" data-lp="${esc(e.key)}"><button type="button" class="lp-go" data-act="nav" data-id="${esc(e.id)}"><span class="lp-ic" aria-hidden="true">${e.ic}</span><span class="lp-tx"><b>${esc(e.t)}</b>${e.d?`<small>${esc(e.d)}</small>`:''}</span>${b?`<span class="lp-bd">${uxBadgeHTML(b)}</span>`:''}</button>
+ <button type="button" class="lp-star${fav?' on':''}" data-act="lpFav" data-k="${esc(e.key)}" aria-pressed="${fav}" aria-label="${fav?'Quitar de favoritos':'Fijar en favoritos'}: ${esc(e.t)}" title="${fav?'Quitar de favoritos':'Fijar en favoritos'}">${fav?'★':'☆'}</button></div>`;}
+function lpQuick(){const q=[];const v=k=>uxVis(k);
+ if(v('vender'))q.push({t:'Vender',ic:'🛒',act:'nav',attrs:'data-id="vender"',k:'F1'});
+ if(v('caja'))q.push({t:typeof openSess==='function'&&openSess()?'Caja abierta':'Abrir caja',ic:'💵',act:'nav',attrs:'data-id="caja"'});
+ if(v('inventario')&&can('edit_products'))q.push({t:'Nuevo producto',ic:'📦',act:'lpNewProd'});
+ if(v('crm'))q.push({t:'Nueva conversación',ic:'💬',act:'lpNewConv'});
+ if(v('clientes'))q.push({t:'Clientes',ic:'👥',act:'nav',attrs:'data-id="clientes"'});
+ q.push({t:'Buscar en todo',ic:'🔎',act:'lpSearchAll',k:'Ctrl K'});
+ return `<div class="lp-quick">${q.map(x=>`<button type="button" class="lp-q" data-act="${x.act}" ${x.attrs||''}><span aria-hidden="true">${x.ic}</span>${esc(x.t)}${x.k?`<kbd>${x.k}</kbd>`:''}</button>`).join('')}</div>`;}
+function lpBody(){const E=lpEntries();const fav=lpGet('fav');const rec=lpGet('rec');const q=uxN(lpQ).trim();
+ const isFav=e=>fav.includes(e.key);
+ if(q){const L=E.map(e=>({e,s:uxScore(q,e.t+' '+e.d+' '+e.sec)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).map(x=>x.e);
+  return L.length?uiSec('Resultados',L.length+' '+(L.length===1?'pantalla':'pantallas'),`<div class="lp-grid">${L.map(e=>lpTile(e,isFav(e))).join('')}</div>`)
+   :uiEmpty('🔎','No encontré «'+lpQ+'»','Probá con otra palabra, o buscá clientes y artículos con <b>Ctrl + K</b>.',{t:'Buscar en todo',act:'lpSearchAll'});}
+ let h='';
+ const F=fav.map(k=>E.find(e=>e.key===k)).filter(Boolean);
+ h+=uiSec('Favoritos',F.length?'Tocá ☆ en cualquier acceso para fijarlo acá.':'',F.length?`<div class="lp-grid">${F.map(e=>lpTile(e,true)).join('')}</div>`:'<p class="sm mut lp-hint">Tocá la estrella ☆ de cualquier acceso para tenerlo siempre a mano acá.</p>');
+ const R=rec.map(k=>E.find(e=>e.key===k||e.id===k)).filter((e,i,a)=>e&&a.indexOf(e)===i&&!fav.includes(e.key)).slice(0,6);
+ if(R.length)h+=uiSec('Recientes','',`<div class="lp-grid lp-rec">${R.map(e=>lpTile(e,false)).join('')}</div>`);
+ const secs=[];E.forEach(e=>{let s=secs.find(x=>x.n===e.sec);if(!s){s={n:e.sec,L:[]};secs.push(s);}s.L.push(e);});
+ secs.sort((a,b)=>{const x=UX_SEC_ORDER.indexOf(a.n),y=UX_SEC_ORDER.indexOf(b.n);return (x<0?98:x)-(y<0?98:y);});
+ secs.forEach(s=>{h+=uiSec(s.n==='Resumen'?'Visión general':uxSecName(s.n),'',`<div class="lp-grid">${s.L.map(e=>lpTile(e,isFav(e))).join('')}</div>`);});
+ return h;}
+reg('launch','Launch pad','grid',null,()=>{const nm=user?String(user.name||'').split(/\s+/)[0]:'';const h=new Date().getHours();const sal=h<12?'Buen día':h<20?'Buenas tardes':'Buenas noches';
+ return `${uiHead({t:'Launch pad',sub:esc(sal+(nm?', '+nm:''))+'. Todo el sistema a un toque: buscá, fijá tus favoritos y retomá donde dejaste.'})}
+ <div class="lp-search"><span aria-hidden="true">🔎</span><label for="lp-q" class="sr">Buscar una función</label><input id="lp-q" type="search" placeholder="¿Qué querés hacer? (ej.: arqueo, etiquetas, proveedores)" value="${esc(lpQ)}" autocomplete="off"></div>
+ ${lpQuick()}<div id="lp-body">${lpBody()}</div>
+ <style>.lp-search{display:flex;align-items:center;gap:.5rem;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.2rem .8rem;margin:0 0 .8rem}.lp-search input{flex:1;border:0;background:transparent;font-size:1rem;min-height:46px;outline:none;color:inherit}.lp-search:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,150,62,.2)}
+ .sr{position:absolute;left:-9999px}.lp-quick{display:flex;gap:.5rem;flex-wrap:wrap;margin:0 0 1.2rem}.lp-q{display:inline-flex;align-items:center;gap:.45rem;min-height:44px;padding:.45rem .85rem;border-radius:999px;border:1px solid var(--line);background:var(--card);font:inherit;font-weight:600;color:inherit;cursor:pointer}.lp-q:hover{border-color:var(--gold)}.lp-q kbd{font-size:.7rem;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:0 .3rem}
+ .lp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.6rem}.lp-tile{position:relative;display:flex;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:14px;transition:border-color .15s,transform .15s}.lp-tile:hover{border-color:var(--gold);transform:translateY(-1px)}
+ .lp-go{flex:1;min-width:0;display:flex;gap:.7rem;align-items:flex-start;text-align:left;background:none;border:0;padding:.8rem .5rem .8rem .8rem;font:inherit;color:inherit;cursor:pointer;border-radius:14px}.lp-go:focus-visible{outline:3px solid var(--gold);outline-offset:-3px}
+ .lp-ic{width:42px;height:42px;flex:none;display:grid;place-items:center;border-radius:12px;background:var(--bg);color:var(--gold)}.lp-ic svg{width:22px;height:22px}.lp-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:.15rem}.lp-tx b{font-size:.98rem}.lp-tx small{color:var(--mut);font-size:.8rem;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ .lp-bd{flex:none}.lp-star{flex:none;width:44px;background:none;border:0;border-left:1px solid var(--line);font-size:1.15rem;color:var(--mut);cursor:pointer;border-radius:0 14px 14px 0}.lp-star.on{color:var(--gold)}.lp-star:hover{color:var(--gold)}.lp-hint{margin:.1rem 0 0}
+ @media(max-width:640px){.lp-grid{grid-template-columns:1fr}.lp-quick{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.lp-q{flex:none}}</style>`;},
+ ()=>{const i=$('#lp-q');if(!i)return;i.addEventListener('input',()=>{lpQ=i.value;const b=$('#lp-body');if(b)b.innerHTML=lpBody();});
+  i.addEventListener('keydown',e=>{if(e.key==='Enter'){const f=$('#lp-body .lp-go');if(f){e.preventDefault();f.click();}}else if(e.key==='Escape'&&i.value){i.value='';lpQ='';$('#lp-body').innerHTML=lpBody();}});});
+A.lpFav=el=>{const k=el.dataset.k;let f=lpGet('fav');f=f.includes(k)?f.filter(x=>x!==k):f.concat(k).slice(-24);lpSet('fav',f);const b=$('#lp-body');if(b)b.innerHTML=lpBody();
+ const n=$(`#lp-body .lp-star[data-k="${CSS.escape(k)}"]`);if(n)n.focus();};
+A.lpSearchAll=()=>{if(typeof A.uxSearch==='function')A.uxSearch();else{const e=new KeyboardEvent('keydown',{key:'k',ctrlKey:true,bubbles:true});document.dispatchEvent(e);}};
+A.lpNewProd=()=>{go('inventario');setTimeout(()=>{if(typeof A.pedit==='function')A.pedit({dataset:{}});},120);};
+A.lpNewConv=()=>{go('crm');setTimeout(()=>{if(typeof A.crmNewBtn==='function')A.crmNewBtn();},150);};
+/* V27.31: el Launch pad es para quien maneja el sistema (ve el Resumen o tiene varias pantallas), nunca es la pantalla de inicio
+   y no reemplaza el portal del empleado */
+SCREENS.launch.show=()=>{try{if(!user)return false;if(SCREENS.dashboard&&can('dashboard'))return true;return Object.keys(SCREENS).filter(k=>k!=='launch'&&k!=='portal'&&uxVis(k)).length>=4;}catch(e){return false;}};
+{const _hs=homeScreen;homeScreen=function(){const r=_hs.apply(this,arguments);if(r!=='launch')return r;const f=NAV.map(x=>x[0]).find(k=>k!=='launch'&&scrOk(k))||Object.keys(SCREENS).find(k=>k!=='launch'&&scrOk(k));return f||'inicio';};}
+/* recientes: cada pantalla que se abre (salvo el propio Launch pad) */
+{const _sp=showPanel;showPanel=function(id){const r=_sp.apply(this,arguments);try{if(user&&curScreen&&curScreen!=='launch'){const L=lpGet('rec').filter(x=>x!==curScreen);L.unshift(curScreen);lpSet('rec',L.slice(0,10));}}catch(e){}return r;};}
 
 /* ===== Cálculos: arqueo, reparto, reporte ===== */
 function hoursOn(empId,day){const ps=S.punches.filter(p=>p.empId===empId&&dkey(p.ts)===day).sort((a,b)=>a.ts-b.ts);let ms=0,open=null,flag=false;
@@ -1730,7 +1863,7 @@ A.rubEdit=el=>{if(!can('edit_products'))return toast('Sin permiso',1);const r=el
   save();rerender();pubRefresh();toast(RW(1)+' guardad'+(ownerMode()?'a':'o'));}});
  w.addEventListener('click',e=>{const b=e.target.closest('.swatch');if(!b)return;$('#rb-c',w).value=b.dataset.col;$$('.swatch',w).forEach(x=>x.classList.toggle('on',x===b));});};
 A.pedit=el=>{const p=S.products.find(x=>x.id===el.dataset.id)||null;const cv=can('view_cost');const after=p?null:(typeof pEditAfter==='function'?pEditAfter:null);if(typeof pEditAfter!=='undefined')pEditAfter=null;
- const w=modal(p?'Editar producto':'Nuevo producto',`<label for="pm-n">Nombre</label><input id="pm-n" value="${esc(p?p.name:'')}" maxlength="80">
+ const w=modal(p?'Editar producto':'Nuevo producto',`${!p&&typeof pwBarHTML==='function'?pwBarHTML():''}<label for="pm-n">Nombre</label><input id="pm-n" value="${esc(p?p.name:'')}" maxlength="80">
  <div class="grid g2"><div><label for="pm-r">${ownerMode()?'Categoría':'Rubro (a quién pertenece)'}</label><select id="pm-r"><option value="">— Elegí —</option>${S.rubros.filter(r=>r.kind==='rubro').map(r=>`<option value="${r.id}" ${p&&p.rubro===r.id?'selected':''}>${esc(r.name)}${r.owner&&!ownerMode()?' ('+esc(r.owner)+')':''}</option>`).join('')}</select></div>
  <div><label for="pm-u">Unidad</label><select id="pm-u">${['u','kg','l'].map(u=>`<option value="${u}" ${p&&p.unit===u?'selected':''}>${unitLbl(u)}</option>`).join('')}</select></div></div>
  ${cv?`<div class="grid g3"><div><label for="pm-c">Costo ($)</label>${numIn('pm-c',p?p.cost:0)}</div><div><label for="pm-t">Cálculo</label><select id="pm-t"><option value="recargo">Recargo sobre costo</option><option value="margen">Margen bruto sobre precio</option></select></div><div><label for="pm-p">Porcentaje (%)</label><input id="pm-p" inputmode="decimal" placeholder="30" autocomplete="off"></div></div><p id="pm-s" class="sm mut">Ingresá costo y porcentaje para ver el precio sugerido.</p>`:''}
@@ -1739,7 +1872,7 @@ A.pedit=el=>{const p=S.products.find(x=>x.id===el.dataset.id)||null;const cv=can
  ${wsProdBlock(p)}
  ${comboBlock(p)}
  <div class="grid g3"><div><label for="pm-sub">Presentación (ej. 750 ml)</label><input id="pm-sub" maxlength="40" value="${esc(p&&p.sub?p.sub:'')}"></div><div><label for="pm-gr">Grupo / bodega (menú)</label><input id="pm-gr" maxlength="40" value="${esc(p&&p.grupo?p.grupo:'')}"></div><div><label for="pm-plu">PLU de balanza (si es por peso)</label><input id="pm-plu" inputmode="numeric" maxlength="5" value="${esc(p&&p.plu?p.plu:'')}"></div></div>
- <label for="pm-d">Descripción (menú)</label><input id="pm-d" value="${esc(p?p.desc:'')}" maxlength="120"><label for="pm-e">Nombre en inglés (opcional)</label><input id="pm-e" value="${esc(p&&p.en?p.en:'')}" maxlength="80">
+ ${typeof pwMarcaHTML==='function'?pwMarcaHTML(p):''}<label for="pm-d">Descripción (menú)</label><input id="pm-d" value="${esc(p?p.desc:'')}" maxlength="120"><label for="pm-e">Nombre en inglés (opcional)</label><input id="pm-e" value="${esc(p&&p.en?p.en:'')}" maxlength="80">
  ${menuProdBlock(p)}
  <label class="chk"><input type="checkbox" id="pm-m" ${p&&p.menu?'checked':''}> Publicar en menú digital</label><label class="chk"><input type="checkbox" id="pm-a" ${!p||p.active?'checked':''}> Activo</label><label class="chk"><input type="checkbox" id="pm-ns" ${p&&p.needStock?'checked':''}> Exigir stock (no permitir vender sin stock este producto)</label>${p&&canDelItems()?`<div class="row" style="margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--line);flex-wrap:wrap;align-items:center;gap:.6rem"><button type="button" class="btn sm danger" id="pm-del" style="min-height:44px">Eliminar este artículo</button><span class="sm mut">Sólo administrador. Si tiene ventas o movimientos se archiva (no se pierde el historial).</span></div>`:''}`,
  {okText:'Guardar',onOk:w=>{const name=val('pm-n').trim(),rubro=val('pm-r'),pr=cents(val('pm-f')),st=parseNum(val('pm-st')===''?'0':val('pm-st'));let cost=p?p.cost:0;if(cv){const c=cents(val('pm-c')===''?'0':val('pm-c'));if(isNaN(c)||c<0)return w._err('Costo inválido.'),false;cost=c;}
@@ -1754,14 +1887,15 @@ A.pedit=el=>{const p=S.products.find(x=>x.id===el.dataset.id)||null;const cv=can
   if(K.kit){d.kit=K.kit;d.unit='u';d.stock=p?p.stock:0;if(cv&&!(cost>0))d.cost=kitCost({kit:K.kit});}else if(p&&isKit(p)){d.kit=[];}
   if(K.kit&&JSON.stringify(K.kit)!==JSON.stringify((p&&p.kit)||[]))audit('COMBO_COMPOSICION',name+' = '+kitTxt({kit:K.kit}));else if(!K.kit&&p&&isKit(p))audit('COMBO_QUITADO',name);
   if(p&&p.stock!==d.stock)d.hist=true;
-  d.msec=MP.msec;if(MP.img!==undefined){d.img=MP.img;d.imgOff=MP.imgOff;audit('FOTO_PRODUCTO',name+' · '+(MP.img?'foto nueva':'foto quitada'));}
+  d.msec=MP.msec;if(typeof pwRead==='function')Object.assign(d,pwRead(w,p)); /* V27.31: marca, origen de la foto y alta desde internet */
+ if(MP.img!==undefined){d.img=MP.img;d.imgOff=MP.imgOff;audit('FOTO_PRODUCTO',name+' · '+(MP.img?'foto nueva':'foto quitada'));}
   if(p){if(p.price!==pr||p.cost!==cost)audit('PRECIO_PRODUCTO',p.name+': precio '+money(p.price)+' → '+money(pr)+(p.cost!==cost?' · costo '+money(p.cost)+' → '+money(cost):''));Object.assign(p,d);audit('EDITAR_PRODUCTO',name);}
   else{S.products.push(Object.assign({id:uid()},d));audit('ALTA_PRODUCTO',name+' · '+rubName(rubro));}save();rerender();toast('Producto guardado');if(after)setTimeout(()=>after(S.products[S.products.length-1]),0);}});
  {const db=$('#pm-del',w);if(db)db.addEventListener('click',()=>{if(!canDelItems())return;w.remove();delFlow([p.id],'del');});} /* V26.48: eliminar desde el editor (mismo borrado protegido 4.16) */
  const upd=()=>{const ul=$('#pm-ul',w);if(ul)ul.textContent=unitLbl(val('pm-u'));if(!cv)return;const c=cents(val('pm-c')),pc=parseNum(val('pm-p')),sg=sugPrice(c,val('pm-t'),pc);const s=$('#pm-s',w);
   if(val('pm-p')==='')s.textContent='Ingresá costo y porcentaje para ver el precio sugerido.';else if(isNaN(sg))s.textContent=val('pm-t')==='margen'?'El margen debe estar entre 0 y menos de 100 %.':'Porcentaje o costo inválido.';else s.innerHTML='Precio sugerido: <b>'+money(sg)+'</b> <button class="btn sm" type="button" id="pm-use">Usar sugerido</button>';
   const f=cents(val('pm-f'));const x=$('#pm-x',w);if(!isNaN(f)&&!isNaN(c)&&c>0){x.textContent='Con ese precio: recargo '+numAR((f-c)/c*100,1)+' % · margen bruto '+numAR((f-c)/f*100,1)+' %';}else x.textContent='';};
- wsProdBind(w,cv);comboBind(w,p);menuProdBind(w,p);w.addEventListener('input',upd);w.addEventListener('change',upd);w.addEventListener('click',e=>{if(e.target.id==='pm-use'){const sg=sugPrice(cents(val('pm-c')),val('pm-t'),parseNum(val('pm-p')));if(!isNaN(sg)){$('#pm-f',w).value=pesosStr(sg);upd();}}});upd();};
+ wsProdBind(w,cv);comboBind(w,p);menuProdBind(w,p);if(!p&&typeof pwBind==='function')pwBind(w);w.addEventListener('input',upd);w.addEventListener('change',upd);w.addEventListener('click',e=>{if(e.target.id==='pm-use'){const sg=sugPrice(cents(val('pm-c')),val('pm-t'),parseNum(val('pm-p')));if(!isNaN(sg)){$('#pm-f',w).value=pesosStr(sg);upd();}}});upd();};
 /* ===== V26 · 4.16 Eliminación protegida de artículos (sólo Administrador) =====
    · Borrado físico SOLO si no hay ventas, movimientos ni otras referencias; con historial se ARCHIVA (borrado lógico).
    · El servidor vuelve a validar todo (06-v26.sql): ocultar el botón no es seguridad.
@@ -6196,8 +6330,27 @@ function crmBindCtx(){const q=$('#crm-lq');if(q)q.addEventListener('input',()=>{
   r.innerHTML=L.map(c=>`<button class="btn sm" style="display:block;width:100%;text-align:left;margin-top:.2rem;white-space:normal" data-act="crmLink" data-id="${c.id}">${esc(custFull(c))} · N.º ${pad4(c.num)}</button>`).join('')||'<p class="sm mut">Sin resultados.</p>';});
  const s=$('#crm-st');if(s)s.addEventListener('change',()=>{const c=convById(crmSel);if(!c)return;const v=s.value;if(!CST[v])return;if(v==='cerrado'){crmCloseConv(c);return;}c.state=v;crmAdd(c,'sys','Estado: '+CST[v]+' ('+crmMe()+')',{kind:'estado'});audit('CRM_ESTADO',crmWho(c)+' · '+CST[v]);save();crmPaint();});
  const dd=$('#crm-days');if(dd)dd.addEventListener('change',()=>{crmF.days=+dd.value;crmPaint();});}
-reg('crm','Atención al cliente','chat','crm',()=>{const C=crmCfg();
- const tabs=[['inbox','Bandeja'],['canales','🔌 Canales ('+(typeof canOnList==='function'?canOnList().length:0)+'/8)'],['stats','Analíticas'],['camp','Campañas'],['alerts','Alertas ERP ('+crmAlerts().length+')']];
+/* V27.31 · Registro de pestañas y acciones del encabezado. Cada módulo (Hoy, Oportunidades, Agenda, Automatización…) se suma con
+   crmTabAdd / crmHeadAdd en vez de reescribir el HTML con expresiones regulares (eso era frágil: un cambio de texto rompía pestañas).
+   Pestaña: {k, t(), ic, o (orden), show()?, badge()?, agent (visible en modo agente), bar (false = no va en la barra)} */
+const CRM_TABS=[],CRM_HEAD=[],CRM_MORE=[];
+function crmTabAdd(o){const i=CRM_TABS.findIndex(x=>x.k===o.k);if(i>=0)CRM_TABS[i]=o;else CRM_TABS.push(o);CRM_TABS.sort((a,b)=>a.o-b.o);}
+const crmHeadAdd=f=>CRM_HEAD.push(f),crmMoreAdd=f=>CRM_MORE.push(f);
+const crmAg=()=>typeof crmAgentOn==='function'&&crmAgentOn();
+function crmTabsVis(){const ag=crmAg();return CRM_TABS.filter(x=>(!x.show||x.show())&&(!ag||x.agent));}
+crmTabAdd({k:'inbox',t:()=>crmAg()?'Mis conversaciones':'Bandeja',ic:'💬',o:20,agent:1,badge:()=>convs().filter(c=>crmOpen(c)&&crmVisible(c)&&c.unread).length});
+crmTabAdd({k:'canales',t:()=>'Canales',ic:'🔌',o:60,badge:()=>null,sub:()=>typeof canOnList==='function'?canOnList().length+'/'+(typeof CANAL_L!=='undefined'?CANAL_L.length:8):''});
+crmTabAdd({k:'stats',t:()=>'Analíticas',ic:'📊',o:70});
+crmTabAdd({k:'camp',t:()=>'Campañas',ic:'📣',o:80});
+crmTabAdd({k:'alerts',t:()=>'Alertas ERP',ic:'🔔',o:90,badge:()=>crmAlerts().length});
+function crmTabsHTML(){const L=crmTabsVis().filter(x=>x.bar!==false);if(!L.some(x=>x.k===crmTab)&&!CRM_TABS.some(x=>x.k===crmTab&&x.bar===false&&(!x.show||x.show())))crmTab=(L[0]||{k:'inbox'}).k;
+ if(L.length<2)return '';
+ return `<nav class="ux-tabs crm-tabs" role="tablist" aria-label="Atención al cliente">${L.map(x=>{const b=x.badge?x.badge():0;const sb=x.sub?x.sub():'';
+  return `<a role="tab" tabindex="0" data-act="crmTab" data-t="${x.k}" aria-selected="${crmTab===x.k}" class="${crmTab===x.k?'on':''}"><span aria-hidden="true">${x.ic||''}</span> ${esc(x.t())}${sb?` <small class="mut">${esc(sb)}</small>`:''}${b?` <span class="crm-tb">${b>99?'99+':b}</span>`:''}</a>`;}).join('')}</nav>`;}
+function crmHeadSub(){const C=crmCfg();const st=typeof canEstado==='function'?C.chans.map(k=>canEstado(k)):[];const api=st.filter(x=>x==='api').length,lk=st.filter(x=>x==='link').length;
+ return `${api} ${api===1?'canal':'canales'} en la Bandeja · ${lk} ${lk===1?'enlace directo':'enlaces directos'}${can('config')&&!crmAg()?` · <a href="#" data-act="crmTab" data-t="canales">Administrar canales</a>`:''}`;}
+reg('crm','Atención al cliente','chat','crm',()=>{const C=crmCfg();const ag=crmAg();crmTabsHTML();
+ const more=ag?[]:[crmSup()?{t:'Panel de supervisión',act:'crmTab',attrs:'data-t="stats"',ic:'📊'}:null,CRM_FULL?{t:'Simular mensaje entrante',act:'crmSim',ic:'🧪'}:null,can('config')?{t:'Ajustes de atención',act:'crmCfgOpen',ic:'⚙️'}:null].concat(CRM_MORE.map(f=>f()));
  return `<style>:root{--crm-a:#a8261b;--crm-m:#7a4f00;--crm-n:#1d6234}[data-theme=dark]{--crm-a:#ff9b91;--crm-m:#f2c96b;--crm-n:#8fe0a2}@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--crm-a:#ff9b91;--crm-m:#f2c96b;--crm-n:#8fe0a2}}
  .crm-wrap{display:grid;grid-template-columns:minmax(230px,1fr) minmax(0,2fr) minmax(250px,1.1fr);gap:.8rem;align-items:start}
  @media(max-width:1100px){.crm-wrap{grid-template-columns:minmax(0,1fr)}}.crm-wrap>*{min-width:0}.crm-wrap .row{flex-wrap:wrap}.crm-wrap select,.crm-wrap input{max-width:100%;min-width:0}
@@ -6215,12 +6368,13 @@ reg('crm','Atención al cliente','chat','crm',()=>{const C=crmCfg();
  .crm-ul{padding-left:1.1rem;margin:.2rem 0}.crm-q{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--line)}
  .crm-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:.2rem;margin-bottom:.4rem}.crm-cd{display:flex;flex-direction:column;align-items:center;border:1px solid var(--line);border-radius:8px;padding:.2rem 0;min-height:44px}.crm-cd.has{border-color:var(--gold);background:rgba(201,150,62,.12)}
  .crm-ap{border-top:1px dashed var(--line);padding:.35rem 0;font-size:.9rem}.crm-al{list-style:none;padding:0;margin:0}.crm-al li{display:flex;gap:.4rem;align-items:center;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--line)}.crm-al li.crit span{color:var(--crm-a);font-weight:600}
- .crm-bars{width:100%}.crm-bars th{text-align:left;font-weight:500;width:35%}.crm-bar-f{display:block;height:12px;border-radius:6px;background:var(--gold);min-width:3px}</style>
- <div class="row"><h1 class="sp">Atención al cliente</h1>${crmSup()?'<button class="btn" data-act="crmTab" data-t="stats">Panel de supervisión</button>':''}${CRM_FULL?'<button class="btn" data-act="crmSim">Simular mensaje entrante</button>':''}${can('config')?'<button class="btn" data-act="crmTab" data-t="canales">🔌 Conectar canales</button>':''}<button class="btn gold" data-act="crmNewBtn">+ Nueva conversación</button>${can('config')?'<button class="btn" data-act="crmCfgOpen">Ajustes</button>':''}</div>
- ${C.on?'':'<div class="warnbox">Atención al cliente está <b>apagada</b>: el chat del menú público no se muestra. Activala en <b>Ajustes</b>.</div>'}${crmSqlNote()}
- <p class="sm mut">Canales: ${C.chans.map(k=>CHAN_IC[k]+' '+CHAN[k]+(chanDemo(k)?' (demostración)':chanApi(k)&&k!=='web'?' (integrado)':'')).join(' · ')}. Chat web cifrado de punta a punta; WhatsApp se abre con el texto listo y el envío lo confirmás vos.</p>
- <div class="grid g4" id="crm-kpi" style="margin:.8rem 0">${crmKpiHTML()}</div>
- <div class="ux-tabs" role="tablist" aria-label="Atención al cliente">${tabs.map(([k,t])=>`<a role="tab" tabindex="0" data-act="crmTab" data-t="${k}" aria-selected="${crmTab===k}" class="${crmTab===k?'on':''}">${esc(t)}</a>`).join('')}</div>
+ .crm-bars{width:100%}.crm-bars th{text-align:left;font-weight:500;width:35%}.crm-bar-f{display:block;height:12px;border-radius:6px;background:var(--gold);min-width:3px}
+ .crm-tabs{margin-top:.2rem;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:thin}.crm-tabs a{flex:0 0 auto;white-space:nowrap}.crm-tabs a{display:inline-flex;align-items:center;gap:.3rem}.crm-tb{display:inline-grid;place-items:center;min-width:1.25rem;height:1.25rem;padding:0 .3rem;border-radius:999px;background:var(--crm-a);color:#fff;font-size:.7rem;font-weight:700}
+ [data-theme=dark] .crm-tb{color:#111}@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .crm-tb{color:#111}}</style>
+ ${uiHead({t:'Atención al cliente',sub:crmHeadSub(),extra:CRM_HEAD.map(f=>f()).join(''),more,prim:{t:'Nueva conversación',ic:'＋',act:'crmNewBtn'}})}
+ ${C.on?'':'<div class="warnbox">Atención al cliente está <b>apagada</b>: el chat del menú público no se muestra. Activala en <b>Más → Ajustes de atención</b>.</div>'}${crmSqlNote()}
+ ${crmTabsHTML()}
+ ${crmTab==='inbox'?`<div class="grid g4" id="crm-kpi" style="margin:.2rem 0 .8rem">${crmKpiHTML()}</div>`:''}
  <div id="crm-body">${crmBody()}</div>`;},
  ()=>{const v=$('#view');const rf=()=>{const l=$('#crm-list');if(l)l.innerHTML=crmListHTML();};
   v.addEventListener('input',e=>{if(e.target.id==='crm-q'){crmF.q=e.target.value;rf();}});
@@ -6627,6 +6781,9 @@ const omniMin=m=>m==null?'—':m<60?m+' min':m<1440?(m/60).toFixed(1).replace('.
  return h.replace('<div class="card om-cfg"',add+'<div class="card om-cfg"');};}
 /* ---------- pestaña «Automatización e integraciones» (administrador) ---------- */
 {const _body=crmBody;crmBody=function(){return crmTab==='auto'?omniAutoHTML():_body();};}
+/* V27.31 · Automatización: pestaña fuera de la barra, se abre desde «Más» (administrador) */
+crmTabAdd({k:'auto',t:()=>'Automatización',ic:'🤖',o:95,bar:false,show:()=>isAdm()});
+crmMoreAdd(()=>isAdm()&&omniOn()?{t:'Automatización e integraciones',act:'crmTab',attrs:'data-t="auto"',ic:'🤖'}:null);
 let omniInt=null;
 async function omniIntLoad(){if(!pushCloud()||!isAdm())return;try{const [k,w]=await Promise.all([rpc('api_claves_listar',{p_comercio:cl.comercio.id}),rpc('wh_listar',{p_comercio:cl.comercio.id})]);omniInt={k:k||[],w:w||[]};}catch(e){omniInt={err:String(e.message||e)};}if(crmTab==='auto')crmPaint();}
 function omniAutoHTML(){if(!isAdm())return '<p class="mut">Sólo el administrador.</p>';if(!omniOn())return '<p class="mut">Activá Omni-Assist primero.</p>';const C=crmCfg(),H=omniHorario();if(omniIA===null)omniIAState().then(()=>{if(crmTab==='auto')crmPaint();});
@@ -9677,7 +9834,7 @@ class ApiErr extends Error{constructor(m,st,body){super(m);this.status=st;this.b
 async function hreq(path,o={}){const h={apikey:CLOUD.key,'Content-Type':'application/json'};
  if(o.auth!==false){const t=await accessToken();if(!t)throw new ApiErr('Sesión vencida: volvé a ingresar',401);h.Authorization='Bearer '+t;}
  Object.assign(h,o.headers||{});let r;
- try{r=await fetch(CLOUD.url+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});}catch(e){if(!o.fn)cl.online=false;throw new NetErr();}
+ try{r=await fetch(CLOUD.url+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined,signal:o.signal});}catch(e){if(!o.fn)cl.online=false;throw new NetErr();}
  if(!o.fn)cl.online=true;let j=null;const txt=await r.text();try{j=txt?JSON.parse(txt):null;}catch(e){j=txt;}
  if(r.status===502||r.status===503||r.status===504){if(r.status===502&&j&&typeof j==='object'&&j.etapa)throw new ApiErr(String(j.error||'ARCA no respondió'),502,j);if(!o.fn)cl.online=false;throw new NetErr();}
  if(!r.ok){const m=(j&&(j.message||j.msg||j.error_description||j.error))||('Error '+r.status);throw new ApiErr(typeof m==='string'?m:'Error '+r.status,r.status,j);}
@@ -11592,11 +11749,27 @@ function canFormRapido(k){const c=canRead(k);const D=canDetect()[k]||{};const v=
 A.canAbrir=el=>{const k=el.dataset.k;if(!CANAL_I[k])return;if(!can('config'))return toast('Sólo el administrador conecta canales',1);
  if(k==='web'){crmSet({on:true,web:true,chans:[...new Set((crmCfg().chans||[]).concat(['web']))]});audit('CANALES_CONECTAR','tienda web y chat');save();if(typeof pubRefresh==='function')pubRefresh();rerender();return toast('Chat de la tienda web activado ✓');}
  if(k==='tn'){if(typeof tnReal==='function'&&tnReal()&&typeof A.tnConnect==='function')return A.tnConnect();if(typeof A.tnSimConnect==='function'&&!(typeof tnReal==='function'&&tnReal())){A.tnSimConnect();setTimeout(rerender,100);return;}return go('integ');}
- const I=CANAL_I[k],c=canRead(k);const nube=canNube();let modo=c.modo==='api'?'api':'link';
- const body=()=>`<div class="can-modes" role="radiogroup" aria-label="Forma de conexión"><label class="can-mode ${modo==='link'?'on':''}"><input type="radio" name="cn-m" value="link" ${modo==='link'?'checked':''}><b>⚡ Rápido</b><span>1 clic · gratis. Publica el botón oficial en el menú y la app. Respondés desde la app de ${esc(I.t.split(' ')[0])}.</span></label>
- ${I.api?`<label class="can-mode ${modo==='api'?'on':''}"><input type="radio" name="cn-m" value="api" ${modo==='api'?'checked':''} ${nube?'':'disabled'}><b>🔗 Integrado</b><span>Los mensajes entran a la Bandeja y se responden desde acá.${nube?'':' Requiere la nube.'}</span></label>`:`<div class="can-mode off"><b>🔗 Integrado</b><span>${esc(I.t)} no ofrece mensajería abierta para comercios: queda el botón directo.</span></div>`}</div>
- <div id="cn-body">${modo==='api'?canPasosApi(k):canFormRapido(k)}</div>`;
- const w=modal('Conectar '+I.t,body(),{wide:true,okText:modo==='api'?'Probar y activar':'Conectar',onOk:async()=>{
+ const I=CANAL_I[k],c=canRead(k);const nube=canNube();let modo=c.modo==='api'?'api':'link';let est=null;const O=canOA();
+ /* V27.31 · panel guiado: 1) cómo conectarlo (enlace directo o en la Bandeja) · 2) datos o estado de la conexión · 3) activar.
+    El estado se lee de la función «canales» (acción «estado», sólo dice qué secretos están cargados; nunca los valores). */
+ const chk=(ok,t,falta)=>`<li class="${ok?'ok':''}"><span aria-hidden="true">${ok?'✓':'○'}</span><span>${esc(t)}${ok||!falta?'':` <small class="mut">· ${esc(falta)}</small>`}</span></li>`;
+ const estHTML=()=>{if(!nube)return '<p class="sm mut">La conexión en la Bandeja necesita la nube del comercio.</p>';if(!est)return '<p class="sm mut">Revisando la conexión…</p>';if(est.err)return `<p class="sm neg">No pude consultar el estado: ${esc(est.err)}</p>`;
+  const L=[chk(est.comercio,'Comercio vinculado a la función de canales','falta CANALES_COMERCIO'),chk(est.llave,'Llave de cifrado del Club','publicá el menú una vez')];
+  if(CAN_META.includes(k)){L.push(chk(est.meta,'App de Meta verificada (webhook)','faltan META_VERIFY_TOKEN y META_APP_SECRET'));L.push(k==='wa'?chk(est.wa,'Número de WhatsApp con su token','faltan WA_TOKEN y WA_PHONE_ID'):chk(est.page,'Token de la página de Facebook','falta META_PAGE_TOKEN'));}
+  if(k==='tg')L.push(chk(est.tg,'Bot de Telegram con su token','faltan TG_CLIENTES_TOKEN y TG_CLIENTES_SECRET'));
+  if(k==='mail'){L.push(chk(est.mailIn,'Entrada de correo','falta MAIL_IN_SECRET'));L.push(chk(est.mailOut,'Salida de correo','faltan RESEND_API_KEY y MAIL_FROM'));}
+  return `<ul class="can-chk">${L.join('')}</ul>`;};
+ const adv=()=>{const p=[];if(CAN_META.includes(k)&&O.disp.meta)p.push(`<p class="sm">Conexión con un clic (iniciar sesión en Meta): ${cxBtn('Conectar con Meta','omniOAGo','data-p="meta"')}</p>`);
+  if(k==='mail'&&(O.disp.google||O.disp.microsoft))p.push(`<p class="sm">Conectar una casilla: ${O.disp.google?cxBtn('Gmail','omniOAGo','data-p="google"'):''} ${O.disp.microsoft?cxBtn('Outlook','omniOAGo','data-p="microsoft"'):''}</p>`);
+  if(I.api&&nube&&canEstado(k)!=='off'&&k!=='web'&&k!=='tn')p.push(`<p class="sm">Diagnóstico: ${cxBtn('Probar ahora','canProbarBtn',`data-k="${k}"`)}${c.ok?` <span class="sm mut">Última prueba: ${esc(c.ok.msg||'')}</span>`:''}</p>`);
+  if(I.api&&k!=='web'&&k!=='tn')p.push(`<details><summary class="sm">Pasos técnicos (para quien administra la nube)</summary>${canPasosApi(k)}</details>`);
+  return p.length?`<details class="can-adv"><summary>Opciones avanzadas</summary>${p.join('')}</details>`:'';};
+ const body=()=>`${uiSteps(['Cómo conectarlo',modo==='api'?'Revisar la conexión':'Tus datos','Activar'],1)}
+ <div class="can-modes" role="radiogroup" aria-label="Forma de conexión"><label class="can-mode ${modo==='link'?'on':''}"><input type="radio" name="cn-m" value="link" ${modo==='link'?'checked':''}><b>Enlace directo</b><span>Gratis y al instante. Un botón en tu menú y en la app del Club abre ${esc(I.t.split(' ')[0])}; respondés desde esa app.</span></label>
+ ${I.api?`<label class="can-mode ${modo==='api'?'on':''}"><input type="radio" name="cn-m" value="api" ${modo==='api'?'checked':''} ${nube?'':'disabled'}><b>En la Bandeja</b><span>Los mensajes llegan acá y respondés desde el sistema, con historial y equipo.${nube?'':' Requiere la nube.'}</span></label>`:`<div class="can-mode off"><b>En la Bandeja</b><span>${esc(I.t)} no ofrece mensajería abierta para comercios: queda el enlace directo.</span></div>`}</div>
+ <div id="cn-body">${modo==='api'?`<h4 class="can-h4">Estado de la conexión</h4><div id="cn-est">${estHTML()}</div><p class="sm mut">Cuando esté todo ✓, tocá <b>Probar y activar</b>: el sistema verifica el canal y activa la recepción.</p>`:canFormRapido(k)}</div>${adv()}`;
+ const loadEst=async()=>{if(!nube||est)return;try{est=await canFn('estado');}catch(e){est={err:String(e&&e.message||e).slice(0,120)};}const x=w.querySelector('#cn-est');if(x)x.innerHTML=estHTML();};
+ const w=uiDrawer((canEstado(k)==='off'?'Conectar ':'Gestionar ')+I.t,body(),{okText:modo==='api'?'Probar y activar':'Guardar',onOk:async()=>{
    const cc=canCfg()[k];
    if(modo==='link'){const raw=val('cn-v').trim();let v='';if(k==='wa')v=canWa(raw);else if(k==='mail')v=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(raw)?raw.toLowerCase():'';else v=canHandle(raw);
     if(!v){toast(k==='wa'?'Escribí el número con código de área.':k==='mail'?'Escribí un correo válido.':'Escribí el usuario.',1);return false;}
@@ -11605,7 +11778,8 @@ A.canAbrir=el=>{const k=el.dataset.k;if(!CANAL_I[k])return;if(!can('config'))ret
    const r=await canProbar(k);if(!r.ok){toast(I.t+': '+(r.msg||'todavía no responde'),1);return false;}
    cc.modo='api';if(r.link&&k==='tg')cc.bot=r.link.replace('https://t.me/','');cc.ok={ts:now(),msg:String(r.msg||'').slice(0,80)};
    canChansSync();audit('CANALES_CONECTAR',I.t+' · integrado');save();if(typeof pubRefresh==='function')pubRefresh();rerender();toast(I.t+' integrado ✓');}});
- w.addEventListener('change',e=>{if(e.target.name==='cn-m'){modo=e.target.value;w.querySelector('.mb').innerHTML=body();const ok=w.querySelector('[data-m=ok]');if(ok)ok.textContent=modo==='api'?'Probar y activar':'Conectar';}});};
+ w.addEventListener('change',e=>{if(e.target.name==='cn-m'){modo=e.target.value;w.querySelector('.mb').innerHTML=body();const ok=w.querySelector('[data-m=ok]');if(ok)ok.textContent=modo==='api'?'Probar y activar':'Guardar';if(modo==='api')loadEst();}});
+ if(modo==='api')loadEst();};
 async function canProbar(k){if(!canNube())return{ok:false,msg:'disponible con la nube'};try{const r=await canFn('probar',{canal:k});return r||{ok:false};}catch(e){return{ok:false,msg:String(e&&e.message||e).slice(0,120)};}}
 A.canTgOn=async el=>{el.disabled=true;try{const r=await canFn('tg_conectar');const c=canCfg().tg;c.bot=String(r.bot||'').replace('@','');toast('Telegram conectado: '+r.bot);audit('CANALES_CONECTAR','Telegram · webhook del bot '+r.bot);save();}catch(e){toast('No se pudo: '+String(e&&e.message||e).slice(0,140),1);}el.disabled=false;};
 A.canOff=el=>{const k=el.dataset.k;if(!can('config'))return;const I=CANAL_I[k];confirmBox('Desconectar '+I.t,'Deja de mostrarse en el menú y en la app del Club. Las conversaciones anteriores quedan guardadas.',()=>{
@@ -11630,49 +11804,33 @@ function cxCard(o){return`<article class="cx-card${o.wide?' cx-wide':''}" style=
  ${o.foot?`<footer class="cx-f">${o.foot}</footer>`:''}</article>`;}
 const cxBtn=(t,act,extra,prim)=>`<button class="btn sm ${prim?'gold':''}" data-act="${act}" ${extra||''}>${t}</button>`;
 const cxLk=(t,act,extra)=>`<button class="cx-lk" data-act="${act}" ${extra||''}>${t}</button>`;
-function canalesHTML(){const adm=can('config');const O=canOA();const on=canOnList().length;
- const meta=O.cuentas.find(x=>x.proveedor==='meta'&&x.estado==='activa');const viaM=k=>!!(meta&&(meta.canales||[]).includes(k));
- const mails=O.cuentas.filter(x=>(x.proveedor==='google'||x.proveedor==='microsoft'));
- const cards=[];
- // Tienda web y chat
- {const st=canEstado('web');cards.push(cxCard({t:'Tienda web y chat',d:'Chat cifrado en tu menú online y en la app del Club.',ic:'🛍️',col:'#7a5a22',st,
-  body:st!=='off'?`<p class="cx-u">${esc(((window.RAVE_BUILD&&RAVE_BUILD.publicUrl)||'').replace(/^https?:\/\//,''))}</p>`:'',
-  foot:adm?(st==='off'?cxBtn('Activar','canAbrir','data-k="web"',1):cxBtn('Configurar','canAbrir','data-k="web"')+cxLk('Desactivar','canOff','data-k="web"')):''}));}
- // Meta
- {const sts=CAN_META.map(k=>viaM(k)?'api':canEstado(k));const st=meta||sts.includes('api')?'api':sts.some(x=>x!=='off')?'link':'off';
-  const chip=(k,s)=>`<li class="cx-chip cx-${CX_ST[s][0]}"><span aria-hidden="true">${CANAL_I[k].ic}</span>${esc({wa:'WhatsApp',ig:'Instagram',fb:'Messenger'}[k])}<small>${s==='api'?'Bandeja':s==='link'?'Enlace':'—'}</small></li>`;
-  const foot=!adm?'':meta?cxBtn('Editar enlaces','canMetaLinks','')+cxLk('Desconectar Meta','omniOAOff',`data-id="${meta.id}"`)
-   :O.disp.meta?cxBtn('Conectar con Meta','omniOAGo','data-p="meta"',1)+cxLk('Editar enlaces','canMetaLinks',''):cxBtn(st==='off'?'Cargar enlaces':'Editar enlaces','canMetaLinks','',st==='off');
-  // V27.30 · WhatsApp Business API con la app y el token propios del comercio (secretos WA_TOKEN / WA_PHONE_ID en la función «canales»)
-  const waTok=adm&&typeof canNube==='function'&&canNube()?CAN_META.filter(k=>!viaM(k)).map((k,i)=>{const n={wa:'WhatsApp',ig:'Instagram',fb:'Messenger'}[k];return cxLk(canEstado(k)==='api'?n+' integrado · Probar':n+' con token propio','canAbrir','data-k="'+k+'"');}).join(''):'';
-  cards.push(cxCard({wide:1,t:'Meta: WhatsApp, Instagram y Messenger',d:meta?'Conectado: los mensajes de los tres entran a la Bandeja y se responden desde acá.':'Tus clientes te escriben por WhatsApp, Instagram y Messenger desde el menú y la app del Club.',ic:'<b style="color:#fff">∞</b>',col:'#1877f2',st,
-   body:`<ul class="cx-chips">${CAN_META.map((k,i)=>chip(k,sts[i])).join('')}</ul>${meta?`<p class="cx-u">Cuenta: ${esc(meta.cuenta)}${meta.error?' · <span class="neg">'+esc(meta.error)+'</span>':''}</p>`:''}`,
-   nota:meta||O.disp.meta?'':'Con la conexión directa a Meta, los mensajes entran a la Bandeja. La habilita Vincular Business.',tech:meta||O.disp.meta?'':canOAFalta('meta'),foot:foot+waTok}));}
- // Telegram
- {const st=canEstado('tg'),c=canRead('tg');cards.push(cxCard({t:'Telegram',d:'Bot propio del comercio para que tus clientes te escriban.',ic:'✈️',col:'#229ed9',st,
-  body:st!=='off'&&canLink('tg')?`<p class="cx-u">${esc(canLink('tg').replace(/^https?:\/\//,''))}</p>`:'',
-  foot:adm?(st==='off'?cxBtn('Conectar','canAbrir','data-k="tg"',1):cxBtn('Configurar','canAbrir','data-k="tg"')+cxLk('Desactivar','canOff','data-k="tg"')):''}));}
- // Correo
- {const act=mails.some(x=>x.estado==='activa');const st=act?'api':canEstado('mail');const g=O.disp.google,m=O.disp.microsoft;
-  const foot=!adm?'':(g?cxBtn(mails.some(x=>x.proveedor==='google')?'+ Gmail':'Conectar Gmail','omniOAGo','data-p="google"',!act):'')+(m?cxBtn(mails.some(x=>x.proveedor==='microsoft')?'+ Outlook':'Conectar Outlook','omniOAGo','data-p="microsoft"',!act&&!g):'')
-   +(g||m?cxLk(canEstado('mail')==='off'?'Usar enlace de correo':'Editar enlace','canLinkEdit','data-k="mail"'):cxBtn(canEstado('mail')==='off'?'Cargar correo':'Editar correo','canLinkEdit','data-k="mail"',canEstado('mail')==='off'));
-  cards.push(cxCard({wide:1,t:'Correo electrónico',d:act?'Los correos de tus clientes entran a la Bandeja.':'Botón para que tus clientes te escriban por mail.',ic:'✉️',col:'#5b5b5b',st,
-   body:mails.length?`<ul class="cx-list">${mails.map(x=>`<li><span>${esc(x.cuenta)}</span>${x.estado==='activa'?'<span class="cx-st cx-ok">Conectada</span>':`<span class="cx-st cx-warn">${esc(x.estado)}</span>`}${adm?cxLk('Quitar','omniOAOff',`data-id="${x.id}"`):''}</li>`).join('')}</ul>`:canEstado('mail')!=='off'?`<p class="cx-u">${esc(canRead('mail').addr||'')}</p>`:'',
-   tech:g||m?'':canOAFalta('google'),foot}));}
- // TikTok
- {const st=canEstado('tt');cards.push(cxCard({t:'TikTok',d:'Botón a tu perfil para que te escriban.',ic:'🎵',col:'#111',st,
-  body:st!=='off'?`<p class="cx-u">${esc(canLink('tt').replace(/^https?:\/\/(www\.)?/,''))}</p>`:'',
-  foot:adm?(st==='off'?cxBtn('Cargar perfil','canLinkEdit','data-k="tt"',1):cxBtn('Editar','canLinkEdit','data-k="tt"')+cxLk('Desactivar','canOff','data-k="tt"')):''}));}
- // Tiendanube
- {const st=canEstado('tn');cards.push(cxCard({t:'Tiendanube',d:'Pedidos y stock de tu tienda online, sincronizados.',ic:'🛒',col:'#2b4b9b',st,
-  foot:adm?(st==='off'?cxBtn('Conectar','canAbrir','data-k="tn"',1):cxBtn('Configurar','canAbrir','data-k="tn"')):''}));}
-  const [cWeb,cMeta,cTg,cMail,cTt,cTn]=cards;
-  const cBand=cxCard({t:'Bandeja de entrada',d:'Todas las conversaciones en un solo lugar, con respuestas rápidas y asignación al equipo.',ic:'💬',col:'#334155',st:null,
-   body:'',foot:`<button class="btn sm" data-act="crmTab" data-t="inbox">Ir a la Bandeja</button>`});
-  cards.length=0;cards.push(cWeb,cMeta,cMail,cTg,cTt,cTn,cBand);
- return`<div class="card cx-head"><div><h3>Canales de atención</h3><p class="sm mut">Por dónde te escriben tus clientes. Los canales conectados llegan a la Bandeja; los enlaces aparecen en tu menú y en la app del Club.</p></div>
-  <div class="cx-sum"><b>${on}</b><span>activos</span></div>${adm?`<button class="btn sm" data-act="canTodo" title="Usa el WhatsApp del comercio y las redes cargadas en el menú">Completar desde el menú</button>`:''}</div>
-  <div class="cx-grid">${cards.join('')}</div>`;}
+/* V27.31 · Rediseño (pedido del dueño, prompt «Atención al cliente»): una tarjeta por canal, todas iguales y sin bordes de color;
+   estados estándar del sistema (uiBadge): «En la Bandeja» (integrado, bidireccional) · «Enlace directo» (botón al canal) ·
+   «Sin conectar» · «Requiere atención» (la última prueba falló). Una sola acción por tarjeta («Conectar» o «Gestionar») que abre el
+   panel guiado; lo técnico (pasos, diagnóstico, conexión con un clic) queda dentro del panel, en «Opciones avanzadas». */
+const CAN_ORDER=['web','wa','ig','fb','tg','mail','tt','tn'];
+const CAN_SHORT={web:'Chat cifrado en tu menú online y en la app del Club.',wa:'Tus clientes te escriben a tu número de WhatsApp.',ig:'Mensajes directos de tu cuenta profesional.',fb:'Mensajes a tu página de Facebook.',
+ tg:'Bot propio del comercio en Telegram.',mail:'Consultas por correo electrónico.',tt:'Botón a tu perfil de TikTok.',tn:'Pedidos y stock de tu tienda online.'};
+function canSt(k){const O=canOA();const meta=O.cuentas.find(x=>x.proveedor==='meta'&&x.estado==='activa');
+ if(CAN_META.includes(k)&&meta&&(meta.canales||[]).includes(k))return 'api';
+ if(k==='mail'&&O.cuentas.some(x=>(x.proveedor==='google'||x.proveedor==='microsoft')&&x.estado==='activa'))return 'api';return canEstado(k);}
+function canBadge(k){const st=canSt(k);const c=canRead(k);if(st!=='off'&&c.ok&&c.ok.ok===false)return uiBadge('warn','Requiere atención');
+ return st==='api'?uiBadge('ok','En la Bandeja'):st==='link'?uiBadge('info','Enlace directo'):uiBadge('off','Sin conectar');}
+function canDetail(k){const st=canSt(k);if(st==='off')return '';if(k==='web')return esc(((window.RAVE_BUILD&&RAVE_BUILD.publicUrl)||'').replace(/^https?:\/\//,''));
+ if(k==='tn')return 'Pedidos y stock sincronizados';const u=canLink(k);const c=canRead(k);
+ if(st==='api')return c.ok&&c.ok.msg?esc(c.ok.msg):'Los mensajes llegan a la Bandeja';return u?esc(u.replace(/^(https?:\/\/(www\.)?|mailto:)/,'')):'';}
+function canalesHTML(){const adm=can('config');const O=canOA();const meta=O.cuentas.find(x=>x.proveedor==='meta'&&x.estado==='activa');
+ const sts=CAN_ORDER.map(canSt);const nApi=sts.filter(x=>x==='api').length,nLk=sts.filter(x=>x==='link').length,nOff=sts.filter(x=>x==='off').length,on=nApi+nLk;
+ const card=k=>{const I=CANAL_I[k];const st=canSt(k);const det=canDetail(k);
+  return `<article class="can-card cx-card" data-k="${k}"><header class="cx-h"><span class="cx-ic" aria-hidden="true">${I.ic}</span><div class="cx-t"><h4>${esc(I.t)}</h4><p>${esc(CAN_SHORT[k]||I.d)}</p></div></header>
+  <div class="cx-b">${canBadge(k)}${det?`<p class="cx-u">${det}</p>`:''}</div>
+  ${adm?`<footer class="cx-f">${st==='off'?cxBtn('Conectar','canAbrir',`data-k="${k}"`,1):cxBtn('Gestionar','canAbrir',`data-k="${k}"`)}${st!=='off'&&k!=='tn'?cxLk('Desconectar','canOff',`data-k="${k}"`):''}</footer>`:''}</article>`;};
+ const metaBanner=!adm?'':meta?`<div class="cx-banner"><span class="cx-bi" aria-hidden="true">∞</span><div class="sp"><b>Meta conectada con un clic</b><p class="sm mut">${esc(meta.cuenta)}${meta.error?' · <span class="neg">'+esc(meta.error)+'</span>':''}</p></div>${cxLk('Desconectar Meta','omniOAOff',`data-id="${meta.id}"`)}</div>`
+  :O.disp.meta?`<div class="cx-banner"><span class="cx-bi" aria-hidden="true">∞</span><div class="sp"><b>Conectá WhatsApp, Instagram y Messenger de una vez</b><p class="sm mut">Iniciás sesión con tu cuenta de Meta y los mensajes de los tres llegan a la Bandeja.</p></div>${cxBtn('Conectar con Meta','omniOAGo','data-p="meta"',1)}</div>`:'';
+ return `<div class="can-head cx-head"><div class="sp"><h3>Canales de atención</h3><p class="sm mut"><b>En la Bandeja</b>: los mensajes llegan acá y respondés desde el sistema. <b>Enlace directo</b>: un botón en tu menú y en la app del Club que abre la app del canal.</p></div>
+  ${adm?`<button class="btn" data-act="canTodo" title="Usa el WhatsApp del comercio y las redes cargadas en el menú">Completar desde el menú</button>`:''}
+  <div class="can-kpis">${uiKpis([{v:on+' de '+CAN_ORDER.length,l:'canales activos'},{v:nApi,l:'en la Bandeja',tone:nApi?'ok':''},{v:nLk,l:'con enlace directo'},{v:nOff,l:'sin conectar'}])}</div></div>
+  ${metaBanner}<div class="cx-grid">${CAN_ORDER.map(card).join('')}</div>`;}
 /* un solo formulario para los tres enlaces de Meta */
 A.canMetaLinks=()=>{if(!can('config'))return;const c=canCfg();
  const w=modal('Enlaces de WhatsApp, Instagram y Messenger',`<p class="sm mut">Se publican como botones en tu menú online y en la app del Club. Dejá vacío el que no uses.</p>
@@ -11695,8 +11853,7 @@ A.canLinkEdit=el=>{if(!can('config'))return;const k=el.dataset.k,c=canCfg()[k];c
 .cx-sum{display:flex;align-items:baseline;gap:.35rem;padding:.4rem .8rem;border-radius:12px;background:var(--bg)}.cx-sum b{font-size:1.4rem}.cx-sum span{color:var(--mut);font-size:.85rem}
 .cx-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin-top:.8rem;align-items:stretch}
 .cx-card{display:flex;flex-direction:column;gap:.6rem;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1rem;min-height:190px;box-shadow:0 1px 3px rgba(0,0,0,.04);position:relative;overflow:hidden}
-.cx-card:before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--cc)}
-.cx-wide{grid-column:span 2}.cx-h{display:flex;gap:.7rem;align-items:flex-start}.cx-ic{width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:12px;background:var(--cc);font-size:1.15rem}
+.cx-wide{grid-column:span 2}.cx-h{display:flex;gap:.7rem;align-items:flex-start}.cx-ic{width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:1.15rem}
 .cx-t{flex:1;min-width:0}.cx-t h4{margin:0;font-size:1rem}.cx-t p{margin:.15rem 0 0;color:var(--mut);font-size:.84rem;line-height:1.35}
 .cx-st{flex:none;font-size:.72rem;font-weight:700;padding:.2rem .55rem;border-radius:99px;white-space:nowrap}.cx-ok{background:var(--okbg);color:var(--ok)}.cx-warn{background:var(--warnbg);color:#8a5a00}.cx-off{background:var(--bg);color:var(--mut)}
 .cx-b{flex:1}.cx-u{margin:0;font-size:.82rem;color:var(--mut);word-break:break-all}
@@ -11707,6 +11864,12 @@ A.canLinkEdit=el=>{if(!can('config'))return;const k=el.dataset.k,c=canCfg()[k];c
 .cx-n{margin:0;font-size:.8rem;color:var(--mut)}.cx-tech{margin:0;font-size:.74rem;color:#8a5a00;background:var(--warnbg);border-radius:8px;padding:.35rem .5rem}
 .cx-f{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin-top:auto;padding-top:.6rem;border-top:1px solid var(--line)}
 .cx-lk{background:none;border:0;padding:.3rem 0;min-height:36px;font:inherit;font-size:.85rem;color:var(--mut);text-decoration:underline;text-underline-offset:3px;cursor:pointer}.cx-lk:hover{color:var(--ink)}
+
+.cx-card{min-height:0}.can-head{background:none;border:0;padding:0;box-shadow:none}.can-kpis{flex:1 1 100%}.can-kpis .ui-kpis{margin:.2rem 0 0}.cx-b{display:flex;flex-direction:column;gap:.35rem;align-items:flex-start}
+.cx-banner{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:.8rem 1rem;margin:0 0 .8rem}.cx-banner p{margin:.15rem 0 0}
+.cx-bi{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:#1877f2;color:#fff;font-weight:700;font-size:1.2rem}
+.can-chk{list-style:none;margin:0;padding:0}.can-chk li{display:flex;gap:.55rem;align-items:flex-start;padding:.45rem 0;border-bottom:1px solid var(--line);font-size:.9rem}.can-chk li>span:first-child{width:1.4rem;height:1.4rem;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--bg);color:var(--mut);font-weight:700}.can-chk li.ok>span:first-child{background:var(--okbg);color:var(--ok)}
+.can-adv{margin-top:1rem;border-top:1px solid var(--line);padding-top:.6rem}.can-adv>summary{cursor:pointer;font-weight:600;min-height:40px;display:flex;align-items:center}.can-h4{margin:.9rem 0 .3rem}
 @media(max-width:1100px){.cx-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:680px){.cx-grid{grid-template-columns:1fr}.cx-wide{grid-column:auto}.cx-card{min-height:0}}`;
  document.head.appendChild(st);})();
@@ -14008,14 +14171,10 @@ A.crmAgentT=()=>{const on=!crmAgentOn();try{localStorage.setItem('vb.crm.agent',
 {const _t=crmThreadHTML;crmThreadHTML=function(){let h=_t.apply(this,arguments);const c=typeof crmCur==='function'?crmCur():null;if(!c||!dlOn())return h;
  const D=dls().filter(d=>d.conv===c.id&&d.status==='open');const chip=D.length?D.map(d=>`<button class="btn sm dl-chip" data-act="dlOpen" data-id="${d.id}" title="Oportunidad">💼 ${esc(d.n)} · ${esc((dlStage(d.stage)||{t:''}).t)} · ${money(dlAmt(d))}</button>`).join(''):'';
  return h.replace('<div class="crm-bar" role="toolbar" aria-label="Acciones de la conversación">','<div class="crm-bar" role="toolbar" aria-label="Acciones de la conversación"><button class="btn sm gold" data-act="dlFromConv">＋ Oportunidad</button>'+chip);};}
-{const s=SCREENS.crm;const _r=s.render;s.render=function(){let h=_r.apply(this,arguments);const ag=crmAgentOn();
- if(dlOn()&&!ag)h=h.replace(/(<a role="tab"[^>]*data-t="inbox"[^>]*>[^<]*<\/a>)/,'$1<a role="tab" tabindex="0" data-act="crmTab" data-t="deals" aria-selected="'+(crmTab==='deals')+'" class="'+(crmTab==='deals'?'on':'')+'">💼 Oportunidades ('+dls().filter(d=>d.status==='open').length+')</a>');
- else if(dlOn()&&ag)h=h.replace(/<div class="ux-tabs" role="tablist" aria-label="Atención al cliente">[\s\S]*?<\/div>/,'<div class="ux-tabs" role="tablist" aria-label="Atención al cliente"><a role="tab" tabindex="0" data-act="crmTab" data-t="inbox" aria-selected="'+(crmTab==='inbox')+'" class="'+(crmTab==='inbox'?'on':'')+'">Mis conversaciones</a><a role="tab" tabindex="0" data-act="crmTab" data-t="deals" aria-selected="'+(crmTab==='deals')+'" class="'+(crmTab==='deals'?'on':'')+'">💼 Mis oportunidades</a></div>');
- else if(ag)h=h.replace(/<div class="ux-tabs" role="tablist" aria-label="Atención al cliente">[\s\S]*?<\/div>/,'');
- h=h.replace('<h1 class="sp">Atención al cliente</h1>','<h1 class="sp">Atención al cliente</h1><button class="btn sm '+(ag?'gold':'')+'" data-act="crmAgentT" aria-pressed="'+ag+'" title="Muestra sólo tus conversaciones y la cola sin asignar">'+(ag?'👤 Modo agente':'👥 Vista completa')+'</button>');
- if(ag)h=h.replace(/<button class="btn" data-act="crmTab" data-t="(stats|canales)">[^<]*<\/button>/g,'').replace(/<button class="btn" data-act="crmCfgOpen">Ajustes<\/button>/,'').replace(/<button class="btn" data-act="crmSim">[^<]*<\/button>/,'');
- if(ag&&!['inbox','deals','hoy','agenda'].includes(crmTab)){crmTab='inbox';}
- return h+DL_CSS;};}
+/* V27.31 · pestaña y modo agente por el registro de Atención al cliente (antes se reescribía el HTML) */
+crmTabAdd({k:'deals',t:()=>crmAgentOn()?'Mis oportunidades':'Oportunidades',ic:'💼',o:30,agent:1,show:()=>dlOn(),badge:()=>0,sub:()=>String(dls().filter(d=>d.status==='open').length)});
+crmHeadAdd(()=>{const ag=crmAgentOn();return `<button class="btn ${ag?'gold':''}" data-act="crmAgentT" aria-pressed="${ag}" title="Muestra sólo tus conversaciones y la cola sin asignar">${ag?'👤 Modo agente':'👥 Vista completa'}</button>`;});
+{const s=SCREENS.crm;const _r=s.render;s.render=function(){return _r.apply(this,arguments)+DL_CSS;};}
 
 /* ---------- 6) Nube: colección «deal» (SQL 31) ---------- */
 let vb31=false,vb31At=0;
@@ -14326,12 +14485,10 @@ A.dlNote=el=>{const d=dlById(el.dataset.id);const t=$('#d360-n');if(!d||!t)retur
 {const _p=crmPaint;crmPaint=function(){const r=_p.apply(this,arguments);if(crmTab==='agenda')agBind();if(crmTab==='deals')dlListBind();
  const v=$('#view');if(v&&!v._ctwa){v._ctwa=1;v.addEventListener('click',e=>{const a=e.target.closest('[data-hywa]');if(a)hoyWaLog(a.dataset.hywa);});}
  if(ctAsk){const id=ctAsk;ctAsk='';setTimeout(()=>{const d=dlById(id);if(d&&d.status==='open')A.ctNext({dataset:{deal:id}});},120);}return r;};}
-{const s=SCREENS.crm;const _r=s.render;s.render=function(){if(typeof ctDemoSeed==='function')try{ctDemoSeed();}catch(e){}let h=_r.apply(this,arguments);
- const I=hoyItems();const urg=I.filter(x=>x.lv===0).length;const tab=(k,t)=>`<a role="tab" tabindex="0" data-act="crmTab" data-t="${k}" aria-selected="${crmTab===k}" class="${crmTab===k?'on':''}">${t}</a>`;
- h=h.replace(/(<div class="ux-tabs" role="tablist" aria-label="Atención al cliente">)/,'$1'+tab('hoy','⚡ Hoy'+(urg?' <span class="hy-badge">'+urg+'</span>':'')));
- h=h.replace(/(<a role="tab"[^>]*data-t="deals"[^>]*>[^<]*<\/a>)/,'$1'+tab('agenda','📅 Agenda'));
- if(!/data-t="agenda"/.test(h))h=h.replace(/(<a role="tab"[^>]*data-t="inbox"[^>]*>[^<]*<\/a>)/,'$1'+tab('agenda','📅 Agenda'));
- return h+CT_CSS;};}
+/* V27.31 · «Hoy» y «Agenda» se suman por el registro de pestañas de Atención al cliente */
+crmTabAdd({k:'hoy',t:()=>'Hoy',ic:'⚡',o:10,agent:1,badge:()=>{try{return hoyItems().filter(x=>x.lv===0).length;}catch(e){return 0;}}});
+crmTabAdd({k:'agenda',t:()=>'Agenda',ic:'📅',o:40,agent:1});
+{const s=SCREENS.crm;const _r=s.render;s.render=function(){if(typeof ctDemoSeed==='function')try{ctDemoSeed();}catch(e){}return _r.apply(this,arguments)+CT_CSS;};}
 /* V27.25 · en los sistemas propios de VB (Almacén RAVE) el Pipeline se enciende una sola vez, si nunca se tocó a mano */
 function ctPipeAuto(){try{if(!IS_CLIENT||typeof VBL==='undefined'||!VBL.lic||!VBL.lic.propio||!user||!giAdm())return;const m=giCfg();if(m.pipeline!==undefined||S.cfg.pipeAuto)return;
  m.pipeline=true;S.cfg.pipeAuto=1;audit('MODULO','Pipeline de ventas encendido (sistema propio)');save();}catch(e){}}
@@ -14779,6 +14936,164 @@ let menuPreview=false;
 A.mpPreview=()=>{menuPreview=true;const w=modal('Vista previa del menú (borrador)',`<p class="sm mut">Así lo vería un cliente con los textos del borrador y los productos de ahora. Para que lo vea el público, tocá «Publicar».</p><iframe id="mp-prev" title="Vista previa del menú" style="width:100%;height:70vh;border:1px solid var(--line);border-radius:12px;background:#fff"></iframe>`,{wide:true,okText:'Cerrar vista previa',noCancel:true,onOk:()=>{menuPreview=false;}});
  const f=w.querySelector('#mp-prev');f.srcdoc=buildPubDoc();
  new MutationObserver((m,o)=>{if(!document.body.contains(w)){menuPreview=false;o.disconnect();}}).observe(document.getElementById('modal-root'),{childList:true});};
+
+/* ===== V27.31 · Alta de productos desde internet (prompt claude/PROMPT_V27_31_ALTA_PRODUCTO_WEB.md) =====
+   En «Nuevo producto» aparece «Buscar en la web»: código de barras (escáner), SKU o nombre.
+   · Reglas de códigos: EAN-13 / EAN-8 con dígito verificador, UPC-A → EAN-13, DUN-14 → su unidad; los códigos de balanza o internos
+     (prefijos 20–29, PLU) NO se buscan.
+   · Cascada: (A) productos del comercio → (B) caché de este equipo (90 días) → (C) demos: catálogo de ejemplo sin marcas reales ·
+     Almacén RAVE: función «productos» de la nube (Open Food Facts y sus hermanas, opcionales UPCitemdb / búsqueda web / IA).
+   · El resultado es un BORRADOR en el mismo formulario de siempre: nombre, presentación, marca, descripción, unidad, foto (con su
+     licencia) y una sugerencia de rubro/categoría que nunca se elige sola cuando el rubro es de un socio. Los precios NUNCA vienen
+     de internet. «Publicar en el menú» queda apagado.
+   · Sin conexión, sin resultados o con el límite alcanzado: «Cargalo a mano», sin bloquear nada. */
+const PW_DEMO=!IS_CLIENT;
+const pwN=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+function pwEanOk(s){if(!/^\d{8}$|^\d{12,14}$/.test(s))return false;const d=s.split('').map(Number);const c=d.pop();let t=0;d.reverse().forEach((x,i)=>{t+=x*(i%2?1:3);});return (10-t%10)%10===c;}
+function pwEanFix(b){let t=0;b.split('').map(Number).reverse().forEach((x,i)=>{t+=x*(i%2?1:3);});return b+((10-t%10)%10);}
+/* interpreta lo que se escribió: {tipo:'ean'|'texto'|'interno'|'invalido', code, nota} */
+function pwCode(q){q=String(q||'').trim();const d=q.replace(/[\s-]/g,'');
+ if(/^\d{1,5}$/.test(d))return{tipo:'interno',nota:'Es un PLU o código interno: cargalo a mano.'};
+ if(/^\d+$/.test(d)){let c=d;if(c.length===12&&pwEanOk('0'+c))c='0'+c;
+  if(c.length===14&&pwEanOk(c)){const u=pwEanFix(c.slice(1,13));return{tipo:'ean',code:u,bulto:c,nota:'Código de bulto (DUN-14): busco la unidad '+u+'.'};}
+  if(c.length===13&&/^2/.test(c))return{tipo:'interno',nota:'Es un código de balanza o de uso interno (empieza con 2): cargalo a mano.'};
+  if((c.length===13||c.length===8)&&pwEanOk(c))return{tipo:'ean',code:c,ar:/^77[89]/.test(c)};
+  if(c.length===13||c.length===8||c.length===12)return{tipo:'invalido',code:c,nota:'El código no es válido (dígito verificador).'};}
+ return q.length>=3?{tipo:'texto',q}:{tipo:'invalido',nota:'Escribí al menos 3 letras o un código.'};}
+/* ---------- normalización por reglas (también en las demos) ---------- */
+function pwPres(t){const m=/(\d+(?:[.,]\d+)?)\s*(ml|cc|cm3|l|lt|lts|litros?|g|gr|grs|gramos?|kg|kilos?)\b/i.exec(String(t||''));if(!m)return '';let v=+m[1].replace(',','.');let u=m[2].toLowerCase();
+ if(/^(cc|cm3|ml)$/.test(u))u='ml';else if(/^(l|lt|lts|litro|litros)$/.test(u))u='L';else if(/^(g|gr|grs|gramo|gramos)$/.test(u))u='g';else u='kg';
+ if(u==='ml'&&v>=1000){v=v/1000;u='L';}if(u==='g'&&v>=1000){v=v/1000;u='kg';}const s=String(Math.round(v*100)/100).replace('.',',');return s+' '+u;}
+function pwTitle(t){t=String(t||'').replace(/[\u{1F300}-\u{1FAFF}]/gu,'').replace(/\s+/g,' ').trim();if(t===t.toUpperCase()&&/[A-Z]{4}/.test(t))t=t.toLowerCase();return (t.charAt(0).toUpperCase()+t.slice(1)).slice(0,80);}
+function pwNorm(f){const o=Object.assign({},f);o.nombre=pwTitle(o.nombre||'');o.presentacion=o.presentacion?pwPres(o.presentacion)||String(o.presentacion).slice(0,40):pwPres(o.nombre);
+ if(o.presentacion&&o.nombre&&!pwN(o.nombre).includes(pwN(o.presentacion).replace(',','.'))&&!pwN(o.nombre).includes(pwN(o.presentacion)))o.nombre=(o.nombre+' '+o.presentacion).slice(0,80);
+ o.unidad=/granel|por kilo|x kg/i.test(o.nombre+' '+(o.categoria_fuente||''))?'kg':'u';o.descripcion=String(o.descripcion||'').replace(/<[^>]*>/g,'').slice(0,120);o.marca=String(o.marca||'').slice(0,40);return o;}
+/* ---------- sugerencia de rubro/categoría (nunca se crean rubros) ---------- */
+const PW_CATS=[['alcohol',/cerveza|vino|fernet|aperitivo|whisky|vodka|gin\b|licor|espumante|champa|sidra|ron\b/,/alcohol|vino|cerveza|licor|bodega|\+18/],
+ ['bebidas',/gaseosa|agua|jugo|bebida|soda|energizante|isoton/,/bebida/],['lacteos',/leche|yogur|queso|manteca|crema de leche|dulce de leche/,/l[aá]cteo|fresco|heladera/],
+ ['golosinas',/chocolate|alfajor|caramelo|chicle|papas fritas|snack|galletita|golosina|turr[oó]n/,/golosina|snack|kiosco|confite/],
+ ['limpieza',/detergente|lavandina|jab[oó]n en polvo|suavizante|limpiador|desinfectante|papel higi|rollo de cocina|esponja/,/limpieza/],
+ ['perfumeria',/shampoo|acondicionador|jab[oó]n|desodorante|crema|pasta dental|cepillo/,/perfum|higiene|tocador|limpieza/],
+ ['almacen',/yerba|fideo|arroz|aceite|harina|az[uú]car|caf[eé]|\bt[eé]\b|conserva|at[uú]n|tomate|mermelada|polenta|lenteja|arveja|sal\b|vinagre|mayonesa|galleta/,/almac[eé]n|abarrote|despensa/]];
+function pwRubroSug(f){const t=pwN([f.nombre,f.categoria_fuente].join(' '));const cat=PW_CATS.find(([,re])=>re.test(t));if(!cat)return null;
+ const R=S.rubros.filter(r=>r.kind==='rubro');const r=R.find(r=>cat[2].test(pwN(r.name+' '+(r.mNom||''))));return r?{id:r.id,name:r.name,cat:cat[0]}:{id:'',name:'',cat:cat[0]};}
+/* ---------- caché de este equipo ---------- */
+const PW_CK='rave.pw.cache';
+function pwCache(){try{return JSON.parse(localStorage.getItem(PW_CK)||'{}')||{};}catch(e){return{};}}
+function pwCacheGet(code){const c=pwCache()[code];return c&&Date.now()-c.ts<90*864e5?c.f:null;}
+function pwCachePut(code,f){if(!code)return;try{const c=pwCache();c[code]={ts:Date.now(),f:Object.assign({},f,{imagenes:[]})};const K=Object.keys(c);if(K.length>200)K.sort((a,b)=>c[a].ts-c[b].ts).slice(0,K.length-200).forEach(k=>delete c[k]);localStorage.setItem(PW_CK,JSON.stringify(c));}catch(e){}}
+/* ---------- catálogo de ejemplo de las demos (genérico, SIN marcas reales; códigos de ejemplo válidos) ---------- */
+const PW_SEED_RAW=[['Gaseosa cola','2,25 L','Bebidas > Gaseosas'],['Agua mineral sin gas','1,5 L','Bebidas > Aguas'],['Jugo de naranja','1 L','Bebidas > Jugos'],['Agua saborizada pomelo','1,5 L','Bebidas > Aguas'],
+ ['Cerveza rubia lata','473 ml','Bebidas alcohólicas > Cervezas'],['Vino tinto Malbec','750 ml','Bebidas alcohólicas > Vinos'],['Fernet','750 ml','Bebidas alcohólicas > Aperitivos'],['Aperitivo rojo','1 L','Bebidas alcohólicas > Aperitivos'],
+ ['Yerba mate con palo','1 kg','Almacén > Infusiones'],['Fideos spaghetti','500 g','Almacén > Pastas secas'],['Arroz largo fino','1 kg','Almacén > Arroz'],['Aceite de girasol','900 ml','Almacén > Aceites'],
+ ['Harina de trigo 000','1 kg','Almacén > Harinas'],['Azúcar común','1 kg','Almacén > Azúcar'],['Café molido','250 g','Almacén > Infusiones'],['Té en saquitos x 25','50 g','Almacén > Infusiones'],
+ ['Atún al natural','170 g','Almacén > Conservas'],['Tomate triturado','520 g','Almacén > Conservas'],['Leche entera','1 L','Lácteos > Leches'],['Dulce de leche clásico','400 g','Lácteos > Dulce de leche'],
+ ['Yogur bebible frutilla','1 L','Lácteos > Yogures'],['Chocolate con leche','100 g','Golosinas > Chocolates'],['Alfajor triple','70 g','Golosinas > Alfajores'],['Papas fritas clásicas','150 g','Snacks > Papas fritas'],
+ ['Galletitas dulces surtidas','300 g','Almacén > Galletitas'],['Detergente limón','750 ml','Limpieza > Lavavajillas'],['Lavandina','1 L','Limpieza > Lavandinas'],['Jabón en polvo','800 g','Limpieza > Ropa'],
+ ['Papel higiénico x 4 rollos','','Limpieza > Papel'],['Shampoo uso diario','400 ml','Perfumería > Cabello']];
+const PW_SEED=PW_SEED_RAW.map(([n,p,c],i)=>({barcode:pwEanFix('779999'+String(100000+i).slice(-6)),nombre:n+(p?' '+p:''),marca:'Marca de ejemplo',presentacion:p,categoria_fuente:c,
+ descripcion:'Producto de ejemplo para la demostración: '+n.toLowerCase()+(p?' de '+p:'')+'.',fuente:'demo',imagenes:[],alcohol:/alcoh/i.test(c)}));
+PW_SEED.push({barcode:pwEanFix('779999100030'),nombre:'Pack gaseosa cola 6 × 2,25 L',marca:'Marca de ejemplo',presentacion:'6 × 2,25 L',categoria_fuente:'Bebidas > Gaseosas',descripcion:'Bulto de 6 botellas de gaseosa cola de 2,25 L (ejemplo).',fuente:'demo',imagenes:[],bulto:{unidades:6}});
+/* ---------- búsqueda ---------- */
+let pwCtl=null;
+async function pwBuscar(q,signal){const c=pwCode(q);if(c.tipo==='interno'||c.tipo==='invalido')return{ok:false,error:c.nota,etapa:'validacion'};
+ if(c.tipo==='ean'){const own=S.products.find(p=>p.barcode===c.code||(c.bulto&&p.barcode===c.bulto));if(own)return{ok:false,existe:own.id,error:'Ese código ya está cargado: '+own.name+(own.archived?' (archivado)':'')+'.',etapa:'duplicado'};
+  const k=pwCacheGet(c.code);if(k)return{ok:true,fuente:'cache',confianza:k.confianza||.8,borrador:k,nota:c.nota};}
+ if(PW_DEMO){await new Promise(r=>setTimeout(r,350));if(signal&&signal.aborted)throw new Error('cancelado');
+  let f=null;if(c.tipo==='ean')f=PW_SEED.find(x=>x.barcode===c.code);else{const qq=pwN(c.q);const L=PW_SEED.map(x=>({x,s:typeof uxScore==='function'?uxScore(qq,x.nombre+' '+x.categoria_fuente):(pwN(x.nombre).includes(qq)?50:0)})).filter(y=>y.s>0).sort((a,b)=>b.s-a.s);f=L.length?L[0].x:null;}
+  if(!f)return{ok:false,error:'No lo encontré en el catálogo de ejemplo de la demostración. Cargalo a mano.',etapa:'vacio'};
+  return{ok:true,fuente:'demo',confianza:.9,borrador:Object.assign({},f),nota:c.nota};}
+ if(!navigator.onLine)return{ok:false,error:'Sin conexión: cargalo a mano.',etapa:'red'};
+ if(!(typeof CLOUD!=='undefined'&&CLOUD.on&&cl.ready&&cl.comercio))return{ok:false,error:'La búsqueda en internet necesita la nube del comercio. Cargalo a mano.',etapa:'config'};
+ const r=await hreq('/functions/v1/productos',{method:'POST',fn:true,signal,body:{accion:'buscar',comercio:cl.comercio.id,q:c.tipo==='ean'?c.code:c.q}});
+ if(r&&r.ok&&c.nota)r.nota=c.nota;return r||{ok:false,error:'La nube no respondió.',etapa:'red'};}
+/* ---------- interfaz dentro de «Nuevo producto» ---------- */
+function pwBarHTML(){return `<div class="pw-bar" id="pw-bar"><div class="pw-row"><label for="pw-q" class="pw-sr">Código de barras, SKU o nombre</label><input id="pw-q" placeholder="Escaneá el código o escribí el nombre" autocomplete="off" inputmode="search">
+ <button type="button" class="btn gold" id="pw-go">🔎 Buscar en la web</button><button type="button" class="btn" id="pw-gg" title="Abre Google en otra pestaña (gratis)">Buscar en Google</button></div><div id="pw-res" aria-live="polite"><p class="sm mut" style="margin:.35rem 0 0">${PW_DEMO?'Demostración: busca en un catálogo de ejemplo. ':''}Completa nombre, presentación, marca y foto. El precio lo ponés vos.</p></div></div>`;}
+function pwMarcaHTML(p){return `<label for="pm-mk">Marca (opcional)</label><input id="pm-mk" maxlength="40" value="${esc(p&&p.marca?p.marca:'')}">`;}
+function pwFill(w,id,v){const el=w.querySelector('#'+id);if(!el||v==null||v==='')return false;el.value=v;el.classList.add('pw-fill');el.addEventListener('input',()=>el.classList.remove('pw-fill'),{once:true});return true;}
+function pwApply(w,r){const f=pwNorm(r.borrador||{});w._pw={f,fuente:r.fuente,conf:r.confianza};const n=[];
+ if(pwFill(w,'pm-n',f.nombre))n.push('nombre');if(pwFill(w,'pm-sub',f.presentacion))n.push('presentación');if(pwFill(w,'pm-b',f.barcode))n.push('código');
+ if(pwFill(w,'pm-d',f.descripcion))n.push('descripción');if(pwFill(w,'pm-mk',f.marca))n.push('marca');const u=w.querySelector('#pm-u');if(u&&f.unidad){u.value=f.unidad;u.dispatchEvent(new Event('change',{bubbles:true}));}
+ const sg=pwRubroSug(f);const sel=w.querySelector('#pm-r');let sgTxt='';
+ if(sg&&sg.id&&sel){if(typeof ownerMode==='function'&&ownerMode()&&!sel.value){sel.value=sg.id;sel.classList.add('pw-fill');sgTxt='Categoría sugerida: <b>'+esc(sg.name)+'</b> (revisala).';}else sgTxt='Sugerencia: <b>'+esc(sg.name)+'</b>. Elegí '+(ownerMode()?'la categoría':'el rubro')+' vos.';}
+ else if(sg)sgTxt='Elegí '+(typeof ownerMode==='function'&&ownerMode()?'la categoría':'el rubro')+' (no encontré uno parecido para «'+esc(f.categoria_fuente||sg.cat)+'»).';
+ const src={demo:'catálogo de ejemplo',cache:'guardado en este equipo',maestro:'fichas confirmadas',off:'Open Food Facts',obf:'Open Beauty Facts',opf:'Open Products Facts',upcitemdb:'UPCitemdb',web:'búsqueda web'}[r.fuente]||r.fuente;
+ const imgs=(f.imagenes||[]).slice(0,5);
+ $('#pw-res',w).innerHTML=`<div class="pw-ok"><div class="pw-okh">${uiBadge('info','Borrador')}<b>Desde ${esc(src)}</b><span class="sm mut">· confianza ${Math.round((r.confianza||0)*100)} %</span><button type="button" class="cx-lk" id="pw-undo">Descartar</button></div>
+ <p class="sm" style="margin:.3rem 0">Completé: ${esc(n.join(', ')||'nada')}. Los campos marcados <span class="pw-mk">ⓦ</span> vienen de internet: <b>revisalos</b> y poné el precio.${r.nota?' '+esc(r.nota):''}</p>
+ ${sgTxt?`<p class="sm" style="margin:.2rem 0">${sgTxt}</p>`:''}${f.alcohol?'<p class="sm warn" style="margin:.2rem 0">Bebida con alcohol: usá un rubro que tenga «Vende alcohol» (+18).</p>':''}${f.bulto&&f.bulto.unidades?`<p class="sm" style="margin:.2rem 0">Bulto de <b>${f.bulto.unidades}</b> unidades: si vendés por mayor, cargalo en Presentaciones (sin precio sugerido).</p>`:''}
+ ${imgs.length?`<div class="pw-imgs" role="list">${imgs.map((x,i)=>`<button type="button" class="pw-img" role="listitem" data-pwi="${i}" title="Usar esta foto"><img src="${esc(x.url)}" alt="Foto candidata ${i+1}" loading="lazy" referrerpolicy="no-referrer"><small>${esc(x.licencia||'')}</small></button>`).join('')}</div><p class="sm mut" style="margin:.2rem 0">Tocá una foto para usarla (se achica y se guarda en el sistema). Mejor aún: subí tu propia foto.</p>`:''}
+ ${f.atribucion?`<p class="sm mut" style="margin:.2rem 0">${esc(f.atribucion)}</p>`:''}</div>`;
+ $('#pw-undo',w).addEventListener('click',()=>{['pm-n','pm-sub','pm-d','pm-mk'].forEach(id=>{const e=w.querySelector('#'+id);if(e&&e.classList.contains('pw-fill')){e.value='';e.classList.remove('pw-fill');}});w._pw=null;$('#pw-res',w).innerHTML='<p class="sm mut" style="margin:.35rem 0 0">Descartado. Podés cargarlo a mano.</p>';});
+ $$('.pw-img',w).forEach(b=>b.addEventListener('click',()=>pwFoto(w,imgs[+b.dataset.pwi],b)));
+ const nm=w.querySelector('#pm-f')||w.querySelector('#pm-c');if(nm)setTimeout(()=>nm.focus(),60);}
+async function pwFoto(w,x,btn){const s=w.querySelector('#pm-imgs');btn.disabled=true;if(s)s.textContent='Bajando la foto…';
+ try{const r=await hreq('/functions/v1/productos',{method:'POST',fn:true,body:{accion:'imagen',comercio:cl.comercio.id,url:x.url}});if(!r||!r.ok)throw new Error(r&&r.error||'no se pudo bajar');
+  const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('La imagen no se pudo leer.'));i.src='data:'+r.mime+';base64,'+r.b64;});
+  const d=imgEncode(im);w._img=d;w._pwImg={fuente:x.fuente||'',licencia:x.licencia||'',autor:x.autor||'',url:x.url};
+  const v=w.querySelector('#pm-imgv'),n=w.querySelector('#pm-imgn'),xx=w.querySelector('#pm-imgx');if(v){v.src=d;v.style.display='';}if(n)n.hidden=true;if(xx)xx.hidden=false;
+  if(s)s.textContent='Foto lista ('+(x.licencia||'licencia de la fuente')+'). Se guarda al tocar «Guardar».';$$('.pw-img',w).forEach(b=>b.classList.toggle('on',b===btn));}
+ catch(e){if(s)s.textContent='No se pudo usar esa foto: '+String(e.message||e).slice(0,120)+'. Subí la tuya.';}btn.disabled=false;}
+function pwBind(w){const q=w.querySelector('#pw-q'),b=w.querySelector('#pw-go');if(!q||!b)return;
+ const run=async()=>{const v=q.value.trim();if(!v){q.focus();return;}if(pwCtl){pwCtl.abort();}const ctl=new AbortController();pwCtl=ctl;
+  $('#pw-res',w).innerHTML='<p class="sm" style="margin:.35rem 0 0"><span class="pw-spin" aria-hidden="true"></span> Buscando… <button type="button" class="cx-lk" id="pw-x">Cancelar</button> · <button type="button" class="cx-lk" id="pw-man">Cargar a mano</button></p>';
+  const stop=()=>{ctl.abort();$('#pw-res',w).innerHTML='<p class="sm mut" style="margin:.35rem 0 0">Búsqueda cancelada. Cargalo a mano o probá de nuevo.</p>';};
+  $('#pw-x',w).addEventListener('click',stop);$('#pw-man',w).addEventListener('click',()=>{stop();const n=w.querySelector('#pm-n');if(n){if(!n.value&&pwCode(v).tipo==='texto')n.value=pwTitle(v);n.focus();}const bb=w.querySelector('#pm-b');const c=pwCode(v);if(bb&&!bb.value&&c.code)bb.value=c.code;});
+  b.disabled=true;let r;try{r=await pwBuscar(v,ctl.signal);}catch(e){r=ctl.signal.aborted?null:{ok:false,error:'No se pudo buscar ('+String(e.message||e).slice(0,100)+'). Cargalo a mano.'};}b.disabled=false;if(pwCtl===ctl)pwCtl=null;if(!r||ctl.signal.aborted)return;
+  if(r.ok){pwApply(w,r);return;}
+  const c=pwCode(v);const bb=w.querySelector('#pm-b');if(bb&&!bb.value&&c.code&&r.etapa!=='duplicado')bb.value=c.code;
+  $('#pw-res',w).innerHTML=`<p class="sm ${r.etapa==='validacion'?'warn':''}" style="margin:.35rem 0 0">${esc(r.error||'Sin resultados.')}${r.existe?` <button type="button" class="btn sm" id="pw-open">Abrir ese producto</button>`:''}${(r.avisos||[]).length?' <span class="mut">('+esc(r.avisos.join(' · '))+')</span>':''}</p>`;
+  const op=$('#pw-open',w);if(op)op.addEventListener('click',()=>{w.remove();A.pedit({dataset:{id:r.existe}});});};
+ {const g=w.querySelector('#pw-gg');if(g)g.addEventListener('click',()=>pwGoogle(w,false));}b.addEventListener('click',run);q.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();run();}});
+ /* desde Vender el código se completa justo después de abrir: se mira un instante después */
+ setTimeout(()=>{const bc=w.querySelector('#pm-b');if(bc&&bc.value&&pwCode(bc.value).tipo==='ean'){q.value=bc.value;run();}else if(!w.querySelector('#pm-n').value)q.focus();},90);}
+/* ---------- V27.31b · Google y foto pegada (gratis, sin claves ni servicios pagos) ----------
+   «Buscar en Google» abre Google en otra pestaña con el nombre o el código. La foto se trae copiándola
+   («Copiar imagen») y tocando «Pegar foto» (o Ctrl+V dentro del formulario), o guardándola y usando «Cargar foto».
+   Siempre pasa por el recorte y se achica igual que la foto propia, y queda guardada en el producto (sin enlaces a otros sitios). */
+function pwGQ(w){const v=id=>{const e=w.querySelector('#'+id);return e?String(e.value||'').trim():'';};
+ return [v('pm-n')||v('pw-q'),v('pm-mk'),v('pm-sub')].filter(Boolean).join(' ')||v('pm-b');}
+function pwGoogle(w,img){const q=pwGQ(w);if(!q){toast('Escribí primero el nombre o el código.');const n=w.querySelector('#pm-n');if(n)n.focus();return;}
+ window.open('https://www.google.com/search?'+(img?'tbm=isch&':'')+'q='+encodeURIComponent(q),'_blank','noopener');}
+async function pwPegarBlob(w,blob){const v=w.querySelector('#pm-imgv'),n=w.querySelector('#pm-imgn'),x=w.querySelector('#pm-imgx'),s=w.querySelector('#pm-imgs');
+ if(!blob||!/^image\//.test(blob.type||'')){if(s)s.textContent='Lo que pegaste no es una foto. En Google tocá la foto y elegí «Copiar imagen».';return;}
+ if(blob.size>8*1024*1024){if(s)s.textContent='La foto es muy pesada (más de 8 MB).';return;}
+ try{if(s)s.textContent='Achicando la foto…';const im=await imgLoad(blob);if(s)s.textContent='Recortá la foto…';const r=await imgCropModal(im);if(!r){if(s)s.textContent='No se cambió la foto.';return;}
+  const d=imgEncode(im,r);w._img=d;w._pwImg=null;if(v){v.src=d;v.style.display='';}if(n)n.hidden=true;if(x)x.hidden=false;
+  const m=w.querySelector('#pm-m');let extra='';if(m&&!m.checked&&!w._pwEdit){m.checked=true;extra=' Marqué «Publicar en menú digital» (podés destildarlo).';}
+  if(s)s.textContent='Foto lista ('+Math.round(d.length*0.75/1024)+' KB). Se guarda al tocar «Guardar».'+extra;}
+ catch(e){if(s)s.textContent=String(e.message||e).slice(0,140);}}
+async function pwPegar(w){const s=w.querySelector('#pm-imgs');
+ try{if(!navigator.clipboard||!navigator.clipboard.read)throw new Error('x');const items=await navigator.clipboard.read();
+  for(const it of items){const t=it.types.find(y=>/^image\//.test(y));if(t){await pwPegarBlob(w,await it.getType(t));return;}}
+  if(s)s.textContent='No hay ninguna foto copiada. En Google tocá la foto y elegí «Copiar imagen»; después volvé y tocá «Pegar foto».';}
+ catch(e){if(s)s.textContent='Tu navegador no deja leer lo copiado con el botón: tocá dentro del formulario y pegá con Ctrl+V (en el celular, guardá la foto y usá «Cargar foto»).';}}
+function pwFotoBind(w,p){const f=w.querySelector('#pm-imgf');if(!f||w.querySelector('#pw-gimg'))return;w._pwEdit=!!p;
+ const x=w.querySelector('#pm-imgx');const box=document.createElement('span');box.className='pw-ft';
+ box.innerHTML='<button type="button" class="btn sm" id="pw-gimg" title="Abre Google Imágenes en otra pestaña">🔎 Buscar foto en Google</button><button type="button" class="btn sm" id="pw-paste">📋 Pegar foto</button>';
+ (x||f).insertAdjacentElement('afterend',box);
+ const s=w.querySelector('#pm-imgs');if(s)s.textContent='Cargá tu foto, o buscala en Google: tocá la foto, «Copiar imagen», y acá «Pegar foto». Se achica sola para el menú.';
+ box.querySelector('#pw-gimg').addEventListener('click',()=>pwGoogle(w,true));box.querySelector('#pw-paste').addEventListener('click',()=>pwPegar(w));
+ w.addEventListener('paste',e=>{const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(y=>y.kind==='file'&&/^image\//.test(y.type));if(!it)return;e.preventDefault();pwPegarBlob(w,it.getAsFile());});}
+if(typeof menuProdBind==='function'){const _mb=menuProdBind;menuProdBind=function(w,p){const r=_mb.apply(this,arguments);try{pwFotoBind(w,p);}catch(e){}return r;};}
+/* al guardar: marca, origen de la foto, auditoría, caché y (opcional) aporte a las fichas compartidas */
+function pwRead(w,p){const o={};const mk=w.querySelector('#pm-mk');if(mk)o.marca=mk.value.trim().slice(0,40);if(w._pwImg&&w._img)o.imgSrc=w._pwImg;
+ const P=w._pw;if(P&&!p){const f=P.f;audit('ALTA_PRODUCTO_WEB',(val('pm-n')||f.nombre)+' · '+(rubName?rubName(val('pm-r')):'')+' · fuente '+P.fuente+' · confianza '+Math.round((P.conf||0)*100)+' %');
+  const code=val('pm-b').trim();if(code&&P.fuente!=='demo')pwCachePut(code,Object.assign({},f,{nombre:val('pm-n'),presentacion:val('pm-sub'),marca:o.marca||f.marca,confianza:P.conf}));
+  if(!PW_DEMO&&code&&S.cfg.pw&&S.cfg.pw.compartir&&typeof CLOUD!=='undefined'&&CLOUD.on&&cl.ready)hreq('/functions/v1/productos',{method:'POST',fn:true,body:{accion:'confirmar',comercio:cl.comercio.id,barcode:code,ficha:{nombre:val('pm-n'),marca:o.marca||'',presentacion:val('pm-sub'),descripcion:val('pm-d'),categoria_fuente:f.categoria_fuente||'',unidad:val('pm-u')}}}).catch(()=>{});}
+ return o;}
+/* desde Vender: un código válido que no está cargado ofrece darlo de alta (con la búsqueda ya hecha) */
+if(typeof addByCode==='function'){const _ab=addByCode;addByCode=function(code){const r=_ab.apply(this,arguments);if(r)return r;
+ try{const c=pwCode(code);if(c.tipo==='ean'&&can('edit_products')&&!$('#modal-root .ov')&&typeof A.posNewItem==='function')
+  modal('Código sin cargar',`<p>El código <b>${esc(c.code)}</b> no está en el inventario.</p><p class="sm mut">Te abro el alta con la búsqueda en la web ya hecha; al guardar se suma al ticket.</p>`,{okText:'Dar de alta',onOk:()=>{pos.q=c.code;setTimeout(()=>A.posNewItem(),0);}});}catch(e){}
+ return r;};}
+(function(){if(typeof document==='undefined'||document.getElementById('pw-css'))return;const st=document.createElement('style');st.id='pw-css';
+ st.textContent=`.pw-bar{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:.7rem;margin:0 0 .8rem}.pw-row{display:flex;gap:.5rem;flex-wrap:wrap}.pw-row input{flex:1 1 220px;min-width:0}.pw-sr{position:absolute;left:-9999px}.pw-ft{display:inline-flex;gap:.4rem;flex-wrap:wrap}
+.pw-fill{box-shadow:inset 0 0 0 2px rgba(37,99,235,.45)!important}.pw-mk{color:#1d4ed8;font-weight:700}.pw-ok{margin-top:.5rem}.pw-okh{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}.pw-okh .cx-lk{margin-left:auto}
+.pw-imgs{display:flex;gap:.45rem;flex-wrap:wrap;margin:.4rem 0}.pw-img{display:flex;flex-direction:column;align-items:center;gap:.15rem;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:.25rem;cursor:pointer;font:inherit;color:inherit}.pw-img img{width:76px;height:76px;object-fit:contain;border-radius:8px;background:#fff}.pw-img small{font-size:.65rem;color:var(--mut)}.pw-img.on{border-color:var(--gold)}
+.pw-spin{display:inline-block;width:.9rem;height:.9rem;border:2px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:pwsp .8s linear infinite;vertical-align:-2px}@keyframes pwsp{to{transform:rotate(360deg)}}
+[data-theme=dark] .pw-mk{color:#93b4ff}@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .pw-mk{color:#93b4ff}}`;document.head.appendChild(st);})();
 
 /* =====================================================================
    MENÚ PÚBLICO: MODALIDAD «LOCAL» O «TIENDA CON ENVÍOS» (V26.10 · 4.26)

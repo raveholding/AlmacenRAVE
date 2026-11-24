@@ -70,13 +70,12 @@ async function pwBuscar(q,signal){const c=pwCode(q);if(c.tipo==='interno'||c.tip
  if(r&&r.ok&&c.nota)r.nota=c.nota;return r||{ok:false,error:'La nube no respondió.',etapa:'red'};}
 /* ---------- interfaz dentro de «Nuevo producto» ---------- */
 function pwBarHTML(){return `<div class="pw-bar" id="pw-bar"><div class="pw-row"><label for="pw-q" class="pw-sr">Código de barras, SKU o nombre</label><input id="pw-q" placeholder="Escaneá el código o escribí el nombre" autocomplete="off" inputmode="search">
- <button type="button" class="btn gold" id="pw-go">🔎 Buscar en la web</button></div><div id="pw-res" aria-live="polite"><p class="sm mut" style="margin:.35rem 0 0">${PW_DEMO?'Demostración: busca en un catálogo de ejemplo. ':''}Completa nombre, presentación, marca y foto. El precio lo ponés vos.</p></div></div>`;}
+ <button type="button" class="btn gold" id="pw-go">🔎 Buscar en la web</button><button type="button" class="btn" id="pw-gg" title="Abre Google en otra pestaña (gratis)">Buscar en Google</button></div><div id="pw-res" aria-live="polite"><p class="sm mut" style="margin:.35rem 0 0">${PW_DEMO?'Demostración: busca en un catálogo de ejemplo. ':''}Completa nombre, presentación, marca y foto. El precio lo ponés vos.</p></div></div>`;}
 function pwMarcaHTML(p){return `<label for="pm-mk">Marca (opcional)</label><input id="pm-mk" maxlength="40" value="${esc(p&&p.marca?p.marca:'')}">`;}
 function pwFill(w,id,v){const el=w.querySelector('#'+id);if(!el||v==null||v==='')return false;el.value=v;el.classList.add('pw-fill');el.addEventListener('input',()=>el.classList.remove('pw-fill'),{once:true});return true;}
 function pwApply(w,r){const f=pwNorm(r.borrador||{});w._pw={f,fuente:r.fuente,conf:r.confianza};const n=[];
  if(pwFill(w,'pm-n',f.nombre))n.push('nombre');if(pwFill(w,'pm-sub',f.presentacion))n.push('presentación');if(pwFill(w,'pm-b',f.barcode))n.push('código');
  if(pwFill(w,'pm-d',f.descripcion))n.push('descripción');if(pwFill(w,'pm-mk',f.marca))n.push('marca');const u=w.querySelector('#pm-u');if(u&&f.unidad){u.value=f.unidad;u.dispatchEvent(new Event('change',{bubbles:true}));}
- const m=w.querySelector('#pm-m');if(m)m.checked=false;
  const sg=pwRubroSug(f);const sel=w.querySelector('#pm-r');let sgTxt='';
  if(sg&&sg.id&&sel){if(typeof ownerMode==='function'&&ownerMode()&&!sel.value){sel.value=sg.id;sel.classList.add('pw-fill');sgTxt='Categoría sugerida: <b>'+esc(sg.name)+'</b> (revisala).';}else sgTxt='Sugerencia: <b>'+esc(sg.name)+'</b>. Elegí '+(ownerMode()?'la categoría':'el rubro')+' vos.';}
  else if(sg)sgTxt='Elegí '+(typeof ownerMode==='function'&&ownerMode()?'la categoría':'el rubro')+' (no encontré uno parecido para «'+esc(f.categoria_fuente||sg.cat)+'»).';
@@ -107,9 +106,38 @@ function pwBind(w){const q=w.querySelector('#pw-q'),b=w.querySelector('#pw-go');
   const c=pwCode(v);const bb=w.querySelector('#pm-b');if(bb&&!bb.value&&c.code&&r.etapa!=='duplicado')bb.value=c.code;
   $('#pw-res',w).innerHTML=`<p class="sm ${r.etapa==='validacion'?'warn':''}" style="margin:.35rem 0 0">${esc(r.error||'Sin resultados.')}${r.existe?` <button type="button" class="btn sm" id="pw-open">Abrir ese producto</button>`:''}${(r.avisos||[]).length?' <span class="mut">('+esc(r.avisos.join(' · '))+')</span>':''}</p>`;
   const op=$('#pw-open',w);if(op)op.addEventListener('click',()=>{w.remove();A.pedit({dataset:{id:r.existe}});});};
- b.addEventListener('click',run);q.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();run();}});
+ {const g=w.querySelector('#pw-gg');if(g)g.addEventListener('click',()=>pwGoogle(w,false));}b.addEventListener('click',run);q.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();run();}});
  /* desde Vender el código se completa justo después de abrir: se mira un instante después */
  setTimeout(()=>{const bc=w.querySelector('#pm-b');if(bc&&bc.value&&pwCode(bc.value).tipo==='ean'){q.value=bc.value;run();}else if(!w.querySelector('#pm-n').value)q.focus();},90);}
+/* ---------- V27.31b · Google y foto pegada (gratis, sin claves ni servicios pagos) ----------
+   «Buscar en Google» abre Google en otra pestaña con el nombre o el código. La foto se trae copiándola
+   («Copiar imagen») y tocando «Pegar foto» (o Ctrl+V dentro del formulario), o guardándola y usando «Cargar foto».
+   Siempre pasa por el recorte y se achica igual que la foto propia, y queda guardada en el producto (sin enlaces a otros sitios). */
+function pwGQ(w){const v=id=>{const e=w.querySelector('#'+id);return e?String(e.value||'').trim():'';};
+ return [v('pm-n')||v('pw-q'),v('pm-mk'),v('pm-sub')].filter(Boolean).join(' ')||v('pm-b');}
+function pwGoogle(w,img){const q=pwGQ(w);if(!q){toast('Escribí primero el nombre o el código.');const n=w.querySelector('#pm-n');if(n)n.focus();return;}
+ window.open('https://www.google.com/search?'+(img?'tbm=isch&':'')+'q='+encodeURIComponent(q),'_blank','noopener');}
+async function pwPegarBlob(w,blob){const v=w.querySelector('#pm-imgv'),n=w.querySelector('#pm-imgn'),x=w.querySelector('#pm-imgx'),s=w.querySelector('#pm-imgs');
+ if(!blob||!/^image\//.test(blob.type||'')){if(s)s.textContent='Lo que pegaste no es una foto. En Google tocá la foto y elegí «Copiar imagen».';return;}
+ if(blob.size>8*1024*1024){if(s)s.textContent='La foto es muy pesada (más de 8 MB).';return;}
+ try{if(s)s.textContent='Achicando la foto…';const im=await imgLoad(blob);if(s)s.textContent='Recortá la foto…';const r=await imgCropModal(im);if(!r){if(s)s.textContent='No se cambió la foto.';return;}
+  const d=imgEncode(im,r);w._img=d;w._pwImg=null;if(v){v.src=d;v.style.display='';}if(n)n.hidden=true;if(x)x.hidden=false;
+  const m=w.querySelector('#pm-m');let extra='';if(m&&!m.checked&&!w._pwEdit){m.checked=true;extra=' Marqué «Publicar en menú digital» (podés destildarlo).';}
+  if(s)s.textContent='Foto lista ('+Math.round(d.length*0.75/1024)+' KB). Se guarda al tocar «Guardar».'+extra;}
+ catch(e){if(s)s.textContent=String(e.message||e).slice(0,140);}}
+async function pwPegar(w){const s=w.querySelector('#pm-imgs');
+ try{if(!navigator.clipboard||!navigator.clipboard.read)throw new Error('x');const items=await navigator.clipboard.read();
+  for(const it of items){const t=it.types.find(y=>/^image\//.test(y));if(t){await pwPegarBlob(w,await it.getType(t));return;}}
+  if(s)s.textContent='No hay ninguna foto copiada. En Google tocá la foto y elegí «Copiar imagen»; después volvé y tocá «Pegar foto».';}
+ catch(e){if(s)s.textContent='Tu navegador no deja leer lo copiado con el botón: tocá dentro del formulario y pegá con Ctrl+V (en el celular, guardá la foto y usá «Cargar foto»).';}}
+function pwFotoBind(w,p){const f=w.querySelector('#pm-imgf');if(!f||w.querySelector('#pw-gimg'))return;w._pwEdit=!!p;
+ const x=w.querySelector('#pm-imgx');const box=document.createElement('span');box.className='pw-ft';
+ box.innerHTML='<button type="button" class="btn sm" id="pw-gimg" title="Abre Google Imágenes en otra pestaña">🔎 Buscar foto en Google</button><button type="button" class="btn sm" id="pw-paste">📋 Pegar foto</button>';
+ (x||f).insertAdjacentElement('afterend',box);
+ const s=w.querySelector('#pm-imgs');if(s)s.textContent='Cargá tu foto, o buscala en Google: tocá la foto, «Copiar imagen», y acá «Pegar foto». Se achica sola para el menú.';
+ box.querySelector('#pw-gimg').addEventListener('click',()=>pwGoogle(w,true));box.querySelector('#pw-paste').addEventListener('click',()=>pwPegar(w));
+ w.addEventListener('paste',e=>{const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(y=>y.kind==='file'&&/^image\//.test(y.type));if(!it)return;e.preventDefault();pwPegarBlob(w,it.getAsFile());});}
+if(typeof menuProdBind==='function'){const _mb=menuProdBind;menuProdBind=function(w,p){const r=_mb.apply(this,arguments);try{pwFotoBind(w,p);}catch(e){}return r;};}
 /* al guardar: marca, origen de la foto, auditoría, caché y (opcional) aporte a las fichas compartidas */
 function pwRead(w,p){const o={};const mk=w.querySelector('#pm-mk');if(mk)o.marca=mk.value.trim().slice(0,40);if(w._pwImg&&w._img)o.imgSrc=w._pwImg;
  const P=w._pw;if(P&&!p){const f=P.f;audit('ALTA_PRODUCTO_WEB',(val('pm-n')||f.nombre)+' · '+(rubName?rubName(val('pm-r')):'')+' · fuente '+P.fuente+' · confianza '+Math.round((P.conf||0)*100)+' %');
@@ -122,7 +150,7 @@ if(typeof addByCode==='function'){const _ab=addByCode;addByCode=function(code){c
   modal('Código sin cargar',`<p>El código <b>${esc(c.code)}</b> no está en el inventario.</p><p class="sm mut">Te abro el alta con la búsqueda en la web ya hecha; al guardar se suma al ticket.</p>`,{okText:'Dar de alta',onOk:()=>{pos.q=c.code;setTimeout(()=>A.posNewItem(),0);}});}catch(e){}
  return r;};}
 (function(){if(typeof document==='undefined'||document.getElementById('pw-css'))return;const st=document.createElement('style');st.id='pw-css';
- st.textContent=`.pw-bar{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:.7rem;margin:0 0 .8rem}.pw-row{display:flex;gap:.5rem;flex-wrap:wrap}.pw-row input{flex:1 1 220px;min-width:0}.pw-sr{position:absolute;left:-9999px}
+ st.textContent=`.pw-bar{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:.7rem;margin:0 0 .8rem}.pw-row{display:flex;gap:.5rem;flex-wrap:wrap}.pw-row input{flex:1 1 220px;min-width:0}.pw-sr{position:absolute;left:-9999px}.pw-ft{display:inline-flex;gap:.4rem;flex-wrap:wrap}
 .pw-fill{box-shadow:inset 0 0 0 2px rgba(37,99,235,.45)!important}.pw-mk{color:#1d4ed8;font-weight:700}.pw-ok{margin-top:.5rem}.pw-okh{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}.pw-okh .cx-lk{margin-left:auto}
 .pw-imgs{display:flex;gap:.45rem;flex-wrap:wrap;margin:.4rem 0}.pw-img{display:flex;flex-direction:column;align-items:center;gap:.15rem;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:.25rem;cursor:pointer;font:inherit;color:inherit}.pw-img img{width:76px;height:76px;object-fit:contain;border-radius:8px;background:#fff}.pw-img small{font-size:.65rem;color:var(--mut)}.pw-img.on{border-color:var(--gold)}
 .pw-spin{display:inline-block;width:.9rem;height:.9rem;border:2px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:pwsp .8s linear infinite;vertical-align:-2px}@keyframes pwsp{to{transform:rotate(360deg)}}

@@ -4,6 +4,13 @@ Sistema de gestión (POS + inventario + caja + clientes + menú público) para *
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
 Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
+## V27.31b — Alta de productos simple y gratis (sólo Almacén RAVE)
+- «Buscar en Google» (datos) y «Buscar foto en Google» abren Google en otra pestaña con el nombre o el código: sin claves ni servicios pagos.
+- «Pegar foto» (o Ctrl+V en el formulario): la foto copiada de Google pasa por el recorte, se achica y queda guardada en el producto.
+- Al agregar una foto en un producto nuevo se marca «Publicar en menú digital» (se puede destildar); la búsqueda ya no apaga el menú.
+- Función `productos` v2: sólo fuentes gratuitas (Open Food/Beauty/Products Facts). UPCitemdb, Brave e IA quedan apagadas aunque exista una clave (se encienden sólo con `PW_PAGOS=si`).
+- El Launch pad no es pantalla de inicio ni aparece en el portal del empleado.
+
 ## Versión: SISTEMA VB 26F (`SISTEMA_VB_26F`)
 
 **V27.31 (2026-11-24):** **Rediseño de Atención al cliente, Launch pad y alta de productos desde internet.**
