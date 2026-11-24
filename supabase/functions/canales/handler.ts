@@ -154,11 +154,18 @@ export async function manejar(req: Request, env: Entorno, f: F = fetch): Promise
         // V27.30: suscribe la app a la cuenta de WhatsApp (idempotente) para que los mensajes de los clientes lleguen al webhook
         let sus = ""; if (r.ok && env.WA_WABA_ID && /^\d{6,20}$/.test(env.WA_WABA_ID)) { const s = await f(`${env.GRAPH_BASE ?? "https://graph.facebook.com"}/v21.0/${env.WA_WABA_ID}/subscribed_apps`, { method: "POST", headers: { authorization: "Bearer " + env.WA_TOKEN } }); sus = s.ok ? " · recepción activada" : " · no se pudo activar la recepción (" + s.status + ")"; }
         return R({ ok: r.ok && !!env.META_APP_SECRET && !sus.includes("no se pudo"), msg: r.ok ? "WhatsApp " + String(j.display_phone_number ?? "") + sus + (env.META_APP_SECRET ? "" : " · falta META_APP_SECRET para recibir") : "Meta rechazó el token (" + r.status + ")" }); }
-      if (k === "ig" || k === "fb") { if (!env.META_PAGE_TOKEN) return R({ ok: false, msg: "Falta META_PAGE_TOKEN" }); const r = await f(`${env.GRAPH_BASE ?? "https://graph.facebook.com"}/v21.0/me?fields=name,instagram_business_account{username}`, { headers: { authorization: "Bearer " + env.META_PAGE_TOKEN } });
-        const j = await r.json().catch(() => ({})); const ig = j.instagram_business_account?.username;
-        // V27.30: suscribe la página a la app (idempotente): mensajes de Messenger e Instagram al webhook
-        let sus = ""; if (r.ok) { const s = await f(`${env.GRAPH_BASE ?? "https://graph.facebook.com"}/v21.0/me/subscribed_apps?subscribed_fields=messages,messaging_postbacks`, { method: "POST", headers: { authorization: "Bearer " + env.META_PAGE_TOKEN } }); sus = s.ok ? " · recepción activada" : " · no se pudo activar la recepción (" + s.status + ")"; }
-        return R({ ok: r.ok && !!env.META_APP_SECRET && (k === "fb" || !!ig) && !sus.includes("no se pudo"), msg: r.ok ? (k === "ig" ? (ig ? "Instagram @" + ig : "La página no tiene una cuenta de Instagram profesional vinculada") : "Página «" + String(j.name ?? "") + "»") + sus + (env.META_APP_SECRET ? "" : " · falta META_APP_SECRET") : "Meta rechazó el token (" + r.status + ")" }); }
+      if (k === "ig" || k === "fb") { if (!env.META_PAGE_TOKEN) return R({ ok: false, msg: "Falta META_PAGE_TOKEN" }); const G0 = env.GRAPH_BASE ?? "https://graph.facebook.com"; const H = { authorization: "Bearer " + env.META_PAGE_TOKEN };
+        // V27.30: la página y su Instagram se consultan por separado y se muestra el motivo exacto que da Meta
+        const r = await f(`${G0}/v21.0/me?fields=id,name`, { headers: H }); const j = await r.json().catch(() => ({}));
+        const err = (x: J) => String(x?.error?.message ?? "").slice(0, 140);
+        // leer el nombre puede pedir pages_read_engagement; para recibir y responder alcanzan pages_messaging y pages_manage_metadata
+        const lect = r.ok ? "" : err(j);
+        let ig = "", igErr = ""; if (k === "ig") { const ri = await f(`${G0}/v21.0/me?fields=instagram_business_account{username}`, { headers: H }); const ji = await ri.json().catch(() => ({})); ig = ji.instagram_business_account?.username ?? ""; if (!ri.ok) igErr = err(ji) || String(ri.status); }
+        // suscribe la página a la app (idempotente): mensajes de Messenger e Instagram al webhook
+        const s = await f(`${G0}/v21.0/me/subscribed_apps?subscribed_fields=messages,messaging_postbacks`, { method: "POST", headers: H }); const js = s.ok ? {} : await s.json().catch(() => ({}));
+        const sus = s.ok ? " · recepción activada" : " · no se pudo activar la recepción (" + s.status + (err(js) ? ": " + err(js) : "") + ")";
+        if (!s.ok) return R({ ok: false, msg: "Meta rechazó el token de la página" + sus + (lect ? " · " + lect : "") });
+        return R({ ok: !!env.META_APP_SECRET, msg: (k === "ig" ? (ig ? "Instagram @" + ig : "Instagram (por la página)") : (j.name ? "Página «" + String(j.name) + "»" : "Página conectada")) + sus + (env.META_APP_SECRET ? "" : " · falta META_APP_SECRET") }); }
       if (k === "mail") return R({ ok: !!env.MAIL_IN_SECRET && !!(env.RESEND_API_KEY && env.MAIL_FROM), msg: (env.MAIL_IN_SECRET ? "Entrada lista" : "Falta MAIL_IN_SECRET") + " · " + (env.RESEND_API_KEY && env.MAIL_FROM ? "salida con " + env.MAIL_FROM : "falta RESEND_API_KEY / MAIL_FROM") });
       return R({ error: "canal inválido" }, 400);
     }

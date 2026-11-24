@@ -143,7 +143,7 @@ function canalesHTML(){const adm=can('config');const O=canOA();const on=canOnLis
   const foot=!adm?'':meta?cxBtn('Editar enlaces','canMetaLinks','')+cxLk('Desconectar Meta','omniOAOff',`data-id="${meta.id}"`)
    :O.disp.meta?cxBtn('Conectar con Meta','omniOAGo','data-p="meta"',1)+cxLk('Editar enlaces','canMetaLinks',''):cxBtn(st==='off'?'Cargar enlaces':'Editar enlaces','canMetaLinks','',st==='off');
   // V27.30 · WhatsApp Business API con la app y el token propios del comercio (secretos WA_TOKEN / WA_PHONE_ID en la función «canales»)
-  const waTok=adm&&!viaM('wa')&&typeof canNube==='function'&&canNube()?cxLk(sts[0]==='api'?'WhatsApp integrado · Probar':'WhatsApp con token propio','canAbrir','data-k="wa"'):'';
+  const waTok=adm&&typeof canNube==='function'&&canNube()?CAN_META.filter(k=>!viaM(k)).map((k,i)=>{const n={wa:'WhatsApp',ig:'Instagram',fb:'Messenger'}[k];return cxLk(canEstado(k)==='api'?n+' integrado · Probar':n+' con token propio','canAbrir','data-k="'+k+'"');}).join(''):'';
   cards.push(cxCard({wide:1,t:'Meta: WhatsApp, Instagram y Messenger',d:meta?'Conectado: los mensajes de los tres entran a la Bandeja y se responden desde acá.':'Tus clientes te escriben por WhatsApp, Instagram y Messenger desde el menú y la app del Club.',ic:'<b style="color:#fff">∞</b>',col:'#1877f2',st,
    body:`<ul class="cx-chips">${CAN_META.map((k,i)=>chip(k,sts[i])).join('')}</ul>${meta?`<p class="cx-u">Cuenta: ${esc(meta.cuenta)}${meta.error?' · <span class="neg">'+esc(meta.error)+'</span>':''}</p>`:''}`,
    nota:meta||O.disp.meta?'':'Con la conexión directa a Meta, los mensajes entran a la Bandeja. La habilita Vincular Business.',tech:meta||O.disp.meta?'':canOAFalta('meta'),foot:foot+waTok}));}
