@@ -190,6 +190,10 @@ if DEMO:
                 ('alt=\\"Kini','alt=\\"'+N),('class=\\"foot-brand\\">KINI<','class=\\"foot-brand\\">'+N.upper()+'<'),('<title>Kini','<title>'+N),
                 ('Distribuidora mayorista · demo',DEMO['slogan']),('Kini: proveedores, deudas y orden de ejemplo','Datos de ejemplo: proveedores, deudas y orden'),('Wholesale distributor · demo',DEMO['slogan'])]:
         html=html.replace(a,b)
+if DEMO:
+    # V27.37 · las demos no muestran la fecha de compilación en Configuración (dato interno)
+    import re as _re
+    html=_re.sub(r"<p class=\"sm mut\">Sistema (?:RAVE|VB) · \$\{IS_CLIENT\?'versión del cliente':'demo de evaluación'\} · compilada \$\{esc\(BUILD_VER\)\}</p>",'',html)
 if PROFILE in('solo','v3'): html=solo_brand(html,PROFILE=='v3')
 # V26.69 · app instalable (PWA): manifiesto del sistema, manifiesto del Club, service worker e íconos junto al HTML
 APPN={'demo-vb':(DEMO['nombre'] if DEMO else '','VB','Club VB'),'cliente':('AlmacenRAVE','RAVE','Club RAVE'),'kini':('Kini Distribuidora','Kini','Club Kini'),'v3':('Sistema VB Empresas','VB','Club VB'),'solo':('Sistema VB','VB','Club VB')}.get('cliente' if V=='cliente' else ('demo-vb' if DEMO else PROFILE),('Sistema RAVE','RAVE','Club RAVE'))
