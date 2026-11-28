@@ -4,6 +4,12 @@ Sistema de gestión (POS + inventario + caja + clientes + menú público) para *
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
 Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
+## V27.38 — Menú: Club destacado con tarjeta de ejemplo y centrado en pantallas anchas (sólo Almacén RAVE)
+- El Club vuelve a mostrarse completo, como en los menús de Sistema VB: título «Registrate gratis y empezá a ganar en cada compra», cuatro beneficios reales (sellos con la meta y el premio configurados, cupones de socio, tarjeta en el celular, pedidos más rápidos), «Crear mi cuenta gratis» / «Ya soy socio» y, a la derecha, la **TARJETA DE EJEMPLO** con sellos, premio y cuántos faltan, en negro y dorado. En celular se apila.
+- En pantallas anchas el banner de envío gratis y los bloques ocupan el ancho del menú (antes quedaban corridos a la izquierda).
+- Arreglo: el pie mostraba «[object Object]» en lugar de la descripción del comercio.
+- Pruebas: mv3 sigue el horario de alcohol (de noche usa productos habilitados); kc1 con contraste correcto en la tarjeta.
+
 ## V27.33 — Menú público compacto y orientado a la venta (sólo Almacén RAVE)
 - Nueva capa `pub/v3.css` + `pub/v3.js` sobre la tienda premium (no borra nada de lo que funcionaba): la página en celular pasa de ~15.500 a ~10.400 px.
 - Encabezado compacto (logo, nombre, horario de alcohol, compartir y tema); el idioma pasa al pie. Banner único de envío gratis y «Armá tu evento» debajo.

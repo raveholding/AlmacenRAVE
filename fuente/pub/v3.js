@@ -3,7 +3,7 @@
    · encabezado compacto con el horario, banner único de envío gratis y «Armá tu evento» arriba
    · categorías con íconos, Combos/Promos primero; «+ Agregar» grande en cada producto
    · barra del pedido con total, «Ver pedido» y el progreso del envío gratis; el pedido sigue si se recarga la página (misma pestaña)
-   · Club plegado (sumarse / ver mi tarjeta), pie compacto con mapa, reseña, WhatsApp y redes, y legales en una ventana
+   · Club destacado con tarjeta de ejemplo (sumarse / ver mi tarjeta), pie compacto con mapa, reseña, WhatsApp y redes, y legales en una ventana
    · créditos de Vincular Business en una línea (se despliegan al tocarla) */
 (function(){
   var $=function(s,r){return (r||document).querySelector(s);}, $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
@@ -71,10 +71,24 @@
   (function(){ var form=$('#club-form'), join=form&&form.closest('.club-block'), loy=$('#loyalty-block'); if(!join) return;
     if(getComputedStyle(join).display==='none') return;
     var cp=$('#coupons-block'); var s=site(), cl=s.club||{}, has=false; try{ has=!!localStorage.getItem('rave.card'); }catch(e){}
-    var mini=document.createElement('div'); mini.id='club-mini'; mini.className='club-block';
-    var txt=cl.reward&&!/a definir/i.test(cl.reward)?L('Sumá un sello en cada compra: con '+(cl.goal||10)+' sellos te llevás ','Get a stamp with every purchase: '+(cl.goal||10)+' stamps = ')+esc(cl.reward)+'.':L('Sumá sellos con tus compras y accedé a premios, cupones y beneficios de socio.','Collect stamps and get rewards, coupons and member perks.');
-    mini.innerHTML='<h2>⭐ '+L('Club ','Club ')+esc(String(s.title||(($('header .brand-title')||{}).textContent)||'').replace(/\s*digital$/i,''))+'</h2><p>'+txt+'</p><div class="v3-row">'
-      +'<button type="button" class="'+(has?'':'pri')+'" data-club="join">'+L('Sumarme gratis','Join for free')+'</button><button type="button" class="'+(has?'pri':'')+'" data-club="card">'+L('Ver mi tarjeta','My card')+'</button></div>';
+    /* V27.38 · Club destacado (como los menús de Sistema VB): beneficios reales a la izquierda y TARJETA DE EJEMPLO a la derecha */
+    var shop=String(s.title||(($('header .brand-title')||{}).textContent)||'').replace(/\s*digital$/i,'').trim();
+    var g=Math.max(2,Math.min(20,+cl.goal||10)), n=Math.min(g-1,Math.max(1,Math.round(g*0.7))), rw=cl.reward&&!/a definir/i.test(cl.reward)?String(cl.reward):'';
+    var hasCp=!!(cp&&getComputedStyle(cp).display!=='none'&&cp.textContent.trim().length>20), hasPush=!!(s.push&&(s.push.on||s.push===true));
+    var ben=[['🎁',L('Sumá sellos','Collect stamps'),rw?L('Cada compra suma un sello. Con '+g+' te llevás ','Every purchase adds a stamp. '+g+' stamps = ')+esc(rw)+'.':L('Cada compra suma un sello y canjeás premios.','Every purchase adds a stamp.')],
+      ['🎟️',L('Cupones de socio','Member coupons'),hasCp?L('Promos y códigos que sólo reciben los socios del Club.','Promos and codes only for members.'):L('Promos y códigos exclusivos para socios por WhatsApp.','Exclusive promos and codes for members.')],
+      ['📲',L('Tu tarjeta en el celular','Your card on your phone'),L('Instalá la app del Club: ves tus sellos y tus beneficios cuando quieras.','Install the Club app to see your stamps any time.')],
+      ['⚡',L('Pedís más rápido','Faster orders'),L('Tus datos quedan guardados y repetís tus pedidos en segundos.','Your details are saved for quicker orders.')]];
+    var dots=''; for(var i=0;i<g;i++){ var on=i<n, last=i===g-1; dots+='<i class="'+(on?'on':'')+(last&&!on?' gift':'')+'">'+(on?'✓':(last?'🎁':(i+1)))+'</i>'; }
+    var mini=document.createElement('section'); mini.id='club-mini'; mini.className='club-block'; mini.setAttribute('aria-labelledby','club-h');
+    mini.innerHTML='<div class="ch-l"><div class="ch-k">✦ CLUB '+esc(shop.toUpperCase())+'</div><h2 id="club-h">'+L('Registrate gratis y empezá a ganar en cada compra','Join for free and earn with every purchase')+'</h2>'
+      +'<p class="ch-p">'+L('Con tu tarjeta sumás sellos, recibís cupones de socio y pedís más rápido.','Collect stamps, get member coupons and order faster.')+'</p>'
+      +'<div class="ch-ben">'+ben.map(function(b){ return '<div class="ch-b"><span class="ch-i" aria-hidden="true">'+b[0]+'</span><div><b>'+b[1]+'</b><small>'+b[2]+'</small></div></div>'; }).join('')+'</div>'
+      +'<div class="v3-row"><button type="button" class="'+(has?'':'pri')+'" data-club="join">👤 '+L('Crear mi cuenta gratis','Create my free account')+'</button><button type="button" class="'+(has?'pri':'')+'" data-club="card">'+L('Ya soy socio: ver mi tarjeta','I am a member: my card')+'</button></div></div>'
+      +'<div class="ch-r" aria-label="'+L('Tarjeta de ejemplo','Sample card')+'"><div class="ch-card"><div class="ch-ct"><div><small>'+L('TARJETA DE EJEMPLO','SAMPLE CARD')+'</small><b>'+L('Sofía · Socia del Club','Sofia · Club member')+'</b></div>'+(shop?'<span class="ch-lv">★ '+esc(shop)+'</span>':'')+'</div>'
+      +'<div class="ch-st"><div class="ch-sth"><span>'+L('Tus sellos','Your stamps')+'</span><span>'+n+' / '+g+'</span></div><div class="ch-dots" style="grid-template-columns:repeat('+Math.min(5,g)+',1fr)">'+dots+'</div></div>'
+      +'<div class="ch-bx"><div class="ch-x1"><small>'+L('TU PREMIO','YOUR REWARD')+'</small><b>'+(rw?esc(rw):L('Un regalo del Club','A Club gift'))+'</b></div><div class="ch-x2"><small>'+L('TE FALTAN','TO GO')+'</small><b>'+(g-n)+' '+L(g-n===1?'sello':'sellos',g-n===1?'stamp':'stamps')+'</b></div></div></div>'
+      +'<p class="ch-ej">'+L('Es un ejemplo: tu tarjeta real se crea al registrarte.','This is a sample: your real card is created when you join.')+'</p></div>';
     var more=document.createElement('div'); more.id='club-more'; more.hidden=true;
     join.parentNode.insertBefore(mini,join); mini.parentNode.insertBefore(more,mini.nextSibling); more.appendChild(join); if(loy) more.appendChild(loy);
     if(cp) mini.parentNode.insertBefore(cp,mini);
@@ -106,7 +120,7 @@
     var soc=(s.social||[]).filter(function(x){ return x&&/^https:\/\//.test(x.url||''); }).slice(0,6).map(function(x){ var ic=(s.icons||{})[x.k]; var svg=typeof ic==='string'&&/^<svg[\s>]/.test(ic)&&!/<script|on\w+=/i.test(ic)?ic:'🔗';
       return '<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(x.label||x.k)+'">'+svg+'</a>'; }).join('');
     ft.classList.add('v3-foot');
-    ft.innerHTML='<div class="v3-fb">'+esc(ttl.toUpperCase())+'</div><div>'+esc(s.sub||(($('header .brand-sub')||{}).textContent)||'')+(addr?' · '+esc(addr):'')+'</div>'
+    ft.innerHTML='<div class="v3-fb">'+esc(ttl.toUpperCase())+'</div><div>'+esc((typeof s.sub==='string'?s.sub:'')||(($('header .brand-sub')||{}).textContent)||'')+(addr?' · '+esc(addr):'')+'</div>'
       +(acts?'<div class="v3-acts">'+acts+'</div>':'')+(soc?'<div class="v3-soc">'+soc+'</div>':'')
       +'<div class="v3-links">'+(dLegal?'<button type="button" data-v3="legal">'+L('Términos y privacidad','Terms & privacy')+'</button><button type="button" data-v3="arrep">'+L('Botón de arrepentimiento','Cancellation button')+'</button>':'')+'</div>'
       +'<p class="v3-small"><b>🔞 '+L('Prohibida su venta a menores de 18 años. Beber con moderación.','Sale to minors under 18 is prohibited. Drink responsibly.')+'</b></p>'

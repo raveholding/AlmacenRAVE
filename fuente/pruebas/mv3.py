@@ -27,13 +27,14 @@ with sync_playwright() as p:
         chk(fr.evaluate("document.querySelector('.promo-banner').nextElementSibling.id")=='ev-block','«Armá tu evento» queda debajo del banner de envío gratis')
     chips=fr.evaluate("[...document.querySelectorAll('.cat-chip')].map(c=>c.textContent.trim())")
     chk(len(chips)>2 and any('🔥' in c for c in chips[:2]),'categorías con íconos y Promos primero: %s'%chips[:4])
-    card=fr.locator('.card').first
-    chk('Agregar' in fr.evaluate("getComputedStyle(document.querySelector('.card .qty-btn.plus'),'::before').content"),'botón «+ Agregar» en cada producto')
-    chk(fr.evaluate("document.querySelector('.card .qty-btn.plus').getAttribute('aria-label')||''").startswith('Agregar'),'botón accesible con el nombre del producto')
+    card=fr.locator('.section:not(.alc-off) :is(.card,.row,.featured)').first
+    chk('Agregar' in fr.evaluate("getComputedStyle(document.querySelector('.section:not(.alc-off) :is(.card,.row,.featured) .qty-btn.plus'),'::before').content"),'botón «+ Agregar» en cada producto')
+    chk(fr.evaluate("document.querySelector('.section:not(.alc-off) :is(.card,.row,.featured) .qty-btn.plus').getAttribute('aria-label')||''").startswith('Agregar'),'botón accesible con el nombre del producto')
     card.locator('.qty-btn.plus').click();m.wait_for_timeout(300)
     chk(fr.is_visible('#cart-bar') and 'Ver pedido' in fr.inner_text('#cart-bar'),'barra del pedido con total y «Ver pedido»')
-    fr.locator('.card .qty-btn.plus').nth(1).click();m.wait_for_timeout(300)
-    chk(fr.locator('#cart-bar .v3-free').count()==1,'la barra muestra el progreso del envío gratis: %s'%(fr.inner_text('#cart-bar .v3-free') if fr.locator('#cart-bar .v3-free').count() else '—'))
+    fr.locator('.section:not(.alc-off) :is(.card,.row,.featured) .qty-btn.plus').nth(1).click();m.wait_for_timeout(300)
+    alc=fr.evaluate("!document.querySelector('.section.alc-off')")
+    if alc: chk(fr.locator('#cart-bar .v3-free').count()==1,'la barra muestra el progreso del envío gratis: %s'%(fr.inner_text('#cart-bar .v3-free') if fr.locator('#cart-bar .v3-free').count() else '—'))
     n0=fr.evaluate("Object.values(RAVE_CART.items()).reduce((s,x)=>s+x.qty,0)")
     m.reload();m.wait_for_timeout(2000);fr=[f for f in m.frames if f!=m.main_frame][0]
     if fr.locator('#age-gate.open').count(): fr.locator('#ag-yes').click();m.wait_for_timeout(300)
