@@ -21,7 +21,7 @@
 <meta property="og:locale" content="es_AR">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "LiquorStore", "name": "Almacén y Licorería RAVE", "url": "https://raveholding.github.io/AlmacenRAVE/", "telephone": "+54 9 387 457 4892", "address": {"@type": "PostalAddress", "streetAddress": "Urquiza 1052", "addressLocality": "Salta", "addressRegion": "Salta", "addressCountry": "AR"}}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242220'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23c9963e' font-family='Georgia,serif' font-weight='700'%3ER%3C/text%3E%3C/svg%3E">
-<script>window.RAVE_BUILD={"ver": "2026-11-28 04:46 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
+<script>window.RAVE_BUILD={"ver": "2026-11-28 05:20 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
 <style>
 :root{--ink:#242220;--gold:#c9963e;--gold2:#a87a28;--bg:#f6f3ee;--card:#fff;--line:#e6e0d6;--mut:#6d675f;--red:#c0392b;--redbg:#fdecea;--ok:#1e7a46;--okbg:#e6f4ec;--warnbg:#fff4dc;--r:16px}
 *{box-sizing:border-box}
@@ -1723,13 +1723,13 @@ const QS_OF={inicio:'Resumen',launch:'Resumen',centro:'Resumen',
  pedidos:'Pedidos y reparto',reparto:'Pedidos y reparto',copiloto:'Pedidos y reparto',carga:'Pedidos y reparto',torre:'Pedidos y reparto',equipo:'Pedidos y reparto',devoluciones:'Pedidos y reparto',
  inventario:'Productos y stock',inventariof:'Productos y stock',depositos:'Productos y stock',precios:'Productos y stock',etiquetas:'Productos y stock',mermas:'Productos y stock',cambios:'Productos y stock',proveedores:'Productos y stock',
  clientes:'Clientes',fidel:'Clientes',fidplus:'Clientes',monedero:'Clientes',cupones:'Clientes',crm:'Clientes',botwa:'Clientes',push:'Clientes',
- finanzas:'Finanzas',contable:'Finanzas',
+ portalb2b:'Clientes',finanzas:'Finanzas',contable:'Finanzas',
  personal:'Equipo',rrhh:'Equipo',tareas:'Equipo',portal:'Equipo',vales:'Equipo',seguridad:'Equipo',
  menuadmin:'Menú y web',legal:'Menú y web',
  config:'Sistema',modulos:'Sistema',roles:'Sistema',auditoria:'Sistema',integ:'Sistema',impex:'Sistema',dispositivos:'Sistema',nube:'Sistema',copias:'Sistema',vbconsola:'Sistema'};
 const QS_EMO={vender:'🛒',inicio:'📊',launch:'🚀',centro:'✨',caja:'💵',presup:'📝',eventos:'🎉',mayor:'🧾',pedidos:'🛵',reparto:'🚚',copiloto:'🗺️',stock:'📦',inventario:'📦',precios:'🏷️',mermas:'♻️',cambios:'🔁',
  proveedores:'🤝',club:'⭐',clientes:'👥',crm:'💬',botwa:'🤖',push:'🔔',finanzas:'💰',contable:'📒',personal:'🕒',rrhh:'🧑‍💼',tareas:'✅',portal:'🙋',vales:'🎟️',seguridad:'🛡️',
- menuadmin:'🌐',legal:'⚖️',config:'⚙️',modulos:'🧩',roles:'🔐',auditoria:'🕵️',integ:'🔌',impex:'📤',dispositivos:'🖨️',nube:'☁️',copias:'💾',vbconsola:'🛠️'};
+ menuadmin:'🌐',legal:'⚖️',config:'⚙️',modulos:'🧩',roles:'🔐',auditoria:'🕵️',integ:'🔌',impex:'📤',dispositivos:'🖨️',nube:'☁️',copias:'💾',vbconsola:'🛠️',portalb2b:'🏪',cajasx:'🏬',arqueo:'🔒',cierres:'🗂️',fidel:'⭐',cupones:'🎟️',monedero:'👛',fidplus:'🎂',pedidosv:'🧾',preventa:'📋',acopios:'📦',carga:'🚛',torre:'🗼',equipo:'📍',devoluciones:'↩️',inventariof:'📋',depositos:'🏬',etiquetas:'🏷️'};
 {try{
  Object.assign(UX_GROUPS,{
   inventario:{t:()=>'Stock e inventario',icon:'box',items:[['inventario','Inventario'],['inventariof','Toma de inventario'],['depositos','Depósitos']]},
@@ -1747,6 +1747,14 @@ function qaSide(){const sd=document.getElementById('side');if(!sd)return;
 #side a.ux-pos-btn .qs-e{font-size:1.25rem}
 #side .ux-sec{letter-spacing:.3px}`;document.head.appendChild(st);
  const _sp2=showPanel;showPanel=function(){const r=_sp2.apply(this,arguments);try{qaSide();}catch(e){}return r;};}
+
+/* V27.43 · los mismos íconos de color en el Launch pad (tarjetas, favoritos y recientes) */
+function qaLaunch(){const v=document.getElementById('view');if(!v)return;
+ v.querySelectorAll('.lp-tile[data-lp]').forEach(t=>{const ic=t.querySelector('.lp-ic');if(!ic||ic.dataset.qe)return;const b=t.querySelector('.lp-go');const e=QS_EMO[t.dataset.lp]||(b&&QS_EMO[b.dataset.id]);if(!e)return;ic.dataset.qe='1';ic.textContent=e;ic.classList.add('qs-lp');});}
+{const st=document.createElement('style');st.textContent='.lp-ic.qs-lp{font-size:1.6rem;line-height:1}#view:has(#qa-box) .lp-quick{display:none!important}';document.head.appendChild(st);
+ const _sp3=showPanel;showPanel=function(){const r=_sp3.apply(this,arguments);try{qaLaunch();}catch(e){}return r;};
+ let qaRaf=0;const mo=new MutationObserver(()=>{if(curScreen!=='launch'||qaRaf)return;qaRaf=requestAnimationFrame(()=>{qaRaf=0;try{qaLaunch();}catch(e){}});});
+ const hook=()=>{const v=document.getElementById('view');if(v)mo.observe(v,{childList:true,subtree:true});else setTimeout(hook,300);};hook();}
 
 /* ===== Cálculos: arqueo, reparto, reporte ===== */
 function hoursOn(empId,day){const ps=S.punches.filter(p=>p.empId===empId&&dkey(p.ts)===day).sort((a,b)=>a.ts-b.ts);let ms=0,open=null,flag=false;
