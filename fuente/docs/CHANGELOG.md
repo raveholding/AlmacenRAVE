@@ -4,6 +4,10 @@ Sistema de gestión (POS + inventario + caja + clientes + menú público) para *
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
 Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
+## V27.45 — Atención: botón «Enviar» con WhatsApp integrado (sólo Almacén RAVE)
+- Con el canal en modo integrado (API oficial), el botón dice **«Enviar ➤»** y el aviso explica que la respuesta sale directo al cliente; antes decía «Abrir WhatsApp y registrar» aunque ya enviaba por la API.
+- Sin modo integrado sigue igual («Abrir WhatsApp y registrar»).
+
 ## V27.44 — Menú: encabezado centrado y bloque «Dónde estamos» (sólo Almacén RAVE)
 - En pantallas anchas el encabezado queda centrado (logo, nombre, rubro y horario al medio; compartir y tema arriba a la derecha).
 - Abajo, antes del pie: **mapa de Google** con la dirección y «Cómo llegar», y al lado **Reseñas** (arriba, «Dejar reseña en Google») y **WhatsApp** (abajo, «Escribir por WhatsApp»), con la misma altura que el mapa. En el celular se apilan.

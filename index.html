@@ -21,7 +21,7 @@
 <meta property="og:locale" content="es_AR">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "LiquorStore", "name": "Almacén y Licorería RAVE", "url": "https://raveholding.github.io/AlmacenRAVE/", "telephone": "+54 9 387 457 4892", "address": {"@type": "PostalAddress", "streetAddress": "Urquiza 1052", "addressLocality": "Salta", "addressRegion": "Salta", "addressCountry": "AR"}}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242220'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23c9963e' font-family='Georgia,serif' font-weight='700'%3ER%3C/text%3E%3C/svg%3E">
-<script>window.RAVE_BUILD={"ver": "2026-11-28 12:00 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
+<script>window.RAVE_BUILD={"ver": "2026-11-28 12:30 UTC", "variant": "cliente", "db": "rave-almacenrave-v1", "publicUrl": "https://raveholding.github.io/AlmacenRAVE/"};window.RAVE_CLOUD={"url": "https://rdvwrrroerxikfqvpgnh.supabase.co", "key": "sb_publishable_iueMw1V95YKMJb91FHL4CA_L94wugEs", "slug": "almacen-rave"};</script>
 <style>
 :root{--ink:#242220;--gold:#c9963e;--gold2:#a87a28;--bg:#f6f3ee;--card:#fff;--line:#e6e0d6;--mut:#6d675f;--red:#c0392b;--redbg:#fdecea;--ok:#1e7a46;--okbg:#e6f4ec;--warnbg:#fff4dc;--r:16px}
 *{box-sizing:border-box}
@@ -6320,6 +6320,8 @@ async function crmAesSeal(kB64,obj){const k=await crypto.subtle.importKey('raw',
 async function crmAesOpen(kB64,box){const k=await crypto.subtle.importKey('raw',unb64(kB64),'AES-GCM',false,['decrypt']);
  return JSON.parse(td.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(box.iv)},k,unb64(box.ct))));}
 const crmCloud=()=>typeof CLOUD!=='undefined'&&CLOUD.on;
+/* V27.45 · el canal envía solo (modo integrado): el botón dice «Enviar» */
+function crmApiOn(c){try{return !!(c&&CHAN_EXT.includes(c.chan)&&chanApi(c.chan)&&(c.ext||c.email)&&crmCloud());}catch(e){return false;}}
 async function crmSend(c,text,extra){text=crmTxt(text);if(!text)throw new Error('Escribí el mensaje.');extra=extra||{};const by=extra.by||(user?user.name:'sistema');
  if(c.chan==='web'&&crmCloud()){if(!c.k)throw new Error('Este chat no tiene su clave: pedile al cliente que vuelva a escribir desde el menú.');
   if(!cl.ready||!cl.online)throw new Error('Sin conexión con la nube: la respuesta NO se envió.');
@@ -6429,7 +6431,7 @@ function crmThreadHTML(){const c=convById(crmSel);if(!c)return'<p class="mut" st
   <div class="crm-bar" role="toolbar" aria-label="Acciones de la conversación"><button class="btn sm" data-act="crmTransfer">↪ Transferir</button><button class="btn sm" data-act="crmMode" data-m="note">🔒 Notas internas</button><button class="btn sm" data-act="crmTags">🏷 Etiquetar</button><button class="btn sm" data-act="crmAsg">${c.asg===crmMe()?'Soltar':c.asg?'Tomar (de '+esc(c.asg)+')':'Tomar'}</button>${crmOpen(c)?'<button class="btn sm crm-close" data-act="crmClose">✕ Cerrar</button>':'<button class="btn sm" data-act="crmReopen">Reabrir</button>'}</div>
   <p class="sm" style="margin:.3rem 0"><span style="color:${PRIO_C[p.lv]};font-weight:600">${PRIO_T[p.lv]}</span>${p.why.length?' · '+esc(p.why.join(' · ')):''} · Ánimo: <b>${SENT_T[mood]}</b> · ${esc(CHAN[c.chan]||c.chan)}${c.dept?' · cola '+esc(c.dept):''}${c.asg?' · agente '+esc(c.asg):' · sin asignar'}</p>
   ${demo?'<p class="sm warnbox" style="margin:.3rem 0">Canal de demostración: los mensajes son de ejemplo. Para recibir y responder de verdad hay que conectar la cuenta del comercio (API oficial de Meta, bot de Telegram o correo).</p>':''}
-  ${c.chan==='wa'?'<p class="sm mut" style="margin:.3rem 0">WhatsApp asistido: al responder se abre WhatsApp con el texto; lo que te mande el cliente se registra con «Registrar lo que escribió». La API oficial de WhatsApp Business (envío automático y plantillas) necesita la cuenta del comercio.</p>':''}
+  ${c.chan==='wa'&&crmApiOn(c)?'<p class="sm mut" style="margin:.3rem 0">✅ WhatsApp integrado: tu respuesta sale directo al cliente con «Enviar» y lo que él escribe llega solo a esta bandeja.</p>':''}${c.chan==='wa'&&!crmApiOn(c)?'<p class="sm mut" style="margin:.3rem 0">WhatsApp asistido: al responder se abre WhatsApp con el texto; lo que te mande el cliente se registra con «Registrar lo que escribió». La API oficial de WhatsApp Business (envío automático y plantillas) necesita la cuenta del comercio.</p>':''}
   <div class="crm-th" id="crm-msgs" aria-live="polite">${msgs||'<p class="sm mut">Sin mensajes.</p>'}</div>`;}
 function crmCalHTML(c){const C=crmCfg();if(!C.turnos)return'';const all=convs().flatMap(x=>(x.appts||[]).filter(a=>a.st!=='cancelado').map(a=>Object.assign({conv:x.id},a)));
  const d0=new Date(now());d0.setHours(0,0,0,0);const days=[...Array(7)].map((_,i)=>new Date(d0.getTime()+i*864e5));
@@ -6463,7 +6465,7 @@ function crmComposerHTML(){const C=crmCfg();const c=convById(crmSel);if(!c)retur
   ${c.chan!=='web'&&!chanApi(c.chan)?'<button type="button" class="btn sm" data-act="crmLogIn">Registrar lo que escribió</button>':''}<span class="sp"></span>
   <select id="crm-cn" aria-label="Respuesta rápida"><option value="">Respuestas rápidas…</option>${C.canned.map((x,i)=>`<option value="${i}">${esc(x.t)}</option>`).join('')}</select></div>
   <label for="crm-tx" style="position:absolute;left:-9999px">Mensaje</label><textarea id="crm-tx" rows="3" maxlength="1500" placeholder="${crmMode==='note'?'Nota sólo para el equipo (el cliente no la ve)':'Escribí tu respuesta…'}" style="width:100%;margin-top:.3rem"></textarea>
-  <div class="row" style="justify-content:flex-end;margin-top:.3rem"><button class="btn gold" data-act="crmSendBtn">${crmMode==='note'?'Guardar nota':c.chan==='wa'?'Abrir WhatsApp y registrar':'Enviar'}</button></div>`;}
+  <div class="row" style="justify-content:flex-end;margin-top:.3rem"><button class="btn gold" data-act="crmSendBtn">${crmMode==='note'?'Guardar nota':crmApiOn(c)?'Enviar ➤':c.chan==='wa'?'Abrir WhatsApp y registrar':'Enviar'}</button></div>`;}
 function crmKpiHTML(){const A0=convs().map(crmFix).filter(c=>crmOpen(c)&&crmVisible(c));const un=A0.filter(c=>c.unread).length;const hi=A0.filter(c=>crmPrio(c).lv==='alta').length;const s=crmStats(30);
  return `<div class="card kpi"><b>${A0.length}</b><span>Activas</span></div><div class="card kpi"><b>${un}</b><span>Sin responder</span></div><div class="card kpi"><b style="color:${hi?'var(--crm-a)':'inherit'}">${hi}</b><span>Prioridad alta</span></div><div class="card kpi"><b>${s.csat==null?'—':s.csat+' %'}</b><span>CSAT 30 días (${s.csatN})</span></div>`;}
 function crmMiniStatsHTML(){const s=crmStats(30);return `<div class="card"><h3 style="margin-top:0">📊 CRM Analytics <span class="sm mut">· últimos 30 días</span></h3><div class="crm-k4">
