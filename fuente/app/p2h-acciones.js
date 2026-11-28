@@ -69,13 +69,13 @@ const QS_OF={inicio:'Resumen',launch:'Resumen',centro:'Resumen',
  pedidos:'Pedidos y reparto',reparto:'Pedidos y reparto',copiloto:'Pedidos y reparto',carga:'Pedidos y reparto',torre:'Pedidos y reparto',equipo:'Pedidos y reparto',devoluciones:'Pedidos y reparto',
  inventario:'Productos y stock',inventariof:'Productos y stock',depositos:'Productos y stock',precios:'Productos y stock',etiquetas:'Productos y stock',mermas:'Productos y stock',cambios:'Productos y stock',proveedores:'Productos y stock',
  clientes:'Clientes',fidel:'Clientes',fidplus:'Clientes',monedero:'Clientes',cupones:'Clientes',crm:'Clientes',botwa:'Clientes',push:'Clientes',
- finanzas:'Finanzas',contable:'Finanzas',
+ portalb2b:'Clientes',finanzas:'Finanzas',contable:'Finanzas',
  personal:'Equipo',rrhh:'Equipo',tareas:'Equipo',portal:'Equipo',vales:'Equipo',seguridad:'Equipo',
  menuadmin:'Menú y web',legal:'Menú y web',
  config:'Sistema',modulos:'Sistema',roles:'Sistema',auditoria:'Sistema',integ:'Sistema',impex:'Sistema',dispositivos:'Sistema',nube:'Sistema',copias:'Sistema',vbconsola:'Sistema'};
 const QS_EMO={vender:'🛒',inicio:'📊',launch:'🚀',centro:'✨',caja:'💵',presup:'📝',eventos:'🎉',mayor:'🧾',pedidos:'🛵',reparto:'🚚',copiloto:'🗺️',stock:'📦',inventario:'📦',precios:'🏷️',mermas:'♻️',cambios:'🔁',
  proveedores:'🤝',club:'⭐',clientes:'👥',crm:'💬',botwa:'🤖',push:'🔔',finanzas:'💰',contable:'📒',personal:'🕒',rrhh:'🧑‍💼',tareas:'✅',portal:'🙋',vales:'🎟️',seguridad:'🛡️',
- menuadmin:'🌐',legal:'⚖️',config:'⚙️',modulos:'🧩',roles:'🔐',auditoria:'🕵️',integ:'🔌',impex:'📤',dispositivos:'🖨️',nube:'☁️',copias:'💾',vbconsola:'🛠️'};
+ menuadmin:'🌐',legal:'⚖️',config:'⚙️',modulos:'🧩',roles:'🔐',auditoria:'🕵️',integ:'🔌',impex:'📤',dispositivos:'🖨️',nube:'☁️',copias:'💾',vbconsola:'🛠️',portalb2b:'🏪',cajasx:'🏬',arqueo:'🔒',cierres:'🗂️',fidel:'⭐',cupones:'🎟️',monedero:'👛',fidplus:'🎂',pedidosv:'🧾',preventa:'📋',acopios:'📦',carga:'🚛',torre:'🗼',equipo:'📍',devoluciones:'↩️',inventariof:'📋',depositos:'🏬',etiquetas:'🏷️'};
 {try{
  Object.assign(UX_GROUPS,{
   inventario:{t:()=>'Stock e inventario',icon:'box',items:[['inventario','Inventario'],['inventariof','Toma de inventario'],['depositos','Depósitos']]},
@@ -93,3 +93,11 @@ function qaSide(){const sd=document.getElementById('side');if(!sd)return;
 #side a.ux-pos-btn .qs-e{font-size:1.25rem}
 #side .ux-sec{letter-spacing:.3px}`;document.head.appendChild(st);
  const _sp2=showPanel;showPanel=function(){const r=_sp2.apply(this,arguments);try{qaSide();}catch(e){}return r;};}
+
+/* V27.43 · los mismos íconos de color en el Launch pad (tarjetas, favoritos y recientes) */
+function qaLaunch(){const v=document.getElementById('view');if(!v)return;
+ v.querySelectorAll('.lp-tile[data-lp]').forEach(t=>{const ic=t.querySelector('.lp-ic');if(!ic||ic.dataset.qe)return;const b=t.querySelector('.lp-go');const e=QS_EMO[t.dataset.lp]||(b&&QS_EMO[b.dataset.id]);if(!e)return;ic.dataset.qe='1';ic.textContent=e;ic.classList.add('qs-lp');});}
+{const st=document.createElement('style');st.textContent='.lp-ic.qs-lp{font-size:1.6rem;line-height:1}#view:has(#qa-box) .lp-quick{display:none!important}';document.head.appendChild(st);
+ const _sp3=showPanel;showPanel=function(){const r=_sp3.apply(this,arguments);try{qaLaunch();}catch(e){}return r;};
+ let qaRaf=0;const mo=new MutationObserver(()=>{if(curScreen!=='launch'||qaRaf)return;qaRaf=requestAnimationFrame(()=>{qaRaf=0;try{qaLaunch();}catch(e){}});});
+ const hook=()=>{const v=document.getElementById('view');if(v)mo.observe(v,{childList:true,subtree:true});else setTimeout(hook,300);};hook();}
