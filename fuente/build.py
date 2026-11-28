@@ -69,6 +69,8 @@ parts=[p for p in parts if EX(p)]
 # V26.76 · Gestión integral (p17-gestion.js). GI=1 lo fuerza y GI=0 lo saca (pruebas).
 # V26.77: Almacén RAVE pasa a ser el sistema único y lleva la gestión integral (todo APAGADO hasta que el administrador lo activa en Sistema → Módulos).
 # V26.77 · Precios y etiquetas profesionales (p18-etiquetas.js), mismo criterio. raveV2 y raveV3 no lo llevan.
+# V27.41 · botones grandes en Inicio y barra inferior clara en el celular: sólo Almacén RAVE
+if (V=='cliente' or os.environ.get('QA')=='1') and EX('p2h-acciones.js'): parts.insert(parts.index('p2g-launch.js')+1,'p2h-acciones.js')
 # V27.39 · Vender más visual (más vendidos, tarjetas con foto, barra del celular): por ahora sólo Almacén RAVE
 if (V=='cliente' or os.environ.get('POS3')=='1') and EX('p31-posv3.js'): parts.insert(parts.index('p3n-posquick.js')+1,'p31-posv3.js')
 # V27.32 · calculador de eventos (Ventas → Eventos y «Armá tu evento» en el menú): por ahora sólo Almacén RAVE

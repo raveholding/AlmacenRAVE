@@ -4,6 +4,12 @@ Sistema de gestión (POS + inventario + caja + clientes + menú público) para *
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
 Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
+## V27.41 — Botones grandes para trabajar rápido (sólo Almacén RAVE)
+- **«¿Qué querés hacer?»** arriba del Resumen: botones grandes con ícono (🛒 Vender destacado, 📦 Productos, 💵 Abrir caja / Caja abierta, 🔒 Cerrar caja, ➕ Nuevo producto, 👥 Clientes, 💬 Atención, 🚚 Proveedores). Sólo los que la persona puede usar.
+- **Barra inferior del celular** más clara: 🏠 Inicio · 🛒 Vender · 📦 Productos · 💵 Caja · 👥 Clientes · ☰ Más, con íconos de color, textos más grandes y la pestaña activa resaltada. La barra del ticket de Vender queda arriba de ella.
+- Cabecera del celular sin «Ver menú público» y deslizable si no entra (320 px sin desborde).
+- Prueba nueva `qa1.py` (12).
+
 ## V27.40 — Vender sin lista eterna (sólo Almacén RAVE)
 - Sin búsqueda ni rubro elegido, Vender muestra **sólo «Más vendidos»** (hasta 12) y una ayuda; el resto aparece al escribir el nombre o el código, pasar el lector o elegir un rubro.
 - Con un rubro elegido se ven los primeros 48 y «Mostrar todos».
