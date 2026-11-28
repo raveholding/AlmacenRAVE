@@ -4,6 +4,13 @@ Sistema de gestión (POS + inventario + caja + clientes + menú público) para *
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
 Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
+## V27.39 — Vender más visual y ágil (sólo Almacén RAVE)
+- **«⚡ Más vendidos»** arriba de la grilla: hasta 12, primero los fijados por el dueño («★ Fijar», permiso de configuración) y después los de más rotación de los últimos 30 días. Un toque los suma al ticket. En el celular es un carrusel.
+- Buscador y rubros **fijos arriba** al bajar; rubros deslizables; tarjetas con **foto**, nombre en 2 líneas y **precio grande**; marca visual al tocar.
+- En la PC el **ticket queda fijo a la derecha**. En el celular: grilla de 2–3 columnas y **barra inferior** con artículos, total y «Ver ticket y cobrar».
+- Carga de fotos ya gratuita (V27.31b): «Pegar foto», «Buscar foto en Google» y Open Food Facts, achicadas a WebP en el equipo.
+- No cambia el cobro, el stock ni la auditoría. Prueba nueva `pv3.py` (15); v2 ajustada para tocar la grilla general.
+
 ## V27.38 — Menú: Club destacado con tarjeta de ejemplo y centrado en pantallas anchas (sólo Almacén RAVE)
 - El Club vuelve a mostrarse completo, como en los menús de Sistema VB: título «Registrate gratis y empezá a ganar en cada compra», cuatro beneficios reales (sellos con la meta y el premio configurados, cupones de socio, tarjeta en el celular, pedidos más rápidos), «Crear mi cuenta gratis» / «Ya soy socio» y, a la derecha, la **TARJETA DE EJEMPLO** con sellos, premio y cuántos faltan, en negro y dorado. En celular se apila.
 - En pantallas anchas el banner de envío gratis y los bloques ocupan el ancho del menú (antes quedaban corridos a la izquierda).
