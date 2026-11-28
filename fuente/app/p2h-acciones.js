@@ -25,7 +25,8 @@ const QA_CSS=`
  #vb-tab button .ti{font-size:1.45rem;line-height:1}
  #vb-tab button{min-width:0;flex:1 1 0!important}
  #vb-tab button span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
- #vb-tab button.on{background:rgba(232,201,141,.16)!important;color:#f3dca8!important}
+ #vb-tab button.on{background:rgba(232,201,141,.16)!important;color:#f3dca8!important;font-weight:600!important}
+ #vb-tab button span:last-child{letter-spacing:-.2px}
  #view{padding-bottom:6.5rem!important}
  #top a[href="#menu"]{display:none!important}
  #top{overflow-x:auto;scrollbar-width:none}#top::-webkit-scrollbar{display:none}
@@ -56,3 +57,39 @@ function qaTabs(){const t=document.getElementById('vb-tab');if(!t||t.dataset.qa)
 {if(!document.getElementById('qa-css')){const st=document.createElement('style');st.id='qa-css';st.textContent=QA_CSS;document.head.appendChild(st);}
  if(typeof mvTabPaint==='function'){const _mp=mvTabPaint;mvTabPaint=function(){try{qaTabs();}catch(e){}return _mp.apply(this,arguments);};}
  const _sp=showPanel;showPanel=function(){const r=_sp.apply(this,arguments);try{qaTabs();qaPaint();}catch(e){}return r;};}
+/* ===== V27.42 · Barra lateral ordenada, sin duplicados y con íconos de color (sólo Almacén RAVE) =====
+   · 9 secciones claras: Resumen · Ventas y caja · Pedidos y reparto · Productos y stock · Clientes · Finanzas · Equipo · Menú y web · Sistema.
+   · Pantallas hermanas en UNA sola entrada con pestañas (como «Gestión de caja»): Precios y etiquetas · Stock e inventario
+     (inventario, toma y depósitos) · Reparto y despacho (despacho, hoja de ruta, cargas, torre, mapa, devoluciones) ·
+     Ventas mayoristas (pedidos de venta, preventa, acopios).
+   · Íconos de color como la barra inferior. No cambia permisos: cada persona sigue viendo sólo lo suyo. */
+const QS_SEC=['Resumen','Ventas y caja','Pedidos y reparto','Productos y stock','Clientes','Finanzas','Equipo','Menú y web','Sistema','Otros'];
+const QS_OF={inicio:'Resumen',launch:'Resumen',centro:'Resumen',
+ caja:'Ventas y caja',cajasx:'Ventas y caja',arqueo:'Ventas y caja',cierres:'Ventas y caja',presup:'Ventas y caja',eventos:'Ventas y caja',pedidosv:'Ventas y caja',preventa:'Ventas y caja',acopios:'Ventas y caja',
+ pedidos:'Pedidos y reparto',reparto:'Pedidos y reparto',copiloto:'Pedidos y reparto',carga:'Pedidos y reparto',torre:'Pedidos y reparto',equipo:'Pedidos y reparto',devoluciones:'Pedidos y reparto',
+ inventario:'Productos y stock',inventariof:'Productos y stock',depositos:'Productos y stock',precios:'Productos y stock',etiquetas:'Productos y stock',mermas:'Productos y stock',cambios:'Productos y stock',proveedores:'Productos y stock',
+ clientes:'Clientes',fidel:'Clientes',fidplus:'Clientes',monedero:'Clientes',cupones:'Clientes',crm:'Clientes',botwa:'Clientes',push:'Clientes',
+ finanzas:'Finanzas',contable:'Finanzas',
+ personal:'Equipo',rrhh:'Equipo',tareas:'Equipo',portal:'Equipo',vales:'Equipo',seguridad:'Equipo',
+ menuadmin:'Menú y web',legal:'Menú y web',
+ config:'Sistema',modulos:'Sistema',roles:'Sistema',auditoria:'Sistema',integ:'Sistema',impex:'Sistema',dispositivos:'Sistema',nube:'Sistema',copias:'Sistema',vbconsola:'Sistema'};
+const QS_EMO={vender:'🛒',inicio:'📊',launch:'🚀',centro:'✨',caja:'💵',presup:'📝',eventos:'🎉',mayor:'🧾',pedidos:'🛵',reparto:'🚚',copiloto:'🗺️',stock:'📦',inventario:'📦',precios:'🏷️',mermas:'♻️',cambios:'🔁',
+ proveedores:'🤝',club:'⭐',clientes:'👥',crm:'💬',botwa:'🤖',push:'🔔',finanzas:'💰',contable:'📒',personal:'🕒',rrhh:'🧑‍💼',tareas:'✅',portal:'🙋',vales:'🎟️',seguridad:'🛡️',
+ menuadmin:'🌐',legal:'⚖️',config:'⚙️',modulos:'🧩',roles:'🔐',auditoria:'🕵️',integ:'🔌',impex:'📤',dispositivos:'🖨️',nube:'☁️',copias:'💾',vbconsola:'🛠️'};
+{try{
+ Object.assign(UX_GROUPS,{
+  inventario:{t:()=>'Stock e inventario',icon:'box',items:[['inventario','Inventario'],['inventariof','Toma de inventario'],['depositos','Depósitos']]},
+  precios:{t:()=>'Precios y etiquetas',icon:'list',items:[['precios','Precios'],['etiquetas','Etiquetas']]},
+  reparto:{t:()=>'Reparto y despacho',icon:'route',items:[['reparto','Despacho'],['copiloto','Mi hoja de ruta'],['carga','Armado de cargas'],['torre','Torre de control'],['equipo','Equipo en el mapa'],['devoluciones','Devoluciones en tránsito']]},
+  mayor:{t:()=>'Ventas mayoristas',icon:'truck',items:[['pedidosv','Pedidos de venta'],['preventa','Preventa'],['acopios','Acopios']]}});
+ Object.keys(UX_SEC_OF).forEach(k=>delete UX_SEC_OF[k]);Object.assign(UX_SEC_OF,QS_OF);
+ UX_SEC_ORDER.splice(0,UX_SEC_ORDER.length,...QS_SEC);
+ Object.assign(UX_TITLE,{pedidos:'PedidosYa',seguridad:'Seguridad y portero',menuadmin:'Menú público',crm:'Atención al cliente',botwa:'Bot de pedidos',push:'Notificaciones push'});
+}catch(e){}}
+function qaSide(){const sd=document.getElementById('side');if(!sd)return;
+ sd.querySelectorAll('a[data-ux]').forEach(a=>{if(a.dataset.qe)return;const e=QS_EMO[a.dataset.ux]||QS_EMO[a.dataset.id];if(!e)return;a.dataset.qe='1';
+  const ic=a.querySelector('svg');const s=document.createElement('span');s.className='qs-e';s.setAttribute('aria-hidden','true');s.textContent=e;if(ic)ic.replaceWith(s);else a.insertBefore(s,a.firstChild);});}
+{const st=document.createElement('style');st.textContent=`#side a[data-ux] .qs-e{display:inline-grid;place-items:center;flex:none;width:1.7rem;font-size:1.15rem;line-height:1}
+#side a.ux-pos-btn .qs-e{font-size:1.25rem}
+#side .ux-sec{letter-spacing:.3px}`;document.head.appendChild(st);
+ const _sp2=showPanel;showPanel=function(){const r=_sp2.apply(this,arguments);try{qaSide();}catch(e){}return r;};}

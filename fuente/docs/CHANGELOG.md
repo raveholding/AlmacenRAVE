@@ -4,6 +4,12 @@ Sistema de gestión (POS + inventario + caja + clientes + menú público) para *
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
 Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
+## V27.42 — Barra lateral ordenada y con íconos de color (sólo Almacén RAVE)
+- 9 secciones claras: Resumen · Ventas y caja · Pedidos y reparto · Productos y stock · Clientes y Club RAVE · Finanzas · Equipo · Menú y web · Sistema.
+- Sin entradas repetidas: las pantallas hermanas quedan en una sola entrada con pestañas — **Precios y etiquetas** (Precios · Etiquetas), **Stock e inventario** (Inventario · Toma de inventario · Depósitos), **Reparto y despacho** (Despacho · Mi hoja de ruta · Armado de cargas · Torre de control · Equipo en el mapa · Devoluciones en tránsito) y **Ventas mayoristas** (Pedidos de venta · Preventa · Acopios).
+- «Seguridad y portero» pasa a Equipo; Bot de pedidos y Notificaciones push a Clientes.
+- Íconos de color en todas las entradas (🛒 💵 📦 🏷️ 🚚 ⭐ 💬 💰 ⚙️ …), como la barra inferior. Sin cambios de permisos.
+
 ## V27.41 — Botones grandes para trabajar rápido (sólo Almacén RAVE)
 - **«¿Qué querés hacer?»** arriba del Resumen: botones grandes con ícono (🛒 Vender destacado, 📦 Productos, 💵 Abrir caja / Caja abierta, 🔒 Cerrar caja, ➕ Nuevo producto, 👥 Clientes, 💬 Atención, 🚚 Proveedores). Sólo los que la persona puede usar.
 - **Barra inferior del celular** más clara: 🏠 Inicio · 🛒 Vender · 📦 Productos · 💵 Caja · 👥 Clientes · ☰ Más, con íconos de color, textos más grandes y la pestaña activa resaltada. La barra del ticket de Vender queda arriba de ella.
