@@ -7,9 +7,9 @@
    La carga de fotos ya es gratis: «Pegar foto», «Buscar foto en Google» y Open Food Facts (V27.31b), achicadas a WebP en el equipo. */
 const POS3_CSS=`
 .pos3 .pos>section,.pos3 .pos>section>.card{min-width:0}
-.pos3 .pos>section:first-child>.card:first-child{position:sticky;top:var(--pos3-top,0px);z-index:6;box-shadow:0 10px 24px rgba(0,0,0,.12)}
-.pos3 .pos>section:first-child>.card:first-child .row:has([data-act="prub"]){flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
-.pos3 .pos>section:first-child>.card:first-child .row:has([data-act="prub"])::-webkit-scrollbar{display:none}
+.pos3 .pos3-stk{position:sticky;top:var(--pos3-top,0px);z-index:6;background:var(--card);margin:-.2rem -.2rem 0;padding:.2rem .2rem .5rem;border-bottom:1px solid var(--line)}
+.pos3 .pos3-stk .row:has([data-act="prub"]){flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.pos3 .pos3-stk .row:has([data-act="prub"])::-webkit-scrollbar{display:none}
 .pos3 [data-act="prub"]{flex:none;min-height:40px;border-radius:999px!important;white-space:nowrap}
 #pos-top{margin:.2rem 0 .8rem}
 #pos-top .pt-h{display:flex;align-items:center;gap:.5rem;margin:0 0 .45rem}
@@ -50,7 +50,8 @@ function posTopHTML(){const T=posTopIds();if(!T.ids.length&&!can('config'))retur
   return `<button type="button" class="pt-b" data-act="padd" data-id="${p.id}" ${off?'disabled':''} aria-label="Agregar ${esc(pfull(p))}, ${money(p.price)}">${T.pin.includes(id)?'<span class="pt-pin" aria-hidden="true">★</span>':''}${p.img?`<img src="${esc(p.img)}" alt="" loading="lazy" decoding="async">`:'<span class="pt-ni" aria-hidden="true">🛒</span>'}<b>${esc(pfull(p))}</b><span class="pt-p">${money(p.price)}</span></button>`;}).join('')}</div>`
  :'<p class="sm mut" style="margin:0">Todavía no hay ventas en los últimos 30 días: fijá tus productos más pedidos con «★ Fijar».</p>');}
 function posV3After(){document.body.classList.add('pos3-on');const v=$('#view');if(v)v.classList.add('pos3');
- const tp=$('#top');document.documentElement.style.setProperty('--pos3-top',(tp&&getComputedStyle(tp).position.match(/fixed|sticky/)?tp.offsetHeight:0)+'px');
+ const ps=$('#psearch'),card=ps&&ps.closest('.card');if(card&&!card.querySelector('.pos3-stk')){const r1=ps.closest('.row'),r2=card.querySelector('[data-act="prub"]')&&card.querySelector('[data-act="prub"]').closest('.row');if(r1&&r1.parentNode===card){const w=document.createElement('div');w.className='pos3-stk';card.insertBefore(w,r1);w.appendChild(r1);if(r2&&r2.parentNode===card)w.appendChild(r2);}}
+ const tp=$('#top'),fb=$('#fbar');const fx=e=>e&&/fixed|sticky/.test(getComputedStyle(e).position)?e.offsetHeight:0;document.documentElement.style.setProperty('--pos3-top',(fx(tp)+fx(fb))+'px');
  const g=$('#pgrid');if(!g)return;let box=$('#pos-top');const show=!pos.q.trim()&&!pos.rub;
  if(show){if(!box){box=document.createElement('div');box.id='pos-top';g.parentNode.insertBefore(box,g);}box.innerHTML=posTopHTML();}else if(box)box.remove();
  const imgs=new Map();$$('#pgrid .pbtn[data-id]').forEach(b=>{if(b.dataset.p3)return;b.dataset.p3='1';const p=prod(b.dataset.id);if(!p)return;
@@ -75,3 +76,14 @@ A.posTopEdit=()=>{if(!can('config'))return toast('Sin permiso',1);let sel=(S.cfg
  const L=w.querySelector('#ptp-l'),Q=w.querySelector('#ptp-q'),N=w.querySelector('#ptp-n');
  Q.addEventListener('input',()=>{L.innerHTML=rows(Q.value.trim());});
  L.addEventListener('change',e=>{const c=e.target.closest('.ptp');if(!c)return;if(c.checked){if(sel.length>=12){c.checked=false;return toast('Máximo 12 fijados',1);}sel.push(c.value);}else sel=sel.filter(x=>x!==c.value);N.textContent=sel.length+' fijado(s)';});};
+
+/* V27.40 · sin búsqueda ni rubro no se listan todos los artículos: sólo «Más vendidos»; el resto aparece al escribir nombre o código o al elegir un rubro.
+   Con un rubro elegido se muestran los primeros 48 y «Mostrar todos». La búsqueda y el lector siguen igual. */
+let pos3All=false;
+{const _pg0=posGrid;posGrid=function(){const g=$('#pgrid');const q=(pos.q||'').trim();
+  if(g&&!q&&!pos.rub){g.innerHTML=`<div class="card pos3-hint" style="grid-column:1/-1"><p class="mut" style="margin:0">🔎 Escribí el nombre o el código (o pasá el lector) para buscar entre todos los artículos, o elegí un rubro.</p></div>`;try{posV3After();}catch(e){}return;}
+  const r=_pg0.apply(this,arguments);
+  if(g&&!q&&pos.rub&&!pos3All){const T=$$('#pgrid > *').filter(x=>!x.classList.contains('pos3-more'));if(T.length>48){T.slice(48).forEach(x=>x.remove());const m=document.createElement('div');m.className='pos3-more';m.style.gridColumn='1/-1';
+    m.innerHTML=`<button class="btn" data-act="pos3All" style="width:100%">Mostrar todos (${T.length})</button>`;g.appendChild(m);}}
+  return r;};}
+A.pos3All=()=>{pos3All=true;posGrid();pos3All=false;};

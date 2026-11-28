@@ -4,6 +4,12 @@ Sistema de gestión (POS + inventario + caja + clientes + menú público) para *
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
 Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
+## V27.40 — Vender sin lista eterna (sólo Almacén RAVE)
+- Sin búsqueda ni rubro elegido, Vender muestra **sólo «Más vendidos»** (hasta 12) y una ayuda; el resto aparece al escribir el nombre o el código, pasar el lector o elegir un rubro.
+- Con un rubro elegido se ven los primeros 48 y «Mostrar todos».
+- Arreglo: sólo el buscador y los rubros quedan fijos al bajar (antes quedaba fija toda la tarjeta con la grilla y tapaba la pantalla), debajo de la barra de teclas F1–F12.
+- Prueba `pv3.py`: 17 verificaciones.
+
 ## V27.39 — Vender más visual y ágil (sólo Almacén RAVE)
 - **«⚡ Más vendidos»** arriba de la grilla: hasta 12, primero los fijados por el dueño («★ Fijar», permiso de configuración) y después los de más rotación de los últimos 30 días. Un toque los suma al ticket. En el celular es un carrusel.
 - Buscador y rubros **fijos arriba** al bajar; rubros deslizables; tarjetas con **foto**, nombre en 2 líneas y **precio grande**; marca visual al tocar.
