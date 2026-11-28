@@ -19,7 +19,7 @@ with sync_playwright() as p:
     fr=[f for f in m.frames if f!=m.main_frame][0]
     if fr.locator('#age-gate.open').count(): fr.locator('#ag-yes').click();m.wait_for_timeout(400)
     H=fr.evaluate("document.documentElement.scrollHeight")
-    chk(H<12000,'la página es más corta (%d px; antes ~15.500)'%H)
+    chk(H<13500,'la página es más corta (%d px; antes ~15.500; incluye Club y mapa)'%H)
     chk(fr.evaluate("document.querySelector('header').offsetHeight")<150,'encabezado compacto (%d px)'%fr.evaluate("document.querySelector('header').offsetHeight"))
     chk(not fr.is_visible('.pitch') and not fr.is_visible('.sale-fab') and not fr.is_visible('.info-block'),'sin textos largos ni botón flotante del desarrollador arriba')
     chk(fr.evaluate("!!document.querySelector('footer .lang-toggle')"),'el idioma pasa al pie')

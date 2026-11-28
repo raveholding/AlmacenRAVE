@@ -157,3 +157,33 @@ footer.v3-foot .v3-vb a{color:var(--gold-ink,var(--gold));text-decoration:underl
 .promo-banner,#ev-block.v3-ev{max-width:none!important;width:auto!important}
 #club-mini .ch-dots i{width:100%;max-width:58px;justify-self:center}
 #club-mini .ch-card{background-color:#1d1812}
+
+/* V27.44 · encabezado centrado en pantallas anchas (logo y nombre al medio, botones arriba a la derecha) */
+@media (min-width:900px){
+ header{display:flex!important;flex-direction:column;align-items:center;text-align:center!important;position:relative;padding:18px 14px 14px!important}
+ header img.logo{max-height:64px!important;max-width:150px!important}
+ header h1.brand-title{font-size:26px!important;margin-top:6px!important}
+ header .brand-sub{font-size:11.5px!important;letter-spacing:2px}
+ header .top-tools{position:absolute!important;top:14px;right:14px}
+ header #alc-pill{justify-self:auto;margin-top:10px!important}
+ #ev-block.v3-ev{text-align:left}
+ #ev-block.v3-ev .v3-ev-t{text-align:left}
+}
+.sheet{margin-left:auto!important;margin-right:auto!important}
+/* V27.44 · Dónde estamos: mapa + Reseñas (arriba) y WhatsApp (abajo) con la misma altura */
+#v3-loc{display:grid;grid-template-columns:1fr;gap:10px;margin:16px 12px 6px}
+#v3-loc .vl-map{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:var(--raise);display:flex;flex-direction:column;min-height:260px}
+#v3-loc .vl-map iframe{flex:1;width:100%;min-height:220px;border:0;display:block}
+#v3-loc .vl-addr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;font:600 13px Poppins,sans-serif;color:var(--ink)}
+#v3-loc .vl-addr a{color:var(--gold-ink,var(--gold));text-decoration:underline;white-space:nowrap;min-height:40px;display:inline-flex;align-items:center}
+#v3-loc .vl-side{display:grid;grid-template-rows:1fr 1fr;gap:10px}
+#v3-loc .vl-card{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:14px 16px;border-radius:18px;border:1px solid var(--line);background:var(--raise);color:var(--ink);text-align:left}
+#v3-loc .vl-card b{font:700 15px Poppins,sans-serif}
+#v3-loc .vl-card small{font:13px/1.4 Poppins,sans-serif;color:var(--muted)}
+#v3-loc .vl-card a{align-self:flex-start;margin-top:6px;display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border-radius:12px;font:700 13.5px Poppins,sans-serif;text-decoration:none;border:1px solid var(--gold);color:var(--gold-ink,var(--gold))}
+#v3-loc .vl-stars{color:var(--gold);font-size:18px;letter-spacing:2px}
+#v3-loc .vl-wa{background:#0b6b36;border-color:#0b6b36;color:#fff}
+#v3-loc .vl-wa b,#v3-loc .vl-wa small{color:#fff!important}
+#v3-loc .vl-wa a{background:#fff;color:#0b6b36;border-color:#fff}
+#v3-loc .vl-ic{font-size:22px}
+@media (min-width:760px){#v3-loc{grid-template-columns:1.6fr 1fr;align-items:stretch}#v3-loc .vl-map{min-height:300px}}

@@ -4,6 +4,11 @@ Sistema de gestión (POS + inventario + caja + clientes + menú público) para *
 Un solo archivo HTML5 (`index.html`): menú digital adelante, panel del equipo detrás de **Acceso del equipo** (`/#acceso`).
 Funciona sin internet y sincroniza con la nube (Supabase) cuando hay conexión. **El proyecto Supabase anterior ya no existe: hay que crear uno nuevo** (ver «Conectar la nube»); no queda ninguna clave vieja que rotar.
 
+## V27.44 — Menú: encabezado centrado y bloque «Dónde estamos» (sólo Almacén RAVE)
+- En pantallas anchas el encabezado queda centrado (logo, nombre, rubro y horario al medio; compartir y tema arriba a la derecha).
+- Abajo, antes del pie: **mapa de Google** con la dirección y «Cómo llegar», y al lado **Reseñas** (arriba, «Dejar reseña en Google») y **WhatsApp** (abajo, «Escribir por WhatsApp»), con la misma altura que el mapa. En el celular se apilan.
+- mv3: el límite de alto contempla el Club y el mapa.
+
 ## V27.42 — Barra lateral ordenada y con íconos de color (sólo Almacén RAVE)
 - 9 secciones claras: Resumen · Ventas y caja · Pedidos y reparto · Productos y stock · Clientes y Club RAVE · Finanzas · Equipo · Menú y web · Sistema.
 - Sin entradas repetidas: las pantallas hermanas quedan en una sola entrada con pestañas — **Precios y etiquetas** (Precios · Etiquetas), **Stock e inventario** (Inventario · Toma de inventario · Depósitos), **Reparto y despacho** (Despacho · Mi hoja de ruta · Armado de cargas · Torre de control · Equipo en el mapa · Devoluciones en tránsito) y **Ventas mayoristas** (Pedidos de venta · Preventa · Acopios).

@@ -113,9 +113,20 @@
     var mapU=s.mapUrl||(mapA&&mapA.href)||(s.address?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address):'');
     var revU=s.reviewUrl||(revA&&revA.href)||''; var wa=String(s.wa||window.RAVE_WA||'').replace(/\D/g,'');
     var addr=s.address||''; var ttl=String(s.title||(($('header .brand-title')||{}).textContent)||'').replace(/\s*digital$/i,'');
-    var acts=''; if(mapU) acts+='<a href="'+esc(mapU)+'" target="_blank" rel="noopener noreferrer">📍 '+L('Cómo llegar','Directions')+'</a>';
-    if(wa) acts+='<a class="wa" href="https://wa.me/'+wa+'?text='+encodeURIComponent(L('Hola! ','Hi! '))+'" target="_blank" rel="noopener noreferrer">💬 WhatsApp</a>';
-    if(revU) acts+='<a href="'+esc(revU)+'" target="_blank" rel="noopener noreferrer">⭐ '+L('Dejar reseña','Leave a review')+'</a>';
+    /* V27.44 · bloque «Dónde estamos»: mapa a la izquierda y, al lado, Reseñas arriba y WhatsApp abajo (misma altura que el mapa) */
+    var emb=$('.map-panel .map-embed iframe'), loc=null, acts='';
+    if(emb&&!$('#v3-loc')){ loc=document.createElement('section'); loc.id='v3-loc'; loc.setAttribute('aria-label',L('Dónde estamos','Where we are'));
+      var rs=$('.review-panel .info-sub'), rh=$('.review-panel h2');
+      loc.innerHTML='<div class="vl-map"></div><div class="vl-side">'
+        +'<div class="vl-card vl-rev"><div class="vl-stars" aria-hidden="true">★★★★★</div><b>'+esc(rh?rh.textContent.trim():L('Reseñas en Google','Google reviews'))+'</b><small>'+esc(rs?rs.textContent.trim():L('Contanos cómo te atendimos.','Tell us about your visit.'))+'</small>'
+        +(revU?'<a href="'+esc(revU)+'" target="_blank" rel="noopener noreferrer">⭐ '+L('Dejar reseña en Google','Review us on Google')+'</a>':'')+'</div>'
+        +(wa?'<div class="vl-card vl-wa"><div class="vl-ic" aria-hidden="true">💬</div><b>'+L('¿Tenés una consulta?','Any questions?')+'</b><small>'+L('Escribinos y te respondemos por WhatsApp.','Message us on WhatsApp.')+'</small><a href="https://wa.me/'+wa+'?text='+encodeURIComponent(L('Hola! ','Hi! '))+'" target="_blank" rel="noopener noreferrer">'+L('Escribir por WhatsApp','Chat on WhatsApp')+'</a></div>':'')+'</div>';
+      var mb=$('.vl-map',loc); mb.appendChild(emb); emb.removeAttribute('height'); emb.setAttribute('title',L('Mapa: ','Map: ')+(s.address||ttl));
+      if(addr||mapU) mb.insertAdjacentHTML('beforeend','<div class="vl-addr"><span>📍 '+esc(addr)+'</span>'+(mapU?'<a href="'+esc(mapU)+'" target="_blank" rel="noopener noreferrer">'+L('Cómo llegar','Directions')+' ›</a>':'')+'</div>');
+      ft.parentNode.insertBefore(loc,ft); }
+    else { if(mapU) acts+='<a href="'+esc(mapU)+'" target="_blank" rel="noopener noreferrer">📍 '+L('Cómo llegar','Directions')+'</a>';
+      if(wa) acts+='<a class="wa" href="https://wa.me/'+wa+'?text='+encodeURIComponent(L('Hola! ','Hi! '))+'" target="_blank" rel="noopener noreferrer">💬 WhatsApp</a>';
+      if(revU) acts+='<a href="'+esc(revU)+'" target="_blank" rel="noopener noreferrer">⭐ '+L('Dejar reseña','Leave a review')+'</a>'; }
     if(dWifi) acts+='<button type="button" data-v3="wifi">📶 Wi-Fi</button>';
     var soc=(s.social||[]).filter(function(x){ return x&&/^https:\/\//.test(x.url||''); }).slice(0,6).map(function(x){ var ic=(s.icons||{})[x.k]; var svg=typeof ic==='string'&&/^<svg[\s>]/.test(ic)&&!/<script|on\w+=/i.test(ic)?ic:'🔗';
       return '<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(x.label||x.k)+'">'+svg+'</a>'; }).join('');
